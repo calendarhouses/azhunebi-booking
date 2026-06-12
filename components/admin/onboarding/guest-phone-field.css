@@ -1,0 +1,156 @@
+.guest-phone-field {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.guest-phone-field:focus-within {
+  border-color: rgba(85, 107, 47, 0.45);
+  box-shadow: 0 0 0 3px rgba(85, 107, 47, 0.12);
+}
+
+.guest-phone-field.is-disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.guest-phone-field__prefix {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 10px;
+  margin: 0;
+  border: 0;
+  border-right: 1px solid #e5e7eb;
+  border-radius: 0;
+  background: #f4f6f0;
+  color: #42572a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.guest-phone-field__prefix:hover {
+  background: #edf3e2;
+}
+
+.guest-phone-field__prefix:focus-visible {
+  outline: 2px solid rgba(85, 107, 47, 0.35);
+  outline-offset: -2px;
+}
+
+.guest-phone-field__flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.guest-phone-field__code {
+  white-space: nowrap;
+}
+
+.guest-phone-field__number {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0 11px;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  background: transparent;
+  box-shadow: none;
+}
+
+.guest-phone-field__number:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.guest-phone-field__picker {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.guest-phone-field__picker--portal {
+  position: fixed;
+  z-index: 10050;
+}
+
+.guest-phone-field__search {
+  flex-shrink: 0;
+  border: 0;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.guest-phone-field__search:focus {
+  outline: none;
+  background: #fafcf6;
+}
+
+.guest-phone-field__list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.guest-phone-field__option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.guest-phone-field__option:hover,
+.guest-phone-field__option.is-selected {
+  background: #f4f6f0;
+}
+
+.guest-phone-field__option-name {
+  flex: 1;
+  min-width: 0;
+  color: #1f2937;
+}
+
+.guest-phone-field__option-dial {
+  flex-shrink: 0;
+  color: #5f7438;
+  font-weight: 600;
+}
+
+.guest-phone-field__empty {
+  padding: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.branding-field .guest-phone-field {
+  height: 42px;
+}
+
+.branding-field .guest-phone-field__prefix,
+.branding-field .guest-phone-field__number {
+  font-size: 14px;
+}

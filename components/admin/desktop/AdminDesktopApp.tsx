@@ -1,0 +1,264 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { AdminGridDashboard, bookingMoveKey } from "@/components/admin/dashboard/AdminGridDashboard";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { expireAdminSession } from "@/lib/admin/adminSession";
+import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
+import { isRoomDraftId } from "@/lib/admin/roomDraft";
+import { isDiscountDraftId } from "@/lib/admin/discountDraft";
+import { DesktopBookingDrawer } from "./DesktopBookingDrawer";
+import { DesktopHeader } from "./DesktopHeader";
+import { DesktopModals } from "./DesktopModals";
+import { DesktopOverlays } from "./DesktopOverlays";
+import { DesktopPreloader } from "./DesktopPreloader";
+import { GridFocusModeProvider, useGridFocusModeOptional } from "./GridFocusModeContext";
+import { DesktopSidebar } from "./DesktopSidebar";
+import { registerAdminDesktopHandlers } from "./registerAdminDesktopHandlers";
+import { DesktopBookingsListView } from "./views/DesktopBookingsListView";
+import { DesktopGuestsView } from "./views/DesktopGuestsView";
+import { DesktopReportsView } from "./views/DesktopReportsView";
+import { DesktopSettingsView } from "./views/DesktopSettingsView";
+import { AdminLoadErrorScreen } from "@/components/admin/AdminLoadErrorScreen";
+import { useAdminApp } from "./useAdminApp";
+import { useAdminModals } from "./useAdminModals";
+import { useAdminUiBridge } from "./useAdminUiBridge";
+import { useBookingDrawer } from "./useBookingDrawer";
+import { getAdminViewStyle } from "./adminViewDom";
+import { getSettingsTabPageMeta } from "./settingsTabMeta";
+import { DiscountTemplatesToggleButton } from "./settings/DiscountTemplatesToggleButton";
+import "./settings/settings-discounts.css";
+
+function AdminMainContent({
+  activeView,
+  children,
+}: {
+  activeView: string;
+  children: ReactNode;
+}) {
+  const { isCompactMode } = useGridFocusModeOptional();
+  const className = [
+    "main-content",
+    activeView === "settings" ? "main-content--settings" : "",
+    activeView === "grid" && isCompactMode ? "main-content--grid-focus" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return <div className={className}>{children}</div>;
+}
+
+export function AdminDesktopApp() {
+  const { signOut, membership } = useAuth();
+  const publicBookUrl = membership?.tenantId
+    ? `/book/${membership.tenantId}`
+    : undefined;
+  const pauseSilentSyncRef = useRef(false);
+  const admin = useAdminApp({ pauseSilentSyncRef });
+  const bridge = useAdminUiBridge({
+    activeView: admin.activeView,
+    bookings: admin.bookings,
+    setBookings: admin.setBookings,
+    applyServerData: admin.applyServerData,
+    silentSync: admin.silentSync,
+    switchView: admin.switchView,
+    signOut,
+  });
+
+  const drawer = useBookingDrawer({
+    bookings: admin.bookings,
+    settings: admin.settings,
+    editingRowRef: bridge.editingRowRef,
+    earlyTimeRef: bridge.earlyTimeRef,
+    lateTimeRef: bridge.lateTimeRef,
+  });
+
+  const priceTimelineBaseDateRef = useRef(new Date());
+  const restrictionsTimelineBaseDateRef = useRef(new Date());
+  priceTimelineBaseDateRef.current.setDate(1);
+  restrictionsTimelineBaseDateRef.current.setDate(1);
+
+  const modals = useAdminModals({
+    settings: admin.settings,
+    setSettings: admin.setSettings,
+    bookings: admin.bookings,
+    settingsTab: admin.settingsTab,
+    priceTimelineBaseDateRef,
+    restrictionsTimelineBaseDateRef,
+  });
+
+  useEffect(() => {
+    const hasDraftRoom = (admin.settings.roomsList || []).some((r) => isRoomDraftId(r.id));
+    const hasDraftDiscount = (admin.settings.discountsList || []).some((d) => isDiscountDraftId(d.id));
+    pauseSilentSyncRef.current =
+      modals.roomAccordionKey != null ||
+      modals.roomDrawerOpen ||
+      modals.genericOpen ||
+      modals.discountAccordionKey != null ||
+      hasDraftRoom ||
+      hasDraftDiscount;
+  }, [
+    modals.roomAccordionKey,
+    modals.roomDrawerOpen,
+    modals.genericOpen,
+    modals.discountAccordionKey,
+    admin.settings.roomsList,
+    admin.settings.discountsList,
+  ]);
+
+  useEffect(() => registerAdminDesktopHandlers(modals), [modals]);
+
+  const [guestFilter, setGuestFilter] = useState<{ name: string; phone: string } | null>(null);
+  const [sidebarLogoPreviewUrl, setSidebarLogoPreviewUrl] = useState<string | null>(null);
+  const branding = (admin.settings.branding || {}) as Record<string, unknown>;
+  const sidebarBrandName =
+    String(branding.site_title || "").trim() || membership?.tenantName || null;
+
+  useEffect(() => {
+    const raw = normalizeDriveImageUrl(String(branding.logo_url || ""));
+    if (raw) setSidebarLogoPreviewUrl(raw);
+  }, [branding.logo_url]);
+
+  const settingsTabMeta =
+    admin.activeView === "settings" ? getSettingsTabPageMeta(admin.settingsTab) : null;
+  const hasDiscounts = (admin.settings.discountsList || []).length > 0;
+  const settingsHeaderAction =
+    admin.activeView === "settings" && admin.settingsTab === "rooms" ? (
+      <button
+        type="button"
+        className="btn-primary"
+        style={{ padding: "10px 16px", fontSize: 13 }}
+        onClick={() => modals.addRoomDraft()}
+      >
+        + Додати житло
+      </button>
+    ) : admin.activeView === "settings" && admin.settingsTab === "discounts" && hasDiscounts ? (
+      <DiscountTemplatesToggleButton modals={modals} />
+    ) : undefined;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.resetGuestFilter = () => setGuestFilter(null);
+    return () => {
+      delete window.resetGuestFilter;
+    };
+  }, []);
+
+  if (admin.loadError && !admin.appVisible && !admin.isLoading) {
+    return (
+      <AdminLoadErrorScreen
+        error={admin.loadError}
+        onRetry={() => void admin.reload()}
+      />
+    );
+  }
+
+  return (
+    <GridFocusModeProvider tenantId={membership?.tenantId}>
+      <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
+        <DesktopPreloader hidden={!admin.isLoading} />
+        <DesktopSidebar
+          activeView={admin.activeView}
+          settingsExpanded={admin.settingsExpanded}
+          settingsTab={admin.settingsTab}
+          tenantId={membership?.tenantId}
+          tenantName={sidebarBrandName}
+          tenantPlan={membership?.plan}
+          publicBookUrl={publicBookUrl}
+          logoPreviewUrl={sidebarLogoPreviewUrl}
+          onNavigate={admin.switchView}
+          onToggleSettings={admin.toggleSettingsMenu}
+          onSettingsTab={admin.switchSettingsTab}
+        />
+        <AdminMainContent activeView={admin.activeView}>
+          <DesktopHeader
+            key={`${admin.activeView}-${admin.settingsTab}`}
+            pageTitle={admin.pageMeta.title}
+            pageIconPath={admin.pageMeta.icon}
+            iconVariant={settingsTabMeta?.iconVariant}
+            titleAccent={admin.activeView === "settings"}
+            showMainAction={admin.showMainAction}
+            headerAction={settingsHeaderAction}
+            onCreateBooking={() => drawer.openNewBookingDrawer()}
+          />
+          {admin.loadError ? (
+            <div className="admin-load-error-banner card">
+              {admin.loadError}{" "}
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ marginLeft: 12 }}
+                onClick={() => void admin.reload()}
+              >
+                Повторити
+              </button>
+            </div>
+          ) : null}
+          <DesktopBookingsListView
+            style={getAdminViewStyle("list", admin.activeView)}
+            bookings={admin.bookings}
+            roomsList={admin.settings.roomsList}
+            onOpenBooking={drawer.openDetailsByRow}
+            guestFilter={guestFilter}
+            onClearGuestFilter={() => setGuestFilter(null)}
+          />
+          <AdminGridDashboard
+            style={getAdminViewStyle("grid", admin.activeView)}
+            roomsList={admin.settings.roomsList}
+            bookings={admin.bookings}
+            onOpenBooking={drawer.openDetailsByRow}
+            onCreateBooking={(room, checkIn, checkOut) =>
+              drawer.openNewBookingDrawer(room, checkIn, checkOut)
+            }
+            onBookingUpdated={(updated) => {
+              admin.setBookings((prev) =>
+                prev.map((b) => (bookingMoveKey(b) === bookingMoveKey(updated) ? updated : b))
+              );
+            }}
+            onAfterBookingChange={admin.silentSync}
+            onSessionExpired={expireAdminSession}
+          />
+          <DesktopGuestsView
+            style={getAdminViewStyle("guests", admin.activeView)}
+            bookings={admin.bookings}
+            onShowGuestBookings={(phone, name) => {
+              setGuestFilter({ phone, name });
+              admin.switchView("list");
+            }}
+          />
+          <DesktopReportsView
+            style={getAdminViewStyle("reports", admin.activeView)}
+            bookings={admin.bookings}
+            transactions={admin.settings.transactions || []}
+            roomsList={admin.settings.roomsList}
+            customPrices={admin.settings.customPrices}
+            settings={admin.settings}
+            onSettingsChange={admin.setSettings}
+            onOpenBooking={drawer.openDetailsByRow}
+            isActive={admin.activeView === "reports"}
+          />
+          <DesktopSettingsView
+            style={getAdminViewStyle("settings", admin.activeView)}
+            settings={admin.settings}
+            tenantName={membership?.tenantName}
+            onLogoPreviewChange={setSidebarLogoPreviewUrl}
+            onSettingsChange={admin.setSettings}
+            activeTab={admin.settingsTab}
+            modals={modals}
+            priceTimelineBaseDateRef={priceTimelineBaseDateRef}
+            restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}
+          />
+
+          <DesktopBookingDrawer
+            roomsList={admin.settings.roomsList}
+            drawer={drawer}
+            settings={admin.settings}
+            bookings={admin.bookings}
+          />
+          <DesktopModals modals={modals} settings={admin.settings} />
+          <DesktopOverlays />
+        </AdminMainContent>
+      </div>
+    </GridFocusModeProvider>
+  );
+}

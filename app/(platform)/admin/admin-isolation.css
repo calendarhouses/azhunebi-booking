@@ -1,0 +1,177 @@
+/* Ізоляція /admin від globals.css + Tailwind preflight (як body у old_boso_admin.html) */
+html:has(.boso-admin-page),
+html:has(.boso-admin-page) body,
+html:has(.boso-admin-mobile),
+html:has(.boso-admin-mobile) body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  background: #fdfcfb !important;
+  color: #1a1a1a !important;
+  font-family: "Inter", sans-serif !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.admin-layout-shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.boso-admin-page,
+.boso-admin-mobile,
+.khata-onboarding {
+  --accent-gradient: linear-gradient(
+    135deg,
+    rgba(85, 107, 47, 0.92),
+    rgba(105, 125, 58, 0.9) 58%,
+    rgba(145, 124, 78, 0.82)
+  );
+  --accent-gradient-hover: linear-gradient(
+    135deg,
+    rgba(73, 92, 40, 0.95),
+    rgba(95, 113, 52, 0.92) 58%,
+    rgba(128, 108, 68, 0.88)
+  );
+  --accent-premium-border: rgba(193, 172, 118, 0.35);
+  --accent-premium-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 6px 18px rgba(30, 40, 24, 0.34);
+  --accent-premium-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 22px rgba(30, 40, 24, 0.38);
+  --brand-icon-color: #7a9248;
+}
+
+.boso-admin-page,
+.boso-admin-mobile {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-color, #fdfcfb);
+  color: var(--text-main, #1a1a1a);
+}
+
+.admin-premium-btn {
+  background: var(--accent-gradient);
+  border: 1px solid var(--accent-premium-border);
+  box-shadow: var(--accent-premium-shadow);
+  color: #f4f7ee;
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.15s ease,
+    border-color 0.25s ease;
+}
+
+.admin-premium-btn:hover:not(:disabled) {
+  background: var(--accent-gradient-hover);
+  box-shadow: var(--accent-premium-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.admin-premium-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Скасування Tailwind preflight (крім логотипу — там свої розміри) */
+.boso-admin-page img:not(.admin-logo),
+.boso-admin-mobile img:not(.admin-logo) {
+  max-width: none;
+  height: auto;
+}
+
+.boso-admin-page button,
+.boso-admin-page input,
+.boso-admin-page select,
+.boso-admin-page textarea,
+.boso-admin-mobile button,
+.boso-admin-mobile input,
+.boso-admin-mobile select,
+.boso-admin-mobile textarea {
+  font-family: inherit;
+}
+
+.boso-admin-page table,
+.boso-admin-mobile table {
+  border-collapse: collapse;
+}
+
+/* Не скидаємо margin/padding глобально — це ламає .menu-item, .card, кнопки */
+
+/* Меню, заголовки, таблиці — без виділення/копіювання; лише поля вводу */
+.boso-admin-page,
+.boso-admin-page *,
+.boso-admin-mobile,
+.boso-admin-mobile * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.boso-admin-page input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not(
+    [type="submit"]
+  ):not([type="reset"]):not([type="file"]):not([type="image"]):not([type="hidden"]),
+.boso-admin-page textarea,
+.boso-admin-page select,
+.boso-admin-page [contenteditable]:not([contenteditable="false"]),
+.boso-admin-page .editable-number,
+.boso-admin-mobile input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not(
+    [type="submit"]
+  ):not([type="reset"]):not([type="file"]):not([type="image"]):not([type="hidden"]),
+.boso-admin-mobile textarea,
+.boso-admin-mobile select,
+.boso-admin-mobile [contenteditable]:not([contenteditable="false"]),
+.boso-admin-mobile .editable-number {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/*
+ * Широкі монітори: збільшуємо всю desktop-адмінку пропорційно,
+ * щоб щільність UI збігалася з повноекранним MacBook (~1512×900 logical).
+ * На вузьких/середніх екранах scale = 1 (без зменшення).
+ */
+.boso-admin-page {
+  --admin-ref-viewport-width: 1512;
+  --admin-ref-viewport-height: 900;
+  --admin-ui-scale: 1;
+  --branding-form-max: 720px;
+}
+
+@media (min-width: 1680px) {
+  .boso-admin-page {
+    --branding-form-max: clamp(880px, 56vw, 1280px);
+  }
+}
+
+@media (min-width: 1680px) {
+  .boso-admin-page {
+    --admin-ui-scale-w: min(1.95, calc(100vw / var(--admin-ref-viewport-width)));
+    --admin-ui-scale-h: min(1.95, calc(100vh / var(--admin-ref-viewport-height)));
+    --admin-ui-scale: max(1, min(var(--admin-ui-scale-w), var(--admin-ui-scale-h)));
+  }
+}
+
+.boso-admin-page #admin-app.is-visible {
+  zoom: var(--admin-ui-scale);
+}
+
+@supports not (zoom: 1) {
+  .boso-admin-page #admin-app.is-visible {
+    zoom: 1;
+    transform: scale(var(--admin-ui-scale));
+    transform-origin: top left;
+    width: calc(100% / var(--admin-ui-scale));
+    height: calc(100% / var(--admin-ui-scale));
+  }
+}
