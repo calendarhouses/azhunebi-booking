@@ -45,6 +45,39 @@ function formatMoneyUa(amount: number): string {
   return `${Math.round(amount).toLocaleString("uk-UA")} ₴`;
 }
 
+function buildDecisionSummaryHtml(
+  decision: "approve" | "reject",
+  booking: {
+    name?: string;
+    phone?: string;
+    cottage?: string;
+    checkIn?: string;
+    checkOut?: string;
+    totalPrice?: number;
+    prepayAmount?: number;
+  },
+  smsLine?: string
+): string {
+  const title =
+    decision === "approve" ? "✅ <b>Прийнято</b>" : "❌ <b>Скасовано</b>";
+  const dates = `${formatDateUk(booking.checkIn)} — ${formatDateUk(booking.checkOut)}`;
+  const total = Math.round(Number(booking.totalPrice) || 0);
+  const prepay = Math.round(Number(booking.prepayAmount) || 0);
+  const lines = [
+    title,
+    "",
+    `🏡 <b>${booking.cottage || "—"}</b>`,
+    `👤 ${booking.name || "Гість"} (${formatPhoneDisplay(booking.phone)})`,
+    `📅 ${dates}`,
+  ];
+  if (total > 0) lines.push(`💰 Вартість: <b>${formatMoneyUa(total)}</b>`);
+  if (prepay > 0) lines.push(`💳 Передплата: <b>${formatMoneyUa(prepay)}</b>`);
+  if (smsLine) {
+    lines.push("", `📱 ${smsLine}`);
+  }
+  return lines.join("\n");
+}
+
 function countNights(checkIn?: string, checkOut?: string): number {
   if (!checkIn || !checkOut) return 0;
   const a = new Date(checkIn.includes("T") ? checkIn : `${checkIn}T12:00:00`);
@@ -153,22 +186,23 @@ export async function handleBookingReviewCallback(
   }
 
   if (decision === "reject") {
-    await answerTelegramCallback(callbackQueryId, "Скасовано ❌");
-    await editTelegramMessage(chatId, messageId, `❌ <b>Скасовано</b>`, {
+    const smsLine = result.smsLine || "Скасовано";
+    await answerTelegramCallback(callbackQueryId, smsLine);
+    const body = result.booking
+      ? buildDecisionSummaryHtml("reject", result.booking, smsLine)
+      : `❌ <b>Скасовано</b>\n\n📱 ${smsLine}`;
+    await editTelegramMessage(chatId, messageId, body, {
       inline_keyboard: [],
     });
     return;
   }
 
-  const booking = result.booking;
-  if (!booking) {
-    await answerTelegramCallback(callbackQueryId, "Підтверджено, але дані броні не завантажились");
-    return;
-  }
-
   const smsLine = result.smsLine || "Готово";
   await answerTelegramCallback(callbackQueryId, smsLine);
-  await editTelegramMessage(chatId, messageId, `✅ <b>Прийнято</b>`, {
+  const body = result.booking
+    ? buildDecisionSummaryHtml("approve", result.booking, smsLine)
+    : `✅ <b>Прийнято</b>\n\n📱 ${smsLine}`;
+  await editTelegramMessage(chatId, messageId, body, {
     inline_keyboard: [],
   });
 }

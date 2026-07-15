@@ -3,6 +3,7 @@ import { fetchBookingByDisplayId, reviewBookingDecision } from "@/lib/gas-api";
 import {
   formatSmsStatusLine,
   notifyGuestBookingApproved,
+  notifyGuestBookingRejected,
 } from "@/lib/sms/notifyGuestBookingApproved";
 
 export type BookingReviewDecision = "approve" | "reject";
@@ -15,6 +16,30 @@ export type ProcessBookingReviewResult = {
   smsLine?: string;
   booking?: GuestMessengerBooking;
 };
+
+function toGuestBooking(
+  orderId: string,
+  booking: {
+    name?: string;
+    phone?: string;
+    cottage?: string;
+    checkIn?: string;
+    checkOut?: string;
+    prepayAmount?: number;
+    totalPrice?: number;
+  }
+): GuestMessengerBooking {
+  return {
+    id: orderId,
+    name: booking.name,
+    phone: booking.phone,
+    cottage: booking.cottage,
+    checkIn: booking.checkIn,
+    checkOut: booking.checkOut,
+    prepayAmount: booking.prepayAmount,
+    totalPrice: booking.totalPrice,
+  };
+}
 
 export async function processBookingReview(params: {
   orderId: string;
@@ -49,42 +74,35 @@ export async function processBookingReview(params: {
     };
   }
 
-  if (params.decision === "reject") {
-    return { ok: true, orderId, decision: "reject" };
-  }
-
-  // Статус уже змінено в GAS — SMS/reload не повинні ламати успіх approve.
-  let booking =
+  // Статус уже змінено в GAS — SMS/reload не повинні ламати успіх.
+  const bookingRaw =
     result.booking || (await fetchBookingByDisplayId(orderId).catch(() => null))?.booking;
 
-  if (!booking) {
-    console.warn("[review] approve ok but booking payload missing", orderId);
+  if (!bookingRaw) {
+    console.warn("[review] ok but booking payload missing", orderId, params.decision);
     return {
       ok: true,
       orderId,
-      decision: "approve",
-      smsLine: "Підтверджено, але дані броні не підвантажились для SMS.",
+      decision: params.decision,
+      smsLine:
+        params.decision === "approve"
+          ? "Підтверджено, але дані броні не підвантажились для SMS."
+          : "Скасовано, але дані броні не підвантажились для SMS.",
     };
   }
 
-  const guestBooking: GuestMessengerBooking = {
-    id: orderId,
-    name: booking.name,
-    phone: booking.phone,
-    cottage: booking.cottage,
-    checkIn: booking.checkIn,
-    checkOut: booking.checkOut,
-    prepayAmount: booking.prepayAmount,
-    totalPrice: booking.totalPrice,
-  };
+  const guestBooking = toGuestBooking(orderId, bookingRaw);
 
   try {
-    const notifyResult = await notifyGuestBookingApproved(guestBooking);
+    const notifyResult =
+      params.decision === "approve"
+        ? await notifyGuestBookingApproved(guestBooking)
+        : await notifyGuestBookingRejected(guestBooking);
     return {
       ok: true,
       orderId,
-      decision: "approve",
-      smsLine: formatSmsStatusLine(notifyResult),
+      decision: params.decision,
+      smsLine: formatSmsStatusLine(notifyResult, params.decision),
       booking: guestBooking,
     };
   } catch (err) {
@@ -92,8 +110,11 @@ export async function processBookingReview(params: {
     return {
       ok: true,
       orderId,
-      decision: "approve",
-      smsLine: "Підтверджено, але SMS не вдалося надіслати.",
+      decision: params.decision,
+      smsLine:
+        params.decision === "approve"
+          ? "Підтверджено, але SMS не вдалося надіслати."
+          : "Скасовано, але SMS не вдалося надіслати.",
       booking: guestBooking,
     };
   }

@@ -37,7 +37,7 @@ export function BookingReviewActions({ orderId, onApproved, onRejected }: Props)
           showToast(result.smsLine || "Заявку прийнято");
           onApproved?.();
         } else {
-          showToast("Заявку відхилено");
+          showToast(result.smsLine || "Заявку відхилено");
           onRejected?.();
         }
       } catch (err) {
