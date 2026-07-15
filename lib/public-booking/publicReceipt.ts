@@ -195,7 +195,6 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
   const guests = Number(raw.guests) || 0;
   const children = Number(raw.childCount) || 0;
   const nights = Number(raw.nights) || 0;
-  const orderId = String(raw.orderId || "").trim();
 
   const guestParts: string[] = [];
   if (guests > 0) guestParts.push(`${guests} ${guests === 1 ? "дорослий" : "дорослих"}`);
@@ -252,7 +251,6 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
       <div class="receipt-premium__meta">
         ${metaRow("Дати", `${checkInLabel} — ${checkOutLabel}${nightsLabel}`)}
         ${metaRow("Гості", guestLabel)}
-        ${orderId ? metaRow("Номер заявки", orderId) : ""}
         ${raw.phone ? metaRow("Телефон", raw.phone) : ""}
       </div>
 

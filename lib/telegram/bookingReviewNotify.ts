@@ -150,13 +150,10 @@ export async function handleBookingReviewCallback(
   }
 
   if (decision === "reject") {
-    await answerTelegramCallback(callbackQueryId, "Бронь скасовано");
-    await editTelegramMessage(
-      chatId,
-      messageId,
-      `❌ <b>Скасовано</b>\n🆔 <code>${orderId}</code>\n\nЗаявку відхилено.`,
-      { inline_keyboard: [] }
-    );
+    await answerTelegramCallback(callbackQueryId, "Скасовано ❌");
+    await editTelegramMessage(chatId, messageId, `❌ <b>Скасовано</b>`, {
+      inline_keyboard: [],
+    });
     return;
   }
 
@@ -167,15 +164,8 @@ export async function handleBookingReviewCallback(
   }
 
   const smsLine = result.smsLine || "Готово";
-
   await answerTelegramCallback(callbackQueryId, smsLine);
-  await editTelegramMessage(
-    chatId,
-    messageId,
-    `✅ <b>Прийнято</b> · <code>${orderId}</code>\n\n` +
-      `👤 ${booking.name || "Гість"} (${formatPhoneDisplay(booking.phone)})\n` +
-      `🏡 ${booking.cottage || "—"}\n\n` +
-      `📱 ${smsLine}`,
-    { inline_keyboard: [] }
-  );
+  await editTelegramMessage(chatId, messageId, `✅ <b>Прийнято</b>`, {
+    inline_keyboard: [],
+  });
 }
