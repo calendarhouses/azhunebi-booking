@@ -89,16 +89,6 @@ export const AMENITIES_CATEGORIES: AmenityDictCategory[] = [
       { id: "sauna", label: "Сауна" },
     ],
   },
-  {
-    id: "rules",
-    title: "Побут / Правила",
-    items: [
-      { id: "pets_possible", label: "Можна з тваринами (за узгодженням)" },
-      { id: "no_smoking_inside", label: "Куріння лише на вулиці" },
-      { id: "quiet_hours", label: "Режим тиші 22:00 – 08:00" },
-      { id: "self_checkin", label: "Самостійне заселення" },
-    ],
-  },
 ];
 
 export function buildDefaultAmenitiesState(): Record<string, { id: string; isActive: boolean; isFeatured: boolean; customText?: string }[]> {

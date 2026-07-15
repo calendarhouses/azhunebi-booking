@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PublicRoom } from "@/lib/public-booking/types";
-import { buildPublicAmenities, getRoomDescription } from "@/lib/public-booking/desktopRoomContent";
+import { getRoomSiteFeatures } from "@/lib/public-booking/desktopRoomContent";
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 import {
   formatPriceUa,
+  getRoomBadgeLabel,
   getRoomImages,
   getRoomMinPrice,
   getRoomSubtitle,
 } from "@/lib/public-booking/roomHelpers";
+import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
+import { CabinSlideImage } from "../CabinSlideImage";
 
 type Props = {
   room: PublicRoom;
@@ -19,11 +22,14 @@ type Props = {
 };
 
 export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: Props) {
-  const images = getRoomImages(room);
+  const images = getRoomImages(room, { card: true });
   const minPrice = getRoomMinPrice(room, customPrices);
   const [slideIndex, setSlideIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
-  const { featured, byCategory } = buildPublicAmenities(room);
+  const sliderWrapRef = useRef<HTMLDivElement>(null);
+  const sliderTrackStyle = useSliderTrackStyle(sliderWrapRef, slideIndex);
+  const features = getRoomSiteFeatures(room);
+  const subtitle = getRoomSubtitle(room);
 
   useEffect(() => {
     const el = cardRef.current;
@@ -51,6 +57,7 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
     <div className="cabin-card" ref={cardRef}>
       <div
         className="slider-wrap"
+        ref={sliderWrapRef}
         role="button"
         tabIndex={0}
         onClick={onBook}
@@ -58,14 +65,11 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
           if (e.key === "Enter" || e.key === " ") onBook();
         }}
       >
-        <div className="cabin-badge">{room.desc}</div>
-        <div
-          className="slider-track"
-          style={{ transform: `translateX(-${slideIndex * 100}%)` }}
-        >
+        {getRoomBadgeLabel(room) ? <div className="cabin-badge">{getRoomBadgeLabel(room)}</div> : null}
+        <div className="slider-track" style={sliderTrackStyle}>
           {images.map((url, i) => (
             <div className="slide" key={i}>
-              <img
+              <CabinSlideImage
                 src={url}
                 alt={room.name}
                 loading="lazy"
@@ -117,31 +121,18 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
 
       <div className="cabin-body">
         <div className="cabin-name">{room.name}</div>
-        <div className="cabin-subtitle">{getRoomSubtitle(room)}</div>
+        {subtitle ? <div className="cabin-subtitle">{subtitle}</div> : null}
 
-        <div className="premium-features">
-          {featured.map((item, idx) => (
-            <div key={idx} className="feature-item">
-              <strong style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {features.length ? (
+          <div className="premium-features">
+            {features.map((item, idx) => (
+              <div key={idx} className="feature-item">
                 {item.icon}
                 <span>{item.label}</span>
-              </strong>
-            </div>
-          ))}
-        </div>
-
-        <p
-          style={{
-            fontSize: 14,
-            color: "#4B5563",
-            lineHeight: 1.6,
-            marginBottom: 16,
-            maxHeight: 80,
-            overflow: "hidden",
-          }}
-        >
-          {getRoomDescription(room)}
-        </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="cabin-meta">
           <div className="cabin-meta-item">
@@ -154,92 +145,17 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
           </div>
         </div>
 
-        {room.rules ? (
-          <div
-            className="cabin-meta"
-            style={{
-              marginTop: 8,
-              fontSize: 12,
-              color: "#4B5563",
-              background: "#F9FAFB",
-              borderRadius: 12,
-              padding: 12,
-              border: "1px solid #E5E7EB",
-            }}
-          >
-            <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
-              <span>
-                <strong>Заїзд:</strong> {room.rules.checkInTime || "15:00"}
-              </span>
-              <span>
-                <strong>Виїзд:</strong> {room.rules.checkOutTime || "11:00"}
-              </span>
-            </div>
-            <div style={{ marginBottom: 4 }}>
-              <strong>Тварини:</strong>{" "}
-              {room.rules.pets?.isPetsFriendly ? "дозволені" : "не дозволені"}
-              {room.rules.pets?.description
-                ? ` · ${room.rules.pets.description}`
-                : null}
-            </div>
-            {room.rules.selfCheckIn?.enabled ? (
-              <div>
-                <strong>Самостійне заселення:</strong>{" "}
-                {room.rules.selfCheckIn.description || "є інструкція для гостя"}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {byCategory.length ? (
-          <div
-            style={{
-              marginTop: 10,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {byCategory.map((cat) => (
-              <div
-                key={cat.id}
-                style={{
-                  padding: 10,
-                  borderRadius: 10,
-                  border: "1px dashed #E5E7EB",
-                  background: "#FFFFFF",
-                  fontSize: 12,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    color: "#9CA3AF",
-                    marginBottom: 6,
-                  }}
-                >
-                  {cat.title}
-                </div>
-                <ul style={{ margin: 0, paddingLeft: 16, listStyle: "disc" }}>
-                  {cat.items.map((a, idx) => (
-                    <li key={idx} style={{ marginBottom: 2 }}>
-                      {a.label}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
         <div className="cabin-footer-block">
           <div className="price-info">
             <span className="price-label">Вартість</span>
             <span className="price-val">
-              від <strong>{formatPriceUa(minPrice)}</strong> грн / ніч
+              {minPrice > 0 ? (
+                <>
+                  від <strong>{formatPriceUa(minPrice)}</strong> грн / ніч
+                </>
+              ) : (
+                <strong>Уточнюйте</strong>
+              )}
             </span>
           </div>
           <button type="button" className="btn-book" onClick={onBook}>

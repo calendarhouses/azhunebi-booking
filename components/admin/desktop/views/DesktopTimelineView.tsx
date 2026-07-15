@@ -2,7 +2,7 @@
 
 import { Infinity as InfinityIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent, WheelEvent } from "react";
 import { parseSafeDate } from "../adminDates";
 import { bosoHover, bosoLeave } from "../adminTooltip";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
@@ -20,14 +20,23 @@ import {
   getTimelineStatusClass,
 } from "../bookingUtils";
 import {
+  shiftDateKey,
   BOOKING_MOVE_THRESHOLD,
   bookingMoveKey,
   resolveActiveRoomIndex,
   resolveTargetRoomIndex,
-  shiftDateKey,
   getTimelineRowHeight,
   type BookingMoveSession,
 } from "../timelineBookingMove";
+import {
+  buildTimelineConstraintsByRoom,
+  buildRoomTimelineConstraints,
+  clampSelectionWithAnchor,
+  resolveHoverPreviewRange,
+  resolveSelectionNightFromPointer,
+  resolveSelectionStartFromPointer,
+  snapMovedBookingDates,
+} from "../timelineSelectionConstraints";
 import { TIMELINE_CELL_BASE, useTimelineCellWidth } from "../timelineCellWidth";
 import {
   applyDragEdgeScroll,
@@ -45,7 +54,6 @@ import {
 import type { BookingRecord, RoomConfig } from "../types";
 import {
   getTimelineBookingBlockLayout,
-  TIMELINE_BOOKING_BLOCK_INSET,
   TIMELINE_BOOKING_BLOCK_LAYOUT,
   TimelineBookingCardContent,
 } from "../TimelineBookingCardContent";
@@ -65,12 +73,17 @@ export interface DesktopTimelineViewProps {
   bookings?: BookingRecord[];
   onOpenBooking: (event: React.MouseEvent | null, row: number | string) => void;
   onCreateBooking: (room: string, checkIn: string, checkOut: string) => void;
+  /** Кнопка «Нова бронь» у розгорнутому вигляді (коли хедер прихований). */
+  onNewBooking?: () => void;
   onMoveBooking?: (
     booking: BookingRecord,
     room: RoomConfig,
     checkIn: string,
     checkOut: string
   ) => void;
+  onUndoMove?: () => void;
+  canUndoMove?: boolean;
+  isUndoing?: boolean;
 }
 
 type TimelineDay = {
@@ -117,6 +130,19 @@ function buildDays(startDate: Date, daysCount: number): TimelineDay[] {
     days.push(buildDayAtIndex(startDate, i, today));
   }
   return days;
+}
+
+function isCalendarMonthStart(dateStr: string): boolean {
+  const date = parseSafeDate(dateStr);
+  return date ? date.getDate() === 1 : false;
+}
+
+function isCalendarMonthEnd(dateStr: string): boolean {
+  const date = parseSafeDate(dateStr);
+  if (!date) return false;
+  const next = new Date(date);
+  next.setDate(date.getDate() + 1);
+  return next.getMonth() !== date.getMonth();
 }
 
 function buildDaysRange(startDate: Date, fromIndex: number, toIndex: number): TimelineDay[] {
@@ -256,7 +282,11 @@ export function DesktopTimelineView({
   bookings = [],
   onOpenBooking,
   onCreateBooking,
+  onNewBooking,
   onMoveBooking,
+  onUndoMove,
+  canUndoMove = false,
+  isUndoing = false,
 }: DesktopTimelineViewProps) {
   const isMobile = layout === "mobile";
   const { isCompactMode } = useGridFocusModeOptional();
@@ -276,7 +306,15 @@ export function DesktopTimelineView({
   const [draggingBookingKey, setDraggingBookingKey] = useState<string | number | null>(null);
   const [isBookingDragging, setIsBookingDragging] = useState(false);
   const [bookingDragHoverKey, setBookingDragHoverKey] = useState<string | null>(null);
+  const [cellHoverPreview, setCellHoverPreview] = useState<{
+    room: string;
+    checkIn: string;
+    checkOut: string;
+  } | null>(null);
+  const cellHoverPreviewRef = useRef(cellHoverPreview);
+  cellHoverPreviewRef.current = cellHoverPreview;
   const isDraggingRef = useRef(false);
+  const dragAnchorRef = useRef<string | null>(null);
   const isBookingDraggingRef = useRef(false);
   const bookingDragHoverRef = useRef<string | null>(null);
   const gridSelectionRef = useRef({ dragRoom: null as string | null, dragStart: null as string | null, dragEnd: null as string | null });
@@ -350,6 +388,11 @@ export function DesktopTimelineView({
   const activeBookings = useMemo(
     () => bookings.filter((b) => !String(b.status).toLowerCase().includes("скас")),
     [bookings]
+  );
+
+  const constraintsByRoom = useMemo(
+    () => buildTimelineConstraintsByRoom(activeBookings, activeRooms),
+    [activeBookings, activeRooms]
   );
 
   const gridByRoom = useMemo(() => {
@@ -463,6 +506,8 @@ export function DesktopTimelineView({
     setDragRoom(null);
     setDragStart(null);
     setDragEnd(null);
+    setCellHoverPreview(null);
+    dragAnchorRef.current = null;
     isDraggingRef.current = false;
     if (typeof window !== "undefined") {
       (window as Window & { isGridDragging?: boolean }).isGridDragging = false;
@@ -474,12 +519,9 @@ export function DesktopTimelineView({
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     if (dragRoom && dragStart && dragEnd) {
-      let d1 = new Date(dragStart);
-      let d2 = new Date(dragEnd);
-      if (d1 > d2) [d1, d2] = [d2, d1];
-      const checkInStr = formatDateKey(d1);
-      d2.setDate(d2.getDate() + 1);
-      const checkOutStr = formatDateKey(d2);
+      const sorted = [dragStart, dragEnd].sort();
+      const checkInStr = sorted[0];
+      const checkOutStr = shiftDateKey(sorted[sorted.length - 1], 1);
       onCreateBooking(dragRoom, checkInStr, checkOutStr);
     }
     setTimeout(clearSelection, 300);
@@ -563,6 +605,18 @@ export function DesktopTimelineView({
     scrollSyncRef.current = false;
   }, []);
 
+  const handleGridWheel = useCallback(
+    (event: WheelEvent<HTMLDivElement>) => {
+      if (!compactGrid) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      const sidebar = sidebarBodyScrollRef.current;
+      if (!sidebar) return;
+      event.preventDefault();
+      sidebar.scrollTop += event.deltaY;
+    },
+    [compactGrid]
+  );
+
   const clearDragUiState = useCallback(() => {
     draggingBlockRef.current = null;
     bookingDragHoverRef.current = null;
@@ -594,8 +648,8 @@ export function DesktopTimelineView({
         );
       }
 
-      const layout = getTimelineBookingBlockLayout(rowHeight);
-      const top = session.targetRoomIndex * rowHeight + TIMELINE_BOOKING_BLOCK_INSET;
+      const layout = getTimelineBookingBlockLayout(rowHeight, compactGrid);
+      const top = session.targetRoomIndex * rowHeight + layout.top;
       const left = block.left + pixelDelta;
       el.style.transform = `translate3d(${left}px, ${top}px, 0)`;
       el.style.width = `${block.width}px`;
@@ -680,14 +734,25 @@ export function DesktopTimelineView({
         dragEndedAtRef.current = Date.now();
         const newCheckIn = shiftDateKey(session.booking.checkIn, session.deltaDays);
         const newCheckOut = shiftDateKey(session.booking.checkOut, session.deltaDays);
-        onMoveBooking(session.booking, targetRoom, newCheckIn, newCheckOut);
+        const roomBookings = activeBookings.filter((b) => {
+          const room = findRoomForBooking(b, activeRooms);
+          return room?.id === targetRoom.id;
+        });
+        const constraints = buildRoomTimelineConstraints(
+          roomBookings,
+          bookingMoveKey(session.booking)
+        );
+        const snapped = snapMovedBookingDates(newCheckIn, newCheckOut, constraints);
+        if (snapped) {
+          onMoveBooking(session.booking, targetRoom, snapped.checkIn, snapped.checkOut);
+        }
       }
 
       stopDragAutoScroll();
       clearDragUiState();
       scheduleRecompute();
     },
-    [activeRooms, clearDragUiState, clearMoveListeners, onMoveBooking, scheduleRecompute, stopDragAutoScroll]
+    [activeBookings, activeRooms, clearDragUiState, clearMoveListeners, onMoveBooking, scheduleRecompute, stopDragAutoScroll]
   );
 
   const handleBookingPointerDown = useCallback(
@@ -742,6 +807,7 @@ export function DesktopTimelineView({
           draggingBlockRef.current = block;
           isBookingDraggingRef.current = true;
           setIsBookingDragging(true);
+          setCellHoverPreview(null);
           setDraggingBookingKey(bookingMoveKey(session.booking));
           lastDragFramePointerRef.current = { x: 0, y: 0 };
           updateDragFloatPosition(session, block);
@@ -793,33 +859,167 @@ export function DesktopTimelineView({
   const selectedClassForDate = useCallback((roomName: string, dateStr: string): string => {
     const { dragRoom: room, dragStart: start, dragEnd: end } = gridSelectionRef.current;
     if (!room || room !== roomName || !start || !end) return "";
-    let d1 = new Date(start);
-    let d2 = new Date(end);
-    if (d1 > d2) [d1, d2] = [d2, d1];
-    const cd = new Date(dateStr);
-    if (cd < d1 || cd > d2) return "";
     const sorted = [start, end].sort();
+    const rangeStart = sorted[0];
+    const rangeEnd = sorted[sorted.length - 1];
+    const checkOutDay = shiftDateKey(rangeEnd, 1);
+
+    if (dateStr === checkOutDay && rangeStart !== rangeEnd) {
+      return "cell-selected-tail";
+    }
+    if (dateStr < rangeStart || dateStr > rangeEnd) return "";
+
     let cls = "cell-selected";
-    if (dateStr === sorted[0]) cls += " cell-selected-start";
-    if (dateStr === sorted[sorted.length - 1]) cls += " cell-selected-end";
+    if (dateStr === rangeStart) cls += " cell-selected-start";
+    if (dateStr === rangeEnd) cls += " cell-selected-end";
     return cls;
   }, []);
 
-  const onCellMouseDown = useCallback((roomName: string, dateString: string) => {
+  const onTrackMouseDown = useCallback((roomName: string, event: MouseEvent<HTMLDivElement>) => {
     if (isBookingDraggingRef.current || moveSessionRef.current) return;
+    if (event.button !== 0) return;
+
+    const cell = (event.target as HTMLElement).closest(
+      ".timeline-cell[data-date]"
+    ) as HTMLElement | null;
+    if (!cell || cell.dataset.room !== roomName) return;
+
+    const date = cell.dataset.date;
+    if (!date) return;
+
+    const constraints = constraintsByRoom.get(roomName);
+    const activePreview = cellHoverPreviewRef.current;
+    const start =
+      activePreview?.room === roomName
+        ? activePreview.checkIn
+        : resolveSelectionStartFromPointer(
+            date,
+            event.clientX,
+            cell.getBoundingClientRect(),
+            constraints
+          );
+
+    setCellHoverPreview(null);
     isDraggingRef.current = true;
     if (typeof window !== "undefined") {
       (window as Window & { isGridDragging?: boolean }).isGridDragging = true;
     }
     setDragRoom(roomName);
-    setDragStart(dateString);
-    setDragEnd(dateString);
+    dragAnchorRef.current = start;
+    setDragStart(start);
+    setDragEnd(start);
+  }, [constraintsByRoom]);
+
+  const onCellMouseEnter = useCallback((_roomName: string, _dateString: string) => {
+    // Виділення оновлюється через onTrackMouseMove (half-cell), не через enter цілої клітинки.
   }, []);
 
-  const onCellMouseEnter = useCallback((roomName: string, dateString: string) => {
+  const visibleDateSet = useMemo(
+    () => new Set(renderDays.map((day) => day.dateString)),
+    [renderDays]
+  );
+
+  const hoverPreviewKey = cellHoverPreview
+    ? `${cellHoverPreview.room}:${cellHoverPreview.checkIn}:${cellHoverPreview.checkOut}`
+    : "";
+
+  const hoverClassForDate = useCallback(
+    (roomName: string, dateStr: string): string => {
+      const preview = cellHoverPreview;
+      if (!preview || preview.room !== roomName) return "";
+
+      const checkInVisible = visibleDateSet.has(preview.checkIn);
+      const checkOutVisible = visibleDateSet.has(preview.checkOut);
+      const onCheckIn = dateStr === preview.checkIn && checkInVisible;
+      const onCheckOut = dateStr === preview.checkOut && checkOutVisible;
+      if (!onCheckIn && !onCheckOut) return "";
+
+      let baseClass = "";
+      if (onCheckIn && checkOutVisible) {
+        baseClass = "cell-hover-preview-one-night";
+      } else if (onCheckIn && !checkOutVisible) {
+        baseClass = "cell-hover-preview-checkin-only";
+      } else if (onCheckOut && !checkInVisible) {
+        baseClass = "cell-hover-preview-checkout-only";
+      }
+      if (!baseClass) return "";
+
+      const flipCorners =
+        (isCalendarMonthStart(dateStr) && baseClass === "cell-hover-preview-checkout-only") ||
+        (isCalendarMonthEnd(dateStr) && baseClass === "cell-hover-preview-checkin-only");
+
+      return flipCorners ? `${baseClass} cell-hover-preview--flip-corners` : baseClass;
+    },
+    [cellHoverPreview, visibleDateSet]
+  );
+
+  const onTrackMouseMove = useCallback((roomName: string, event: MouseEvent<HTMLDivElement>) => {
     if (isBookingDraggingRef.current || moveSessionRef.current) return;
-    if (!isDraggingRef.current || gridSelectionRef.current.dragRoom !== roomName) return;
-    setDragEnd(dateString);
+
+    const cell = (event.target as HTMLElement).closest(
+      ".timeline-cell[data-date]"
+    ) as HTMLElement | null;
+
+    if (isDraggingRef.current && gridSelectionRef.current.dragRoom === roomName) {
+      if (!cell || cell.dataset.room !== roomName) return;
+      const date = cell.dataset.date;
+      const anchor = dragAnchorRef.current;
+      if (!date || !anchor) return;
+
+      const movingNight = resolveSelectionNightFromPointer(
+        date,
+        event.clientX,
+        cell.getBoundingClientRect()
+      );
+      const constraints = constraintsByRoom.get(roomName);
+      if (!constraints) {
+        setDragStart(anchor <= movingNight ? anchor : movingNight);
+        setDragEnd(anchor <= movingNight ? movingNight : anchor);
+        return;
+      }
+      const clamped = clampSelectionWithAnchor(anchor, movingNight, constraints);
+      setDragStart(clamped.start);
+      setDragEnd(clamped.end);
+      return;
+    }
+
+    if (!cell || cell.dataset.room !== roomName) {
+      setCellHoverPreview(null);
+      return;
+    }
+
+    const date = cell.dataset.date;
+    if (!date) return;
+
+    const rect = cell.getBoundingClientRect();
+    const isRightHalf = event.clientX - rect.left >= rect.width / 2;
+    const constraints = constraintsByRoom.get(roomName);
+    const preview = constraints
+      ? resolveHoverPreviewRange(date, isRightHalf, constraints)
+      : {
+          checkIn: isRightHalf ? date : shiftDateKey(date, -1),
+          checkOut: isRightHalf ? shiftDateKey(date, 1) : date,
+        };
+
+    if (!preview || preview.checkIn >= preview.checkOut) {
+      setCellHoverPreview(null);
+      return;
+    }
+
+    setCellHoverPreview((prev) => {
+      if (
+        prev?.room === roomName &&
+        prev.checkIn === preview.checkIn &&
+        prev.checkOut === preview.checkOut
+      ) {
+        return prev;
+      }
+      return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
+    });
+  }, [constraintsByRoom]);
+
+  const onTrackMouseLeave = useCallback((roomName: string) => {
+    setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));
   }, []);
 
   const iconClock = (
@@ -829,7 +1029,7 @@ export function DesktopTimelineView({
   );
 
   const bookingBlockLayout = compactGrid
-    ? getTimelineBookingBlockLayout(rowHeight)
+    ? getTimelineBookingBlockLayout(rowHeight, true)
     : TIMELINE_BOOKING_BLOCK_LAYOUT;
   const bookingBlockStyle = compactGrid
     ? { top: bookingBlockLayout.top, height: bookingBlockLayout.height }
@@ -915,10 +1115,14 @@ export function DesktopTimelineView({
           virtualOffsetPx={virtualWindow.offsetPx}
           renderDays={renderDaysForCells}
           selectionKey={selectionKey}
+          hoverPreviewKey={hoverPreviewKey}
           selectedClassForDate={selectedClassForDate}
+          hoverClassForDate={hoverClassForDate}
           bookingDragHoverKey={bookingDragHoverKey}
-          onCellMouseDown={onCellMouseDown}
+          onTrackMouseDown={onTrackMouseDown}
           onCellMouseEnter={onCellMouseEnter}
+          onTrackMouseMove={onTrackMouseMove}
+          onTrackMouseLeave={onTrackMouseLeave}
           roomName={room.name}
           blocksSignature={`${room.id}:${draggingBookingKey}:${blocks.map((b) => b.booking.row).join(",")}`}
         >
@@ -931,7 +1135,7 @@ export function DesktopTimelineView({
 
             return (
               <div
-                key={String(block.booking.row)}
+                key={String(bookingMoveKey(block.booking))}
                 className={`booking-block ${block.statusClass}${block.nights === 1 ? " micro-booking" : ""}${block.nights >= 2 ? " booking-block--multi-night" : ""}`}
                 style={{
                   left: block.left,
@@ -1063,11 +1267,11 @@ export function DesktopTimelineView({
             left: 0,
             top: 0,
             width: draggingBlockRef.current.width,
-            height: getTimelineBookingBlockLayout(rowHeight).height,
+            height: getTimelineBookingBlockLayout(rowHeight, compactGrid).height,
             paddingLeft: draggingBlockRef.current.padLeft,
             paddingRight: draggingBlockRef.current.padRight,
             pointerEvents: "none",
-            transform: `translate3d(${draggingBlockRef.current.left}px, ${TIMELINE_BOOKING_BLOCK_INSET}px, 0)`,
+            transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, compactGrid).top}px, 0)`,
           }}
         >
           {draggingBlockRef.current.extensions.map((ext, idx) => (
@@ -1103,89 +1307,131 @@ export function DesktopTimelineView({
     .filter(Boolean)
     .join(" ");
 
+  const sidebarUndoProps = onUndoMove
+    ? { onUndoMove, canUndoMove, isUndoing }
+    : {};
+
+  const timelineMonthNav = (
+    <div className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}>
+      <button
+        type="button"
+        className={`btn-icon${isMobile ? " tap-btn" : ""}`}
+        onClick={() => shiftTimeline(-1)}
+      >
+        <svg
+          width={isMobile ? 14 : 16}
+          height={isMobile ? 14 : 16}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <span
+        className={`timeline-month-label${mode === "continuous" ? " timeline-month-label--infinite" : ""}`}
+        id="timelineMonthLabel"
+      >
+        {timelineNavLabel}
+      </span>
+      <button
+        type="button"
+        className={`btn-icon${isMobile ? " tap-btn" : ""}`}
+        onClick={() => shiftTimeline(1)}
+      >
+        <svg
+          width={isMobile ? 14 : 16}
+          height={isMobile ? 14 : 16}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+
+  const timelineTodayButton = (
+    <button
+      type="button"
+      className={`btn-secondary${isMobile ? " tap-btn" : ""}`}
+      onClick={resetToToday}
+      style={
+        isMobile
+          ? { padding: "6px 12px", fontSize: 12, width: "auto" }
+          : { padding: "8px 16px", fontSize: 13 }
+      }
+    >
+      Сьогодні
+    </button>
+  );
+
+  const timelineModeToggle = (
+    <div className="mode-toggle">
+      <div
+        id="mode-month"
+        className={`mode-btn${mode === "month" ? " active" : ""}`}
+        onClick={() => setTimelineMode("month")}
+      >
+        Місяць
+      </div>
+      <button
+        type="button"
+        id="mode-cont"
+        className={`mode-btn mode-btn--infinite${mode === "continuous" ? " active" : ""}`}
+        onClick={() => setTimelineMode("continuous")}
+        title="Безкінечна шкала (±3 роки)"
+        aria-label="Безкінечна шкала"
+        aria-pressed={mode === "continuous"}
+      >
+        <InfinityIcon className="mode-btn--infinite__icon" strokeWidth={2.25} aria-hidden />
+      </button>
+    </div>
+  );
+
+  const timelineToolbar = compactGrid ? (
+    <div className="price-grid-toolbar timeline-toolbar--focus">
+      <div className="price-grid-toolbar__nav">
+        {timelineMonthNav}
+        {timelineTodayButton}
+      </div>
+      <div className="price-grid-toolbar__actions">
+        {timelineModeToggle}
+        {onNewBooking ? (
+          <button type="button" className="btn-primary" onClick={onNewBooking}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Нова бронь
+          </button>
+        ) : null}
+      </div>
+    </div>
+  ) : (
+    <div className="timeline-toolbar">
+      {isMobile ? (
+        <div className="timeline-nav-row">
+          {timelineMonthNav}
+          {timelineTodayButton}
+        </div>
+      ) : (
+        <>
+          {timelineMonthNav}
+          {timelineTodayButton}
+        </>
+      )}
+      {timelineModeToggle}
+    </div>
+  );
+
   return (
     <div
       id={useViewRootId ? "view-grid" : undefined}
       className={compactGrid ? "timeline-view-root--focus" : undefined}
       style={rootStyle}
     >
-      <div className={`timeline-toolbar${compactGrid ? " timeline-toolbar--focus-hidden" : ""}`}>
-        {isMobile ? (
-            <div className="timeline-nav-row">
-            <div className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}>
-              <button type="button" className="btn-icon tap-btn" onClick={() => shiftTimeline(-1)}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <span
-                className={`timeline-month-label${mode === "continuous" ? " timeline-month-label--infinite" : ""}`}
-                id="timelineMonthLabel"
-              >
-                {timelineNavLabel}
-              </span>
-              <button type="button" className="btn-icon tap-btn" onClick={() => shiftTimeline(1)}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            <button
-              type="button"
-              className="btn-secondary tap-btn"
-              onClick={resetToToday}
-              style={{ padding: "6px 12px", fontSize: 12, width: "auto" }}
-            >
-              Сьогодні
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}>
-              <button type="button" className="btn-icon" onClick={() => shiftTimeline(-1)}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <span
-                className={`timeline-month-label${mode === "continuous" ? " timeline-month-label--infinite" : ""}`}
-                id="timelineMonthLabel"
-              >
-                {timelineNavLabel}
-              </span>
-              <button type="button" className="btn-icon" onClick={() => shiftTimeline(1)}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            <button type="button" className="btn-secondary" onClick={resetToToday} style={{ padding: "8px 16px", fontSize: 13 }}>
-              Сьогодні
-            </button>
-          </>
-        )}
-
-        <div className="mode-toggle">
-          <div
-            id="mode-month"
-            className={`mode-btn${mode === "month" ? " active" : ""}`}
-            onClick={() => setTimelineMode("month")}
-          >
-            Місяць
-          </div>
-          <button
-            type="button"
-            id="mode-cont"
-            className={`mode-btn mode-btn--infinite${mode === "continuous" ? " active" : ""}`}
-            onClick={() => setTimelineMode("continuous")}
-            title="Безкінечна шкала (±3 роки)"
-            aria-label="Безкінечна шкала"
-            aria-pressed={mode === "continuous"}
-          >
-            <InfinityIcon className="mode-btn--infinite__icon" strokeWidth={2.25} aria-hidden />
-          </button>
-        </div>
-      </div>
+      {timelineToolbar}
 
       <div
         className={wrapperClassName}
@@ -1200,7 +1446,11 @@ export function DesktopTimelineView({
           <>
             <div className="timeline-focus-head">
               <div className="timeline-sidebar timeline-sidebar--focus-head">
-                <TimelineSidebarHeader roomCount={activeRooms.length} showFocusToggle={!isMobile} />
+                <TimelineSidebarHeader
+                  roomCount={activeRooms.length}
+                  showFocusToggle={!isMobile}
+                  {...sidebarUndoProps}
+                />
               </div>
               <div className="timeline-grid-head" ref={gridHeadScrollRef}>
                 <div className="timeline-head-track" ref={headTrackRef}>
@@ -1222,6 +1472,7 @@ export function DesktopTimelineView({
                 id="timelineScroll"
                 ref={scrollRef}
                 onScroll={handleGridContainerScroll}
+                onWheel={handleGridWheel}
               >
                 <div
                   className={`timeline-rows${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
@@ -1241,7 +1492,11 @@ export function DesktopTimelineView({
         ) : (
           <>
             <div className="timeline-sidebar">
-              <TimelineSidebarHeader roomCount={activeRooms.length} showFocusToggle={!isMobile} />
+              <TimelineSidebarHeader
+                roomCount={activeRooms.length}
+                showFocusToggle={!isMobile}
+                {...sidebarUndoProps}
+              />
               <div id="timelineRooms">{timelineRoomRows}</div>
             </div>
 

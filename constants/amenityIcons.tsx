@@ -74,10 +74,6 @@ const AMENITY_LUCIDE_MAP: Record<string, LucideIcon> = {
   vat: Bath,
   pool: Waves,
   sauna: Droplets,
-  pets_possible: PawPrint,
-  no_smoking_inside: CigaretteOff,
-  quiet_hours: Moon,
-  self_checkin: KeyRound,
 };
 
 const CATEGORY_LUCIDE_MAP: Record<string, LucideIcon> = {
@@ -88,7 +84,6 @@ const CATEGORY_LUCIDE_MAP: Record<string, LucideIcon> = {
   comfort: Wifi,
   outdoor: Trees,
   spa: Bath,
-  rules: Moon,
 };
 
 const KNOWN_AMENITY_IDS = new Set(

@@ -1,5 +1,6 @@
 import { normalizeDateToIso, parseSafeDate } from "@/components/admin/desktop/adminDates";
 import type { BookingPayment, BookingRecord } from "@/components/admin/desktop/types";
+import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 
 export type { BookingPayment };
 
@@ -247,5 +248,49 @@ export function syncJournalTotals(payments: BookingPayment[]): {
     prepayMethod: lastPrepay?.method || "ФОП",
     surchargeMethod: lastSurcharge?.method || "Готівка",
     paidAmount,
+  };
+}
+
+/** Сума всіх платежів з журналу (або legacy paidAmount). */
+export function resolveBookingPaidTotal(b: BookingRecord): number {
+  if (isPendingReviewStatus(b.status)) return 0;
+  const payments = getBookingPayments(b);
+  if (payments.length) {
+    return payments.reduce((s, p) => s + (Math.round(Number(p.amount)) || 0), 0);
+  }
+  return Math.round(Number(b.paidAmount) || 0);
+}
+
+export function resolveBookingPrepayPaid(b: BookingRecord): number {
+  return sumPaymentsByBucket(getBookingPayments(b), "prepay");
+}
+
+export function resolveBookingExpectedPrepay(b: BookingRecord, total?: number): number {
+  const bookingTotal = total ?? Math.round(Number(b.totalPrice) || 0);
+  const fromField = Math.round(Number(b.prepayAmount) || 0);
+  if (fromField > 0) return fromField;
+  if (bookingTotal > 0) return Math.round(bookingTotal / 2);
+  return 0;
+}
+
+export type BookingFinanceSummary = {
+  total: number;
+  paid: number;
+  balance: number;
+  prepayExpected: number;
+  prepayPaid: number;
+};
+
+export function resolveBookingFinanceSummary(b: BookingRecord): BookingFinanceSummary {
+  const total = Math.round(Number(b.totalPrice) || 0);
+  const paid = resolveBookingPaidTotal(b);
+  const prepayPaid = resolveBookingPrepayPaid(b);
+  const prepayExpected = resolveBookingExpectedPrepay(b, total);
+  return {
+    total,
+    paid,
+    balance: total - paid,
+    prepayExpected,
+    prepayPaid,
   };
 }

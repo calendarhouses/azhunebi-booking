@@ -1,6 +1,12 @@
 import { formatPhone, parseSafeDate } from "./adminDates";
 import { getGuestWord } from "./adminPlural";
 import type { BookingRecord } from "./types";
+import { resolveBookingFinanceSummary } from "@/lib/admin/bookingPayments";
+import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
+import {
+  isAwaitingPaymentStatus,
+  isPendingReviewStatus,
+} from "@/lib/public-booking/bookingReview";
 
 /** Скасовує відкладене показування після bosoLeave / нового hover. */
 let showGeneration = 0;
@@ -99,8 +105,8 @@ export function bosoHover(
   const guests = b.guests || 2;
   const room = b.cottage || "—";
   const total = Number(b.totalPrice) || 0;
-  const paid = Number(b.paidAmount) || 0;
-  const balance = total - paid;
+  const finance = resolveBookingFinanceSummary(b);
+  const { paid, balance, prepayExpected } = finance;
   const rawComment = b.comment ? String(b.comment).trim() : "";
 
   if (type === "early" || type === "late") {
@@ -108,11 +114,11 @@ export function bosoHover(
     const iconClock =
       '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     if (type === "early") {
-      const m = rawComment.match(/🕒 Ранній заїзд: з (\d{2}:\d{2})/);
-      timeText = m ? `Заїзд з ${m[1]}` : "Ранній заїзд";
+      const { earlyTime } = parseEarlyLateTimesFromComment(rawComment);
+      timeText = earlyTime ? `Заїзд з ${earlyTime}` : "Ранній заїзд";
     } else {
-      const m = rawComment.match(/🕒 Пізній виїзд: до (\d{2}:\d{2})/);
-      timeText = m ? `Виїзд до ${m[1]}` : "Акційний виїзд (до 14:00)";
+      const { lateTime } = parseEarlyLateTimesFromComment(rawComment);
+      timeText = lateTime ? `Виїзд до ${lateTime}` : "Акційний виїзд (до 14:00)";
     }
     tt.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;padding:4px;font-weight:700;color:#111827;font-size:13px;">${iconClock}${timeText}</div>`;
     tt.style.width = "auto";
@@ -123,14 +129,18 @@ export function bosoHover(
     const sClass = String(b.status).toLowerCase();
     if (sClass.includes("скас")) {
       statusHtml = `<div class="bt-status gray">Скасовано</div>`;
+    } else if (isPendingReviewStatus(b.status)) {
+      statusHtml = `<div class="bt-status gray">Очікує підтвердження</div>`;
+    } else if (isAwaitingPaymentStatus(b.status)) {
+      statusHtml = `<div class="bt-status yellow">Очікує оплату: ${prepayExpected} грн</div>`;
     } else if (total === 0) {
       statusHtml = `<div class="bt-status gray">Очікує ціни</div>`;
-    } else if (balance <= 0) {
+    } else if (balance <= 0 && paid > 0) {
       statusHtml = `<div class="bt-status green">Оплачено повністю</div>`;
     } else if (paid > 0) {
       statusHtml = `<div class="bt-status red">Залишок до сплати: ${balance} грн</div>`;
     } else {
-      statusHtml = `<div class="bt-status yellow">Очікує аванс: ${Math.round(total / 2)} грн</div>`;
+      statusHtml = `<div class="bt-status yellow">Очікує аванс: ${prepayExpected} грн</div>`;
     }
 
     const phone = formatPhone(String(b.phone || ""));
@@ -142,7 +152,7 @@ export function bosoHover(
       <div class="bt-row"><span class="bt-label">Котедж:</span> <span class="bt-val">${room}</span></div>
       <div class="bt-row"><span class="bt-label">Дати:</span> <span class="bt-val" style="color:var(--accent);">${inDate} — ${outDate}</span></div>
       <div class="bt-row"><span class="bt-label">Сума:</span> <span class="bt-val">${total} грн</span></div>
-      <div class="bt-row"><span class="bt-label">Внесено:</span> <span class="bt-val green">${paid} грн</span></div>
+      <div class="bt-row"><span class="bt-label">Внесено:</span> <span class="bt-val${paid > 0 ? " green" : ""}">${paid} грн</span></div>
       ${statusHtml}
     `;
   }

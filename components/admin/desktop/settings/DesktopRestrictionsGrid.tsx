@@ -1,135 +1,136 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { dateWord, dayWord } from "../adminPlural";
-import { formatDateKey } from "../bookingUtils";
-import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
-import type { AdminModalsApi } from "../useAdminModals";
-import type { AdminSettingsPayload } from "../types";
 import {
-  getRestrictionCellSelectionClasses,
-  getRestrictionMinNights,
-  getRestrictionSegmentsForRoom,
-  isPriceWeekend,
-  isSameRestrictionSelection,
-  type RestrictionSegment,
-} from "./restrictionGridUtils";
-import { scrollMainContentToElement } from "./scrollMainContent";
-import { useTimelineCellWidth } from "../timelineCellWidth";
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+  type WheelEvent,
+} from "react";
+import { formatDateKey } from "../bookingUtils";
+import { useGridFocusModeOptional } from "../GridFocusModeContext";
+import {
+  applyDragEdgeScroll,
+  isNearDragScrollEdge,
+  type DragScrollTargets,
+} from "../timelineDragAutoScroll";
+import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
+import { getRuleCellKind, isPriceWeekend, type RuleCellKind } from "./restrictionGridUtils";
+import {
+  formatMonthYearLabel,
+  PRICE_CELL_MIN,
+  PRICE_GRID_DATES_HEIGHT,
+  PRICE_GRID_HEADER_HEIGHT,
+  PRICE_GRID_MONTH_HEIGHT,
+  PRICE_ROW_HEIGHT,
+} from "./priceGridUtils";
+import { buildRuleGridSelectionPreset } from "./ruleConstructorLogic";
+import type { AdminModalsApi } from "../useAdminModals";
+import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
+import type { AdminSettingsPayload } from "../types";
 
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const DRAG_THRESHOLD_PX = 5;
 
-function RestrictionSegmentBlock({
-  roomId,
-  segment,
-  cellWidth,
-  onSelect,
+type DragHighlight = { roomIds: string[]; dateStrs: string[] };
+
+function measureRuleCellWidth(kind: RuleCellKind, minNights: number): number {
+  const label = kind === "closed" ? "Закрито" : kind === "minNights" ? `${minNights} мін` : "";
+  if (!label) return PRICE_CELL_MIN;
+  return Math.max(PRICE_CELL_MIN, Math.ceil(label.length * 6.8) + 16);
+}
+
+function getCellSelectionClasses(
+  highlight: DragHighlight | null,
+  roomId: string,
+  dateStr: string
+): string[] {
+  if (!highlight) return [];
+  if (!highlight.roomIds.includes(roomId) || !highlight.dateStrs.includes(dateStr)) return [];
+
+  const rowIdx = highlight.roomIds.indexOf(roomId);
+  const sortedDates = [...highlight.dateStrs].sort();
+  const classes = ["cell-selected"];
+  if (dateStr === sortedDates[0]) classes.push("cell-selected-start");
+  if (dateStr === sortedDates[sortedDates.length - 1]) classes.push("cell-selected-end");
+  if (rowIdx === 0) classes.push("cell-selected-row-first");
+  if (rowIdx === highlight.roomIds.length - 1) classes.push("cell-selected-row-last");
+  return classes;
+}
+
+function RuleGridCell({
+  kind,
+  minNights,
+  isWeekend,
+  width,
+  dragSelectionClasses: selectionClasses,
+  onDragMouseDown,
+  onDragMouseEnter,
+  onOpenConstructor,
 }: {
-  roomId: number;
-  segment: RestrictionSegment;
-  cellWidth: number;
-  onSelect: (e: React.MouseEvent, roomId: number, segment: RestrictionSegment) => void;
+  kind: RuleCellKind;
+  minNights: number;
+  isWeekend: boolean;
+  width: number;
+  dragSelectionClasses: string[];
+  onDragMouseDown: (e: React.MouseEvent) => void;
+  onDragMouseEnter: () => void;
+  onOpenConstructor: () => void;
 }) {
-  const blockLeft = segment.startIndex * cellWidth + 4;
-  const blockWidth = segment.length * cellWidth - 8;
-  const { minN } = segment;
-  const spanDays = segment.length;
-  const title = `Мінімум ${minN} ${dayWord(minN)} — натисніть для дій`;
+  const cellClass = [
+    "price-cell",
+    "rule-cell",
+    "timeline-cell",
+    "flex shrink-0 items-center justify-center",
+    "border-r border-stone-100",
+    "cursor-pointer",
+    isWeekend ? "price-cell--weekend bg-[#fafaf9]" : "bg-white",
+    kind === "closed" ? "rule-cell--closed" : "",
+    kind === "minNights" ? "rule-cell--min-nights" : "",
+    ...selectionClasses,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  if (blockWidth < 72) {
-    return (
-      <button
-        type="button"
-        className="booking-block status-confirmed restriction-chip restriction-chip--single"
-        style={{ left: blockLeft, width: blockWidth, position: "absolute" }}
-        title={title}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => onSelect(e, roomId, segment)}
-      >
-        <span className="restriction-chip-single-num">{minN}</span>
-        <span className="restriction-chip-single-label">мін. діб</span>
-      </button>
-    );
-  }
-  if (blockWidth < 130) {
-    return (
-      <button
-        type="button"
-        className="booking-block status-confirmed restriction-chip restriction-chip--compact"
-        style={{ left: blockLeft, width: blockWidth, position: "absolute" }}
-        title={title}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => onSelect(e, roomId, segment)}
-      >
-        <div
-          className="booking-inner-content"
-          style={{
-            position: "relative",
-            zIndex: 2,
-            display: "flex",
-            flexDirection: "column",
-            width: "100%",
-            height: "100%",
-            justifyContent: "center",
-          }}
-        >
-          <div className="restriction-chip-title">мін. {minN} діб</div>
-        </div>
-      </button>
-    );
-  }
-  const rangeHint = spanDays > 1 ? ` · ${spanDays} ${dateWord(spanDays)}` : "";
+  const cellStyle = { width, minWidth: width, height: "100%", alignSelf: "stretch" as const };
+
   return (
-    <button
-      type="button"
-      className="booking-block status-confirmed restriction-chip"
-      style={{ left: blockLeft, width: blockWidth, position: "absolute" }}
-      title={title}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => onSelect(e, roomId, segment)}
+    <div
+      role="button"
+      tabIndex={0}
+      className={cellClass}
+      style={cellStyle}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        onOpenConstructor();
+      }}
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        onDragMouseDown(e);
+      }}
+      onMouseEnter={onDragMouseEnter}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenConstructor();
+        }
+      }}
     >
-      <div
-        className="booking-inner-content"
-        style={{
-          position: "relative",
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          justifyContent: "center",
-          height: "100%",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            lineHeight: 1.2,
-          }}
-        >
-          мін. {minN} діб{rangeHint}
-        </div>
-        <div style={{ marginTop: 4, display: "flex" }}>
-          <span
-            style={{
-              background: "rgba(255,255,255,0.28)",
-              color: "#fff",
-              fontSize: 9,
-              fontWeight: 700,
-              padding: "2px 6px",
-              borderRadius: 4,
-              whiteSpace: "nowrap",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-            }}
-          >
-            обмеження
-          </span>
-        </div>
+      <div className="flex h-full w-full flex-col items-center justify-center whitespace-nowrap px-2">
+        {kind === "closed" ? (
+          <span className="text-xs font-bold text-red-700">Закрито</span>
+        ) : kind === "minNights" ? (
+          <>
+            <span className="text-sm font-semibold text-stone-800">{minNights}</span>
+            <span className="text-[10px] font-medium text-stone-500">мін</span>
+          </>
+        ) : null}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -139,31 +140,44 @@ export interface DesktopRestrictionsGridProps {
   baseDateRef: React.MutableRefObject<Date>;
   wrapperRef?: React.RefObject<HTMLDivElement | null>;
   layout?: "desktop" | "mobile";
+  isTabActive?: boolean;
+  adminUndo: AdminUndoApi;
 }
 
 export function DesktopRestrictionsGrid({
   settings,
   modals,
   baseDateRef,
-  wrapperRef,
   layout = "desktop",
+  isTabActive = true,
+  adminUndo,
 }: DesktopRestrictionsGridProps) {
   const isMobile = layout === "mobile";
   const [, bump] = useState(0);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const compactGrid = !isMobile && isFocusMode;
+  const { setAuxiliaryFocusActive } = useGridFocusModeOptional();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const headTrackRef = useRef<HTMLDivElement>(null);
+  const sidebarBodyScrollRef = useRef<HTMLDivElement>(null);
+  const scrollSyncRef = useRef(false);
+  const lastPointerRef = useRef({ x: 0, y: 0 });
+  const lastDragFramePointerRef = useRef({ x: 0, y: 0 });
+  const dragAutoScrollRafRef = useRef<number | null>(null);
+  const settingsMainRef = useRef<HTMLElement | null>(null);
+  const [dragHighlight, setDragHighlight] = useState<DragHighlight | null>(null);
   const dragRef = useRef({
     active: false,
-    roomId: null as string | null,
-    startDate: null as string | null,
-    endDate: null as string | null,
+    anchorRoomId: "",
+    anchorDateStr: "",
+    focusRoomId: "",
+    focusDateStr: "",
+    moved: false,
+    startX: 0,
+    startY: 0,
   });
-  const [dragHighlight, setDragHighlight] = useState<{
-    roomId: string;
-    dates: string[];
-  } | null>(null);
-
-  const restrictions = settings.restrictions || {};
-  const selection = modals.restrictionSelection;
+  const columnWidthsRef = useRef<number[]>([]);
+  const scrollPreserveRef = useRef<number | null>(null);
 
   const startDate = useMemo(() => {
     const d = new Date(baseDateRef.current);
@@ -173,14 +187,109 @@ export function DesktopRestrictionsGrid({
   }, [baseDateRef.current.getTime(), bump]);
 
   const daysCount = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
-  const cellWidth = useTimelineCellWidth(scrollRef, daysCount, !isMobile);
-  const monthLabel = startDate.toLocaleString("uk-UA", { month: "long", year: "numeric" });
+  const monthLabel = formatMonthYearLabel(startDate);
   const activeRooms = (settings.roomsList || []).filter((r) => r.active);
-  const today = useMemo(() => {
-    const t = new Date();
-    t.setHours(0, 0, 0, 0);
-    return t;
+  const roomIdOrder = useMemo(() => activeRooms.map((r) => String(r.id)), [activeRooms]);
+
+  const dayMeta = useMemo(() => {
+    return Array.from({ length: daysCount }, (_, i) => {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      return {
+        date: d,
+        dateStr: formatDateKey(d),
+        isWeekend: isPriceWeekend(d),
+      };
+    });
+  }, [startDate, daysCount]);
+
+  const toggleFocusMode = useCallback(() => {
+    setIsFocusMode((prev) => !prev);
   }, []);
+
+  const syncFocusHeadTrack = useCallback((scrollLeft: number) => {
+    const track = headTrackRef.current;
+    if (!track) return;
+    track.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
+  }, []);
+
+  const handleGridContainerScroll = useCallback(() => {
+    if (scrollSyncRef.current) return;
+    const grid = scrollRef.current;
+    const sidebar = sidebarBodyScrollRef.current;
+    if (!grid) return;
+
+    scrollSyncRef.current = true;
+    if (compactGrid) syncFocusHeadTrack(grid.scrollLeft);
+    if (sidebar && sidebar.scrollTop !== grid.scrollTop) {
+      sidebar.scrollTop = grid.scrollTop;
+    }
+    scrollSyncRef.current = false;
+  }, [compactGrid, syncFocusHeadTrack]);
+
+  const handleSidebarBodyScroll = useCallback(() => {
+    if (scrollSyncRef.current) return;
+    const sidebar = sidebarBodyScrollRef.current;
+    const grid = scrollRef.current;
+    if (!sidebar || !grid) return;
+
+    scrollSyncRef.current = true;
+    if (grid.scrollTop !== sidebar.scrollTop) {
+      grid.scrollTop = sidebar.scrollTop;
+    }
+    scrollSyncRef.current = false;
+  }, []);
+
+  const handleGridWheel = useCallback(
+    (event: WheelEvent<HTMLDivElement>) => {
+      if (!compactGrid) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      const sidebar = sidebarBodyScrollRef.current;
+      if (!sidebar) return;
+      event.preventDefault();
+      sidebar.scrollTop += event.deltaY;
+    },
+    [compactGrid]
+  );
+
+  const computeDragHighlight = useCallback(
+    (anchorRoomId: string, focusRoomId: string, anchorDateStr: string, focusDateStr: string) => {
+      const r1 = roomIdOrder.indexOf(anchorRoomId);
+      const r2 = roomIdOrder.indexOf(focusRoomId);
+      if (r1 < 0 || r2 < 0) return null;
+
+      const dateStrs = dayMeta.map((d) => d.dateStr);
+      const d1 = dateStrs.indexOf(anchorDateStr);
+      const d2 = dateStrs.indexOf(focusDateStr);
+      if (d1 < 0 || d2 < 0) return null;
+
+      return {
+        roomIds: roomIdOrder.slice(Math.min(r1, r2), Math.max(r1, r2) + 1),
+        dateStrs: dateStrs.slice(Math.min(d1, d2), Math.max(d1, d2) + 1),
+      };
+    },
+    [roomIdOrder, dayMeta]
+  );
+
+  const columnWidths = useMemo(() => {
+    const widths = Array.from({ length: daysCount }, () => PRICE_CELL_MIN);
+
+    for (const room of activeRooms) {
+      dayMeta.forEach((day, i) => {
+        const { kind, minNights } = getRuleCellKind(settings, room.id, day.date);
+        widths[i] = Math.max(widths[i], measureRuleCellWidth(kind, minNights));
+      });
+    }
+
+    return widths;
+  }, [activeRooms, dayMeta, daysCount, settings]);
+
+  columnWidthsRef.current = columnWidths;
+
+  const gridTotalWidth = useMemo(
+    () => columnWidths.reduce((sum, w) => sum + w, 0),
+    [columnWidths]
+  );
 
   const shift = (months: number) => {
     baseDateRef.current.setMonth(baseDateRef.current.getMonth() + months);
@@ -198,402 +307,444 @@ export function DesktopRestrictionsGrid({
     const w = window as Window & {
       shiftRestrictionsTimeline?: (months: number) => void;
       resetRestrictionsTimelineToToday?: () => void;
+      scrollToRestrictionsGrid?: () => void;
       renderRestrictionsGrid?: () => void;
     };
     w.shiftRestrictionsTimeline = shift;
     w.resetRestrictionsTimelineToToday = resetToToday;
     w.renderRestrictionsGrid = () => bump((n) => n + 1);
+    w.scrollToRestrictionsGrid = () => {
+      document.getElementById("set-restrictions")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
     return () => {
       delete w.shiftRestrictionsTimeline;
       delete w.resetRestrictionsTimelineToToday;
       delete w.renderRestrictionsGrid;
+      delete w.scrollToRestrictionsGrid;
     };
   }, [shift, resetToToday]);
 
   useEffect(() => {
-    const scrollEl = scrollRef.current;
+    if (isMobile) return;
+    settingsMainRef.current = document.querySelector(".main-content.main-content--settings");
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) return;
+    const active = isTabActive && isFocusMode;
+    setAuxiliaryFocusActive(active);
+    return () => setAuxiliaryFocusActive(false);
+  }, [isFocusMode, isMobile, isTabActive, setAuxiliaryFocusActive]);
+
+  useEffect(() => {
+    if (!isTabActive && isFocusMode) setIsFocusMode(false);
+  }, [isTabActive, isFocusMode]);
+
+  useEffect(() => {
+    if (isMobile) return;
+    const main = document.querySelector(".main-content.main-content--settings");
+    if (!isTabActive || !isFocusMode) {
+      main?.classList.remove("main-content--price-grid-focus");
+      return;
+    }
+    main?.classList.add("main-content--price-grid-focus");
+    return () => {
+      main?.classList.remove("main-content--price-grid-focus");
+    };
+  }, [isFocusMode, isMobile, isTabActive]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const widths = columnWidthsRef.current;
+    const today = new Date();
     if (
-      scrollEl &&
       startDate.getMonth() === today.getMonth() &&
       startDate.getFullYear() === today.getFullYear()
     ) {
-      scrollEl.scrollLeft = Math.max(0, (today.getDate() - 3) * cellWidth);
+      const dayIdx = today.getDate() - 1;
+      const offset = widths.slice(0, Math.max(0, dayIdx - 3)).reduce((a, b) => a + b, 0);
+      el.scrollLeft = offset;
+      if (compactGrid) syncFocusHeadTrack(offset);
+    } else {
+      el.scrollLeft = 0;
+      if (compactGrid) syncFocusHeadTrack(0);
     }
-  }, [startDate, today, daysCount, cellWidth]);
+  }, [startDate, daysCount, compactGrid, syncFocusHeadTrack]);
 
-  const getHighlightDates = useCallback((): string[] => {
-    if (dragHighlight) return dragHighlight.dates;
-    if (selection?.highlightCells && selection.dates) return selection.dates;
-    return [];
-  }, [dragHighlight, selection]);
+  const getDragScrollTargets = useCallback((): DragScrollTargets => {
+    if (compactGrid) {
+      return {
+        horizontal: scrollRef.current,
+        vertical: scrollRef.current,
+        verticalSync: sidebarBodyScrollRef.current,
+      };
+    }
+    return {
+      horizontal: scrollRef.current,
+      verticalPage: settingsMainRef.current,
+    };
+  }, [compactGrid]);
+
+  const stopDragAutoScroll = useCallback(() => {
+    if (dragAutoScrollRafRef.current != null) {
+      cancelAnimationFrame(dragAutoScrollRafRef.current);
+      dragAutoScrollRafRef.current = null;
+    }
+  }, []);
+
+  const runDragAutoScrollFrame = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag.active) {
+      dragAutoScrollRafRef.current = null;
+      return;
+    }
+
+    const targets = getDragScrollTargets();
+    const { x, y } = lastPointerRef.current;
+    const nearEdge = isNearDragScrollEdge(x, y, targets);
+    const moved =
+      x !== lastDragFramePointerRef.current.x || y !== lastDragFramePointerRef.current.y;
+
+    if (!moved && !nearEdge) {
+      dragAutoScrollRafRef.current = null;
+      return;
+    }
+    lastDragFramePointerRef.current = { x, y };
+
+    scrollSyncRef.current = true;
+    const scrolled = applyDragEdgeScroll(x, y, targets);
+    if (scrolled && compactGrid) {
+      syncFocusHeadTrack(scrollRef.current?.scrollLeft ?? 0);
+    }
+    scrollSyncRef.current = false;
+
+    dragAutoScrollRafRef.current = requestAnimationFrame(runDragAutoScrollFrame);
+  }, [compactGrid, getDragScrollTargets, syncFocusHeadTrack]);
+
+  const ensureDragAutoScroll = useCallback(() => {
+    if (dragAutoScrollRafRef.current != null) return;
+    dragAutoScrollRafRef.current = requestAnimationFrame(runDragAutoScrollFrame);
+  }, [runDragAutoScrollFrame]);
+
+  const openConstructorForCells = useCallback(
+    (roomIds: string[], dateStrs: string[]) => {
+      modals.openRuleConstructor(
+        buildRuleGridSelectionPreset(roomIds, dateStrs, activeRooms.length)
+      );
+    },
+    [activeRooms.length, modals]
+  );
+
+  const onCellMouseDown = useCallback((roomId: string, dateStr: string, e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    dragRef.current = {
+      active: true,
+      anchorRoomId: roomId,
+      anchorDateStr: dateStr,
+      focusRoomId: roomId,
+      focusDateStr: dateStr,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+  }, []);
+
+  const onCellMouseEnter = useCallback(
+    (roomId: string, dateStr: string) => {
+      const drag = dragRef.current;
+      if (!drag.active) return;
+      if (drag.focusRoomId === roomId && drag.focusDateStr === dateStr) return;
+
+      drag.focusRoomId = roomId;
+      drag.focusDateStr = dateStr;
+
+      if (roomId !== drag.anchorRoomId || dateStr !== drag.anchorDateStr) {
+        drag.moved = true;
+      }
+
+      if (drag.moved) {
+        setDragHighlight(
+          computeDragHighlight(drag.anchorRoomId, roomId, drag.anchorDateStr, dateStr)
+        );
+        ensureDragAutoScroll();
+      }
+    },
+    [computeDragHighlight, ensureDragAutoScroll]
+  );
 
   const finishDrag = useCallback(() => {
     const drag = dragRef.current;
     if (!drag.active) return;
     drag.active = false;
+    stopDragAutoScroll();
 
-    if (drag.roomId && drag.startDate && drag.endDate) {
-      let d1 = new Date(drag.startDate);
-      let d2 = new Date(drag.endDate);
-      if (d1 > d2) {
-        const t = d1;
-        d1 = d2;
-        d2 = t;
-      }
-      const dates: string[] = [];
-      const cur = new Date(d1);
-      while (cur <= d2) {
-        dates.push(formatDateKey(cur));
-        cur.setDate(cur.getDate() + 1);
-      }
-      if (isSameRestrictionSelection(selection, drag.roomId, dates)) {
-        modals.setRestrictionSelection(null);
-      } else {
-        modals.setRestrictionSelection({
-          roomId: drag.roomId,
-          dates,
-          highlightCells: true,
-        });
-      }
-    }
-    drag.roomId = null;
-    drag.startDate = null;
-    drag.endDate = null;
+    const highlight = computeDragHighlight(
+      drag.anchorRoomId,
+      drag.focusRoomId,
+      drag.anchorDateStr,
+      drag.focusDateStr
+    );
     setDragHighlight(null);
-  }, [modals, selection]);
+
+    if (!highlight) return;
+
+    openConstructorForCells(highlight.roomIds, highlight.dateStrs);
+  }, [computeDragHighlight, openConstructorForCells, stopDragAutoScroll]);
 
   useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      const drag = dragRef.current;
+      if (!drag.active) return;
+
+      if (!drag.moved) {
+        const dx = e.clientX - drag.startX;
+        const dy = e.clientY - drag.startY;
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) {
+          ensureDragAutoScroll();
+          return;
+        }
+        drag.moved = true;
+        setDragHighlight(
+          computeDragHighlight(
+            drag.anchorRoomId,
+            drag.focusRoomId,
+            drag.anchorDateStr,
+            drag.focusDateStr
+          )
+        );
+      }
+
+      ensureDragAutoScroll();
+    };
+
     const onMouseUp = () => finishDrag();
+
+    document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-    return () => document.removeEventListener("mouseup", onMouseUp);
-  }, [finishDrag]);
-
-  const updateDragHighlight = (roomId: string, start: string, end: string) => {
-    let d1 = new Date(start);
-    let d2 = new Date(end);
-    if (d1 > d2) {
-      const t = d1;
-      d1 = d2;
-      d2 = t;
-    }
-    const dates: string[] = [];
-    const cur = new Date(d1);
-    while (cur <= d2) {
-      dates.push(formatDateKey(cur));
-      cur.setDate(cur.getDate() + 1);
-    }
-    setDragHighlight({ roomId, dates });
-  };
-
-  const onCellMouseDown = (roomId: string, dateStr: string, e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    dragRef.current = {
-      active: true,
-      roomId,
-      startDate: dateStr,
-      endDate: dateStr,
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      stopDragAutoScroll();
     };
-    updateDragHighlight(roomId, dateStr, dateStr);
-  };
+  }, [finishDrag, computeDragHighlight, ensureDragAutoScroll, stopDragAutoScroll]);
 
-  const onCellMouseEnter = (roomId: string, dateStr: string) => {
-    const drag = dragRef.current;
-    if (!drag.active || drag.roomId !== roomId) return;
-    drag.endDate = dateStr;
-    updateDragHighlight(roomId, drag.startDate!, dateStr);
-  };
+  const sidebarHeader = (
+    <TimelineSidebarHeader
+      roomCount={activeRooms.length}
+      className={compactGrid ? "" : "price-grid-sidebar-header"}
+      showFocusToggle={!isMobile}
+      focusModeActive={isFocusMode}
+      onFocusToggle={toggleFocusMode}
+      onUndoMove={() => adminUndo.undoLastInScope("restrictions")}
+      canUndoMove={adminUndo.undoAvailable.restrictions}
+      isUndoing={adminUndo.isUndoing}
+    />
+  );
 
-  const onSegmentClick = (
-    e: React.MouseEvent,
-    roomId: number,
-    segment: RestrictionSegment
-  ) => {
-    e.stopPropagation();
-    e.preventDefault();
-    modals.setRestrictionSelection({
-      roomId: String(roomId),
-      dates: [...segment.dates],
-      minN: segment.minN,
-      highlightCells: false,
-    });
-    const barEl = e.currentTarget as HTMLElement;
-    openRestrictionBarMenu(e, barEl);
-  };
+  const roomRows = activeRooms.map((room) => (
+    <TimelineRoomRow
+      key={room.id}
+      room={room}
+      className="price-grid-room"
+      showDesc={!isMobile && !compactGrid}
+    />
+  ));
 
-  const openRestrictionBarMenu = (e: React.MouseEvent, barEl: HTMLElement) => {
-    const menu = document.getElementById("restrictionBarMenu");
-    if (!menu) return;
-    closeRestrictionBarMenu();
-    barEl.classList.add("restriction-chip--menu-open");
-    (window as Window & { __restrictionBarMenuEl?: HTMLElement }).__restrictionBarMenuEl = barEl;
+  const monthRow = (
+    <div className="timeline-months" id="restrictionMonths">
+      <div className="timeline-month-cell" style={{ width: gridTotalWidth }}>
+        {monthLabel}
+      </div>
+    </div>
+  );
 
-    menu.style.display = "flex";
-    menu.style.visibility = "hidden";
-    menu.classList.remove("restriction-bar-menu--above");
+  const datesRow = (
+    <div
+      className={`timeline-dates${compactGrid ? "" : " price-grid-dates"}`}
+      id="restrictionDates"
+    >
+      {dayMeta.map((day, i) => (
+        <div
+          key={day.dateStr}
+          className={[
+            "timeline-date",
+            "price-grid-date",
+            day.isWeekend ? "price-grid-date--weekend" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={{ width: columnWidths[i], minWidth: columnWidths[i], flexShrink: 0 }}
+        >
+          {day.date.getDate()} <span>{DAYS_LABELS[day.date.getDay()]}</span>
+        </div>
+      ))}
+    </div>
+  );
 
-    const rect = barEl.getBoundingClientRect();
-    const main = document.querySelector(".main-content");
-    const vp = main
-      ? (() => {
-          const r = main.getBoundingClientRect();
-          return { top: r.top + 8, bottom: r.bottom - 8, left: r.left + 8, right: r.right - 8 };
-        })()
-      : { top: 12, bottom: window.innerHeight - 12, left: 12, right: window.innerWidth - 12 };
+  const gridRows = (
+    <div className="timeline-rows" id="restrictionGrid">
+      {activeRooms.map((room) => (
+        <div key={room.id} className="timeline-row-bg price-grid-row">
+          {dayMeta.map((day, i) => {
+            const { kind, minNights } = getRuleCellKind(settings, room.id, day.date);
+            const selectionClasses = getCellSelectionClasses(
+              dragHighlight,
+              String(room.id),
+              day.dateStr
+            );
 
-    const menuW = menu.offsetWidth || 200;
-    const menuH = menu.offsetHeight || 96;
-    const gap = 8;
-    let left = rect.left + rect.width / 2 - menuW / 2;
-    left = Math.max(vp.left, Math.min(left, vp.right - menuW));
+            return (
+              <RuleGridCell
+                key={day.dateStr}
+                kind={kind}
+                minNights={minNights}
+                isWeekend={day.isWeekend}
+                width={columnWidths[i]}
+                dragSelectionClasses={selectionClasses}
+                onDragMouseDown={(e) => onCellMouseDown(String(room.id), day.dateStr, e)}
+                onDragMouseEnter={() => onCellMouseEnter(String(room.id), day.dateStr)}
+                onOpenConstructor={() =>
+                  openConstructorForCells([String(room.id)], [day.dateStr])
+                }
+              />
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
 
-    const spaceBelow = vp.bottom - rect.bottom - gap;
-    const spaceAbove = rect.top - vp.top - gap;
-    let top: number;
-    if (spaceBelow >= menuH || spaceBelow > spaceAbove) {
-      top = rect.bottom + gap;
-    } else {
-      top = rect.top - gap - menuH;
-      menu.classList.add("restriction-bar-menu--above");
-    }
-    top = Math.max(vp.top, Math.min(top, vp.bottom - menuH));
-    menu.style.left = `${left}px`;
-    menu.style.top = `${top}px`;
-    menu.style.transform = "none";
-    menu.style.visibility = "visible";
-  };
+  const wrapperClassName = [
+    "timeline-wrapper",
+    "price-grid-timeline",
+    compactGrid
+      ? "timeline-wrapper--compact timeline-wrapper--focus-layout price-grid-timeline--focus-root"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const closeRestrictionBarMenu = () => {
-    const menu = document.getElementById("restrictionBarMenu");
-    if (menu) {
-      menu.style.display = "none";
-      menu.style.visibility = "";
-      menu.classList.remove("restriction-bar-menu--above");
-    }
-    const barEl = (window as Window & { __restrictionBarMenuEl?: HTMLElement })
-      .__restrictionBarMenuEl;
-    if (barEl) {
-      barEl.classList.remove("restriction-chip--menu-open");
-      (window as Window & { __restrictionBarMenuEl?: HTMLElement }).__restrictionBarMenuEl =
-        undefined;
-    }
-  };
-
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      const menu = document.getElementById("restrictionBarMenu");
-      if (!menu || menu.style.display === "none") return;
-      if (menu.contains(e.target as Node)) return;
-      if ((e.target as HTMLElement).closest?.(".restriction-chip")) return;
-      closeRestrictionBarMenu();
-    };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, []);
-
-  const highlightDates = getHighlightDates();
-  const highlightRoomId = dragHighlight?.roomId ?? (selection?.highlightCells ? selection.roomId : null);
-
-  const cellClass = (roomId: number, dateStr: string, hasR: boolean, isWeekend: boolean) => {
-    const parts = ["restriction-cell", "timeline-cell"];
-    if (isWeekend) parts.push("weekend-restr");
-    if (hasR) parts.push("has-restriction");
-    if (highlightRoomId === String(roomId) && highlightDates.includes(dateStr)) {
-      const sorted = [...highlightDates].sort();
-      parts.push("cell-selected");
-      if (dateStr === sorted[0]) parts.push("cell-selected-start");
-      if (dateStr === sorted[sorted.length - 1]) parts.push("cell-selected-end");
-    } else {
-      const selCls = getRestrictionCellSelectionClasses(selection, roomId, dateStr);
-      if (selCls) parts.push(...selCls.split(" ").filter(Boolean));
-    }
-    return parts.join(" ");
-  };
+  const premiumStyle: CSSProperties | undefined = compactGrid
+    ? undefined
+    : {
+        ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
+        ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
+        ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
+        ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
+      };
 
   return (
-    <>
-      {isMobile ? (
-        <div className="form-grid" style={{ marginBottom: 16 }}>
-          <button type="button" className="btn-primary tap-btn" onClick={() => modals.openRestrictionConstructor()}>
-            Конструктор
-          </button>
-          <button type="button" className="btn-outline-danger tap-btn" onClick={() => modals.clearRestrictionsAlert()}>
-            Видалити
-          </button>
-        </div>
-      ) : (
-        <div
-          className="settings-toolbar"
-          style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}
-        >
-          <div style={{ display: "flex", gap: 16 }}>
-            <button
-              type="button"
-              className="btn-outline-danger"
-              onClick={() => modals.clearRestrictionsAlert()}
-              style={{ padding: "10px 16px", fontSize: 13, height: "auto" }}
-            >
-              Видалити
-            </button>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => modals.openRestrictionConstructor()}
-              style={{ padding: "10px 16px", fontSize: 13 }}
-            >
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Конструктор обмежень
-            </button>
-          </div>
-        </div>
-      )}
-      {isMobile ? (
-        <div className="timeline-nav-row" style={{ marginBottom: 12 }}>
+    <div className={`price-grid-view${compactGrid ? " price-grid-view--focus" : ""}`}>
+      <div className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}`}>
+        <div className="price-grid-toolbar__nav">
           <div className="timeline-nav">
-            <button type="button" className="btn-icon tap-btn" onClick={() => shift(-1)}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button type="button" className={`btn-icon${isMobile ? " tap-btn" : ""}`} onClick={() => shift(-1)}>
+              <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <span className="timeline-month-label" id="restrictionMonthLabel">
               {monthLabel}
             </span>
-            <button type="button" className="btn-icon tap-btn" onClick={() => shift(1)}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button type="button" className={`btn-icon${isMobile ? " tap-btn" : ""}`} onClick={() => shift(1)}>
+              <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
           <button
             type="button"
-            className="btn-secondary tap-btn"
+            className={`btn-secondary${isMobile ? " tap-btn" : ""}`}
             onClick={resetToToday}
-            style={{ padding: "6px 12px", fontSize: 12, width: "auto", flexShrink: 0 }}
-          >
-            Сьогодні
-          </button>
-        </div>
-      ) : (
-        <div className="timeline-toolbar" style={{ marginTop: 10, justifyContent: "flex-start", gap: 20 }}>
-          <div className="timeline-nav">
-            <button type="button" className="btn-icon" onClick={() => shift(-1)}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="timeline-month-label" id="restrictionMonthLabel">
-              {monthLabel}
-            </span>
-            <button type="button" className="btn-icon" onClick={() => shift(1)}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={resetToToday}
-            style={{ padding: "6px 16px", fontSize: 13 }}
           >
             Поточний місяць
           </button>
         </div>
-      )}
-      <div className="restriction-hint-slot">
-        <p
-          className={`restriction-selection-hint ${modals.restrictionHint ? "is-visible" : ""}`}
-          aria-live="polite"
-        >
-          {modals.restrictionHint}
-        </p>
+
+        <div className="price-grid-toolbar__actions">
+          <button
+            type="button"
+            className={`btn-outline-danger${isMobile ? " tap-btn" : ""}`}
+            onClick={() => modals.clearRulesAlert()}
+          >
+            {isMobile ? "Очистити" : "Видалити правила"}
+          </button>
+          <button
+            type="button"
+            className={`btn-primary${isMobile ? " tap-btn" : ""}`}
+            onClick={() => modals.openRuleConstructor()}
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Конструктор
+          </button>
+        </div>
       </div>
+
       <div
-        className="timeline-wrapper"
-        id="restrictionsTimelineWrapper"
-        ref={wrapperRef}
-        style={
-          (isMobile
-            ? { marginTop: 0 }
-            : { "--timeline-cell-width": `${cellWidth}px` }) as CSSProperties
-        }
+        className={`price-grid-premium${compactGrid ? " price-grid-premium--focus" : ""}`}
+        style={premiumStyle}
       >
-        <div className="timeline-sidebar">
-          <TimelineSidebarHeader roomCount={activeRooms.length} />
-          {activeRooms.map((room) => (
-            <TimelineRoomRow key={room.id} room={room} />
-          ))}
-        </div>
-        <div className="timeline-grid-container" ref={scrollRef} id="restrictionScroll">
-          <div className="timeline-months" id="restrictionMonths">
-            <div className="timeline-month-cell" style={{ width: daysCount * cellWidth }}>
-              {monthLabel}
-            </div>
-          </div>
-          <div className="timeline-dates" id="restrictionDates">
-            {Array.from({ length: daysCount }, (_, i) => {
-              const d = new Date(startDate);
-              d.setDate(startDate.getDate() + i);
-              const isWeekend = isPriceWeekend(d);
-              const isToday = d.getTime() === today.getTime();
-              return (
+        <div className={wrapperClassName} id="restrictionTimelineWrapper" style={{ marginTop: 0 }}>
+          {compactGrid ? (
+            <>
+              <div className="timeline-focus-head">
+                <div className="timeline-sidebar timeline-sidebar--focus-head">
+                  {sidebarHeader}
+                </div>
+                <div className="timeline-grid-head">
+                  <div className="timeline-head-track" ref={headTrackRef}>
+                    {monthRow}
+                    {datesRow}
+                  </div>
+                </div>
+              </div>
+              <div className="timeline-focus-body">
                 <div
-                  key={i}
-                  className={`timeline-date ${isWeekend ? "weekend" : ""} ${isToday ? "today" : ""}`}
+                  className="timeline-sidebar timeline-sidebar--focus-body"
+                  ref={sidebarBodyScrollRef}
+                  onScroll={handleSidebarBodyScroll}
                 >
-                  {d.getDate()} <span>{DAYS_LABELS[d.getDay()]}</span>
+                  {roomRows}
                 </div>
-              );
-            })}
-          </div>
-          <div className="timeline-rows" id="restrictionGrid">
-            {activeRooms.map((room) => {
-              const segments = getRestrictionSegmentsForRoom(
-                restrictions,
-                room.id,
-                startDate,
-                daysCount
-              );
-              return (
-                <div key={room.id} className="timeline-row-bg" style={{ position: "relative" }}>
-                  {Array.from({ length: daysCount }, (_, i) => {
-                    const d = new Date(startDate);
-                    d.setDate(startDate.getDate() + i);
-                    const dateStr = formatDateKey(d);
-                    const hasR = getRestrictionMinNights(restrictions, room.id, d) > 0;
-                    return (
-                      <div
-                        key={dateStr}
-                        role="presentation"
-                        className={cellClass(room.id, dateStr, hasR, isPriceWeekend(d))}
-                        data-room={room.id}
-                        data-date={dateStr}
-                        onMouseDown={(e) => onCellMouseDown(String(room.id), dateStr, e)}
-                        onMouseEnter={() => onCellMouseEnter(String(room.id), dateStr)}
-                      />
-                    );
-                  })}
-                  {segments.map((seg, idx) => (
-                    <RestrictionSegmentBlock
-                      key={`${room.id}-${seg.startDateStr}-${idx}`}
-                      roomId={room.id}
-                      segment={seg}
-                      cellWidth={cellWidth}
-                      onSelect={onSegmentClick}
-                    />
-                  ))}
+                <div
+                  className="timeline-grid-container timeline-scroll-surface"
+                  ref={scrollRef}
+                  id="restrictionScroll"
+                  onScroll={handleGridContainerScroll}
+                  onWheel={handleGridWheel}
+                >
+                  {gridRows}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="timeline-sidebar price-grid-sidebar">
+                {sidebarHeader}
+                {roomRows}
+              </div>
+              <div className="timeline-grid-container" ref={scrollRef} id="restrictionScroll">
+                {monthRow}
+                {datesRow}
+                {gridRows}
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-export function scrollToRestrictionsGrid(wrapperRef: React.RefObject<HTMLDivElement | null>) {
-  scrollMainContentToElement(wrapperRef.current, { offset: 20 });
+export function scrollToRestrictionsGrid(
+  wrapperRef?: RefObject<HTMLDivElement | null>
+) {
+  if (typeof window === "undefined") return;
+  const target =
+    wrapperRef?.current ?? document.getElementById("set-restrictions");
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
 }

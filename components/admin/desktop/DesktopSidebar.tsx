@@ -119,7 +119,8 @@ export function DesktopSidebar({
 }: DesktopSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const sidebarBeforeFocusRef = useRef<boolean | null>(null);
-  const { isCompactMode } = useGridFocusModeOptional();
+  const { isCompactMode, auxiliaryFocusActive } = useGridFocusModeOptional();
+  const shouldForceSidebarCollapse = isCompactMode || auxiliaryFocusActive;
 
   useEffect(() => {
     if (!tenantId) return;
@@ -128,7 +129,7 @@ export function DesktopSidebar({
   }, [tenantId]);
 
   useEffect(() => {
-    if (isCompactMode) {
+    if (shouldForceSidebarCollapse) {
       setCollapsed((prev) => {
         if (sidebarBeforeFocusRef.current === null) {
           sidebarBeforeFocusRef.current = prev;
@@ -145,7 +146,7 @@ export function DesktopSidebar({
     sidebarBeforeFocusRef.current = null;
     setCollapsed(restore);
     if (tenantId) patchAdminNav(tenantId, { sidebarCollapsed: restore });
-  }, [isCompactMode, tenantId]);
+  }, [shouldForceSidebarCollapse, tenantId]);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {

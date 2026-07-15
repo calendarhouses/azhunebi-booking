@@ -19,9 +19,9 @@ export function formatMonthYearLabel(d: Date): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
-/** Висота рядка шахматки цін (сайдбар + сітка) */
+/** Висота рядка дат — під два рядки тексту без «повітря» знизу */
 export const PRICE_GRID_MONTH_HEIGHT = 30;
-export const PRICE_GRID_DATES_HEIGHT = 48;
+export const PRICE_GRID_DATES_HEIGHT = 28;
 export const PRICE_GRID_HEADER_HEIGHT = PRICE_GRID_MONTH_HEIGHT + PRICE_GRID_DATES_HEIGHT;
 
 const PRICE_CELL_MIN = 72;

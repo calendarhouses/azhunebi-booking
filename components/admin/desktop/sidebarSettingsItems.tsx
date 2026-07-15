@@ -10,7 +10,7 @@ export type SidebarSettingsItem = {
 export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
   {
     tab: "branding",
-    label: "Сторінка хати",
+    label: "Моя сторінка",
     icon: (
       <>
         <circle cx="12" cy="8" r="3.5" />
@@ -20,7 +20,7 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
   },
   {
     tab: "rooms",
-    label: "Твоє житло",
+    label: "Моє житло",
     icon: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1v-9.5Z" />,
   },
   {
@@ -31,6 +31,18 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
         <path d="M4 18h16" />
         <path d="M7 18V9m5 9V6m5 12v-7" />
         <path d="M6 9h2m4-3h2m4 5h2" />
+      </>
+    ),
+  },
+  {
+    tab: "services",
+    label: "Додаткові послуги",
+    icon: (
+      <>
+        <path d="M12 3v3" />
+        <path d="M8 6h8" />
+        <rect x="5" y="9" width="14" height="10" rx="2" />
+        <path d="M9 13h6" />
       </>
     ),
   },
@@ -46,7 +58,7 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
   },
   {
     tab: "restrictions",
-    label: "Правила заїзду",
+    label: "Правила",
     icon: (
       <>
         <circle cx="12" cy="12" r="7" />

@@ -2,11 +2,12 @@ import type { Metadata, Viewport } from "next";
 import "flatpickr/dist/flatpickr.min.css";
 import "../admin-isolation.css";
 import "@/components/admin/mobile/admin-mobile.css";
+import "@/components/admin/desktop/settings/settings-additional-services.css";
 
 export const metadata: Metadata = {
-  title: "BOSO | Панель Управління",
-  description: "Мобільна панель управління BOSO",
-  appleWebApp: { title: "BOSO" },
+  title: "Панель Управління",
+  description: "Мобільна панель управління",
+  appleWebApp: { title: "Панель Управління" },
 };
 
 export const viewport: Viewport = {

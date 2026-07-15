@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { AdminGridDashboard, bookingMoveKey } from "@/components/admin/dashboard/AdminGridDashboard";
+import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { expireAdminSession } from "@/lib/admin/adminSession";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
@@ -11,7 +11,6 @@ import { DesktopBookingDrawer } from "./DesktopBookingDrawer";
 import { DesktopHeader } from "./DesktopHeader";
 import { DesktopModals } from "./DesktopModals";
 import { DesktopOverlays } from "./DesktopOverlays";
-import { DesktopPreloader } from "./DesktopPreloader";
 import { GridFocusModeProvider, useGridFocusModeOptional } from "./GridFocusModeContext";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { registerAdminDesktopHandlers } from "./registerAdminDesktopHandlers";
@@ -20,14 +19,19 @@ import { DesktopGuestsView } from "./views/DesktopGuestsView";
 import { DesktopReportsView } from "./views/DesktopReportsView";
 import { DesktopSettingsView } from "./views/DesktopSettingsView";
 import { AdminLoadErrorScreen } from "@/components/admin/AdminLoadErrorScreen";
+import { AdminDocumentTitleSync } from "@/components/admin/AdminDocumentTitleSync";
+import { useAdminBootFromAdmin } from "@/components/admin/useAdminBootFromAdmin";
 import { useAdminApp } from "./useAdminApp";
 import { useAdminModals } from "./useAdminModals";
 import { useAdminUiBridge } from "./useAdminUiBridge";
+import { useAdminUndo, resolveActiveUndoScope } from "@/components/admin/undo/useAdminUndo";
 import { useBookingDrawer } from "./useBookingDrawer";
 import { getAdminViewStyle } from "./adminViewDom";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
 import { DiscountTemplatesToggleButton } from "./settings/DiscountTemplatesToggleButton";
+import "./settings/settings-side-drawer.css";
 import "./settings/settings-discounts.css";
+import "./settings/settings-additional-services.css";
 
 function AdminMainContent({
   activeView,
@@ -55,6 +59,16 @@ export function AdminDesktopApp() {
     : undefined;
   const pauseSilentSyncRef = useRef(false);
   const admin = useAdminApp({ pauseSilentSyncRef });
+  useAdminBootFromAdmin(admin, membership?.tenantId);
+  const adminUndo = useAdminUndo({
+    bookings: admin.bookings,
+    roomsList: admin.settings.roomsList,
+    setBookings: admin.setBookings,
+    setSettings: admin.setSettings,
+    onAfterBookingChange: admin.silentSync,
+    onSessionExpired: expireAdminSession,
+    activeUndoScope: resolveActiveUndoScope(admin.activeView, admin.settingsTab),
+  });
   const bridge = useAdminUiBridge({
     activeView: admin.activeView,
     bookings: admin.bookings,
@@ -63,6 +77,7 @@ export function AdminDesktopApp() {
     silentSync: admin.silentSync,
     switchView: admin.switchView,
     signOut,
+    adminUndo,
   });
 
   const drawer = useBookingDrawer({
@@ -85,6 +100,7 @@ export function AdminDesktopApp() {
     settingsTab: admin.settingsTab,
     priceTimelineBaseDateRef,
     restrictionsTimelineBaseDateRef,
+    adminUndo,
   });
 
   useEffect(() => {
@@ -155,8 +171,8 @@ export function AdminDesktopApp() {
 
   return (
     <GridFocusModeProvider tenantId={membership?.tenantId}>
+      <AdminDocumentTitleSync siteTitle={sidebarBrandName} enabled={admin.appVisible} />
       <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
-        <DesktopPreloader hidden={!admin.isLoading} />
         <DesktopSidebar
           activeView={admin.activeView}
           settingsExpanded={admin.settingsExpanded}
@@ -210,13 +226,8 @@ export function AdminDesktopApp() {
             onCreateBooking={(room, checkIn, checkOut) =>
               drawer.openNewBookingDrawer(room, checkIn, checkOut)
             }
-            onBookingUpdated={(updated) => {
-              admin.setBookings((prev) =>
-                prev.map((b) => (bookingMoveKey(b) === bookingMoveKey(updated) ? updated : b))
-              );
-            }}
-            onAfterBookingChange={admin.silentSync}
-            onSessionExpired={expireAdminSession}
+            onNewBooking={() => drawer.openNewBookingDrawer()}
+            adminUndo={adminUndo}
           />
           <DesktopGuestsView
             style={getAdminViewStyle("guests", admin.activeView)}
@@ -247,6 +258,7 @@ export function AdminDesktopApp() {
             modals={modals}
             priceTimelineBaseDateRef={priceTimelineBaseDateRef}
             restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}
+            adminUndo={adminUndo}
           />
 
           <DesktopBookingDrawer
@@ -254,6 +266,7 @@ export function AdminDesktopApp() {
             drawer={drawer}
             settings={admin.settings}
             bookings={admin.bookings}
+            onBookingReviewed={() => admin.silentSync()}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

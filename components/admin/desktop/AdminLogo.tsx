@@ -1,38 +1,64 @@
-const LOGO_SRC = "/images/logo.png";
+import { toImageDisplaySrc } from "@/lib/driveImageUrl";
+import {
+  ADMIN_PRELOADER_LOGO_ALT,
+  ADMIN_PRELOADER_LOGO_SRC,
+} from "@/lib/admin/adminPreloaderLogo";
+
+const SIDEBAR_DEFAULT_LOGO_SRC = "/images/logo.png";
 
 type AdminLogoVariant = "sidebar" | "auth" | "preloader";
 
-const AUTH_PRELOADER_SIZE: Record<"auth" | "preloader", { height: number; maxWidth: number }> = {
-  auth: { height: 44, maxWidth: 240 },
-  preloader: { height: 48, maxWidth: 280 },
-};
+const AUTH_SIZE = { height: 44, maxWidth: 240 } as const;
 
 export function AdminLogo({
   variant = "sidebar",
   className = "",
+  logoUrl,
+  alt,
 }: {
   variant?: AdminLogoVariant;
   className?: string;
+  logoUrl?: string | null;
+  alt?: string | null;
 }) {
+  const defaultSrc = variant === "preloader" ? ADMIN_PRELOADER_LOGO_SRC : SIDEBAR_DEFAULT_LOGO_SRC;
+  const src = logoUrl ? toImageDisplaySrc(logoUrl) : defaultSrc;
+  const label =
+    String(alt || (variant === "preloader" ? ADMIN_PRELOADER_LOGO_ALT : "Логотип")).trim() ||
+    ADMIN_PRELOADER_LOGO_ALT;
   const cls = `admin-logo admin-logo--${variant}${className ? ` ${className}` : ""}`;
 
   if (variant === "sidebar") {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={LOGO_SRC} alt="ХАТА" className={cls} decoding="async" />
+      <img src={src} alt={label} className={cls} decoding="async" referrerPolicy="no-referrer" />
     );
   }
 
-  const { height, maxWidth } = AUTH_PRELOADER_SIZE[variant];
+  if (variant === "preloader") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={label}
+        className={cls}
+        decoding="async"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  const { height, maxWidth } = AUTH_SIZE;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={LOGO_SRC}
-      alt="ХАТА"
+      src={src}
+      alt={label}
       className={cls}
       height={height}
       style={{ height, maxWidth, width: "auto" }}
       decoding="async"
+      referrerPolicy="no-referrer"
     />
   );
 }

@@ -11,6 +11,30 @@ import {
   stripSpecialTariffTokensFromComment,
 } from "@/lib/admin/specialTariffBooking";
 import type { BookingRecord, RoomConfig } from "./types";
+import {
+  buildPromoCodeCommentToken,
+  parsePromoCodeFromComment,
+  stripPromoCodeFromComment,
+} from "@/lib/admin/bookingDiscountCalc";
+import {
+  isAwaitingPaymentStatus,
+  isPendingReviewStatus,
+} from "@/lib/public-booking/bookingReview";
+import {
+  paidUntilDate,
+  resolveBookingFinanceSummary,
+} from "@/lib/admin/bookingPayments";
+import {
+  parseEarlyLateTimesFromComment,
+  stripFlexibleTokensFromComment,
+} from "@/lib/admin/flexibleSchedule";
+import {
+  parseChildrenFromComment,
+  parseSelectedServicesFromComment,
+  stripChildrenFromComment,
+  stripServiceTokensFromComment,
+  type ServiceSelectionMap,
+} from "./settings/additionalServicesLogic";
 
 export function formatDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -20,6 +44,28 @@ export function isHutshubBooking(b: BookingRecord): boolean {
   return String((b && b.source) || "")
     .toLowerCase()
     .includes("hutshub");
+}
+
+export function findBookingInList(
+  bookings: BookingRecord[],
+  key: string | number | null | undefined
+): BookingRecord | undefined {
+  if (key == null || key === "") return undefined;
+  const normalized = String(key);
+  return (
+    bookings.find((b) => String(b.id) === normalized) ??
+    bookings.find((b) => String(b.row) === normalized)
+  );
+}
+
+export function resolveBookingOrderId(
+  booking?: BookingRecord | null,
+  fallbackTitle?: string
+): string {
+  const fromBooking = String(booking?.id || "").trim();
+  if (fromBooking) return fromBooking;
+  const fromTitle = String(fallbackTitle || "").match(/B-\d+/)?.[0];
+  return fromTitle || "";
 }
 
 /** @see lib/admin/roomBookingMatch */
@@ -67,6 +113,8 @@ export function getBookingBadgeClass(booking: BookingRecord): string {
   const src = String(booking.source || "").toLowerCase();
   if (s.includes("скас")) return "cancelled";
   if (src.includes("hutshub")) return "hutshub";
+  if (isPendingReviewStatus(booking.status)) return "pending-review";
+  if (isAwaitingPaymentStatus(booking.status)) return "new";
   if (s.includes("підтвердж")) return "confirmed";
   return "new";
 }
@@ -76,9 +124,7 @@ export function getTimelineFinBadge(
   booking: BookingRecord
 ): { text: string; bg: string; color: string } {
   const statusClass = getTimelineStatusClass(booking);
-  const total = Number(booking.totalPrice) || 0;
-  const paid = Number(booking.paidAmount) || 0;
-  const balance = total - paid;
+  const { total, paid, balance, prepayExpected } = resolveBookingFinanceSummary(booking);
 
   if (statusClass === "status-cancelled") {
     return { text: "—", bg: "rgba(0,0,0,0.05)", color: "#9CA3AF" };
@@ -86,18 +132,42 @@ export function getTimelineFinBadge(
   if (statusClass === "status-hutshub") {
     return { text: total > 0 ? `${Math.round(total)} грн` : "—", bg: "rgba(255,255,255,0.3)", color: "#1A332A" };
   }
+  if (statusClass === "status-pending-review") {
+    const prepay = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
+    return { text: prepay > 0 ? `${prepay} грн` : "—", bg: "#9CA3AF", color: "#FFFFFF" };
+  }
   if (total === 0) {
     return { text: "—", bg: "rgba(255,255,255,0.3)", color: "#4B5563" };
   }
   if (paid === 0) {
-    const prepay = Math.round(Number(booking.prepayAmount) || 0);
-    const advanceAmount = prepay > 0 ? prepay : Math.round(total / 2);
+    const advanceAmount = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
     return { text: `${advanceAmount} грн`, bg: "#F59E0B", color: "#FFFFFF" };
   }
   if (balance <= 0) {
     return { text: `${Math.round(total)} грн`, bg: "#10B981", color: "#FFFFFF" };
   }
   return { text: `${Math.round(balance)} грн`, bg: "#EF4444", color: "#FFFFFF" };
+}
+
+export type TimelineOneNightFinKind = "pending" | "debt" | "paid" | "neutral";
+
+/** Статус оплати для мікрокарток (1 ніч): іконка замість суми. */
+export function getTimelineOneNightFinKind(booking: BookingRecord): TimelineOneNightFinKind {
+  const statusClass = getTimelineStatusClass(booking);
+  const { total, paid, balance } = resolveBookingFinanceSummary(booking);
+
+  if (statusClass === "status-cancelled" || total === 0) return "neutral";
+  if (statusClass === "status-pending-review") return "pending";
+  if (paid === 0) return "pending";
+  if (balance <= 0) return "paid";
+  return "debt";
+}
+
+export function getTimelineOneNightFinAriaLabel(kind: TimelineOneNightFinKind): string {
+  if (kind === "pending") return "Очікує підтвердження або оплату";
+  if (kind === "debt") return "Борг";
+  if (kind === "paid") return "Оплачено повністю";
+  return "Без суми";
 }
 
 /** Міні-напис у кутку картки (2+ ночі): «2» або «2+1» за денними гостями. */
@@ -122,6 +192,8 @@ export function formatTimelineFinText(
 export function getTimelineStatusClass(booking: BookingRecord): string {
   const sClass = String(booking.status).toLowerCase();
   if (sClass.includes("скас")) return "status-cancelled";
+  if (isPendingReviewStatus(booking.status)) return "status-pending-review";
+  if (isAwaitingPaymentStatus(booking.status)) return "status-new";
   if (
     String(booking.source || "")
       .toLowerCase()
@@ -132,16 +204,17 @@ export function getTimelineStatusClass(booking: BookingRecord): string {
   ) {
     return "status-hutshub";
   }
-  const total = Number(booking.totalPrice) || 0;
-  const paid = Number(booking.paidAmount) || 0;
-  if (total > 0 && total - paid <= 0) return "status-confirmed";
+  const { total, balance } = resolveBookingFinanceSummary(booking);
+  if (total > 0 && balance <= 0) return "status-confirmed";
   return "status-new";
 }
 
 export function bookingHasEarlyLate(comment: string): { hasEarly: boolean; hasLate: boolean } {
   const exComment = comment || "";
-  let hasEarly = exComment.includes("Ранній заїзд");
-  let hasLate = exComment.includes("Пізній виїзд");
+  const hasEarly =
+    /🕒#early/.test(exComment) || exComment.includes("Ранній заїзд");
+  const hasLate =
+    /🕒#late/.test(exComment) || exComment.includes("Пізній виїзд");
   return { hasEarly, hasLate };
 }
 
@@ -196,9 +269,12 @@ export function displayPhone(phone: string): string {
 
 export interface ParsedBookingComment {
   guestComment: string;
+  children: number;
+  selectedServices: ServiceSelectionMap;
   dayGuests: number;
   vat: "Так" | "Ні";
   specialTariffs: Record<string, YesNo>;
+  promoCode: string;
   earlyTime: string | null;
   lateTime: string | null;
 }
@@ -228,19 +304,16 @@ export function parseBookingComment(
       : defaultSpecialTariffState([]);
   textComment = stripSpecialTariffTokensFromComment(textComment, specialTariffToggles);
 
-  let earlyTime: string | null = null;
-  const matchEarly = textComment.match(/🕒 Ранній заїзд: з (\d{2}:\d{2})(\s*\|\s*)?/);
-  if (matchEarly) {
-    earlyTime = matchEarly[1];
-    textComment = textComment.replace(matchEarly[0], "").trim();
-  }
+  const promoCode = parsePromoCodeFromComment(raw || "");
+  textComment = stripPromoCodeFromComment(textComment);
 
-  let lateTime: string | null = null;
-  const matchLate = textComment.match(/🕒 Пізній виїзд: до (\d{2}:\d{2})(\s*\|\s*)?/);
-  if (matchLate) {
-    lateTime = matchLate[1];
-    textComment = textComment.replace(matchLate[0], "").trim();
-  }
+  const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(raw || "");
+  textComment = stripFlexibleTokensFromComment(textComment);
+
+  const children = parseChildrenFromComment(raw || "");
+  const selectedServices = parseSelectedServicesFromComment(raw || "");
+  textComment = stripChildrenFromComment(textComment);
+  textComment = stripServiceTokensFromComment(textComment);
 
   textComment = textComment
     .replace(/^Коментар гостя:\s*/, "")
@@ -250,10 +323,53 @@ export function parseBookingComment(
 
   return {
     guestComment: textComment,
+    children,
+    selectedServices,
     dayGuests: parsedDayGuests,
     vat,
     specialTariffs,
+    promoCode,
     earlyTime,
     lateTime,
   };
+}
+
+function bookingMergeKey(b: BookingRecord): string {
+  return [
+    String(b.checkIn || ""),
+    String(b.checkOut || ""),
+    String(b.cottage || ""),
+    String(b.name || ""),
+    String(b.phone || ""),
+  ].join("|");
+}
+
+/** Зберігає локальні броні, які ще не встигли з’явитися на сервері після збереження. */
+export function mergeBookingsWithPending(
+  serverBookings: BookingRecord[],
+  localBookings: BookingRecord[]
+): BookingRecord[] {
+  const serverById = new Map(serverBookings.map((b) => [String(b.id), b]));
+  const serverKeys = new Set(serverBookings.map(bookingMergeKey));
+  const serverRows = new Set(serverBookings.map((b) => String(b.row)));
+  const merged = [...serverBookings];
+
+  for (const local of localBookings) {
+    const id = String(local.id || "");
+    if (id.startsWith("__undo-pending-") && serverKeys.has(bookingMergeKey(local))) {
+      continue;
+    }
+    if (id && serverById.has(id)) continue;
+    if (serverKeys.has(bookingMergeKey(local))) continue;
+    if (
+      local.row != null &&
+      serverRows.has(String(local.row)) &&
+      (!id || !serverById.has(id))
+    ) {
+      continue;
+    }
+    merged.push(local);
+  }
+
+  return merged;
 }

@@ -1,7 +1,9 @@
 /* Обгортка маршруту /book/[tenant_id] */
 .public-book-root {
   min-height: 100vh;
+  --accent: #556b2f;
   --accent-hover: #4b5d28;
+  --accent-light: rgba(85, 107, 47, 0.08);
 }
 
 .public-book-root .boso-public-body {
@@ -22,6 +24,23 @@
   position: relative;
   z-index: 2;
   background: var(--bg);
+}
+
+/* Компактні картки котеджів (desktop) — фіксована висота як у BOSO */
+.public-book-root.boso-public-desktop .cabin-card {
+  height: 480px;
+  min-height: unset;
+}
+
+.public-book-root.boso-public-desktop .slider-wrap {
+  height: 100%;
+  min-height: unset;
+}
+
+/* CabinSlideImage: портрет не обрізати */
+.public-book-root .cabin-slide-img {
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Плейсхолдер фото */
@@ -52,6 +71,10 @@
 /* Hover на парних картках після анімації (desktop) */
 .public-book-root.boso-public-desktop .cabin-card:nth-child(even).is-visible:hover {
   transform: translateY(-5px);
+}
+
+.public-book-root .drawer-room-header {
+  margin-bottom: 24px;
 }
 
 .public-book-root .summary-block {

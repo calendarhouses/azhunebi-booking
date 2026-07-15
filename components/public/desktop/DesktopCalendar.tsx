@@ -3,6 +3,7 @@
 import {
   getDayPrice,
   getRestrictionMinNights,
+  isDateClosed,
 } from "@/components/admin/desktop/bookingPriceEngine";
 import type { RoomConfig } from "@/components/admin/desktop/types";
 import { formatDateKey, getBookedRanges } from "@/lib/public-booking/bookedRanges";
@@ -54,6 +55,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
   const bookedRanges = getBookedRanges(runtime.bookings, room);
   const customPrices = runtime.customPrices || {};
   const restrictions = runtime.restrictions || {};
+  const closedDates = runtime.closedDates || {};
 
   const days: React.ReactNode[] = [];
   for (let i = 0; i < firstDay; i++) {
@@ -96,6 +98,12 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
 
     const price = getDayPrice(room, d, customPrices);
     const minN = getRestrictionMinNights(restrictions, room.id, d);
+    const closed = !isPast && isDateClosed(closedDates, room.id, d, restrictions);
+    if (closed) {
+      isOccupied = true;
+      clickBlocked = true;
+      cls += " closed-date";
+    }
     const clickable = !isPast && !clickBlocked;
 
     days.push(

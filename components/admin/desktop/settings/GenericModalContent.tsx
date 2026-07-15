@@ -45,6 +45,9 @@ export type RoomFormState = {
   capacity: number;
   maxCapacity: number;
   extraGuestPrice: number;
+  pricingModel: "per_house" | "per_guest";
+  pricePerGuest: number;
+  allowChildren: boolean;
   priceWeekday: number;
   priceWeekend: number;
   active: boolean;
@@ -172,6 +175,9 @@ export function buildRoomForm(room: Partial<RoomConfig>): RoomFormState {
     capacity: room.capacity ?? 2,
     maxCapacity: room.maxCapacity ?? room.capacity ?? 4,
     extraGuestPrice: room.extraGuestPrice !== undefined ? room.extraGuestPrice : 2500,
+    pricingModel: room.pricingModel === "per_guest" ? "per_guest" : "per_house",
+    pricePerGuest: room.pricePerGuest ?? room.priceWeekday ?? 4000,
+    allowChildren: room.allowChildren !== false,
     priceWeekday: room.priceWeekday ?? 4000,
     priceWeekend: room.priceWeekend ?? 5000,
     active: room.active !== false,
@@ -235,8 +241,8 @@ export interface GenericModalContentProps {
   setRoomForm: Dispatch<SetStateAction<RoomFormState>>;
   priceForm: PriceFormState;
   setPriceForm: Dispatch<SetStateAction<PriceFormState>>;
-  restrictionForm: RestrictionFormState;
-  setRestrictionForm: Dispatch<SetStateAction<RestrictionFormState>>;
+  restrictionForm?: RestrictionFormState;
+  setRestrictionForm?: Dispatch<SetStateAction<RestrictionFormState>>;
   discountForm: DiscountFormState;
   setDiscountForm: Dispatch<SetStateAction<DiscountFormState>>;
   customServiceForm: CustomServiceFormState;
@@ -290,6 +296,7 @@ export function GenericModalContent({
   }
 
   if (type === "restriction") {
+    if (!restrictionForm || !setRestrictionForm) return null;
     const toggleAllRestr = () => {
       setRestrictionForm((f) => {
         const nextAll = !f.allRoomsActive;
@@ -811,6 +818,51 @@ function RoomModalTabs({
                 }
               />
             </div>
+            <div className="form-group">
+              <label>Модель ціни:</label>
+              <div className="mode-toggle" style={{ margin: 0, width: "100%" }}>
+                <button
+                  type="button"
+                  className={`mode-btn${roomForm.pricingModel === "per_house" ? " active" : ""}`}
+                  onClick={() => setRoomForm((f) => ({ ...f, pricingModel: "per_house" }))}
+                >
+                  За будинок
+                </button>
+                <button
+                  type="button"
+                  className={`mode-btn${roomForm.pricingModel === "per_guest" ? " active" : ""}`}
+                  onClick={() => setRoomForm((f) => ({ ...f, pricingModel: "per_guest" }))}
+                >
+                  За гостя
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {roomForm.pricingModel === "per_guest" ? (
+            <div className="form-group">
+              <label>Ціна за 1 гостя / ніч (грн):</label>
+              <input
+                type="number"
+                min={0}
+                value={roomForm.pricePerGuest}
+                onChange={(e) =>
+                  setRoomForm((f) => ({ ...f, pricePerGuest: parseInt(e.target.value, 10) || 0 }))
+                }
+              />
+            </div>
+          ) : null}
+
+          <label className="form-group" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <input
+              type="checkbox"
+              checked={roomForm.allowChildren}
+              onChange={(e) => setRoomForm((f) => ({ ...f, allowChildren: e.target.checked }))}
+            />
+            <span>Дозволити бронювання з дітьми</span>
+          </label>
+
+          <div className="form-grid">
             <div className="form-group">
               <label>Доступність:</label>
               <div

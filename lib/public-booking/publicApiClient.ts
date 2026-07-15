@@ -35,6 +35,8 @@ export type SubmitBookingResult = {
   error?: string;
   requiredMin?: number;
   nights?: number;
+  orderId?: string;
+  flow?: "instant" | "pending_review";
   paymentData?: PaymentData;
 };
 

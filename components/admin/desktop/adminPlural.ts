@@ -50,6 +50,16 @@ export function nightWord(n: number): string {
   return "ночей";
 }
 
+/** 1 доба · 2 доби · 5 діб */
+export function dobaWord(n: number): string {
+  const v = Math.abs(n) % 100;
+  const v1 = v % 10;
+  if (v > 10 && v < 20) return "діб";
+  if (v1 > 1 && v1 < 5) return "доби";
+  if (v1 === 1) return "доба";
+  return "діб";
+}
+
 /** «від 1 ночі», «від 3 ночей» — для умов довготривалого проживання */
 export function nightsFromPhrase(count: number): string {
   const n = Math.max(1, Math.abs(parseInt(String(count), 10)) || 1);

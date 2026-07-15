@@ -8,6 +8,13 @@ import {
 } from "@/lib/admin/bookingPayments";
 import { buildSpecialTariffCommentParts } from "@/lib/admin/specialTariffBooking";
 import type { SpecialTariffToggle } from "@/lib/admin/specialTariffBooking";
+import {
+  buildChildrenCommentToken,
+  buildServiceCommentTokens,
+  type ServiceSelectionMap,
+} from "./settings/additionalServicesLogic";
+import { buildEarlyCommentToken, buildLateCommentToken } from "@/lib/admin/flexibleSchedule";
+import { buildPromoCodeCommentToken } from "@/lib/admin/bookingDiscountCalc";
 
 export function getFormVal(id: string): number {
   const el = document.getElementById(id);
@@ -24,20 +31,28 @@ export function getFormString(id: string): string {
 export function buildSystemComment(
   rawComment: string,
   opts: {
+    children: number;
+    selectedServices: ServiceSelectionMap;
     dayGuests: number;
     vat: string;
     specialTariffs: Record<string, "Так" | "Ні">;
     specialTariffToggles: SpecialTariffToggle[];
+    promoCode?: string;
     earlyTime: string | null;
     lateTime: string | null;
   }
 ): string {
   const sysComment: string[] = [];
+  const childrenToken = buildChildrenCommentToken(opts.children);
+  if (childrenToken) sysComment.push(childrenToken);
+  sysComment.push(...buildServiceCommentTokens(opts.selectedServices));
   if (opts.dayGuests > 0) sysComment.push(`👥 Денні гості: ${opts.dayGuests}`);
   if (opts.vat === "Так") sysComment.push("♨️ Чан: Так");
   sysComment.push(...buildSpecialTariffCommentParts(opts.specialTariffs, opts.specialTariffToggles));
-  if (opts.earlyTime) sysComment.push(`🕒 Ранній заїзд: з ${opts.earlyTime}`);
-  if (opts.lateTime) sysComment.push(`🕒 Пізній виїзд: до ${opts.lateTime}`);
+  const promoToken = buildPromoCodeCommentToken(opts.promoCode || "");
+  if (promoToken) sysComment.push(promoToken);
+  if (opts.earlyTime) sysComment.push(buildEarlyCommentToken(opts.earlyTime, false));
+  if (opts.lateTime) sysComment.push(buildLateCommentToken(opts.lateTime, false));
 
   if (sysComment.length > 0) {
     return (
@@ -116,9 +131,12 @@ export function collectBookingFromForm(
     paidAmount: paymentsForSave.reduce((s, p) => s + (Number(p.amount) || 0), 0),
     payments: paymentsForSave,
     comment: buildSystemComment(getFormString("adminComment"), {
+      children: parseInt(getFormString("adminChildren"), 10) || 0,
+      selectedServices: readSelectedServicesFromDom(),
       dayGuests: parseInt(getFormString("adminDayGuests"), 10) || 0,
       vat: getFormString("adminVat"),
       specialTariffs: readSpecialTariffsFromDom(),
+      promoCode: getFormString("adminPromoCode"),
       specialTariffToggles:
         (window as Window & { __bookingSpecialTariffToggles?: SpecialTariffToggle[] })
           .__bookingSpecialTariffToggles || [],
@@ -144,6 +162,17 @@ export function collectBookingFromForm(
   }
 
   return bookingData;
+}
+
+function readSelectedServicesFromDom(): Record<string, number> {
+  if (typeof document === "undefined") return {};
+  const state: Record<string, number> = {};
+  document.querySelectorAll<HTMLInputElement>(".admin-service-input").forEach((el) => {
+    const id = el.dataset.serviceId;
+    if (!id) return;
+    state[id] = Math.max(0, parseInt(el.value, 10) || 0);
+  });
+  return state;
 }
 
 function readSpecialTariffsFromDom(): Record<string, "Так" | "Ні"> {
@@ -239,4 +268,75 @@ export function isBookingSaveSuccessful(
   json: { error?: string; success?: boolean }
 ): boolean {
   return !json.error && json.success !== false;
+}
+
+export function buildBookingRecordFromSave(
+  bookingData: Record<string, unknown>,
+  saveResult: { orderId?: string },
+  existingBookings: BookingRecord[],
+  editingRowNumber: number | string | null
+): BookingRecord {
+  const editingKey =
+    editingRowNumber != null ? String(editingRowNumber).trim() : "";
+  const existing: BookingRecord | undefined =
+    editingKey
+      ? existingBookings.find((b) => String(b.id) === editingKey) ??
+        existingBookings.find((b) => String(b.row) === editingKey)
+      : undefined;
+
+  const id =
+    (saveResult.orderId && String(saveResult.orderId).trim()) ||
+    (bookingData.id != null && String(bookingData.id).trim()) ||
+    (existing?.id != null && String(existing.id).trim()) ||
+    `temp-${Date.now()}`;
+
+  let row: number | string;
+  if (existing?.row != null) {
+    row = existing.row;
+  } else if (bookingData.row != null) {
+    row = bookingData.row as number | string;
+  } else {
+    const maxRow = existingBookings.reduce((max, b) => {
+      const n = Number(b.row);
+      return Number.isFinite(n) ? Math.max(max, n) : max;
+    }, 0);
+    row = maxRow + 1;
+  }
+
+  return {
+    row,
+    id,
+    checkIn: String(bookingData.checkIn || ""),
+    checkOut: String(bookingData.checkOut || ""),
+    cottage: String(bookingData.cottage || ""),
+    roomId: bookingData.roomId as number | string | undefined,
+    status: String(bookingData.status || "Нова бронь"),
+    name: String(bookingData.name || ""),
+    phone: String(bookingData.phone || ""),
+    guests: (() => {
+      const raw = bookingData.guests;
+      if (raw == null || raw === "") return undefined;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : undefined;
+    })(),
+    pets: bookingData.pets as string | boolean | undefined,
+    totalPrice: bookingData.totalPrice as number | string | undefined,
+    paidAmount: bookingData.paidAmount as number | string | undefined,
+    source: String(bookingData.source || "Адмінка"),
+    comment: String(bookingData.comment || ""),
+    extraGuestFee: bookingData.extraGuestFee as number | string | undefined,
+    petFee: bookingData.petFee as number | string | undefined,
+    dayGuestFee: bookingData.dayGuestFee as number | string | undefined,
+    earlyFee: bookingData.earlyFee as number | string | undefined,
+    lateFee: bookingData.lateFee as number | string | undefined,
+    basePrice: bookingData.basePrice as number | string | undefined,
+    prepayAmount: bookingData.prepayAmount as number | string | undefined,
+    prepayMethod: String(bookingData.prepayMethod || ""),
+    surchargeAmount: bookingData.surchargeAmount as number | string | undefined,
+    surchargeMethod: String(bookingData.surchargeMethod || ""),
+    payments: Array.isArray(bookingData.payments)
+      ? (bookingData.payments as BookingRecord["payments"])
+      : undefined,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+  };
 }

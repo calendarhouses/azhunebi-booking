@@ -1,14 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AdminSessionLoader } from "./AdminSessionLoader";
 import { useAuth } from "./AuthProvider";
 
 export function AdminAuthGate({ children }: { children: ReactNode }) {
   const { loading, error, ready } = useAuth();
 
   if (loading) {
-    return <AdminSessionLoader />;
+    return null;
   }
 
   if (error || !ready) {

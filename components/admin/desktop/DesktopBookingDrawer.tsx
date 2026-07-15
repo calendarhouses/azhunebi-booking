@@ -1,10 +1,21 @@
 "use client";
 
+import { useMemo } from "react";
 import { MobileSheetHeader } from "../mobile/MobileSheetHeader";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import { BookingPriceCalculator } from "./BookingPriceCalculator";
+import { BookingGuestsAndServicesFields } from "./BookingGuestsAndServicesFields";
+import { BookingSpecialTariffsFields } from "./BookingSpecialTariffsFields";
+import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
-import { SpecialTariffToggleField } from "./SpecialTariffToggleField";
+import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
+import { isAwaitingPaymentStatus, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
+import { findBookingInList, resolveBookingOrderId } from "./bookingUtils";
+import { GuestMessengerButtons } from "../shared/GuestMessengerButtons";
+import {
+  BookingReviewActions,
+  BOOKING_STATUS_AWAITING_PAYMENT,
+} from "../shared/BookingReviewActions";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -20,6 +31,7 @@ export interface DesktopBookingDrawerProps {
   drawer: DrawerApi;
   settings: AdminSettingsPayload;
   bookings: BookingRecord[];
+  onBookingReviewed?: () => void | Promise<void>;
 }
 
 export function DesktopBookingDrawer({
@@ -27,10 +39,38 @@ export function DesktopBookingDrawer({
   drawer,
   settings,
   bookings,
+  onBookingReviewed,
 }: DesktopBookingDrawerProps) {
   void _roomsList;
-  const { form } = drawer;
+  const { form, editingBookingId, editingRow, drawerTitle } = drawer;
   const isMobile = useMobileUi();
+  const activeBooking = useMemo(
+    () => findBookingInList(bookings, editingBookingId || editingRow),
+    [bookings, editingBookingId, editingRow]
+  );
+  const reviewOrderId = resolveBookingOrderId(activeBooking, drawerTitle);
+  const showReviewActions = Boolean(
+    reviewOrderId && isPendingReviewStatus(activeBooking?.status ?? form.status)
+  );
+  const roomId =
+    form.roomId != null
+      ? String(form.roomId)
+      : settings.roomsList?.find((r) => r.name === form.cottage)?.id != null
+        ? String(settings.roomsList.find((r) => r.name === form.cottage)!.id)
+        : undefined;
+  const showPromoCode = hasActivePromoCodeDiscounts(settings.discountsList, roomId);
+  const promoStatus =
+    !form.promoCode.trim() || !showPromoCode
+      ? "idle"
+      : promoCodeAppliesToBooking(form.promoCode, settings.discountsList || [], {
+          checkIn: form.checkIn,
+          checkOut: form.checkOut,
+          nights: 0,
+          roomId: roomId || "",
+          enabledSpecialTariffIds: [],
+        })
+        ? "valid"
+        : "invalid";
 
   return (
     <div id="bookingDrawer" className="drawer-overlay">
@@ -46,6 +86,19 @@ export function DesktopBookingDrawer({
           </div>
         )}
         <div className="drawer-body">
+          {showReviewActions ? (
+            <BookingReviewActions
+              orderId={reviewOrderId}
+              onApproved={() => {
+                drawer.setStatus(BOOKING_STATUS_AWAITING_PAYMENT);
+                void onBookingReviewed?.();
+              }}
+              onRejected={() => {
+                drawer.setStatus("Скасовано");
+                void onBookingReviewed?.();
+              }}
+            />
+          ) : null}
           <BookingFormSectionHeading
             compact
             title="Статус броні"
@@ -63,6 +116,43 @@ export function DesktopBookingDrawer({
               </div>
             ))}
           </div>
+          {isPendingReviewStatus(activeBooking?.status ?? form.status) ? (
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: 13,
+                color: "#92400E",
+                fontWeight: 600,
+              }}
+            >
+              Поточний статус: Очікує підтвердження
+            </p>
+          ) : null}
+          {isAwaitingPaymentStatus(form.status) && form.phone ? (
+            <div
+              className="form-section"
+              style={{
+                marginTop: 8,
+                padding: 16,
+                borderRadius: 12,
+                border: "1px dashed #BFDBFE",
+                background: "#F8FAFC",
+              }}
+            >
+              <GuestMessengerButtons
+                booking={{
+                  id: activeBooking?.id,
+                  name: form.name,
+                  phone: form.phone,
+                  cottage: form.cottage,
+                  checkIn: form.checkIn,
+                  checkOut: form.checkOut,
+                  prepayAmount: Number(activeBooking?.prepayAmount) || undefined,
+                  totalPrice: Number(activeBooking?.totalPrice) || undefined,
+                }}
+              />
+            </div>
+          ) : null}
           <form id="adminBookingForm">
             <div className="form-section">
               <BookingFormSectionHeading
@@ -196,221 +286,29 @@ export function DesktopBookingDrawer({
                     placeholder="Оберіть дату"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Дорослих:</label>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      background: "#F9FAFB",
-                      borderRadius: 12,
-                      border: "1px solid #D1D5DB",
-                      height: 48,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => drawer.changeGuests(-1)}
-                      style={{
-                        width: 50,
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "#FEF2F2",
-                        color: "#DC2626",
-                        border: "none",
-                        borderRight: "1px solid #FECACA",
-                        fontSize: 24,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      id="adminGuests"
-                      min={1}
-                      readOnly
-                      value={form.guests}
-                      style={{
-                        flex: 1,
-                        textAlign: "center",
-                        background: "transparent",
-                        border: "none",
-                        fontSize: 16,
-                        fontWeight: 700,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => drawer.changeGuests(1)}
-                      style={{
-                        width: 50,
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "#F0FDF4",
-                        color: "#059669",
-                        border: "none",
-                        borderLeft: "1px solid #A7F3D0",
-                        fontSize: 22,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Тварини:</label>
-                  <div
-                    className="mode-toggle"
-                    style={{
-                      margin: 0,
-                      width: "100%",
-                      display: "flex",
-                      padding: 4,
-                      background: "#F3F4F6",
-                      borderRadius: 12,
-                      height: 48,
-                    }}
-                  >
-                    <div
-                      className={`mode-btn pet-btn${form.pets === "Ні" ? " active" : ""}`}
-                      data-val="Ні"
-                      onClick={() => drawer.setPets("Ні")}
-                    >
-                      Ні
-                    </div>
-                    <div
-                      className={`mode-btn pet-btn${form.pets === "Так" ? " active" : ""}`}
-                      data-val="Так"
-                      onClick={() => drawer.setPets("Так")}
-                    >
-                      Так
-                    </div>
-                  </div>
-                  <input type="hidden" id="adminPets" value={form.pets} readOnly />
-                </div>
-                <div className="form-group">
-                  <label>Денні гості (+500 грн):</label>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      background: "#F9FAFB",
-                      borderRadius: 12,
-                      border: "1px solid #D1D5DB",
-                      height: 48,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => drawer.changeAdminDayGuests(-1)}
-                      style={{
-                        width: 50,
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "#FEF2F2",
-                        color: "#DC2626",
-                        border: "none",
-                        fontSize: 24,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      id="adminDayGuests"
-                      min={0}
-                      readOnly
-                      value={form.dayGuests}
-                      style={{ flex: 1, textAlign: "center", border: "none", fontSize: 16, fontWeight: 700 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => drawer.changeAdminDayGuests(1)}
-                      style={{
-                        width: 50,
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "#F0FDF4",
-                        color: "#059669",
-                        border: "none",
-                        fontSize: 22,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Чан:</label>
-                  <div
-                    className="mode-toggle"
-                    style={{
-                      margin: 0,
-                      width: "100%",
-                      display: "flex",
-                      padding: 4,
-                      background: "#F3F4F6",
-                      borderRadius: 12,
-                      height: 48,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className={`mode-btn chan-btn${form.vat === "Ні" ? " active" : ""}`}
-                      data-val="Ні"
-                      onClick={() => drawer.setVat("Ні")}
-                    >
-                      Ні
-                    </button>
-                    <button
-                      type="button"
-                      className={`mode-btn chan-btn${form.vat === "Так" ? " active" : ""}`}
-                      data-val="Так"
-                      onClick={() => drawer.setVat("Так")}
-                    >
-                      Так
-                    </button>
-                  </div>
-                  <input type="hidden" id="adminVat" value={form.vat} readOnly />
-                </div>
-                {drawer.specialTariffToggles.length > 0 ? (
-                  <div style={{ gridColumn: "1 / -1", marginTop: 4 }}>
-                    <BookingFormSectionHeading
-                      compact
-                      className="booking-form-section-heading--inset"
-                      title="Спецтарифи"
-                      description="Увімкни потрібні знижки для гостя — вони зʼявляться в розшифровці ціни."
-                    />
-                  </div>
-                ) : null}
-                {drawer.specialTariffToggles.map((toggle) => (
-                  <SpecialTariffToggleField
-                    key={toggle.id}
-                    tariffId={toggle.id}
-                    label={toggle.label}
-                    value={form.specialTariffs[toggle.id] ?? "Ні"}
-                    onChange={(val) => drawer.setSpecialTariff(toggle.id, val)}
+                <BookingGuestsAndServicesFields
+                  adults={form.guests}
+                  children={form.children}
+                  maxOccupants={drawer.maxOccupants}
+                  showChildren={drawer.showChildren}
+                  selectedServices={form.selectedServices}
+                  availableServices={drawer.availableServices}
+                  onChangeAdults={drawer.changeGuests}
+                  onChangeChildren={drawer.changeChildren}
+                  onSetServiceQty={drawer.setServiceQty}
+                />
+                <BookingSpecialTariffsFields
+                  toggles={drawer.specialTariffToggles}
+                  values={form.specialTariffs}
+                  onChange={drawer.setSpecialTariff}
+                />
+                {showPromoCode ? (
+                  <BookingPromoCodeField
+                    value={form.promoCode}
+                    onChange={(promoCode) => drawer.patchForm({ promoCode })}
+                    status={promoStatus}
                   />
-                ))}
-                {drawer.specialTariffToggles.length % 2 === 1 ? <div /> : null}
+                ) : null}
               </div>
 
               <div style={{ marginTop: 16, borderTop: "1px dashed #E5E7EB", paddingTop: 16 }}>

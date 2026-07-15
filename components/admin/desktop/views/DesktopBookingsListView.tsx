@@ -13,6 +13,7 @@ import {
   getBookingBadgeClass,
   sortBookingsByCheckIn,
 } from "../bookingUtils";
+import { bookingMoveKey } from "../timelineBookingMove";
 import type { BookingRecord, RoomConfig } from "../types";
 import { MobileBookingCard } from "../../mobile/MobileBookingCard";
 
@@ -155,7 +156,7 @@ export function DesktopBookingsListView({
             <div className="boso-mobile-card-empty">Немає броней</div>
           ) : (
             rows.map((b) => (
-              <MobileBookingCard key={String(b.row)} booking={b} onOpen={onOpenBooking} />
+              <MobileBookingCard key={String(bookingMoveKey(b))} booking={b} onOpen={onOpenBooking} />
             ))
           )}
         </div>
@@ -191,7 +192,7 @@ export function DesktopBookingsListView({
 
               return (
                 <tr
-                  key={String(b.row)}
+                  key={String(bookingMoveKey(b))}
                   style={{ transition: "background 0.2s ease" }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "#F9FAFB";

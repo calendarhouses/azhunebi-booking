@@ -6,13 +6,15 @@ import { showToast } from "./adminGlobals";
 import { bosoLeave } from "./adminTooltip";
 import { selectOption, setBookingSourceDefault, setBookingSourceFromSaved } from "./adminUiHelpers";
 import {
-  clampGuestsForRoom,
+  clampOccupantsForRoom,
+  getRoomMaxCapacity,
   defaultBookingDrawerForm,
   pickPriceFormInput,
   type BookingDrawerFormState,
   type SchedulePriceLabels,
   type YesNo,
 } from "./bookingDrawerForm";
+import { roomAllowsChildren } from "./settings/additionalServicesLogic";
 import {
   applyEarlyLateChips,
   renderCottageOptions,
@@ -23,6 +25,10 @@ import {
   toggleVat,
 } from "./bookingDrawerDom";
 import { findRoomForBooking, formatRoomDisplayLabel, parseBookingComment } from "./bookingUtils";
+import {
+  listServicesForRoom,
+  migrateLegacyServiceSelection,
+} from "./settings/additionalServicesLogic";
 import { getBookingPayments } from "@/lib/admin/bookingPayments";
 import {
   defaultSpecialTariffState,
@@ -61,6 +67,7 @@ function syncFormFieldsToDom(form: BookingDrawerFormState): void {
   set("adminCottage", form.cottage);
   set("adminRoomId", form.roomId != null ? String(form.roomId) : "");
   set("adminGuests", String(form.guests));
+  set("adminChildren", String(form.children));
   set("adminPets", form.pets);
   set("adminDayGuests", String(form.dayGuests));
   set("adminVat", form.vat);
@@ -156,12 +163,34 @@ export function useBookingDrawer({
       form.checkOut,
       form.cottage,
       form.guests,
+      form.children,
       form.pets,
       form.dayGuests,
       form.vat,
+      form.selectedServices,
       form.specialTariffs,
+      form.promoCode,
     ]
   );
+
+  const availableServices = useMemo(() => {
+    const room =
+      roomsList.find((r) => r.name === form.cottage) ||
+      (form.roomId != null ? roomsList.find((r) => String(r.id) === String(form.roomId)) : undefined);
+    return listServicesForRoom(settings.customServicesList, room);
+  }, [form.cottage, form.roomId, roomsList, settings.customServicesList]);
+
+  const maxOccupants = useMemo(
+    () => getRoomMaxCapacity(form.cottage, roomsList),
+    [form.cottage, roomsList]
+  );
+
+  const showChildren = useMemo(() => {
+    const room =
+      roomsList.find((r) => r.name === form.cottage) ||
+      (form.roomId != null ? roomsList.find((r) => String(r.id) === String(form.roomId)) : undefined);
+    return roomAllowsChildren(room);
+  }, [form.cottage, form.roomId, roomsList]);
 
   const patchForm = useCallback((partial: Partial<BookingDrawerFormState>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -204,13 +233,25 @@ export function useBookingDrawer({
   const syncCottageUi = useCallback(
     (roomName: string) => {
       const room = roomsList.find((r) => r.name === roomName);
-      patchForm({
-        cottage: roomName,
-        cottageLabel: roomName ? formatRoomDisplayLabel(roomName, room?.desc) : "Оберіть котедж",
-        roomId: room?.id ?? null,
+      setForm((prev) => {
+        const { adults, children: rawChildren } = clampOccupantsForRoom(
+          prev.guests,
+          prev.children,
+          roomName,
+          roomsList
+        );
+        const children = roomAllowsChildren(room) ? rawChildren : 0;
+        return {
+          ...prev,
+          cottage: roomName,
+          cottageLabel: roomName ? formatRoomDisplayLabel(roomName, room?.desc) : "Оберіть котедж",
+          roomId: room?.id ?? null,
+          guests: adults,
+          children,
+        };
       });
     },
-    [roomsList, patchForm]
+    [roomsList]
   );
 
   const populateCottageOptions = useCallback(
@@ -334,6 +375,14 @@ export function useBookingDrawer({
       const matchedRoom = findRoomForBooking(booking, roomsList);
       const savedRoom = matchedRoom?.name || String(booking.cottage || "");
       const room = matchedRoom ?? roomsList.find((r) => r.name === savedRoom);
+      const legacyServices = migrateLegacyServiceSelection(
+        settings.customServicesList || [],
+        { dayGuests: parsed.dayGuests, vat: parsed.vat }
+      );
+      const selectedServices =
+        Object.keys(parsed.selectedServices).length > 0
+          ? parsed.selectedServices
+          : legacyServices;
 
       let savedPrepay = Number(booking.prepayAmount) || 0;
       let savedSurcharge = Number(booking.surchargeAmount) || 0;
@@ -354,6 +403,13 @@ export function useBookingDrawer({
         checkOut: normalizeDateToIso(booking.checkOut || ""),
       };
 
+      const occupants = clampOccupantsForRoom(
+        Number(booking.guests) || 2,
+        parsed.children,
+        savedRoom,
+        roomsList
+      );
+
       setForm({
         ...defaultBookingDrawerForm(),
         name: String(booking.name).replace(" (Ручна бронь)", ""),
@@ -365,11 +421,14 @@ export function useBookingDrawer({
         roomId: matchedRoom?.id ?? booking.roomId ?? null,
         checkIn: normalizeDateToIso(booking.checkIn || ""),
         checkOut: normalizeDateToIso(booking.checkOut || ""),
-        guests: Number(booking.guests) || 2,
+        guests: occupants.adults,
+        children: occupants.children,
         pets: booking.pets === "Так" || booking.pets === true ? "Так" : "Ні",
         dayGuests: parsed.dayGuests,
         vat: parsed.vat,
+        selectedServices,
         specialTariffs: parsed.specialTariffs,
+        promoCode: parsed.promoCode,
         status: booking.status || "Нова бронь",
         earlyCardActive: !!parsed.earlyTime,
         lateCardActive: !!parsed.lateTime,
@@ -395,22 +454,52 @@ export function useBookingDrawer({
       setEarlyTime,
       setLateTime,
       specialTariffToggles,
+      settings.customServicesList,
     ]
   );
+
+  const changeChildren = useCallback(
+    (amount: number) => {
+      setForm((prev) => {
+        const room =
+          roomsList.find((r) => r.name === prev.cottage) ||
+          (prev.roomId != null ? roomsList.find((r) => String(r.id) === String(prev.roomId)) : undefined);
+        if (!roomAllowsChildren(room)) return prev;
+        const maxCap = getRoomMaxCapacity(prev.cottage, roomsList);
+        const next = prev.children + amount;
+        if (next < 0) return prev;
+        if (prev.guests + next > maxCap) {
+          if (amount > 0) {
+            showToast(`Максимум для цієї хати: ${maxCap} гостей (дорослі + діти)`);
+          }
+          return prev;
+        }
+        return { ...prev, children: next };
+      });
+    },
+    [roomsList]
+  );
+
+  const setServiceQty = useCallback((serviceId: number, qty: number) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedServices: { ...prev.selectedServices, [String(serviceId)]: Math.max(0, qty) },
+    }));
+  }, []);
 
   const changeGuests = useCallback(
     (amount: number) => {
       setForm((prev) => {
-        const { guests, clamped, maxCap } = clampGuestsForRoom(
-          prev.guests + amount,
-          prev.cottage,
-          roomsList
-        );
-        if (clamped && amount > 0) {
-          showToast(`Максимум для цієї хати: ${maxCap} гостей`);
+        const maxCap = getRoomMaxCapacity(prev.cottage, roomsList);
+        const nextAdults = prev.guests + amount;
+        if (nextAdults < 1) return prev;
+        if (nextAdults + prev.children > maxCap) {
+          if (amount > 0) {
+            showToast(`Максимум для цієї хати: ${maxCap} гостей (дорослі + діти)`);
+          }
+          return prev;
         }
-        if (guests < 1) return prev;
-        return { ...prev, guests };
+        return { ...prev, guests: nextAdults };
       });
     },
     [roomsList]
@@ -631,9 +720,14 @@ export function useBookingDrawer({
     openNewBookingDrawer,
     openDetailsByRow,
     changeGuests,
+    changeChildren,
     changeAdminDayGuests,
     setPets,
     setVat,
+    availableServices,
+    maxOccupants,
+    showChildren,
+    setServiceQty,
     specialTariffToggles,
     setSpecialTariff,
     setStatus,

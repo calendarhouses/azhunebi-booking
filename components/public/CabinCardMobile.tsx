@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicRoom } from "@/lib/public-booking/types";
-import { buildPublicAmenities, getRoomDescription } from "@/lib/public-booking/desktopRoomContent";
+import { getRoomSiteFeatures } from "@/lib/public-booking/desktopRoomContent";
 import {
   formatPriceUa,
+  getRoomBadgeLabel,
   getRoomImages,
   getRoomMinPrice,
   getRoomSubtitle,
 } from "@/lib/public-booking/roomHelpers";
+import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
+import { CabinSlideImage } from "./CabinSlideImage";
 
 type Props = {
   room: PublicRoom;
@@ -18,11 +21,14 @@ type Props = {
 };
 
 export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: Props) {
-  const images = getRoomImages(room);
+  const images = getRoomImages(room, { card: true });
   const minPrice = getRoomMinPrice(room, customPrices);
-  const { featured, byCategory } = buildPublicAmenities(room);
+  const features = getRoomSiteFeatures(room);
+  const subtitle = getRoomSubtitle(room);
   const [slideIndex, setSlideIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const sliderWrapRef = useRef<HTMLDivElement>(null);
+  const sliderTrackStyle = useSliderTrackStyle(sliderWrapRef, slideIndex);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -75,21 +81,21 @@ export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: P
     <div className="cabin-card" ref={cardRef}>
       <div
         className="slider-wrap"
+        ref={sliderWrapRef}
         id={`card-slider-${room.id}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="cabin-badge">{room.desc}</div>
+        {getRoomBadgeLabel(room) ? <div className="cabin-badge">{getRoomBadgeLabel(room)}</div> : null}
         <div
           className="slider-track"
           id={`track-${room.id}`}
-          style={{ transform: `translateX(-${slideIndex * 100}%)` }}
+          style={sliderTrackStyle}
         >
           {images.map((url, i) => (
             <div className="slide" key={`${room.id}-${i}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={room.name} loading="lazy" />
+              <CabinSlideImage src={url} alt={room.name} loading="lazy" />
             </div>
           ))}
         </div>
@@ -104,28 +110,18 @@ export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: P
 
       <div className="cabin-body">
         <div className="cabin-name">{room.name}</div>
-        <div className="cabin-subtitle">{getRoomSubtitle(room)}</div>
-        <div className="premium-features">
-          {featured.map((item) => (
-            <div className="feature-item" key={item.label}>
-              {item.icon}
-              <span style={{ fontWeight: 600 }}>{item.label}</span>
-            </div>
-          ))}
-        </div>
+        {subtitle ? <div className="cabin-subtitle">{subtitle}</div> : null}
+        {features.length ? (
+          <div className="premium-features">
+            {features.map((item) => (
+              <div className="feature-item" key={item.label}>
+                {item.icon}
+                <span style={{ fontWeight: 600 }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--muted)",
-            lineHeight: 1.6,
-            marginBottom: 14,
-            maxHeight: 72,
-            overflow: "hidden",
-          }}
-        >
-          {getRoomDescription(room)}
-        </p>
         <div className="cabin-meta">
           <div className="cabin-meta-item">
             <svg viewBox="0 0 24 24">
@@ -149,69 +145,17 @@ export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: P
           </div>
         </div>
 
-        {room.rules ? (
-          <div
-            className="cabin-meta"
-            style={{
-              background: "#F3F4F6",
-              borderRadius: 12,
-              padding: 10,
-              border: "1px solid var(--border)",
-              fontSize: 11,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span>
-                <strong>Заїзд</strong> {room.rules.checkInTime || "15:00"}
-              </span>
-              <span>
-                <strong>Виїзд</strong> {room.rules.checkOutTime || "11:00"}
-              </span>
-            </div>
-            <div style={{ marginBottom: 2 }}>
-              <strong>Тварини:</strong>{" "}
-              {room.rules.pets?.isPetsFriendly ? "дозволені" : "не дозволені"}
-            </div>
-            {room.rules.pets?.description ? (
-              <div style={{ marginBottom: 2 }}>{room.rules.pets.description}</div>
-            ) : null}
-            {room.rules.selfCheckIn?.enabled ? (
-              <div>
-                <strong>Самостійне заселення:</strong>{" "}
-                {room.rules.selfCheckIn.description || "деталі надішлемо в листі/месенджері"}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {byCategory.length ? (
-          <div style={{ marginTop: 10 }}>
-            {byCategory.map((cat) => (
-              <div key={cat.id} style={{ marginBottom: 8 }}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "var(--muted)",
-                    marginBottom: 2,
-                  }}
-                >
-                  {cat.title}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text)" }}>
-                  {cat.items.map((a) => a.label).join(" · ")}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
         <div className="cabin-footer-block">
           <div className="price-info">
             <span className="price-label">Вартість</span>
             <span className="price-val">
-              від <strong>{formatPriceUa(minPrice)}</strong> грн / ніч
+              {minPrice > 0 ? (
+                <>
+                  від <strong>{formatPriceUa(minPrice)}</strong> грн / ніч
+                </>
+              ) : (
+                <strong>Уточнюйте</strong>
+              )}
             </span>
           </div>
           <button type="button" className="btn-book" onClick={onBook}>

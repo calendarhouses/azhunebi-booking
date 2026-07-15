@@ -9,8 +9,11 @@ import {
 } from "../settings/DesktopRestrictionsGrid";
 import { BrandingSettingsPanel } from "../settings/BrandingSettingsPanel";
 import { DiscountTemplateGallery } from "../settings/DiscountTemplateGallery";
+import { AdditionalServicesSettingsPage } from "../settings/AdditionalServicesSettingsPage";
 import { SettingsRoomsTable } from "../settings/DesktopSettingsTables";
+import { SIDEBAR_SETTINGS_ITEMS } from "../sidebarSettingsItems";
 import type { AdminModalsApi } from "../useAdminModals";
+import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 import { SETTINGS_FIT_CONTENT_TABS, SETTINGS_FULL_WIDTH_TABS } from "../settingsTabMeta";
 import type { AdminSettingsPayload, SettingsTabName } from "../types";
 
@@ -18,13 +21,17 @@ function tabDisplay(active: SettingsTabName, tab: SettingsTabName): CSSPropertie
   return { display: active === tab ? "block" : "none" };
 }
 
-const MOBILE_SETTINGS_TABS: { tab: SettingsTabName; label: string }[] = [
-  { tab: "branding", label: "Сторінка хати" },
-  { tab: "rooms", label: "Твоє житло" },
-  { tab: "prices", label: "Ціни та тарифи" },
-  { tab: "restrictions", label: "Правила заїзду" },
-  { tab: "discounts", label: "Знижки" },
-];
+function tabContentClass(active: SettingsTabName, tab: SettingsTabName, extra?: string) {
+  return [
+    "settings-tab-content",
+    extra,
+    active === tab ? "settings-tab-content--active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+const MOBILE_SETTINGS_TABS = SIDEBAR_SETTINGS_ITEMS.map(({ tab, label }) => ({ tab, label }));
 
 export interface DesktopSettingsViewProps {
   style?: CSSProperties;
@@ -38,6 +45,7 @@ export interface DesktopSettingsViewProps {
   modals: AdminModalsApi;
   priceTimelineBaseDateRef: React.MutableRefObject<Date>;
   restrictionsTimelineBaseDateRef: React.MutableRefObject<Date>;
+  adminUndo: AdminUndoApi;
 }
 
 export function DesktopSettingsView({
@@ -52,6 +60,7 @@ export function DesktopSettingsView({
   modals,
   priceTimelineBaseDateRef,
   restrictionsTimelineBaseDateRef,
+  adminUndo,
 }: DesktopSettingsViewProps) {
   const isMobile = layout === "mobile";
   const restrictionsWrapperRef = useRef<HTMLDivElement>(null);
@@ -72,6 +81,9 @@ export function DesktopSettingsView({
     if (activeTab === "prices" && typeof window !== "undefined") {
       window.renderPriceGrid?.();
     }
+    if (activeTab === "restrictions" && typeof window !== "undefined") {
+      window.renderRestrictionsGrid?.();
+    }
   }, [activeTab]);
 
   const tableProps = { settings, modals, layout };
@@ -83,12 +95,13 @@ export function DesktopSettingsView({
         "settings-content",
         SETTINGS_FIT_CONTENT_TABS.includes(activeTab) ? "settings-content--compact" : "",
         SETTINGS_FULL_WIDTH_TABS.includes(activeTab) ? "settings-content--full-width" : "",
+        activeTab === "prices" || activeTab === "restrictions" ? "settings-content--prices-tab" : "",
       ]
         .filter(Boolean)
         .join(" ");
 
   return (
-    <div id={isMobile ? "view-settings" : undefined} style={style}>
+    <div id="view-settings" className="admin-settings-view" style={style}>
       {isMobile ? (
         <>
           <button
@@ -121,13 +134,14 @@ export function DesktopSettingsView({
         {showTab("branding") ? (
         <div
           id="set-branding"
-          className="settings-tab-content"
+          className={tabContentClass(activeTab, "branding")}
           style={isMobile ? undefined : tabDisplay(activeTab, "branding")}
         >
           <BrandingSettingsPanel
             settings={settings}
             onLogoPreviewChange={onLogoPreviewChange}
             onSettingsChange={onSettingsChange ?? (() => {})}
+            isActive={!isMobile && activeTab === "branding"}
           />
         </div>
         ) : null}
@@ -135,7 +149,7 @@ export function DesktopSettingsView({
         {showTab("rooms") ? (
         <div
           id="set-rooms"
-          className="settings-tab-content settings-tab-content--rooms"
+          className={tabContentClass(activeTab, "rooms", "settings-tab-content--rooms")}
           style={isMobile ? undefined : tabDisplay(activeTab, "rooms")}
         >
           {isMobile ? (
@@ -166,7 +180,7 @@ export function DesktopSettingsView({
         {showTab("prices") ? (
         <div
           id="set-prices"
-          className="settings-tab-content"
+          className={tabContentClass(activeTab, "prices")}
           style={isMobile ? undefined : tabDisplay(activeTab, "prices")}
         >
           <DesktopPriceGrid
@@ -174,14 +188,36 @@ export function DesktopSettingsView({
             modals={modals}
             baseDateRef={priceTimelineBaseDateRef}
             layout={layout}
+            isTabActive={activeTab === "prices"}
+            adminUndo={adminUndo}
           />
+        </div>
+        ) : null}
+
+        {showTab("services") ? (
+        <div
+          id="set-services"
+          className={tabContentClass(activeTab, "services")}
+          style={isMobile ? undefined : tabDisplay(activeTab, "services")}
+        >
+          <AdditionalServicesSettingsPage settings={settings} modals={modals} />
+        </div>
+        ) : null}
+
+        {showTab("discounts") ? (
+        <div
+          id="set-discounts"
+          className={tabContentClass(activeTab, "discounts", "settings-tab-content--discounts")}
+          style={isMobile ? undefined : tabDisplay(activeTab, "discounts")}
+        >
+          <DiscountTemplateGallery settings={settings} modals={modals} />
         </div>
         ) : null}
 
         {showTab("restrictions") ? (
         <div
           id="set-restrictions"
-          className="settings-tab-content"
+          className={tabContentClass(activeTab, "restrictions")}
           style={isMobile ? undefined : tabDisplay(activeTab, "restrictions")}
         >
           <DesktopRestrictionsGrid
@@ -190,13 +226,9 @@ export function DesktopSettingsView({
             baseDateRef={restrictionsTimelineBaseDateRef}
             wrapperRef={restrictionsWrapperRef}
             layout={layout}
+            isTabActive={activeTab === "restrictions"}
+            adminUndo={adminUndo}
           />
-        </div>
-        ) : null}
-
-        {showTab("discounts") ? (
-        <div id="set-discounts" className="settings-tab-content settings-tab-content--discounts" style={isMobile ? undefined : tabDisplay(activeTab, "discounts")}>
-          <DiscountTemplateGallery settings={settings} modals={modals} />
         </div>
         ) : null}
       </div>

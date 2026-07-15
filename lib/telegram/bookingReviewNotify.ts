@@ -1,0 +1,211 @@
+import { processBookingReview } from "@/lib/admin/processBookingReview";
+import { getPublicSiteBaseUrl, normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
+import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
+import { parsePendingServiceIdsFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { isTelegramConfigured } from "./config";
+import {
+  answerTelegramCallback,
+  editTelegramMessage,
+  sendTelegramMessage,
+} from "./sendMessage";
+import { getReviewWebhookSecret } from "./reviewSecret";
+
+export type PendingReviewNotifyInput = {
+  orderId: string;
+  name?: string;
+  phone?: string;
+  cottage?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  totalPrice?: number;
+  prepayAmount?: number;
+  comment?: string;
+  source?: string;
+};
+
+const UK_MONTHS = [
+  "січня", "лютого", "березня", "квітня", "травня", "червня",
+  "липня", "серпня", "вересня", "жовтня", "листопада", "грудня",
+];
+
+function formatDateUk(value?: string): string {
+  if (!value) return "—";
+  const d = new Date(value.includes("T") ? value : `${value}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return value;
+  return `${d.getDate()} ${UK_MONTHS[d.getMonth()]}`;
+}
+
+function formatPhoneDisplay(phone?: string): string {
+  const digits = normalizeGuestPhone(phone);
+  if (!digits) return "—";
+  return `+${digits}`;
+}
+
+function formatMoneyUa(amount: number): string {
+  return `${Math.round(amount).toLocaleString("uk-UA")} ₴`;
+}
+
+function countNights(checkIn?: string, checkOut?: string): number {
+  if (!checkIn || !checkOut) return 0;
+  const a = new Date(checkIn.includes("T") ? checkIn : `${checkIn}T12:00:00`);
+  const b = new Date(checkOut.includes("T") ? checkOut : `${checkOut}T12:00:00`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
+}
+
+function buildReviewReasons(comment?: string, checkIn?: string, checkOut?: string): string[] {
+  const reasons: string[] = [];
+  if (countNights(checkIn, checkOut) === 1) reasons.push("1 ніч");
+  const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(comment || "");
+  if (earlyTime && /🕒#early⏳:/.test(comment || "")) {
+    reasons.push(`ранній заїзд з ${earlyTime}`);
+  }
+  if (lateTime && /🕒#late⏳:/.test(comment || "")) {
+    reasons.push(`пізній виїзд до ${lateTime}`);
+  }
+  const pendingServices = parsePendingServiceIdsFromComment(comment || "");
+  if (pendingServices.size > 0) reasons.push("послуги за запитом");
+  if ((comment || "").includes("🇺🇦 УБД: Так")) reasons.push("УБД");
+  return reasons;
+}
+
+export function buildPendingReviewCaption(data: PendingReviewNotifyInput): string {
+  const dates = `${formatDateUk(data.checkIn)} — ${formatDateUk(data.checkOut)}`;
+  const total = Math.round(Number(data.totalPrice) || 0);
+  const prepay = Math.round(Number(data.prepayAmount) || 0);
+  const reasons = buildReviewReasons(data.comment, data.checkIn, data.checkOut);
+  const reasonLine = reasons.length ? reasons.join(", ") : "особливі умови";
+
+  return (
+    `⏳ <b>Заявка на підтвердження</b> | ${data.source || "Сайт"}\n\n` +
+    `🏡 <b>${data.cottage || "—"}</b>\n` +
+    `👤 ${data.name || "Гість"} (${formatPhoneDisplay(data.phone)})\n` +
+    `📅 ${dates} · ${data.guests || 2} гостей\n` +
+    `📋 Причина: <i>${reasonLine}</i>\n\n` +
+    `💰 Вартість: <b>${formatMoneyUa(total)}</b>\n` +
+    `💳 Передплата: <b>${formatMoneyUa(prepay)}</b>\n` +
+    `🆔 <code>${data.orderId}</code>`
+  );
+}
+
+export function buildPendingReviewKeyboard(data: PendingReviewNotifyInput) {
+  const base = getPublicSiteBaseUrl().replace(/\/$/, "");
+  const isHttpsPublic = base.startsWith("https://");
+  const orderId = data.orderId.trim();
+
+  if (isHttpsPublic) {
+    const secret = encodeURIComponent(getReviewWebhookSecret());
+    const encodedOrderId = encodeURIComponent(orderId);
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: "✅ Прийняти",
+            url: `${base}/api/booking-review?decision=approve&orderId=${encodedOrderId}&key=${secret}`,
+          },
+          {
+            text: "❌ Відхилити",
+            url: `${base}/api/booking-review?decision=reject&orderId=${encodedOrderId}&key=${secret}`,
+          },
+        ],
+      ],
+    };
+  }
+
+  return {
+    inline_keyboard: [
+      [
+        { text: "✅ Прийняти", callback_data: `br:approve:${orderId}` },
+        { text: "❌ Відхилити", callback_data: `br:reject:${orderId}` },
+      ],
+    ],
+  };
+}
+
+export function buildPendingReviewCaptionWithHint(data: PendingReviewNotifyInput): string {
+  const base = getPublicSiteBaseUrl().replace(/\/$/, "");
+  let caption = buildPendingReviewCaption(data);
+  if (!base.startsWith("https://")) {
+    caption +=
+      "\n\n<i>Локально: кнопки в TG потребують webhook. Або відкрийте бронь в адмінці — там є «Прийняти».</i>";
+  }
+  return caption;
+}
+
+export async function notifyPendingBookingReview(
+  data: PendingReviewNotifyInput
+): Promise<void> {
+  if (!isTelegramConfigured()) {
+    console.warn("[TG] Skipping pending review notify — TELEGRAM_BOT_TOKEN / CHAT_ID not set");
+    return;
+  }
+  const caption = buildPendingReviewCaptionWithHint(data);
+  const keyboard = buildPendingReviewKeyboard(data);
+  let res = await sendTelegramMessage(caption, keyboard);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("[TG] pending review notify failed:", res.status, body);
+    // fallback без клавіатури — хоча б текст дійде
+    res = await sendTelegramMessage(caption);
+    if (!res.ok) {
+      const body2 = await res.text().catch(() => "");
+      console.error("[TG] pending review notify fallback failed:", res.status, body2);
+    }
+  }
+}
+
+export async function handleBookingReviewCallback(
+  callbackData: string,
+  callbackQueryId: string,
+  chatId: number | string,
+  messageId: number
+): Promise<void> {
+  const match = callbackData.match(/^br:(approve|reject):(.+)$/);
+  if (!match) {
+    await answerTelegramCallback(callbackQueryId, "Невідома дія");
+    return;
+  }
+
+  const decision = match[1] as "approve" | "reject";
+  const orderId = match[2].trim();
+
+  const result = await processBookingReview({ orderId, decision });
+  if (!result.ok) {
+    await answerTelegramCallback(
+      callbackQueryId,
+      result.reason === "not_found" ? "Бронь не знайдено" : "Помилка оновлення"
+    );
+    return;
+  }
+
+  if (decision === "reject") {
+    await answerTelegramCallback(callbackQueryId, "Бронь скасовано");
+    await editTelegramMessage(
+      chatId,
+      messageId,
+      `❌ <b>Відхилено</b>\n🆔 <code>${orderId}</code>\n\nЗаявку скасовано.`,
+      { inline_keyboard: [] }
+    );
+    return;
+  }
+
+  const booking = result.booking;
+  if (!booking) {
+    await answerTelegramCallback(callbackQueryId, "Підтверджено, але дані броні не завантажились");
+    return;
+  }
+
+  const smsLine = result.smsLine || "Готово";
+
+  await answerTelegramCallback(callbackQueryId, smsLine);
+  await editTelegramMessage(
+    chatId,
+    messageId,
+    `✅ <b>Прийнято</b> · <code>${orderId}</code>\n\n` +
+      `👤 ${booking.name || "Гість"} (${formatPhoneDisplay(booking.phone)})\n` +
+      `🏡 ${booking.cottage || "—"}\n\n` +
+      `📱 ${smsLine}`,
+    { inline_keyboard: [] }
+  );
+}

@@ -70,6 +70,6 @@ export function syncLegacyAdminViewDom(
 export function getAdminViewStyle(view: AdminViewName, active: AdminViewName): CSSProperties {
   if (view !== active) return { display: "none" };
   if (view === "list" || view === "guests") return { display: "block" };
-  if (view === "settings") return { display: "flex", flexDirection: "column" };
+  if (view === "settings") return { display: "flex", flexDirection: "column", flex: 1, minHeight: 0 };
   return { display: "flex", flexDirection: "column", height: "100%" };
 }

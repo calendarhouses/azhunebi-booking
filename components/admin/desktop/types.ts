@@ -7,7 +7,10 @@ export type SettingsTabName =
   | "rooms"
   | "prices"
   | "discounts"
-  | "restrictions";
+  | "restrictions"
+  | "services";
+
+export type RoomPricingModel = "per_house" | "per_guest";
 
 export type RoomRules = {
   checkInTime: string;
@@ -49,6 +52,12 @@ export interface RoomConfig {
   capacity: number;
   maxCapacity?: number;
   extraGuestPrice?: number;
+  /** Модель ціноутворення: за будинок (default) або за гостя */
+  pricingModel?: RoomPricingModel;
+  /** Ціна за 1 гостя за ніч (для per_guest); якщо не задано — priceWeekday/weekend */
+  pricePerGuest?: number;
+  /** Чи дозволені діти при бронюванні */
+  allowChildren?: boolean;
   priceWeekday: number;
   priceWeekend: number;
   active: boolean;
@@ -97,14 +106,31 @@ export interface DiscountConfig {
   periodEnd?: string;
 }
 
+export type ServiceInputType = "toggle" | "counter";
+
 export interface CustomServiceConfig {
   id: number;
   name: string;
   rooms: string;
+  roomIds?: number[];
   price: number;
   perDay: string;
   perGuest: string;
+  /** Погодинна оплата (кількість = години) */
+  perHour?: string;
+  /** Одноразово за бронь (можна комбінувати з perDay / perGuest) */
+  perBooking?: string;
   active: boolean;
+  /** Підказка для гостя на сайті та в броні */
+  description?: string;
+  /** Оплата на місці — не входить у онлайн-розрахунок */
+  onSite?: boolean;
+  /** toggle = Так/Ні; counter = кількість */
+  inputType?: ServiceInputType;
+  /** Макс. кількість для counter (default 10) */
+  maxQuantity?: number;
+  /** Потрібне підтвердження адміністратора — сума не в загальній ціні одразу */
+  requiresApproval?: boolean;
 }
 
 export interface SysServiceConfig {
@@ -172,8 +198,10 @@ export interface AdminSettingsPayload {
   sysServicesList?: SysServiceConfig[];
   customPrices?: Record<string, Record<string, number>>;
   restrictions?: Record<string, Record<string, number>>;
+  closedDates?: Record<string, Record<string, true>>;
   transactions?: TransactionConfig[];
   branding?: Record<string, unknown>;
+  flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
 }
 
 export interface AdminInitResponse {

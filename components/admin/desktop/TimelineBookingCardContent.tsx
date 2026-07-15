@@ -1,12 +1,23 @@
 import type { BookingRecord } from "./types";
+import {
+  getTimelineOneNightFinAriaLabel,
+  getTimelineOneNightFinKind,
+  type TimelineOneNightFinKind,
+} from "./bookingUtils";
 
-/** Вертикальний зазор картки від краю рядка (~10% нижче за повний stretch). */
+/** Вертикальний зазор картки від краю рядка. */
 export const TIMELINE_BOOKING_BLOCK_INSET = 7;
+export const TIMELINE_BOOKING_BLOCK_INSET_FOCUS = 2;
 
-export function getTimelineBookingBlockLayout(rowHeight: number) {
+export function getTimelineBookingBlockInset(focusLayout = false): number {
+  return focusLayout ? TIMELINE_BOOKING_BLOCK_INSET_FOCUS : TIMELINE_BOOKING_BLOCK_INSET;
+}
+
+export function getTimelineBookingBlockLayout(rowHeight: number, focusLayout = false) {
+  const inset = getTimelineBookingBlockInset(focusLayout);
   return {
-    top: TIMELINE_BOOKING_BLOCK_INSET,
-    height: rowHeight - TIMELINE_BOOKING_BLOCK_INSET * 2,
+    top: inset,
+    height: rowHeight - inset * 2,
   } as const;
 }
 
@@ -25,6 +36,13 @@ export type TimelineBookingCardBlock = {
   booking: BookingRecord;
 };
 
+/** У compact-рядку горизонтальний layout не вміщає ім’я + chip + ціну. */
+export const TIMELINE_COMPACT_STACKED_CONTENT_MAX_WIDTH = 115;
+
+export function shouldUseCompactStackedMultiNightLayout(block: TimelineBookingCardBlock): boolean {
+  return block.nights >= 2 && block.contentWidth < TIMELINE_COMPACT_STACKED_CONTENT_MAX_WIDTH;
+}
+
 type TimelineBookingCardContentProps = {
   block: TimelineBookingCardBlock;
   mobile?: boolean;
@@ -39,12 +57,90 @@ function GuestChipIcon() {
   );
 }
 
-export function resolveTimelineGuestChipVisibility(
-  block: TimelineBookingCardBlock,
-  compact = false
-) {
-  if (compact) return { showGuestChip: false };
-  return { showGuestChip: Boolean(block.guestChip) && block.nights !== 1 };
+function GuestChip({
+  value,
+  compact = false,
+}: {
+  value: string;
+  compact?: boolean;
+}) {
+  return (
+    <span
+      className={`booking-guest-chip${compact ? " booking-guest-chip--compact" : ""}`}
+      aria-label={`Гостей: ${value}`}
+    >
+      <GuestChipIcon />
+      {value}
+    </span>
+  );
+}
+
+function OneNightFinIcon() {
+  return (
+    <svg className="booking-fin-icon__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function OneNightFinBadge({
+  finBadge,
+  kind,
+}: {
+  finBadge: { bg: string; color: string };
+  kind: TimelineOneNightFinKind;
+}) {
+  if (kind === "neutral") {
+    return (
+      <span className="booking-fin-badge booking-fin-badge--one-night-icon booking-fin-badge--one-night-neutral">
+        —
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="booking-fin-badge booking-fin-badge--one-night-icon"
+      style={{
+        background: finBadge.bg,
+        color: finBadge.color,
+      }}
+      aria-label={getTimelineOneNightFinAriaLabel(kind)}
+      title={getTimelineOneNightFinAriaLabel(kind)}
+    >
+      {kind === "paid" ? <OneNightFinIcon /> : "!"}
+    </span>
+  );
+}
+
+export function resolveTimelineGuestChipVisibility(block: TimelineBookingCardBlock) {
+  return { showGuestChip: Boolean(block.guestChip) };
+}
+
+function CompactStackedStayCard({
+  block,
+  showGuestChip,
+}: {
+  block: TimelineBookingCardBlock;
+  showGuestChip: boolean;
+}) {
+  return (
+    <div className="booking-inner-content booking-inner-content--compact booking-inner-content--compact-short-stay">
+      <div className="booking-guest-name">{block.guestName}</div>
+      <div className="booking-compact-short-stay-meta">
+        {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
+        <span
+          className="booking-fin-badge"
+          style={{
+            background: block.finBadge.bg,
+            color: block.finBadge.color,
+          }}
+        >
+          {block.finText}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function TimelineBookingCardContent({
@@ -53,12 +149,41 @@ export function TimelineBookingCardContent({
   compact = false,
 }: TimelineBookingCardContentProps) {
   const isOneNight = block.nights === 1;
-  const { showGuestChip } = resolveTimelineGuestChipVisibility(block, compact);
+  const { showGuestChip } = resolveTimelineGuestChipVisibility(block);
+  const oneNightFinKind = isOneNight ? getTimelineOneNightFinKind(block.booking) : null;
+
+  if (isOneNight && !mobile) {
+    return (
+      <div
+        className={[
+          "booking-inner-content",
+          compact
+            ? "booking-inner-content--compact booking-inner-content--compact-one-night"
+            : "booking-inner-content--one-night-stack",
+        ].join(" ")}
+      >
+        <div className="booking-guest-name">{block.guestName}</div>
+        <div className="booking-compact-one-night-foot">
+          {oneNightFinKind ? (
+            <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
+          ) : null}
+          {showGuestChip && block.guestChip ? (
+            <GuestChip value={block.guestChip} compact />
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (compact && shouldUseCompactStackedMultiNightLayout(block)) {
+    return <CompactStackedStayCard block={block} showGuestChip={showGuestChip} />;
+  }
 
   if (compact) {
     return (
       <div className="booking-inner-content booking-inner-content--compact">
         <div className="booking-guest-name">{block.guestName}</div>
+        {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
         <span
           className="booking-fin-badge"
           style={{
@@ -85,23 +210,22 @@ export function TimelineBookingCardContent({
     >
       <div className="booking-card-top">
         <div className="booking-guest-name">{block.guestName}</div>
-        {showGuestChip ? (
-          <span className="booking-guest-chip" aria-label={`Гостей: ${block.guestChip}`}>
-            <GuestChipIcon />
-            {block.guestChip}
-          </span>
-        ) : null}
+        {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} /> : null}
       </div>
       <div className="booking-card-bottom">
-        <span
-          className="booking-fin-badge"
-          style={{
-            background: block.finBadge.bg,
-            color: block.finBadge.color,
-          }}
-        >
-          {block.finText}
-        </span>
+        {oneNightFinKind ? (
+          <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
+        ) : (
+          <span
+            className="booking-fin-badge"
+            style={{
+              background: block.finBadge.bg,
+              color: block.finBadge.color,
+            }}
+          >
+            {block.finText}
+          </span>
+        )}
       </div>
     </div>
   );

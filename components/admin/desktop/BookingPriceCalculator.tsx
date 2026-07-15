@@ -16,6 +16,7 @@ import {
   type FormStateSnapshot,
   type ManualPriceSnapshot,
 } from "./bookingPriceEngine";
+import { formatFlexibleScheduleCardLabel } from "@/lib/admin/flexibleSchedule";
 import type { AdminSettingsPayload, BookingPayment, BookingRecord } from "./types";
 import { PaymentJournalSection } from "./PaymentJournalSection";
 import {
@@ -174,16 +175,24 @@ export function BookingPriceCalculator({
     return bookings.find((b) => String(b.row) === String(editingRow)) ?? null;
   }, [bookings, editingRow, editingBookingId]);
 
+  const activeSpecialTariffIds = useMemo(
+    () => pickEnabledSpecialTariffIds(form.specialTariffs || {}),
+    [form.specialTariffs]
+  );
+
   const computed = useMemo(() => {
     const result = computeBookingPrice({
       checkInStr: form.checkIn,
       checkOutStr: form.checkOut,
       roomName: form.cottage,
       guests: guestsForCalc,
+      children: form.children,
       pets: form.pets,
       dayGuests: form.dayGuests,
       isVat: form.vat === "Так",
-      isUbd: false,
+      selectedServices: form.selectedServices,
+      promoCode: form.promoCode,
+      enabledSpecialTariffIds: activeSpecialTariffIds,
       selectedEarlyTime,
       selectedLateTime,
       room,
@@ -223,6 +232,7 @@ export function BookingPriceCalculator({
     isInitialLoad,
     manual,
     savedBooking,
+    activeSpecialTariffIds,
   ]);
 
   useEffect(() => {
@@ -275,26 +285,30 @@ export function BookingPriceCalculator({
   }, [isInitialLoad, onInitialLoadDone]);
 
   const scheduleLabels = useMemo((): SchedulePriceLabels => {
-    if (computed.empty) {
-      return { early: "Оберіть дати", late: "Оберіть дати" };
-    }
-    let early = `+${computed.early50} грн (50% доби)`;
-    if (selectedEarlyTime) {
-      early = `з ${selectedEarlyTime} · +${computed.earlyFee} грн`;
-    }
-    let late = `+${computed.late50} грн (50% доби)`;
-    if (selectedLateTime) {
-      late = `до ${selectedLateTime} · +${computed.lateFee} грн`;
-    }
-    return { early, late };
+    const hasDates = !computed.empty;
+    return {
+      early: formatFlexibleScheduleCardLabel("early", settings, {
+        selectedTime: selectedEarlyTime,
+        billableFee: computed.earlyFee,
+        quotedFee: computed.earlyQuotedFee,
+        hasDates,
+      }),
+      late: formatFlexibleScheduleCardLabel("late", settings, {
+        selectedTime: selectedLateTime,
+        billableFee: computed.lateFee,
+        quotedFee: computed.lateQuotedFee,
+        hasDates,
+      }),
+    };
   }, [
     computed.empty,
-    computed.early50,
     computed.earlyFee,
-    computed.late50,
+    computed.earlyQuotedFee,
     computed.lateFee,
+    computed.lateQuotedFee,
     selectedEarlyTime,
     selectedLateTime,
+    settings,
   ]);
 
   const scheduleLabelsRef = useRef<SchedulePriceLabels | null>(null);
@@ -314,11 +328,6 @@ export function BookingPriceCalculator({
 
   const amountToDiscount = manualLines.base + manualLines.extra;
 
-  const activeSpecialTariffIds = useMemo(
-    () => pickEnabledSpecialTariffIds(form.specialTariffs || {}),
-    [form.specialTariffs]
-  );
-
   useEffect(() => {
     setManualDiscountAmounts({});
     setEditedDiscountIds(new Set());
@@ -336,6 +345,7 @@ export function BookingPriceCalculator({
               nights: computed.nights,
               roomId: String(room.id),
               enabledSpecialTariffIds: activeSpecialTariffIds,
+              promoCode: form.promoCode,
             },
             amountToDiscount
           ),
@@ -346,6 +356,7 @@ export function BookingPriceCalculator({
       computed.nights,
       form.checkIn,
       form.checkOut,
+      form.promoCode,
       room,
       settings.discountsList,
     ]
@@ -714,7 +725,24 @@ export function BookingPriceCalculator({
           }}
         />
       ) : null}
-      {computed.petFee > 0 ? (
+      {computed.serviceLines.length > 0
+        ? computed.serviceLines
+            .filter((line) => line.quantity > 0 && line.fee > 0)
+            .map((line) => (
+              <PriceLine
+                key={line.id}
+                label={`${line.name}${line.quantity > 1 ? ` × ${line.quantity}` : ""}:`}
+                icon={iconUsers}
+                value={line.fee}
+                defaultValue={line.fee}
+                sign="+"
+                isMobile={isMobile}
+                onOpenQuickEdit={setQuickEdit}
+                onChange={() => undefined}
+              />
+            ))
+        : null}
+      {computed.serviceLines.length === 0 && computed.petFee > 0 ? (
         <PriceLine
           label="Тварини:"
           icon={iconPaw}
@@ -729,7 +757,7 @@ export function BookingPriceCalculator({
           }}
         />
       ) : null}
-      {computed.dayGuestFee > 0 ? (
+      {computed.serviceLines.length === 0 && computed.dayGuestFee > 0 ? (
         <PriceLine
           label="Денні гості:"
           icon={iconUsers}
@@ -809,7 +837,7 @@ export function BookingPriceCalculator({
         </div>
       ) : null}
 
-      {form.vat === "Так" ? (
+      {form.vat === "Так" && computed.serviceLines.length === 0 ? (
         <div
           style={{
             display: "flex",
@@ -837,6 +865,38 @@ export function BookingPriceCalculator({
           <span style={{ fontWeight: 700, fontSize: 13, color: "#1F2937" }}>Оплата на місці</span>
         </div>
       ) : null}
+      {computed.serviceLines
+        .filter((line) => line.quantity > 0 && line.onSite && line.fee === 0)
+        .map((line) => (
+          <div
+            key={line.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+              paddingTop: 8,
+              borderTop: "1px solid #F3F4F6",
+            }}
+          >
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flex: "1 1 auto",
+                minWidth: 0,
+                fontSize: 13,
+                color: "#4B5563",
+                fontWeight: 500,
+              }}
+            >
+              {line.name}
+              {line.pendingApproval ? " (запит)" : ""}:
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: "#1F2937" }}>Оплата на місці</span>
+          </div>
+        ))}
 
       <div style={{ borderTop: "2px solid var(--accent)", paddingTop: 15, marginTop: 16 }}>
         <div className="form-group" style={{ marginBottom: 16 }}>

@@ -145,6 +145,68 @@ function discountMatchesBooking(
   }
 }
 
+export function listActivePromoCodeDiscounts(
+  discountsList: DiscountConfig[] = [],
+  roomId?: string
+): DiscountConfig[] {
+  return discountsList.filter((d) => {
+    if (isDiscountDraftId(d.id)) return false;
+    if (!resolveDiscountActive(d)) return false;
+    if (getDiscountKind(d) !== "promo_code") return false;
+    if (!extractPromoCode(d)) return false;
+    if (roomId && !discountAppliesToRoom(d, roomId)) return false;
+    return true;
+  });
+}
+
+export function hasActivePromoCodeDiscounts(
+  discountsList: DiscountConfig[] = [],
+  roomId?: string
+): boolean {
+  return listActivePromoCodeDiscounts(discountsList, roomId).length > 0;
+}
+
+export function extractPromoCodeFromConfig(d: DiscountConfig): string {
+  return extractPromoCode(d);
+}
+
+export function buildPromoCodeCommentToken(code: string): string | null {
+  const trimmed = code.trim().toUpperCase();
+  if (!trimmed) return null;
+  return `🎟️ Промокод: ${trimmed}`;
+}
+
+const PROMO_COMMENT_TOKEN = /🎟️\s*Промокод:\s*(\S+)/i;
+
+export function parsePromoCodeFromComment(raw: string): string {
+  const match = raw.match(PROMO_COMMENT_TOKEN);
+  return match?.[1]?.toUpperCase() ?? "";
+}
+
+export function stripPromoCodeFromComment(raw: string): string {
+  return raw
+    .replace(PROMO_COMMENT_TOKEN, "")
+    .replace(/\|\s*\|\s*/g, " | ")
+    .replace(/^\|\s*/, "")
+    .replace(/\|\s*$/, "")
+    .trim();
+}
+
+export function promoCodeAppliesToBooking(
+  code: string,
+  discountsList: DiscountConfig[] = [],
+  ctx: BookingDiscountContext,
+  amountToDiscount = 0
+): boolean {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return false;
+  return resolveApplicableBookingDiscounts(
+    discountsList,
+    { ...ctx, promoCode: normalized },
+    amountToDiscount
+  ).some((discount) => discount.kind === "promo_code");
+}
+
 /** Автоматично підбирає знижки з каталогу за умовами бронювання (лише увімкнені). */
 export function resolveApplicableBookingDiscounts(
   discountsList: DiscountConfig[] = [],
@@ -211,6 +273,12 @@ export function getBookingCatalogDiscountEntries(
 
 export function isDiscountEnabledInCatalog(d: DiscountConfig): boolean {
   return !isDiscountDraftId(d.id) && resolveDiscountActive(d);
+}
+
+export function formatDiscountLineForGuest(d: AppliedDiscount): string {
+  const title = (d.titleName ?? d.name).trim();
+  if (d.conditionSuffix) return `${title} · ${d.conditionSuffix}`;
+  return title;
 }
 
 export function formatAppliedDiscountLabel(d: AppliedDiscount): string {

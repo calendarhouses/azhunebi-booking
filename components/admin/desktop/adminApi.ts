@@ -116,9 +116,39 @@ export async function silentSyncAdminData(): Promise<AdminInitResponse | null> {
   }
 }
 
+export async function submitBookingReview(params: {
+  orderId: string;
+  decision: "approve" | "reject";
+}): Promise<{ ok: boolean; reason?: string; smsLine?: string }> {
+  const token = await getAccessToken();
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    "x-tenant-id": getAdminTenantId(),
+  });
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch("/api/booking-review", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(params),
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    reason?: string;
+    smsLine?: string;
+  };
+  if (!res.ok) {
+    return { ok: false, reason: data.reason || `http_${res.status}` };
+  }
+  return { ok: Boolean(data.ok), reason: data.reason, smsLine: data.smsLine };
+}
+
 export async function postAdminBooking(
   payload: Record<string, unknown>
-): Promise<{ success?: boolean; error?: string; requiredMin?: number }> {
+): Promise<{ success?: boolean; error?: string; requiredMin?: number; orderId?: string }> {
   const token = await getAccessToken();
   const data = await createBooking(
     { ...payload, tenant_id: payload.tenant_id ?? getAdminTenantId() },

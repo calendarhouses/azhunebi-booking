@@ -11,7 +11,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "browser-image-compression": "^2.0.2",
     "flatpickr": "^4.6.13",
     "libphonenumber-js": "^1.13.3",
     "lucide-react": "^1.16.0",

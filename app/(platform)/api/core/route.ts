@@ -24,6 +24,14 @@ import {
 } from "@/lib/wayforpay/signature";
 import { getBookingStatusByDisplayId } from "@/lib/wayforpay/confirmBookingPayment";
 import {
+  calculatePrepaymentAmount,
+  readPrepaymentPolicy,
+} from "@/lib/public-booking/prepaymentPolicy";
+import {
+  notifyPendingBookingReview,
+} from "@/lib/telegram/bookingReviewNotify";
+import { BOOKING_STATUS_PENDING_REVIEW } from "@/lib/public-booking/bookingReview";
+import {
   getWayForPayMerchantAccount,
   getWayForPayMerchantDomain,
   getWayForPaySecretKey,
@@ -52,13 +60,17 @@ const HUTSHUB_URLS: Record<string, string> = {
 };
 
 const TG_CONFIG = {
-  botToken: FAKE,
-  testChatId: FAKE,
-  adminGroupId: FAKE,
-  adminOpsThreadId: 4529,
-  adminFinanceThreadId: 189,
-  cleaningGroupId: FAKE,
-  isTestMode: false,
+  botToken: process.env.TELEGRAM_BOT_TOKEN?.trim() || FAKE,
+  testChatId: process.env.TELEGRAM_TEST_CHAT_ID?.trim() || FAKE,
+  adminGroupId: process.env.TELEGRAM_ADMIN_CHAT_ID?.trim() || FAKE,
+  adminOpsThreadId: process.env.TELEGRAM_ADMIN_OPS_THREAD_ID
+    ? Number(process.env.TELEGRAM_ADMIN_OPS_THREAD_ID)
+    : null,
+  adminFinanceThreadId: process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID
+    ? Number(process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID)
+    : 189,
+  cleaningGroupId: process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || FAKE,
+  isTestMode: process.env.TELEGRAM_TEST_MODE === "true",
 };
 
 const TG_PHOTOS = {
@@ -309,6 +321,7 @@ export async function POST(request: Request) {
           action: "saveSettings",
           tenant_id: tenantId,
           settings: (data.settings as Record<string, unknown>) || {},
+          saveKeys: Array.isArray(data.saveKeys) ? data.saveKeys : undefined,
         },
         { authToken }
       );
@@ -373,6 +386,29 @@ export async function POST(request: Request) {
       if (result.nights !== undefined) errResp.nights = result.nights;
       return jsonResponse(errResp);
     }
+    if (data.source === "Сайт" && result?.orderId) {
+      const bookingStatus = String(data.status || "");
+      if (bookingStatus === BOOKING_STATUS_PENDING_REVIEW) {
+        await notifyPendingBookingReview({
+          orderId: result.orderId,
+          name: String(data.name || ""),
+          phone: String(data.phone || ""),
+          cottage: String(data.cottage || ""),
+          checkIn: String(data.checkIn || ""),
+          checkOut: String(data.checkOut || ""),
+          guests: Number(data.guests) || 2,
+          totalPrice: Number(data.totalPrice) || 0,
+          prepayAmount: Number(data.prepayAmount) || result.prepayment || 0,
+          comment: String(data.comment || ""),
+          source: "Сайт",
+        });
+        return jsonResponse({
+          success: true,
+          orderId: result.orderId,
+          flow: "pending_review",
+        });
+      }
+    }
     if (data.source === "Сайт" && result?.orderId && (result.prepayment ?? 0) > 0) {
       const orderDate = Math.round(Date.now() / 1000);
       const productName = `Передплата за ${data.cottage}`;
@@ -384,6 +420,8 @@ export async function POST(request: Request) {
       );
       return jsonResponse({
         success: true,
+        orderId: result.orderId,
+        flow: "instant",
         paymentData: {
           merchantAccount: wfpData.merchantAccount,
           merchantDomainName: wfpData.merchantDomainName,
@@ -709,16 +747,58 @@ async function getAllBookings(
 }
 
 function getRestrictionMinNightsFromSettings(
-  settings: { restrictions?: Record<string, Record<string, number>> },
+  settings: {
+    restrictions?: Record<string, Record<string, number>>;
+  },
   roomId: string | number,
   dateObj: Date
 ) {
   const restrictions = settings?.restrictions || {};
   const ds = formatDateKyiv(dateObj, "yyyy-MM-dd");
   const rid = String(roomId);
-  if (restrictions[roomId as string]?.[ds]) return Number(restrictions[roomId as string][ds]) || 0;
-  if (restrictions[rid]?.[ds]) return Number(restrictions[rid][ds]) || 0;
-  return 0;
+  const raw = restrictions[roomId as string]?.[ds] ?? restrictions[rid]?.[ds];
+  if (raw === undefined || raw === null) return 0;
+  const val = Number(raw);
+  if (val === -1) return 0;
+  return val || 0;
+}
+
+function isDateClosedFromSettings(
+  settings: {
+    closedDates?: Record<string, Record<string, true>>;
+    restrictions?: Record<string, Record<string, number>>;
+  },
+  roomId: string | number,
+  dateObj: Date
+) {
+  const closedDates = settings?.closedDates || {};
+  const ds = formatDateKyiv(dateObj, "yyyy-MM-dd");
+  const rid = String(roomId);
+  if (closedDates[roomId as string]?.[ds] || closedDates[rid]?.[ds]) return true;
+  const restrictions = settings?.restrictions || {};
+  const raw = restrictions[roomId as string]?.[ds] ?? restrictions[rid]?.[ds];
+  return Number(raw) === -1;
+}
+
+function hasClosedDateInStay(
+  settings: {
+    closedDates?: Record<string, Record<string, true>>;
+    restrictions?: Record<string, Record<string, number>>;
+  },
+  room: { id?: number | string },
+  checkIn: string,
+  checkOut: string
+) {
+  if (!room?.id) return false;
+  const d = new Date(checkIn);
+  d.setHours(0, 0, 0, 0);
+  const end = new Date(checkOut);
+  end.setHours(0, 0, 0, 0);
+  while (d < end) {
+    if (isDateClosedFromSettings(settings, room.id, d)) return true;
+    d.setDate(d.getDate() + 1);
+  }
+  return false;
 }
 
 function getBookingMinNightsRequired(
@@ -753,6 +833,9 @@ async function validateBookingRestrictions(
     data.roomId
   );
   if (!room) return { ok: true as const };
+  if (hasClosedDateInStay(settings, room, data.checkIn, data.checkOut)) {
+    return { ok: false as const, error: "CLOSED_DATES" };
+  }
   const d1 = new Date(data.checkIn);
   d1.setHours(0, 0, 0, 0);
   const d2 = new Date(data.checkOut);
@@ -827,6 +910,7 @@ function mapTenantSettingsToApi(row: Record<string, unknown> | null): Record<str
     ["custom_prices", "customPrices"],
     ["discounts_list", "discountsList"],
     ["custom_services_list", "customServicesList"],
+    ["flexible_schedule_settings", "flexibleScheduleSettings"],
     ["sys_services_list", "sysServicesList"],
   ];
   for (const [dbKey, apiKey] of columnMap) {
@@ -834,6 +918,8 @@ function mapTenantSettingsToApi(row: Record<string, unknown> | null): Record<str
   }
   if (row.restrictions !== undefined && row.restrictions !== null)
     settings.restrictions = row.restrictions;
+  if (row.closed_dates !== undefined && row.closed_dates !== null)
+    settings.closedDates = row.closed_dates;
   if (row.transactions !== undefined && row.transactions !== null)
     settings.transactions = row.transactions;
   if (row.branding !== undefined && row.branding !== null) settings.branding = row.branding;
@@ -852,9 +938,11 @@ function mapApiSettingsToDb(
     ["roomsList", "rooms_list"],
     ["discountsList", "discounts_list"],
     ["customServicesList", "custom_services_list"],
+    ["flexibleScheduleSettings", "flexible_schedule_settings"],
     ["sysServicesList", "sys_services_list"],
     ["customPrices", "custom_prices"],
     ["restrictions", "restrictions"],
+    ["closedDates", "closed_dates"],
     ["transactions", "transactions"],
     ["branding", "branding"],
   ];
@@ -996,7 +1084,12 @@ async function calculateBookingMath(
   const petFee = pets === "Так" || pets === true ? 500 + 200 * nights : 0;
   const totalExtraFees = extraGuestFee + petFee;
   const totalPrice = amountToDiscount - discountAmount + petFee;
-  const prepayment = Math.round(totalPrice / 2);
+  const branding = (settings.branding || {}) as Record<string, unknown>;
+  const prepayment = calculatePrepaymentAmount(readPrepaymentPolicy(branding), {
+    totalPrice,
+    basePriceTotal: roomBasePriceTotal,
+    nights,
+  });
 
   return {
     nights,

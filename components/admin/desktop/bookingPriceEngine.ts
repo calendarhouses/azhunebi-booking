@@ -4,9 +4,23 @@ import { bookingHasEarlyLate } from "./bookingUtils";
 import type {
   AdminSettingsPayload,
   BookingRecord,
-  DiscountConfig,
+  CustomServiceConfig,
   RoomConfig,
 } from "./types";
+import {
+  calculateServiceFee,
+  getServiceQty,
+  listServicesForRoom,
+  roomPricingModel,
+  serviceIsOnSite,
+  type ServiceSelectionMap,
+} from "./settings/additionalServicesLogic";
+import { quoteFlexibleFee } from "@/lib/admin/flexibleSchedule";
+import {
+  calculateTotal,
+  formatDiscountLineForGuest,
+  resolveApplicableBookingDiscounts,
+} from "@/lib/admin/bookingDiscountCalc";
 
 export type ManualPriceSnapshot = {
   base: number | null;
@@ -51,9 +65,44 @@ export function getRestrictionMinNights(
   const ds = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
   const rid = String(roomId);
   const map = restrictions || {};
-  if (map[roomId as string]?.[ds]) return Number(map[roomId as string][ds]) || 0;
-  if (map[rid]?.[ds]) return Number(map[rid][ds]) || 0;
-  return 0;
+  const raw = map[roomId as string]?.[ds] ?? map[rid]?.[ds];
+  if (raw === undefined || raw === null) return 0;
+  const val = Number(raw);
+  if (val === -1) return 0;
+  return val || 0;
+}
+
+export function isDateClosed(
+  closedDates: AdminSettingsPayload["closedDates"],
+  roomId: number | string,
+  dateObj: Date,
+  restrictions?: AdminSettingsPayload["restrictions"]
+): boolean {
+  const ds = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
+  const rid = String(roomId);
+  const closedMap = closedDates || {};
+  if (closedMap[roomId as string]?.[ds] || closedMap[rid]?.[ds]) return true;
+  const restrMap = restrictions || {};
+  const raw = restrMap[roomId as string]?.[ds] ?? restrMap[rid]?.[ds];
+  return Number(raw) === -1;
+}
+
+export function hasClosedDateInStay(
+  closedDates: AdminSettingsPayload["closedDates"],
+  room: RoomConfig,
+  checkIn: Date,
+  checkOut: Date,
+  restrictions?: AdminSettingsPayload["restrictions"]
+): boolean {
+  const d = new Date(checkIn);
+  d.setHours(0, 0, 0, 0);
+  const end = new Date(checkOut);
+  end.setHours(0, 0, 0, 0);
+  while (d < end) {
+    if (isDateClosed(closedDates, room.id, d, restrictions)) return true;
+    d.setDate(d.getDate() + 1);
+  }
+  return false;
 }
 
 export function getBookingMinNightsRequired(
@@ -166,28 +215,6 @@ export function checkBookingOverlap(params: {
   return { isOverlap: false, overlapReason: "" };
 }
 
-function resolveDiscountPercent(
-  nights: number,
-  room: RoomConfig,
-  discountsList: DiscountConfig[],
-  isUbd: boolean
-): number {
-  const currentRoomId = String(room.id);
-  let discountPercent = 0;
-  for (const d of discountsList) {
-    if (d.active === false) continue;
-    const condNights = parseInt(String(d.condition).replace(/\D/g, ""), 10) || 0;
-    const dPct = parseInt(String(d.discount).replace(/\D/g, ""), 10) / 100;
-    if (nights < condNights) continue;
-    const appliesToRoom =
-      (d.roomsIds && (d.roomsIds.includes("all") || d.roomsIds.includes(currentRoomId))) ||
-      (!d.roomsIds && String(d.rooms).includes("Всі"));
-    if (appliesToRoom && dPct > discountPercent) discountPercent = dPct;
-  }
-  if (isUbd) discountPercent += 0.1;
-  return discountPercent;
-}
-
 export type BookingPriceResult = {
   empty: boolean;
   isOverlap: boolean;
@@ -202,12 +229,27 @@ export type BookingPriceResult = {
   dayGuestFee: number;
   earlyFee: number;
   lateFee: number;
+  earlyQuotedFee: number;
+  lateQuotedFee: number;
+  earlyPendingApproval: boolean;
+  latePendingApproval: boolean;
   early50: number;
   late50: number;
   discountPercent: number;
   discountAmount: number;
+  discountLines: { label: string; amount: number }[];
   totalPrice: number;
   isVat: boolean;
+  additionalServicesFee: number;
+  serviceLines: {
+    id: number;
+    name: string;
+    fee: number;
+    quantity: number;
+    quotedFee: number;
+    onSite: boolean;
+    pendingApproval: boolean;
+  }[];
   selectedEarlyTime: string | null;
   selectedLateTime: string | null;
 };
@@ -217,10 +259,14 @@ export function computeBookingPrice(params: {
   checkOutStr: string;
   roomName: string;
   guests: number;
+  children?: number;
   pets: string;
   dayGuests: number;
   isVat: boolean;
-  isUbd: boolean;
+  selectedServices?: ServiceSelectionMap;
+  isPublicBooking?: boolean;
+  promoCode?: string;
+  enabledSpecialTariffIds?: string[];
   selectedEarlyTime: string | null;
   selectedLateTime: string | null;
   room: RoomConfig | undefined;
@@ -247,12 +293,19 @@ export function computeBookingPrice(params: {
     dayGuestFee: 0,
     earlyFee: 0,
     lateFee: 0,
+    earlyQuotedFee: 0,
+    lateQuotedFee: 0,
+    earlyPendingApproval: false,
+    latePendingApproval: false,
     early50: 0,
     late50: 0,
     discountPercent: 0,
     discountAmount: 0,
+    discountLines: [],
     totalPrice: 0,
     isVat: false,
+    additionalServicesFee: 0,
+    serviceLines: [],
     selectedEarlyTime: params.selectedEarlyTime,
     selectedLateTime: params.selectedLateTime,
   };
@@ -290,26 +343,78 @@ export function computeBookingPrice(params: {
     : "";
 
   let basePriceTotal = 0;
+  const children = Math.max(0, params.children ?? 0);
+  const pricingModel = roomPricingModel(room);
+  const guestMultiplier = Math.max(1, pricingModel === "per_guest" ? params.guests + children : 0);
+
   for (let i = 0; i < nights; i++) {
     const curr = new Date(d1);
     curr.setDate(curr.getDate() + i);
-    basePriceTotal += getDayPrice(room, curr, customPrices);
+    const dayPrice = getDayPrice(room, curr, customPrices);
+    if (pricingModel === "per_guest") {
+      const unit = room.pricePerGuest != null ? Number(room.pricePerGuest) : dayPrice;
+      basePriceTotal += unit * guestMultiplier;
+    } else {
+      basePriceTotal += dayPrice;
+    }
   }
 
   let guests = params.guests;
   const maxCap = room.maxCapacity || room.capacity || 10;
   if (guests > maxCap) guests = maxCap;
 
-  const extraGuests = Math.max(0, guests - room.capacity);
+  const extraGuests = pricingModel === "per_guest" ? 0 : Math.max(0, guests - room.capacity);
   const dynamicExtraPrice = room.extraGuestPrice !== undefined ? room.extraGuestPrice : 2500;
   let extraGuestFee = extraGuests * dynamicExtraPrice * nights;
   let petFee = params.pets === "Так" ? 500 + 200 * nights : 0;
   let dayGuestFee = params.dayGuests * 500;
 
-  const early50 = Math.round(getDayPrice(room, d1, customPrices) * 0.5);
-  const late50 = Math.round(getDayPrice(room, d2, customPrices) * 0.5);
-  let earlyFee = params.selectedEarlyTime ? early50 : 0;
-  let lateFee = params.selectedLateTime ? late50 : 0;
+  const isPublic = params.isPublicBooking === true;
+  const serviceOpts = { nights, adults: guests, children };
+  const roomServices = listServicesForRoom(params.settings.customServicesList, room);
+  const serviceLines = roomServices.map((service: CustomServiceConfig) => {
+    const quantity = getServiceQty(params.selectedServices, service.id);
+    const quotedFee = calculateServiceFee(service, quantity, serviceOpts, {});
+    const fee = calculateServiceFee(service, quantity, serviceOpts, { isPublicBooking: isPublic });
+    return {
+      id: service.id,
+      name: service.name,
+      fee,
+      quantity,
+      quotedFee,
+      onSite: serviceIsOnSite(service),
+      pendingApproval: isPublic && service.requiresApproval === true && quantity > 0,
+    };
+  });
+  let additionalServicesFee = serviceLines.reduce((sum, line) => sum + line.fee, 0);
+  if (additionalServicesFee > 0) {
+    petFee = 0;
+    dayGuestFee = additionalServicesFee;
+  }
+
+  const checkInDayPrice = getDayPrice(room, d1, customPrices);
+  const checkOutDayPrice = getDayPrice(room, d2, customPrices);
+  const earlyQuote = quoteFlexibleFee("early", checkInDayPrice, params.settings);
+  const lateQuote = quoteFlexibleFee("late", checkOutDayPrice, params.settings);
+
+  const earlyQuotedFee = earlyQuote.quotedFee;
+  const lateQuotedFee = lateQuote.quotedFee;
+  const earlyPendingApproval = earlyQuote.pendingApproval;
+  const latePendingApproval = lateQuote.pendingApproval;
+  let earlyFee =
+    params.selectedEarlyTime
+      ? isPublic && earlyPendingApproval
+        ? 0
+        : earlyQuotedFee
+      : 0;
+  let lateFee =
+    params.selectedLateTime
+      ? isPublic && latePendingApproval
+        ? 0
+        : lateQuotedFee
+      : 0;
+  const early50 = earlyQuotedFee;
+  const late50 = lateQuotedFee;
 
   const currState: FormStateSnapshot = {
     checkIn: params.checkInStr,
@@ -353,13 +458,44 @@ export function computeBookingPrice(params: {
     if (b.lateFee !== undefined && b.lateFee !== "") lateFee = Number(b.lateFee);
   }
 
-  const discountPercent = resolveDiscountPercent(nights, room, discountsList, params.isUbd);
   const amountToDiscount = basePriceTotal + extraGuestFee;
   let discountAmount = 0;
+  let resolvedDiscountPercent = 0;
+  let discountLines: { label: string; amount: number }[] = [];
+
   if (isDiscEdited && man.discount !== null) {
     discountAmount = man.discount;
+    resolvedDiscountPercent =
+      amountToDiscount > 0 ? discountAmount / amountToDiscount : 0;
+    if (discountAmount > 0) {
+      discountLines = [{ label: "Знижка", amount: discountAmount }];
+    }
   } else {
-    discountAmount = Math.round(amountToDiscount * discountPercent);
+    const appliedDiscounts = resolveApplicableBookingDiscounts(
+      discountsList,
+      {
+        checkIn: params.checkInStr,
+        checkOut: params.checkOutStr,
+        nights,
+        roomId: String(room.id),
+        enabledSpecialTariffIds: params.enabledSpecialTariffIds ?? [],
+        promoCode: params.promoCode,
+      },
+      amountToDiscount
+    );
+
+    if (appliedDiscounts.length > 0) {
+      const breakdown = calculateTotal(amountToDiscount, appliedDiscounts);
+      discountAmount = breakdown.discountSum;
+      resolvedDiscountPercent =
+        amountToDiscount > 0 ? discountAmount / amountToDiscount : 0;
+      discountLines = breakdown.lines
+        .filter((line) => line.amount > 0)
+        .map((line) => ({
+          label: formatDiscountLineForGuest(line.discount),
+          amount: line.amount,
+        }));
+    }
   }
 
   let totalPrice =
@@ -386,12 +522,19 @@ export function computeBookingPrice(params: {
     dayGuestFee,
     earlyFee,
     lateFee,
+    earlyQuotedFee,
+    lateQuotedFee,
+    earlyPendingApproval,
+    latePendingApproval,
     early50,
     late50,
-    discountPercent,
+    discountPercent: resolvedDiscountPercent,
     discountAmount,
+    discountLines,
     totalPrice,
-    isVat: params.isVat,
+    isVat: additionalServicesFee > 0 ? false : params.isVat,
+    additionalServicesFee,
+    serviceLines,
     selectedEarlyTime: params.selectedEarlyTime,
     selectedLateTime: params.selectedLateTime,
   };

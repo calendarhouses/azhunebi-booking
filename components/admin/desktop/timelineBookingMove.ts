@@ -5,8 +5,8 @@ import type { BookingRecord, RoomConfig } from "./types";
 export const TIMELINE_ROW_HEIGHT = 70;
 export const TIMELINE_ROW_HEIGHT_COMPACT = 48;
 
-export function getTimelineRowHeight(compact: boolean): number {
-  return compact ? TIMELINE_ROW_HEIGHT_COMPACT : TIMELINE_ROW_HEIGHT;
+export function getTimelineRowHeight(focusLayout: boolean): number {
+  return focusLayout ? TIMELINE_ROW_HEIGHT_COMPACT : TIMELINE_ROW_HEIGHT;
 }
 export const BOOKING_MOVE_THRESHOLD = 5;
 

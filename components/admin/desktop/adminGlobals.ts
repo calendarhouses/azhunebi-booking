@@ -15,6 +15,7 @@ declare global {
     sysServicesList?: AdminSettingsPayload["sysServicesList"];
     customPrices?: AdminSettingsPayload["customPrices"];
     restrictions?: AdminSettingsPayload["restrictions"];
+    closedDates?: AdminSettingsPayload["closedDates"];
     transactions?: AdminSettingsPayload["transactions"];
     switchView?: (view: string) => void;
     toggleSettingsMenu?: () => void;
@@ -47,6 +48,7 @@ export function syncLegacyGlobals(payload: {
   if (payload.settings.sysServicesList) window.sysServicesList = payload.settings.sysServicesList;
   if (payload.settings.customPrices) window.customPrices = payload.settings.customPrices;
   if (payload.settings.restrictions) window.restrictions = payload.settings.restrictions;
+  if (payload.settings.closedDates) window.closedDates = payload.settings.closedDates;
   if (payload.settings.transactions) window.transactions = payload.settings.transactions;
 }
 

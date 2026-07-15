@@ -2,8 +2,10 @@ import type {
   AdminSettingsPayload,
   BookingRecord,
   CustomServiceConfig,
+  DiscountKind,
   RoomAmenitiesByCategory,
   RoomRules,
+  RoomSiteHighlight,
   SysServiceConfig,
 } from "@/components/admin/desktop/types";
 
@@ -15,6 +17,9 @@ export interface PublicRoom {
   capacity: number;
   maxCapacity?: number;
   extraGuestPrice?: number;
+  pricingModel?: "per_house" | "per_guest";
+  pricePerGuest?: number;
+  allowChildren?: boolean;
   priceWeekday: number;
   priceWeekend: number;
   active: boolean;
@@ -22,6 +27,7 @@ export interface PublicRoom {
   detailedDescription?: string;
   rules?: RoomRules;
   amenities?: RoomAmenitiesByCategory;
+  siteHighlights?: RoomSiteHighlight[];
 }
 
 export interface PublicDiscount {
@@ -30,6 +36,13 @@ export interface PublicDiscount {
   discount: string;
   rooms?: string;
   roomsIds?: string[];
+  active?: boolean;
+  promoCode?: string;
+  minNights?: number;
+  daysBefore?: number;
+  name?: string;
+  kind?: DiscountKind;
+  guestCategory?: "ubd" | "birthday" | "anniversary" | "other";
 }
 
 export interface PublicBranding {
@@ -44,6 +57,10 @@ export interface PublicBranding {
   telegram_url?: string;
   maps_embed_url?: string;
   maps_external_url?: string;
+  /** percent | nights | fixed */
+  prepayment_mode?: "percent" | "nights" | "fixed";
+  /** 50 = 50%, 1 = одна ніч, 5000 = фіксована сума */
+  prepayment_value?: number;
   [key: string]: unknown;
 }
 
@@ -60,8 +77,10 @@ export interface PublicTenantPayload {
 export interface PublicSiteRuntime extends PublicTenantPayload {
   bookings: BookingRecord[];
   restrictions: AdminSettingsPayload["restrictions"];
+  closedDates: AdminSettingsPayload["closedDates"];
   sysServicesList: SysServiceConfig[];
   customServicesList: CustomServiceConfig[];
+  flexibleScheduleSettings?: AdminSettingsPayload["flexibleScheduleSettings"];
 }
 
 export type BookedRange = {
@@ -69,6 +88,16 @@ export type BookedRange = {
   end: Date;
   hasEarly: boolean;
   hasLate: boolean;
+};
+
+export type PublicServiceLine = {
+  id: number;
+  name: string;
+  fee: number;
+  quantity?: number;
+  quotedFee?: number;
+  onSite?: boolean;
+  pendingApproval?: boolean;
 };
 
 export type PublicPriceBreakdown = {
@@ -80,9 +109,12 @@ export type PublicPriceBreakdown = {
   lateFee: number;
   discountAmount: number;
   discountPercent: number;
+  discountLines: { label: string; amount: number }[];
   totalPrice: number;
   prepayment: number;
+  prepaymentLabel: string;
   nights: number;
+  serviceLines: PublicServiceLine[];
 };
 
 export type PaymentData = {

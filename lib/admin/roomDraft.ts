@@ -1,4 +1,5 @@
 import { buildDefaultAmenitiesState } from "@/constants/amenitiesDict";
+import { buildDefaultHouseRulesState } from "@/constants/rulesDict";
 import type { RoomConfig } from "@/components/admin/desktop/types";
 
 export function isRoomDraftId(id: number): boolean {
@@ -27,7 +28,10 @@ export function createDraftRoomConfig(): RoomConfig {
       pets: { isPetsFriendly: false, description: "За узгодженням" },
       selfCheckIn: { enabled: false, description: "" },
     },
-    amenities: buildDefaultAmenitiesState(),
+    amenities: {
+      ...buildDefaultAmenitiesState(),
+      ...buildDefaultHouseRulesState(),
+    },
     siteHighlights: [],
   };
 }

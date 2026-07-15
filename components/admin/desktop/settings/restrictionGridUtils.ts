@@ -1,6 +1,9 @@
 import { formatDateKey } from "../bookingUtils";
 import type { AdminSettingsPayload } from "../types";
 
+/** Маркер закритої дати в `restrictions` (зберігається навіть без ключа closedDates у GAS). */
+export const CLOSED_DATE_SENTINEL = -1;
+
 export type RestrictionSelection = {
   roomId: string;
   dates: string[];
@@ -14,9 +17,45 @@ export function getRestrictionMinNights(
   dateObj: Date
 ): number {
   const ds = formatDateKey(dateObj);
-  const room = restrictions?.[String(roomId)];
-  if (room && room[ds]) return room[ds];
-  return 0;
+  const rid = String(roomId);
+  const map = restrictions || {};
+  const raw =
+    map[roomId as string]?.[ds] ?? map[rid]?.[ds];
+  if (raw === undefined || raw === null) return 0;
+  const val = Number(raw);
+  if (val === CLOSED_DATE_SENTINEL) return 0;
+  return val || 0;
+}
+
+export function isDateClosed(
+  closedDates: AdminSettingsPayload["closedDates"],
+  roomId: number | string,
+  dateObj: Date,
+  restrictions?: AdminSettingsPayload["restrictions"]
+): boolean {
+  const ds = formatDateKey(dateObj);
+  const rid = String(roomId);
+  const closedMap = closedDates || {};
+  if (closedMap[roomId as string]?.[ds] || closedMap[rid]?.[ds]) return true;
+
+  const restrMap = restrictions || {};
+  const raw = restrMap[roomId as string]?.[ds] ?? restrMap[rid]?.[ds];
+  return Number(raw) === CLOSED_DATE_SENTINEL;
+}
+
+export type RuleCellKind = "none" | "closed" | "minNights";
+
+export function getRuleCellKind(
+  settings: Pick<AdminSettingsPayload, "restrictions" | "closedDates">,
+  roomId: number | string,
+  dateObj: Date
+): { kind: RuleCellKind; minNights: number } {
+  if (isDateClosed(settings.closedDates, roomId, dateObj, settings.restrictions)) {
+    return { kind: "closed", minNights: 0 };
+  }
+  const minN = getRestrictionMinNights(settings.restrictions, roomId, dateObj);
+  if (minN > 0) return { kind: "minNights", minNights: minN };
+  return { kind: "none", minNights: 0 };
 }
 
 export function isPriceWeekend(d: Date): boolean {

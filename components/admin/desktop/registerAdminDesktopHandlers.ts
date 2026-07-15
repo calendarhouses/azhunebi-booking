@@ -14,10 +14,10 @@ export function registerAdminDesktopHandlers(modals: AdminModalsApi): () => void
     closeCustomConfirm?: () => void;
     clearPricesAlert?: () => void;
     confirmClearPrices?: () => void;
+    clearRulesAlert?: () => void;
+    openRuleConstructor?: () => void;
     clearRestrictionsAlert?: () => void;
     openRestrictionConstructor?: () => void;
-    restrictionMenuConstructor?: () => void;
-    restrictionMenuDelete?: () => void;
     renderSettingsRooms?: () => void;
     renderSettingsDiscounts?: () => void;
     renderSettingsServices?: () => void;
@@ -50,16 +50,10 @@ export function registerAdminDesktopHandlers(modals: AdminModalsApi): () => void
   w.closeCustomConfirm = () => modals.closeCustomConfirm();
   w.clearPricesAlert = () => modals.clearPricesAlert();
   w.confirmClearPrices = () => void modals.confirmClearPrices();
-  w.clearRestrictionsAlert = () => modals.clearRestrictionsAlert();
-  w.openRestrictionConstructor = () => modals.openRestrictionConstructor();
-  w.restrictionMenuConstructor = () => {
-    document.getElementById("restrictionBarMenu")?.style.setProperty("display", "none");
-    modals.openRestrictionConstructor();
-  };
-  w.restrictionMenuDelete = () => {
-    document.getElementById("restrictionBarMenu")?.style.setProperty("display", "none");
-    modals.clearRestrictionsAlert();
-  };
+  w.clearRulesAlert = () => modals.clearRulesAlert();
+  w.openRuleConstructor = () => modals.openRuleConstructor();
+  w.clearRestrictionsAlert = () => modals.clearRulesAlert();
+  w.openRestrictionConstructor = () => modals.openRuleConstructor();
 
   w.renderSettingsRooms = () => {};
   w.renderSettingsDiscounts = () => {};
@@ -81,10 +75,10 @@ export function registerAdminDesktopHandlers(modals: AdminModalsApi): () => void
     delete w.openCustomConfirm;
     delete w.closeCustomConfirm;
     delete w.clearPricesAlert;
+    delete w.clearRulesAlert;
+    delete w.openRuleConstructor;
     delete w.clearRestrictionsAlert;
     delete w.openRestrictionConstructor;
-    delete w.restrictionMenuConstructor;
-    delete w.restrictionMenuDelete;
     delete w.renderSettingsRooms;
     delete w.renderSettingsDiscounts;
     delete w.renderSettingsServices;

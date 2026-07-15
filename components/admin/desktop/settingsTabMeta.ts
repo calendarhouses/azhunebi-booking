@@ -12,15 +12,15 @@ export type SettingsTabMeta = {
 export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding"];
 
 /** Вкладки: повна ширина як шапка, висота за контентом */
-export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = ["rooms", "prices"];
+export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = ["rooms", "prices", "restrictions"];
 
 export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
   branding: {
-    title: "Сторінка хати",
+    title: "Моя сторінка",
     icon: '<circle cx="12" cy="8" r="3.5" /><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />',
   },
   rooms: {
-    title: "Твоє житло",
+    title: "Моє житло",
     icon: "",
     iconVariant: "khata",
   },
@@ -33,8 +33,12 @@ export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
     icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.5 9.5h.01M14.5 14.5h.01" /><path stroke-linecap="round" stroke-linejoin="round" d="M5 7V5h2l12 12-2 2L5 7Z" />',
   },
   restrictions: {
-    title: "Правила заїзду",
+    title: "Правила",
     icon: '<circle cx="12" cy="12" r="7" /><path stroke-linecap="round" stroke-linejoin="round" d="m8.5 8.5 7 7" />',
+  },
+  services: {
+    title: "Додаткові послуги",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3" /><path stroke-linecap="round" stroke-linejoin="round" d="M8 6h8" /><rect x="5" y="9" width="14" height="10" rx="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6" />',
   },
 };
 

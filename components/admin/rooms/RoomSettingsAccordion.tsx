@@ -3,22 +3,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Banknote, ChevronDown } from "lucide-react";
 import { buildDefaultAmenitiesState } from "@/constants/amenitiesDict";
+import { buildDefaultHouseRulesState, HOUSE_RULES_CATEGORY_ID } from "@/constants/rulesDict";
 import { showToast } from "@/components/admin/desktop/adminGlobals";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
 import type { AdminModalsApi, RoomAccordionKey } from "@/components/admin/desktop/useAdminModals";
 import type { AdminSettingsPayload, RoomConfig, RoomSiteHighlight } from "@/components/admin/desktop/types";
-import { compressImageToWebp } from "@/lib/admin/onboarding/mediaCompression";
 import {
   normalizeSiteHighlights,
   siteHighlightsForSave,
 } from "@/lib/admin/roomSiteHighlights";
 import { AmenityCategoryDisclosureList } from "./AmenityCategoryDisclosureList";
+import { RulesCategoryDisclosureList } from "./RulesCategoryDisclosureList";
 import { CapacityStepperField } from "./CapacityStepperField";
 import { RoomGallerySection } from "./RoomGallerySection";
 import { RoomSiteHighlightsEditor } from "./RoomSiteHighlightsEditor";
 import {
   ROOM_SETTINGS_STEPS,
   getActiveAmenityIds,
+  getActiveRuleIds,
   type RoomSettingsStepId,
 } from "./roomSettingsSteps";
 import "@/components/admin/onboarding/onboarding.css";
@@ -72,7 +74,11 @@ export function RoomSettingsAccordion({
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>(() =>
     resolvedRoom ? getActiveAmenityIds(resolvedRoom) : []
   );
+  const [selectedRules, setSelectedRules] = useState<string[]>(() =>
+    resolvedRoom ? getActiveRuleIds(resolvedRoom) : []
+  );
   const selectedAmenitySet = useMemo(() => new Set(selectedAmenities), [selectedAmenities]);
+  const selectedRuleSet = useMemo(() => new Set(selectedRules), [selectedRules]);
   const [priceWeekday, setPriceWeekday] = useState(String(resolvedRoom?.priceWeekday ?? ""));
   const [priceWeekend, setPriceWeekend] = useState(String(resolvedRoom?.priceWeekend ?? ""));
 
@@ -117,6 +123,7 @@ export function RoomSettingsAccordion({
     setExtraPlaces(String(Math.max(0, max - cap)));
     setSiteHighlights(normalizeSiteHighlights(resolvedRoom.siteHighlights));
     setSelectedAmenities(getActiveAmenityIds(resolvedRoom));
+    setSelectedRules(getActiveRuleIds(resolvedRoom));
     setPriceWeekday(String(resolvedRoom.priceWeekday || ""));
     setPriceWeekend(String(resolvedRoom.priceWeekend || ""));
     setLocalPhotos(resolvedRoom.photos ?? []);
@@ -152,9 +159,8 @@ export function RoomSettingsAccordion({
       const inputFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
       if (!inputFiles.length) return;
       try {
-        const webpFiles = await Promise.all(inputFiles.map((f) => compressImageToWebp(f)));
         const dataTransfer = new DataTransfer();
-        webpFiles.forEach((f) => dataTransfer.items.add(f));
+        inputFiles.forEach((f) => dataTransfer.items.add(f));
         const urls = await modals.uploadPhotosForRoom(effectiveRoomId, dataTransfer.files);
         if (urls.length > 0) {
           setLocalPhotos((prev) => [...prev, ...urls]);
@@ -179,7 +185,18 @@ export function RoomSettingsAccordion({
         isActive: selectedSet.has(item.id),
       }));
     }
-    return defaults;
+
+    const rulesDefaults = buildDefaultHouseRulesState();
+    const selectedRulesSet = new Set(selectedRules);
+    const currentRules = currentAmenities[HOUSE_RULES_CATEGORY_ID] || [];
+    const currentRulesById = new Map(currentRules.map((item) => [item.id, item]));
+    rulesDefaults[HOUSE_RULES_CATEGORY_ID] = rulesDefaults[HOUSE_RULES_CATEGORY_ID].map((item) => ({
+      ...item,
+      ...(currentRulesById.get(item.id) || {}),
+      isActive: selectedRulesSet.has(item.id),
+    }));
+
+    return { ...defaults, ...rulesDefaults };
   };
 
   const handlePhotosChange = useCallback(
@@ -270,6 +287,12 @@ export function RoomSettingsAccordion({
   const toggleAmenity = (amenityId: string) => {
     setSelectedAmenities((prev) =>
       prev.includes(amenityId) ? prev.filter((id) => id !== amenityId) : [...prev, amenityId]
+    );
+  };
+
+  const toggleRule = (ruleId: string) => {
+    setSelectedRules((prev) =>
+      prev.includes(ruleId) ? prev.filter((id) => id !== ruleId) : [...prev, ruleId]
     );
   };
 
@@ -375,6 +398,14 @@ export function RoomSettingsAccordion({
                     <AmenityCategoryDisclosureList
                       selectedIds={selectedAmenitySet}
                       onToggle={toggleAmenity}
+                      disabled={saving}
+                    />
+                  ) : null}
+
+                  {step.id === "rules" ? (
+                    <RulesCategoryDisclosureList
+                      selectedIds={selectedRuleSet}
+                      onToggle={toggleRule}
                       disabled={saving}
                     />
                   ) : null}

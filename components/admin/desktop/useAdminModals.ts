@@ -8,23 +8,16 @@ import {
 } from "@/lib/admin/adminSession";
 import { getAdminTenantId, saveAdminSettings, type SaveAdminSettingsOptions } from "./adminApi";
 import { showToast, showPublishingToast, syncLegacyGlobals } from "./adminGlobals";
-import { dateWord, dayWord, selectedDatesPhrase } from "./adminPlural";
-import { formatDateKey } from "./bookingUtils";
-import { isPriceWeekend } from "./settings/restrictionGridUtils";
-import type { RestrictionSelection } from "./settings/restrictionGridUtils";
 import {
   buildCustomServiceForm,
   buildDiscountForm,
-  buildRestrictionForm,
   buildRoomForm,
   buildTransactionForm,
   genericModalTitle,
   type CustomServiceFormState,
   type DiscountFormState,
   type GenericModalType,
-  type PendingRestrictionModal,
   type PriceFormState,
-  type RestrictionFormState,
   type RoomFormState,
   type SysServiceFormState,
   type TransactionFormState,
@@ -35,6 +28,13 @@ import {
   patchSingleCustomPrice,
   type PriceConstructorPreset,
 } from "./settings/priceConstructorLogic";
+import {
+  applyRuleFormToSettings,
+  buildRuleForm,
+  RULE_SETTINGS_KEYS,
+  type RuleConstructorPreset,
+  type RuleFormState,
+} from "./settings/ruleConstructorLogic";
 import { createDraftRoomConfig, isRoomDraftId } from "@/lib/admin/roomDraft";
 import { createDraftDiscount, dedupeDiscountsList, isDiscountDraftId } from "@/lib/admin/discountDraft";
 import { resolveDiscountActive } from "./settings/discountConfig";
@@ -43,6 +43,7 @@ import { applyPublishingAvailability, formatPublishingErrorMessage, validatePubl
 import { createDefaultRoomConfig } from "../rooms/roomSettingsSteps";
 import { getRoomAvailabilityStatus, patchFromAvailabilityStatus } from "./settings/roomAvailability";
 import type { AdminSettingsPayload, BookingRecord, DiscountConfig, DiscountKind, RoomConfig, SettingsTabName } from "./types";
+import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 
 function persistKeysForEditType(
   type: GenericModalType | "service" | string
@@ -58,7 +59,7 @@ function persistKeysForEditType(
     case "sysService":
       return ["sysServicesList"];
     case "restriction":
-      return ["restrictions"];
+      return [...RULE_SETTINGS_KEYS];
     case "transaction":
       return ["transactions"];
     case "price":
@@ -83,8 +84,8 @@ export type UseAdminModalsOptions = {
   settingsTab?: SettingsTabName;
   priceTimelineBaseDateRef?: React.MutableRefObject<Date>;
   restrictionsTimelineBaseDateRef?: React.MutableRefObject<Date>;
-  onRestrictionSelectionChange?: (sel: RestrictionSelection) => void;
   onAfterSettingsSave?: () => void;
+  adminUndo?: AdminUndoApi;
 };
 
 export type RoomDrawerTab = "main" | "amenities";
@@ -101,12 +102,14 @@ export function useAdminModals({
   settingsTab,
   priceTimelineBaseDateRef,
   restrictionsTimelineBaseDateRef,
-  onRestrictionSelectionChange,
   onAfterSettingsSave,
+  adminUndo,
 }: UseAdminModalsOptions) {
   const [genericOpen, setGenericOpen] = useState(false);
   const [priceDrawerOpen, setPriceDrawerOpen] = useState(false);
   const [priceSaving, setPriceSaving] = useState(false);
+  const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
+  const [ruleSaving, setRuleSaving] = useState(false);
   const [editType, setEditType] = useState<GenericModalType>("room");
   const [editId, setEditId] = useState<number | null>(null);
 
@@ -115,15 +118,12 @@ export function useAdminModals({
   const [confirmDesc, setConfirmDesc] = useState("");
   const confirmActionRef = useRef<(() => void | Promise<void>) | null>(null);
 
-  const [restrictionSelection, setRestrictionSelection] = useState<RestrictionSelection>(null);
-  const pendingRestrictionRef = useRef<PendingRestrictionModal>(null);
-
   const [roomForm, setRoomForm] = useState<RoomFormState>(buildRoomForm({}));
   const [priceForm, setPriceForm] = useState<PriceFormState>(() =>
     buildPriceForm(priceTimelineBaseDateRef?.current)
   );
-  const [restrictionForm, setRestrictionForm] = useState<RestrictionFormState>(
-    buildRestrictionForm(null)
+  const [ruleForm, setRuleForm] = useState<RuleFormState>(() =>
+    buildRuleForm(restrictionsTimelineBaseDateRef?.current)
   );
   const [discountForm, setDiscountForm] = useState<DiscountFormState>(
     buildDiscountForm({}, null)
@@ -172,14 +172,6 @@ export function useAdminModals({
     }
     return applyPublishingAvailability(next);
   }, []);
-
-  const updateRestrictionSelection = useCallback(
-    (sel: RestrictionSelection) => {
-      setRestrictionSelection(sel);
-      onRestrictionSelectionChange?.(sel);
-    },
-    [onRestrictionSelectionChange]
-  );
 
   const persistSettings = useCallback(
     async (next: AdminSettingsPayload, options?: PersistSettingsOptions) => {
@@ -309,10 +301,6 @@ export function useAdminModals({
     if (fn) await fn();
   }, []);
 
-  const clearRestrictionSelection = useCallback(() => {
-    updateRestrictionSelection(null);
-  }, [updateRestrictionSelection]);
-
   const openPriceConstructor = useCallback(
     (preset?: PriceConstructorPreset) => {
       const base = priceTimelineBaseDateRef?.current || new Date();
@@ -326,10 +314,27 @@ export function useAdminModals({
     setPriceDrawerOpen(false);
   }, []);
 
+  const openRuleConstructor = useCallback(
+    (preset?: RuleConstructorPreset) => {
+      const base = restrictionsTimelineBaseDateRef?.current || new Date();
+      setRuleForm(buildRuleForm(base, preset));
+      setRuleDrawerOpen(true);
+    },
+    [restrictionsTimelineBaseDateRef]
+  );
+
+  const closeRuleConstructor = useCallback(() => {
+    setRuleDrawerOpen(false);
+  }, []);
+
   const openGenericModal = useCallback(
     (type: GenericModalType, id: number | null = null) => {
       if (type === "price") {
         openPriceConstructor();
+        return;
+      }
+      if (type === "restriction") {
+        openRuleConstructor();
         return;
       }
       setEditType(type);
@@ -340,11 +345,7 @@ export function useAdminModals({
       const sysServices = settings.sysServicesList || [];
       const transactions = settings.transactions || [];
 
-      if (type === "restriction") {
-        const pre = pendingRestrictionRef.current;
-        setRestrictionForm(buildRestrictionForm(pre));
-        pendingRestrictionRef.current = null;
-      } else if (type === "discount") {
+      if (type === "discount") {
         const d = id ? discounts.find((x) => x.id === id) : undefined;
         setDiscountForm(buildDiscountForm(d || {}, id));
       } else if (type === "customService") {
@@ -363,7 +364,7 @@ export function useAdminModals({
       }
       setGenericOpen(true);
     },
-    [settings, openPriceConstructor]
+    [settings, openPriceConstructor, openRuleConstructor]
   );
 
   const openRoomAccordion = useCallback((key: RoomAccordionKey) => {
@@ -702,11 +703,8 @@ export function useAdminModals({
   );
 
   const closeGenericModal = useCallback(() => {
-    if (editType === "restriction") {
-      clearRestrictionSelection();
-    }
     setGenericOpen(false);
-  }, [editType, clearRestrictionSelection]);
+  }, []);
 
   const closeRoomDrawer = useCallback(() => {
     if (roomDrawerLoadTimerRef.current) {
@@ -720,6 +718,7 @@ export function useAdminModals({
 
   const confirmClearPrices = useCallback(async () => {
     closeCustomConfirm();
+    adminUndo?.pushSettingsUndo(settingsRef.current, ["roomsList", "customPrices"]);
     const next: AdminSettingsPayload = {
       ...settings,
       roomsList: (settings.roomsList || []).map((r) => ({
@@ -733,7 +732,7 @@ export function useAdminModals({
       keys: ["roomsList", "customPrices"],
       background: true,
     });
-  }, [closeCustomConfirm, persistSettings, settings]);
+  }, [adminUndo, closeCustomConfirm, persistSettings, settings]);
 
   const clearPricesAlert = useCallback(() => {
     openCustomConfirm(
@@ -743,76 +742,22 @@ export function useAdminModals({
     );
   }, [openCustomConfirm, confirmClearPrices]);
 
-  const confirmDeleteRestrictionSelection = useCallback(async () => {
+  const confirmClearAllRules = useCallback(async () => {
     closeCustomConfirm();
-    const sel = restrictionSelection;
-    if (!sel?.roomId) return;
-    const roomId = sel.roomId;
-    const restrictions = { ...(settings.restrictions || {}) };
-    if (restrictions[roomId]) {
-      const roomRestr = { ...restrictions[roomId] };
-      sel.dates.forEach((ds) => {
-        delete roomRestr[ds];
-      });
-      if (Object.keys(roomRestr).length === 0) delete restrictions[roomId];
-      else restrictions[roomId] = roomRestr;
-    }
-    updateRestrictionSelection(null);
-    await persistSettings({ ...settings, restrictions }, {
-      keys: ["restrictions"],
+    adminUndo?.pushSettingsUndo(settingsRef.current, [...RULE_SETTINGS_KEYS]);
+    await persistSettings({ ...settings, restrictions: {}, closedDates: {} }, {
+      keys: [...RULE_SETTINGS_KEYS],
       background: true,
     });
-  }, [closeCustomConfirm, restrictionSelection, settings, persistSettings, updateRestrictionSelection]);
+  }, [adminUndo, closeCustomConfirm, settings, persistSettings]);
 
-  const confirmClearAllRestrictions = useCallback(async () => {
-    closeCustomConfirm();
-    updateRestrictionSelection(null);
-    await persistSettings({ ...settings, restrictions: {} }, {
-      keys: ["restrictions"],
-      background: true,
-    });
-  }, [closeCustomConfirm, settings, persistSettings, updateRestrictionSelection]);
-
-  const clearRestrictionsAlert = useCallback(() => {
-    if (restrictionSelection?.dates?.length) {
-      openCustomConfirm(
-        "Видалити обмеження?",
-        `Зняти обмеження з ${selectedDatesPhrase(restrictionSelection.dates.length)}?`,
-        () => void confirmDeleteRestrictionSelection()
-      );
-    } else {
-      openCustomConfirm(
-        "Очистити всі обмеження?",
-        "Ви впевнені? Усі мінімальні терміни перебування будуть видалені.",
-        () => void confirmClearAllRestrictions()
-      );
-    }
-  }, [
-    restrictionSelection,
-    openCustomConfirm,
-    persistSettings,
-    confirmDeleteRestrictionSelection,
-    confirmClearAllRestrictions,
-  ]);
-
-  const openRestrictionConstructor = useCallback(() => {
-    if (restrictionSelection?.dates?.length) {
-      const sorted = [...restrictionSelection.dates].sort();
-      const d1 = new Date(sorted[0]);
-      const d2 = new Date(sorted[sorted.length - 1]);
-      pendingRestrictionRef.current = {
-        roomIds: [String(restrictionSelection.roomId)],
-        useCustomRange: true,
-        startDate: sorted[0],
-        endDate: sorted[sorted.length - 1],
-        rangeLabel: `${d1.toLocaleDateString("uk-UA", { day: "numeric", month: "short" })} — ${d2.toLocaleDateString("uk-UA", { day: "numeric", month: "short", year: "numeric" })} (${sorted.length} ${dayWord(sorted.length)})`,
-        minNights: restrictionSelection.minN || 2,
-      };
-    } else {
-      pendingRestrictionRef.current = null;
-    }
-    openGenericModal("restriction");
-  }, [restrictionSelection, openGenericModal]);
+  const clearRulesAlert = useCallback(() => {
+    openCustomConfirm(
+      "Видалити всі правила?",
+      "Ви впевнені? Усі мінімальні ночі та закриті дати будуть видалені.",
+      () => void confirmClearAllRules()
+    );
+  }, [openCustomConfirm, confirmClearAllRules]);
 
   const confirmDeleteGenericItem = useCallback(
     async (type?: GenericModalType | "service" | string, id?: number | null) => {
@@ -931,6 +876,9 @@ export function useAdminModals({
       capacity: roomForm.capacity,
       maxCapacity: roomForm.maxCapacity,
       extraGuestPrice: roomForm.extraGuestPrice,
+      pricingModel: roomForm.pricingModel,
+      pricePerGuest: roomForm.pricePerGuest,
+      allowChildren: roomForm.allowChildren,
       priceWeekday: roomForm.priceWeekday,
       priceWeekend: roomForm.priceWeekend,
       active: roomForm.active,
@@ -971,7 +919,8 @@ export function useAdminModals({
   }, [persistSettings, roomDrawerId, settings]);
 
   const savePriceConstructor = useCallback(async () => {
-    const next = applyPriceFormToSettings(settings, priceForm);
+    adminUndo?.pushSettingsUndo(settingsRef.current, ["customPrices"]);
+    const next = applyPriceFormToSettings(settingsRef.current, priceForm);
     if (!next) {
       showToast("Вкажи ціну, житло, дні тижня та період");
       return;
@@ -984,14 +933,40 @@ export function useAdminModals({
     } finally {
       setPriceSaving(false);
     }
-  }, [persistSettings, priceForm, settings]);
+  }, [adminUndo, persistSettings, priceForm]);
+
+  const saveRuleConstructor = useCallback(async () => {
+    adminUndo?.pushSettingsUndo(settingsRef.current, [...RULE_SETTINGS_KEYS]);
+    const next = applyRuleFormToSettings(settingsRef.current, ruleForm);
+    if (!next) {
+      if (ruleForm.action === "minNights") {
+        showToast("Вкажи мін. ночей, житло, дні тижня та період");
+      } else {
+        showToast("Обери житло, дні тижня та період");
+      }
+      return;
+    }
+    setRuleSaving(true);
+    try {
+      await persistSettings(next, { keys: [...RULE_SETTINGS_KEYS], background: true });
+      setRuleDrawerOpen(false);
+      showToast("Правила збережено");
+    } finally {
+      setRuleSaving(false);
+    }
+  }, [adminUndo, persistSettings, ruleForm]);
 
   const patchCustomPrice = useCallback(
     async (roomId: number | string, dateStr: string, amount: number) => {
-      const next = patchSingleCustomPrice(settings, roomId, dateStr, amount);
+      const rid = String(roomId);
+      const prevAmount = settingsRef.current.customPrices?.[rid]?.[dateStr];
+      if (prevAmount !== amount) {
+        adminUndo?.pushSettingsUndo(settingsRef.current, ["customPrices"]);
+      }
+      const next = patchSingleCustomPrice(settingsRef.current, roomId, dateStr, amount);
       await persistSettings(next, { keys: ["customPrices"], background: true });
     },
-    [persistSettings, settings]
+    [adminUndo, persistSettings]
   );
 
   const saveGenericModal = useCallback(async () => {
@@ -1097,61 +1072,6 @@ export function useAdminModals({
         ss.active = sysServiceForm.active;
       }
       next.sysServicesList = services;
-    } else if (editType === "restriction") {
-      const selectedRooms = restrictionForm.allRoomsActive
-        ? (settings.roomsList || []).filter((r) => r.active).map((r) => String(r.id))
-        : restrictionForm.selectedRoomIds;
-      const minNights = restrictionForm.minNights || 0;
-      const dayType = restrictionForm.dayType;
-
-      if (minNights < 1) {
-        showToast("Вкажіть мінімум 1 добу");
-        return;
-      }
-      if (selectedRooms.length === 0) {
-        showToast("Оберіть хоча б один котедж");
-        return;
-      }
-
-      const restrictions = { ...(settings.restrictions || {}) };
-      const applyToDates = (roomId: string, start: Date | string, end: Date | string) => {
-        if (!restrictions[roomId]) restrictions[roomId] = {};
-        const d = new Date(start);
-        const endD = new Date(end);
-        while (d <= endD) {
-          const isWeekend = isPriceWeekend(d);
-          if (dayType === "weekdays" && isWeekend) {
-            d.setDate(d.getDate() + 1);
-            continue;
-          }
-          if (dayType === "weekends" && !isWeekend) {
-            d.setDate(d.getDate() + 1);
-            continue;
-          }
-          restrictions[roomId][formatDateKey(d)] = minNights;
-          d.setDate(d.getDate() + 1);
-        }
-      };
-
-      if (restrictionForm.useCustomRange) {
-        if (!restrictionForm.startDate || !restrictionForm.endDate) {
-          showToast("Немає обраного діапазону");
-          return;
-        }
-        selectedRooms.forEach((rid) =>
-          applyToDates(rid, restrictionForm.startDate, restrictionForm.endDate)
-        );
-      } else {
-        const base = restrictionsTimelineBaseDateRef?.current || new Date();
-        const startDate = new Date(base);
-        startDate.setDate(1);
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + (parseInt(restrictionForm.periodMonths, 10) || 1));
-        endDate.setDate(endDate.getDate() - 1);
-        selectedRooms.forEach((rid) => applyToDates(rid, startDate, endDate));
-      }
-      next.restrictions = restrictions;
-      updateRestrictionSelection(null);
     } else if (editType === "transaction") {
       const tAmount = parseInt(transactionForm.amount, 10) || 0;
       if (tAmount <= 0) {
@@ -1195,11 +1115,9 @@ export function useAdminModals({
     discountForm,
     customServiceForm,
     sysServiceForm,
-    restrictionForm,
     transactionForm,
-    restrictionsTimelineBaseDateRef,
     persistSettings,
-    updateRestrictionSelection,
+    adminUndo,
   ]);
 
   const upsertRoomInSettings = useCallback(
@@ -1267,22 +1185,12 @@ export function useAdminModals({
     [roomDrawerOpen, roomDrawerId, roomForm.photos, upsertRoomInSettings, persistSettings]
   );
 
-  const restrictionHint =
-    restrictionSelection?.dates?.length
-      ? (() => {
-          const room = (settings.roomsList || []).find(
-            (r) => String(r.id) === String(restrictionSelection.roomId)
-          );
-          const name = room ? room.name : "котедж";
-          const n = restrictionSelection.dates.length;
-          return `Обрано ${n} ${dateWord(n)} для «${name}». Натисніть «Конструктор обмежень» або «Видалити».`;
-        })()
-      : "";
-
   return {
     genericOpen,
     priceDrawerOpen,
     priceSaving,
+    ruleDrawerOpen,
+    ruleSaving,
     editType,
     editId,
     modalTitle: genericModalTitle(editType, editId),
@@ -1291,6 +1199,9 @@ export function useAdminModals({
     openPriceConstructor,
     closePriceConstructor,
     savePriceConstructor,
+    openRuleConstructor,
+    closeRuleConstructor,
+    saveRuleConstructor,
     patchCustomPrice,
     closeGenericModal,
     saveGenericModal,
@@ -1334,19 +1245,15 @@ export function useAdminModals({
     runConfirmAction,
     clearPricesAlert,
     confirmClearPrices,
-    clearRestrictionsAlert,
-    openRestrictionConstructor,
-    restrictionSelection,
-    setRestrictionSelection: updateRestrictionSelection,
-    restrictionHint,
+    clearRulesAlert,
     roomForm,
     setRoomForm,
     roomPhotosBusy,
     handleRoomPhotosSelected,
     priceForm,
     setPriceForm,
-    restrictionForm,
-    setRestrictionForm,
+    ruleForm,
+    setRuleForm,
     discountForm,
     setDiscountForm,
     customServiceForm,

@@ -1,9 +1,14 @@
 import { buildDefaultAmenitiesState } from "@/constants/amenitiesDict";
+import {
+  buildDefaultHouseRulesState,
+  HOUSE_RULES_CATEGORY_ID,
+  LEGACY_RULE_ID_MAP,
+} from "@/constants/rulesDict";
 import type { LucideIcon } from "lucide-react";
-import { Banknote, Image as ImageIcon, Info, Sparkles } from "lucide-react";
+import { Banknote, Image as ImageIcon, Info, ScrollText, Sparkles } from "lucide-react";
 import type { RoomConfig } from "@/components/admin/desktop/types";
 
-export type RoomSettingsStepId = "info" | "gallery" | "amenities" | "prices";
+export type RoomSettingsStepId = "info" | "gallery" | "amenities" | "rules" | "prices";
 
 export type RoomSettingsStep = {
   id: RoomSettingsStepId;
@@ -30,6 +35,12 @@ export const ROOM_SETTINGS_STEPS: RoomSettingsStep[] = [
     title: "Зручності",
     description: "Комфорт і обладнання для гостей",
     Icon: Sparkles,
+  },
+  {
+    id: "rules",
+    title: "Правила",
+    description: "Умови проживання для гостей",
+    Icon: ScrollText,
   },
   {
     id: "prices",
@@ -61,7 +72,10 @@ export function createDefaultRoomConfig(id: number, partial?: Partial<RoomConfig
       pets: { isPetsFriendly: false, description: "За узгодженням" },
       selfCheckIn: { enabled: false, description: "" },
     },
-    amenities: buildDefaultAmenitiesState(),
+    amenities: {
+      ...buildDefaultAmenitiesState(),
+      ...buildDefaultHouseRulesState(),
+    },
     siteHighlights: [],
   };
   const merged = { ...base, ...partial, id, name: partial?.name?.trim() || name };
@@ -73,10 +87,28 @@ export function createDefaultRoomConfig(id: number, partial?: Partial<RoomConfig
 export function getActiveAmenityIds(room: RoomConfig): string[] {
   const ids: string[] = [];
   if (!room.amenities) return ids;
-  for (const items of Object.values(room.amenities)) {
+  for (const [categoryId, items] of Object.entries(room.amenities)) {
+    if (categoryId === HOUSE_RULES_CATEGORY_ID || categoryId === "rules") continue;
     for (const item of items || []) {
       if (item.isActive) ids.push(item.id);
     }
   }
+  return ids;
+}
+
+export function getActiveRuleIds(room: RoomConfig): string[] {
+  const ids: string[] = [];
+  const houseRules = room.amenities?.[HOUSE_RULES_CATEGORY_ID] || [];
+  for (const item of houseRules) {
+    if (item.isActive) ids.push(item.id);
+  }
+
+  const legacyRules = room.amenities?.rules || [];
+  for (const item of legacyRules) {
+    if (!item?.isActive) continue;
+    const mapped = LEGACY_RULE_ID_MAP[item.id] || item.id;
+    if (!ids.includes(mapped)) ids.push(mapped);
+  }
+
   return ids;
 }

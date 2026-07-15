@@ -7,9 +7,9 @@ const PLACEHOLDER_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"><rect fill="#E5E1DC" width="800" height="600"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="48" fill="#9CA3AF">🏡</text></svg>'
   );
 
-export function getRoomImages(room: PublicRoom): string[] {
+export function getRoomImages(room: PublicRoom, options?: { card?: boolean }): string[] {
   const photos = (room.photos || [])
-    .map((u) => resolvePublicImageUrl(u))
+    .map((u) => resolvePublicImageUrl(u, options?.card ? "card" : "full"))
     .filter((u): u is string => Boolean(u));
   if (photos.length) return photos;
   return [PLACEHOLDER_SVG];
@@ -35,17 +35,11 @@ export function getRoomMinPrice(
     }
   }
 
-  if (minPrice === 0) minPrice = 4500;
   return minPrice;
-}
-
-export function getRoomSubtitle(room: PublicRoom): string {
-  const desc = (room.desc || "").trim();
-  if (!desc) return "Комфортний відпочинок на природі.";
-  const first = desc.split(/[.!?]/)[0]?.trim();
-  return first ? `${first}.` : desc;
 }
 
 export function formatPriceUa(amount: number): string {
   return amount.toLocaleString("uk-UA");
 }
+
+export { formatRoomDisplayName, getRoomBadgeLabel, getRoomSubtitle } from "./roomDisplay";

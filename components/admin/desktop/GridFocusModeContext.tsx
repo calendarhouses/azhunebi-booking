@@ -15,6 +15,9 @@ type GridFocusModeContextValue = {
   isCompactMode: boolean;
   toggleCompactMode: () => void;
   setCompactMode: (value: boolean) => void;
+  /** Розгорнута шахматка поза головним grid (напр. ціни) — згортає сайдбар */
+  auxiliaryFocusActive: boolean;
+  setAuxiliaryFocusActive: (value: boolean) => void;
 };
 
 const GridFocusModeContext = createContext<GridFocusModeContextValue | null>(null);
@@ -27,6 +30,11 @@ export function GridFocusModeProvider({
   children: ReactNode;
 }) {
   const [isCompactMode, setIsCompactMode] = useState(false);
+  const [auxiliaryFocusActive, setAuxiliaryFocusActiveState] = useState(false);
+
+  const setAuxiliaryFocusActive = useCallback((value: boolean) => {
+    setAuxiliaryFocusActiveState(value);
+  }, []);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -58,8 +66,14 @@ export function GridFocusModeProvider({
   );
 
   const value = useMemo(
-    () => ({ isCompactMode, toggleCompactMode, setCompactMode }),
-    [isCompactMode, toggleCompactMode, setCompactMode]
+    () => ({
+      isCompactMode,
+      toggleCompactMode,
+      setCompactMode,
+      auxiliaryFocusActive,
+      setAuxiliaryFocusActive,
+    }),
+    [isCompactMode, toggleCompactMode, setCompactMode, auxiliaryFocusActive, setAuxiliaryFocusActive]
   );
 
   return (
@@ -79,6 +93,8 @@ const GRID_FOCUS_MODE_IDLE: GridFocusModeContextValue = {
   isCompactMode: false,
   toggleCompactMode: () => {},
   setCompactMode: () => {},
+  auxiliaryFocusActive: false,
+  setAuxiliaryFocusActive: () => {},
 };
 
 export function useGridFocusModeOptional(): GridFocusModeContextValue {

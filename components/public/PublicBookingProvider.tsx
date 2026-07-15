@@ -15,12 +15,19 @@ import {
   computeBookingPrice,
   getBookingMinNightsRequired,
   getRestrictionMinNights,
+  isDateClosed,
 } from "@/components/admin/desktop/bookingPriceEngine";
 import type {
   AdminSettingsPayload,
   BookingRecord,
+  CustomServiceConfig,
   RoomConfig,
 } from "@/components/admin/desktop/types";
+import {
+  calculatePrepaymentAmount,
+  formatPrepaymentGuestLabel,
+  readPrepaymentPolicy,
+} from "@/lib/public-booking/prepaymentPolicy";
 import {
   formatDateKey,
   getBookedRanges,
@@ -33,7 +40,37 @@ import {
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
 import { showPublicToast } from "@/lib/public-booking/publicToast";
+import {
+  buildChildrenCommentToken,
+  buildServiceCommentTokens,
+  listServicesForRoom,
+  roomAllowsChildren,
+  type ServiceSelectionMap,
+} from "@/components/admin/desktop/settings/additionalServicesLogic";
+import {
+  buildEarlyCommentToken,
+  buildLateCommentToken,
+  resolveFlexibleScheduleSettings,
+} from "@/lib/admin/flexibleSchedule";
+import {
+  buildPromoCodeCommentToken,
+  discountConfigToApplied,
+  formatAppliedDiscountLabel,
+  hasActivePromoCodeDiscounts,
+  promoCodeAppliesToBooking,
+} from "@/lib/admin/bookingDiscountCalc";
+import {
+  getDiscountKind,
+  getSpecialTariffToggleLabel,
+  resolveDiscountActive,
+} from "@/components/admin/desktop/settings/discountConfig";
 import { getRoomImages } from "@/lib/public-booking/roomHelpers";
+import { buildPublicReceiptHtml, buildPublicPendingReceiptHtml } from "@/lib/public-booking/publicReceipt";
+import {
+  BOOKING_STATUS_PENDING_REVIEW,
+  needsManualReview,
+  type PublicBookingFlow,
+} from "@/lib/public-booking/bookingReview";
 import type {
   PublicPriceBreakdown,
   PublicRoom,
@@ -53,6 +90,7 @@ type Ctx = {
   setActiveScreen: (s: "list" | "success") => void;
   drawerOpen: boolean;
   drawerStep: DrawerStep;
+  drawerScrollKey: number;
   selectedRoom: RoomConfig | null;
   openDrawer: (room: RoomConfig) => void;
   closeDrawer: () => void;
@@ -67,12 +105,13 @@ type Ctx = {
   selectDate: (ds: string) => void;
   guestCount: number;
   changeGuests: (delta: number) => void;
-  dayGuests: number;
-  changeDayGuests: (delta: number) => void;
-  hasPets: boolean;
-  setHasPets: (v: boolean) => void;
-  hasVat: boolean;
-  setHasVat: (v: boolean) => void;
+  childCount: number;
+  changeChildren: (delta: number) => void;
+  availableServices: CustomServiceConfig[];
+  selectedServices: ServiceSelectionMap;
+  setServiceQty: (serviceId: number, qty: number) => void;
+  showChildren: boolean;
+  flexibleSchedule: ReturnType<typeof resolveFlexibleScheduleSettings>;
   hasUbd: boolean;
   setHasUbd: (v: boolean) => void;
   earlyTime: string | null;
@@ -81,8 +120,13 @@ type Ctx = {
   selectTime: (kind: "early" | "late", time: string) => void;
   earlyActive: boolean;
   lateActive: boolean;
-  showVat: boolean;
   showUbd: boolean;
+  ubdTariffLabel: string;
+  ubdTariffHint: string;
+  showPromoCode: boolean;
+  promoCode: string;
+  setPromoCode: (code: string) => void;
+  promoCodeStatus: "idle" | "valid" | "invalid";
   proceedDisabled: boolean;
   proceedLabel: string;
   price: PublicPriceBreakdown | null;
@@ -99,6 +143,7 @@ type Ctx = {
   getRoomById: (id: number) => RoomConfig | undefined;
   getNextFreeForRoom: (room: RoomConfig) => string;
   successReceiptHtml: string;
+  successFlow: PublicBookingFlow;
 };
 
 const PublicBookingContext = createContext<Ctx | null>(null);
@@ -119,9 +164,12 @@ function emptyPrice(): PublicPriceBreakdown {
     lateFee: 0,
     discountAmount: 0,
     discountPercent: 0,
+    discountLines: [],
     totalPrice: 0,
     prepayment: 0,
+    prepaymentLabel: "50%",
     nights: 0,
+    serviceLines: [],
   };
 }
 
@@ -139,6 +187,7 @@ export function PublicBookingProvider({
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("info");
+  const [drawerScrollKey, setDrawerScrollKey] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<RoomConfig | null>(null);
   const [detailSlide, setDetailSlide] = useState(0);
   const [calBase, setCalBase] = useState(() => {
@@ -150,16 +199,17 @@ export function PublicBookingProvider({
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
   const [guestCount, setGuestCount] = useState(2);
-  const [dayGuests, setDayGuests] = useState(0);
-  const [hasPets, setHasPets] = useState(false);
-  const [hasVat, setHasVat] = useState(false);
+  const [childCount, setChildCount] = useState(0);
+  const [selectedServices, setSelectedServices] = useState<ServiceSelectionMap>({});
   const [hasUbd, setHasUbd] = useState(false);
   const [earlyTime, setEarlyTime] = useState<string | null>(null);
   const [lateTime, setLateTime] = useState<string | null>(null);
   const [earlyActive, setEarlyActive] = useState(false);
   const [lateActive, setLateActive] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successReceiptHtml, setSuccessReceiptHtml] = useState("");
+  const [successFlow, setSuccessFlow] = useState<PublicBookingFlow>("instant");
 
   useEffect(() => {
     const t = window.setTimeout(() => setPreloaderDone(true), PRELOADER_MIN_MS);
@@ -181,8 +231,10 @@ export function PublicBookingProvider({
           customPrices: settings.customPrices || data.customPrices,
           bookings: init.bookings || [],
           restrictions: settings.restrictions || {},
+          closedDates: settings.closedDates || {},
           sysServicesList: settings.sysServicesList || [],
           customServicesList: settings.customServicesList || [],
+          flexibleScheduleSettings: settings.flexibleScheduleSettings,
         });
       } catch (e) {
         console.error(e);
@@ -190,6 +242,7 @@ export function PublicBookingProvider({
           ...data,
           bookings: [],
           restrictions: {},
+          closedDates: {},
           sysServicesList: [],
           customServicesList: [],
         });
@@ -203,16 +256,22 @@ export function PublicBookingProvider({
   }, [data]);
 
   useEffect(() => {
-    if (searchParams.get("payment") === "success") {
-      setActiveScreen("success");
-      const raw = sessionStorage.getItem("lastBooking");
-      if (raw) {
-        try {
-          const b = JSON.parse(raw) as Record<string, unknown>;
-          setSuccessReceiptHtml(buildReceiptHtml(b));
-        } catch {
-          /* ignore */
-        }
+    const paymentSuccess = searchParams.get("payment") === "success";
+    const submittedPending = searchParams.get("submitted") === "pending";
+    if (!paymentSuccess && !submittedPending) return;
+
+    setActiveScreen("success");
+    const raw = sessionStorage.getItem("lastBooking");
+    if (raw) {
+      try {
+        const b = JSON.parse(raw) as import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData;
+        const flow = b.flow || (submittedPending ? "pending_review" : "instant");
+        setSuccessFlow(flow);
+        setSuccessReceiptHtml(
+          flow === "pending_review" ? buildPublicPendingReceiptHtml(b) : buildPublicReceiptHtml(b)
+        );
+      } catch {
+        /* ignore */
       }
     }
   }, [searchParams]);
@@ -241,8 +300,10 @@ export function PublicBookingProvider({
       })),
       customPrices: runtime.customPrices,
       restrictions: runtime.restrictions,
+      closedDates: runtime.closedDates,
       sysServicesList: runtime.sysServicesList,
       customServicesList: runtime.customServicesList,
+      flexibleScheduleSettings: runtime.flexibleScheduleSettings,
     };
   }, [runtime]);
 
@@ -263,14 +324,14 @@ export function PublicBookingProvider({
     setCheckIn(null);
     setCheckOut(null);
     setGuestCount(2);
-    setDayGuests(0);
-    setHasPets(false);
-    setHasVat(false);
+    setChildCount(0);
+    setSelectedServices({});
     setHasUbd(false);
     setEarlyTime(null);
     setLateTime(null);
     setEarlyActive(false);
     setLateActive(false);
+    setPromoCode("");
     const d = new Date();
     d.setDate(1);
     setCalBase(d);
@@ -282,6 +343,7 @@ export function PublicBookingProvider({
       setDrawerStep("info");
       setDetailSlide(0);
       resetBookingForm();
+      setDrawerScrollKey((key) => key + 1);
       setDrawerOpen(true);
       document.body.style.overflow = "hidden";
     },
@@ -298,6 +360,7 @@ export function PublicBookingProvider({
 
   const goDrawerStep = useCallback((step: DrawerStep) => {
     setDrawerStep(step);
+    setDrawerScrollKey((key) => key + 1);
     if (step === "calendar") setCalKey((k) => k + 1);
   }, []);
 
@@ -342,14 +405,28 @@ export function PublicBookingProvider({
         return;
       }
 
+      if (isDateClosed(runtime.closedDates, selectedRoom.id, d, runtime.restrictions)) {
+        showPublicToast("Ця дата закрита для бронювання");
+        setCheckIn(null);
+        setCheckOut(null);
+        setCalKey((k) => k + 1);
+        return;
+      }
+
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
         setCheckIn(d);
         setCheckOut(null);
       } else {
         let conflict = false;
+        let closedConflict = false;
         const cur = new Date(checkIn);
         cur.setDate(cur.getDate() + 1);
         while (cur < d) {
+          if (isDateClosed(runtime.closedDates, selectedRoom.id, cur, runtime.restrictions)) {
+            conflict = true;
+            closedConflict = true;
+            break;
+          }
           if (
             ranges.some(
               (r) =>
@@ -363,7 +440,11 @@ export function PublicBookingProvider({
           cur.setDate(cur.getDate() + 1);
         }
         if (conflict) {
-          showPublicToast("Цей період перетинається з іншою бронню");
+          showPublicToast(
+            closedConflict
+              ? "У періоді є закриті дати"
+              : "Цей період перетинається з іншою бронню"
+          );
           setCheckIn(d);
           setCheckOut(null);
         } else {
@@ -391,21 +472,117 @@ export function PublicBookingProvider({
     (delta: number) => {
       if (!selectedRoom) return;
       const max = selectedRoom.maxCapacity || selectedRoom.capacity;
-      setGuestCount((g) => Math.min(max, Math.max(1, g + delta)));
+      setGuestCount((g) => {
+        const next = g + delta;
+        if (next < 1) return g;
+        if (next + childCount > max) {
+          if (delta > 0) {
+            showPublicToast(`Максимум для цього котеджу: ${max} гостей (дорослі + діти)`);
+          }
+          return g;
+        }
+        return next;
+      });
     },
-    [selectedRoom]
+    [selectedRoom, childCount]
   );
 
-  const changeDayGuests = useCallback((delta: number) => {
-    setDayGuests((g) => Math.max(0, g + delta));
+  const changeChildren = useCallback(
+    (delta: number) => {
+      if (!selectedRoom) return;
+      const max = selectedRoom.maxCapacity || selectedRoom.capacity;
+      setChildCount((c) => {
+        const next = c + delta;
+        if (next < 0) return c;
+        if (guestCount + next > max) {
+          if (delta > 0) {
+            showPublicToast(`Максимум для цього котеджу: ${max} гостей (дорослі + діти)`);
+          }
+          return c;
+        }
+        return next;
+      });
+    },
+    [selectedRoom, guestCount]
+  );
+
+  const setServiceQty = useCallback((serviceId: number, qty: number) => {
+    setSelectedServices((prev) => ({ ...prev, [String(serviceId)]: Math.max(0, qty) }));
   }, []);
 
-  const showVat = selectedRoom ? selectedRoom.id !== 1 && selectedRoom.id !== 2 : false;
+  const availableServices = useMemo(
+    () => listServicesForRoom(runtime?.customServicesList, selectedRoom),
+    [runtime?.customServicesList, selectedRoom]
+  );
+
+  const showChildren = useMemo(() => roomAllowsChildren(selectedRoom), [selectedRoom]);
+
+  const flexibleSchedule = useMemo(
+    () => resolveFlexibleScheduleSettings(settings ?? undefined),
+    [settings]
+  );
+
   const nights =
     checkIn && checkOut
       ? Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000)
       : 0;
-  const showUbd = nights === 1;
+
+  const ubdDiscount = useMemo(() => {
+    return (
+      (settings?.discountsList || []).find(
+        (d) => getDiscountKind(d) === "ubd" && resolveDiscountActive(d)
+      ) ?? null
+    );
+  }, [settings?.discountsList]);
+
+  const ubdDiscountId = ubdDiscount ? String(ubdDiscount.id) : null;
+  const ubdTariffLabel = ubdDiscount ? getSpecialTariffToggleLabel(ubdDiscount) : "";
+  const ubdTariffHint = ubdDiscount
+    ? `−${formatAppliedDiscountLabel(discountConfigToApplied(ubdDiscount))} (потрібне підтвердження)`
+    : "";
+
+  const showUbd = nights === 1 && !!ubdDiscountId;
+
+  useEffect(() => {
+    if (!showUbd) setHasUbd(false);
+  }, [showUbd]);
+
+  const enabledSpecialTariffIds = useMemo(() => {
+    if (hasUbd && ubdDiscountId && nights === 1) return [ubdDiscountId];
+    return [];
+  }, [hasUbd, nights, ubdDiscountId]);
+
+  const showPromoCode = useMemo(
+    () =>
+      hasActivePromoCodeDiscounts(
+        settings?.discountsList,
+        selectedRoom ? String(selectedRoom.id) : undefined
+      ),
+    [settings?.discountsList, selectedRoom]
+  );
+
+  const promoCodeStatus = useMemo((): "idle" | "valid" | "invalid" => {
+    if (!showPromoCode || !promoCode.trim() || !selectedRoom || !checkIn || !checkOut) {
+      return "idle";
+    }
+    return promoCodeAppliesToBooking(promoCode, settings?.discountsList || [], {
+      checkIn: formatDateKey(checkIn),
+      checkOut: formatDateKey(checkOut),
+      nights,
+      roomId: String(selectedRoom.id),
+      enabledSpecialTariffIds: [],
+    })
+      ? "valid"
+      : "invalid";
+  }, [
+    showPromoCode,
+    promoCode,
+    selectedRoom,
+    checkIn,
+    checkOut,
+    nights,
+    settings?.discountsList,
+  ]);
 
   const priceResult = useMemo(() => {
     if (!selectedRoom || !settings || !checkIn || !checkOut || !runtime) {
@@ -416,10 +593,14 @@ export function PublicBookingProvider({
       checkOutStr: formatDateKey(checkOut),
       roomName: selectedRoom.name,
       guests: guestCount,
-      pets: hasPets ? "Так" : "Ні",
-      dayGuests,
-      isVat: hasVat,
-      isUbd: hasUbd && nights === 1,
+      children: childCount,
+      pets: "Ні",
+      dayGuests: 0,
+      isVat: false,
+      selectedServices,
+      isPublicBooking: true,
+      promoCode,
+      enabledSpecialTariffIds,
       selectedEarlyTime: earlyTime,
       selectedLateTime: lateTime,
       room: selectedRoom,
@@ -448,7 +629,12 @@ export function PublicBookingProvider({
         error: `Мінімум ${calc.requiredMinNights} ${nightWord(calc.requiredMinNights)}`,
       };
     }
-    const prepayment = Math.round(calc.totalPrice / 2);
+    const prepaymentPolicy = readPrepaymentPolicy(data.branding);
+    const prepayment = calculatePrepaymentAmount(prepaymentPolicy, {
+      totalPrice: calc.totalPrice,
+      basePriceTotal: calc.basePriceTotal,
+      nights: calc.nights,
+    });
     return {
       price: {
         basePrice: calc.basePriceTotal,
@@ -459,9 +645,12 @@ export function PublicBookingProvider({
         lateFee: calc.lateFee,
         discountAmount: calc.discountAmount,
         discountPercent: calc.discountPercent,
+        discountLines: calc.discountLines,
         totalPrice: calc.totalPrice,
         prepayment,
+        prepaymentLabel: formatPrepaymentGuestLabel(prepaymentPolicy),
         nights: calc.nights,
+        serviceLines: calc.serviceLines.filter((line) => line.quantity > 0),
       },
       error: null,
     };
@@ -472,13 +661,16 @@ export function PublicBookingProvider({
     checkOut,
     runtime,
     guestCount,
-    hasPets,
-    dayGuests,
-    hasVat,
+    childCount,
+    selectedServices,
     hasUbd,
     nights,
+    promoCode,
+    enabledSpecialTariffIds,
+    ubdDiscountId,
     earlyTime,
     lateTime,
+    data.branding,
   ]);
 
   const proceedDisabled = !checkIn || !checkOut || Boolean(priceResult.error);
@@ -528,15 +720,41 @@ export function PublicBookingProvider({
 
       const calc = priceResult.price;
       let fullComment = comment.trim();
+      const servicesById = new Map(
+        (runtime?.customServicesList || []).map((s) => [s.id, s] as const)
+      );
       const parts: string[] = [];
-      if (dayGuests > 0) parts.push(`👥 Денні гості: ${dayGuests}`);
-      if (hasVat) parts.push("♨️ Чан: Так");
+      const childrenToken = buildChildrenCommentToken(childCount);
+      if (childrenToken) parts.push(childrenToken);
+      parts.push(
+        ...buildServiceCommentTokens(selectedServices, servicesById, { isPublicBooking: true })
+      );
+      if (earlyTime) {
+        parts.push(
+          buildEarlyCommentToken(earlyTime, flexibleSchedule.requiresApproval)
+        );
+      }
+      if (lateTime) {
+        parts.push(buildLateCommentToken(lateTime, flexibleSchedule.requiresApproval));
+      }
       if (hasUbd && nights === 1) parts.push("🇺🇦 УБД: Так");
-      if (earlyTime) parts.push(`🕒 Ранній заїзд: з ${earlyTime}`);
-      if (lateTime) parts.push(`🕒 Пізній виїзд: до ${lateTime}`);
+      const promoToken = buildPromoCodeCommentToken(promoCode);
+      if (promoToken) parts.push(promoToken);
       if (parts.length) {
         fullComment = parts.join(" | ") + (fullComment ? `\n\nКоментар гостя: ${fullComment}` : "");
       }
+
+      const manualReview = needsManualReview({
+        nights: calc.nights,
+        earlyTime,
+        lateTime,
+        flexibleRequiresApproval: flexibleSchedule.requiresApproval,
+        selectedServices,
+        servicesById: new Map(
+          (runtime?.customServicesList || []).map((s) => [String(s.id), s] as const)
+        ),
+        hasUbd,
+      });
 
       const payload: SubmitBookingPayload = {
         tenant_id: data.tenantId,
@@ -547,11 +765,12 @@ export function PublicBookingProvider({
         name: `${firstName} ${lastName}`.trim(),
         phone: "+380" + phone.replace(/\D/g, ""),
         guests: guestCount,
-        pets: hasPets ? "Так" : "Ні",
+        pets: "Ні",
         source: "Сайт",
-        status: "Очікує оплату",
+        status: manualReview ? BOOKING_STATUS_PENDING_REVIEW : "Очікує оплату",
         totalPrice: calc.totalPrice,
         paidAmount: 0,
+        prepayAmount: calc.prepayment,
         comment: fullComment,
         basePrice: calc.basePrice,
         extraGuestFee: calc.extraGuestFee,
@@ -579,19 +798,24 @@ export function PublicBookingProvider({
           return;
         }
 
+        const flow: PublicBookingFlow =
+          json.flow === "pending_review" || manualReview ? "pending_review" : "instant";
+        const orderId = json.orderId || json.paymentData?.orderReference || `B-${Date.now()}`;
+
         const sessionData = {
-          orderId: json.paymentData?.orderReference || `B-${Date.now()}`,
+          orderId,
+          flow,
           cottage: payload.cottage,
           checkIn: payload.checkIn,
           checkOut: payload.checkOut,
           guests: guestCount,
-          pets: payload.pets,
+          childCount,
+          pets: "Ні",
           totalPrice: calc.totalPrice,
           prepayment: json.paymentData?.amount ?? calc.prepayment,
           earlyTime,
           lateTime,
-          dayGuests,
-          hasVat,
+          selectedServices,
           hasUbd,
           name: payload.name,
           phone: payload.phone,
@@ -603,11 +827,29 @@ export function PublicBookingProvider({
           earlyFee: calc.earlyFee,
           lateFee: calc.lateFee,
           discountAmount: calc.discountAmount,
+          discountPercent: calc.discountPercent,
+          discountLines: calc.discountLines,
+          prepaymentLabel: calc.prepaymentLabel,
+          nights: calc.nights,
+          serviceLines: calc.serviceLines,
           paidAmount: json.paymentData?.amount ?? 0,
-          status: "Підтверджено",
+          status: flow === "pending_review" ? BOOKING_STATUS_PENDING_REVIEW : "Підтверджено",
           source: "Сайт",
         };
         sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
+
+        if (flow === "pending_review") {
+          setSuccessFlow("pending_review");
+          setSuccessReceiptHtml(buildPublicPendingReceiptHtml(sessionData));
+          closeDrawer();
+          setActiveScreen("success");
+          window.history.replaceState(
+            null,
+            "",
+            `${window.location.pathname}?submitted=pending`
+          );
+          return;
+        }
 
         if (json.paymentData && json.paymentData.amount > 0) {
           redirectToWayForPay(
@@ -618,7 +860,8 @@ export function PublicBookingProvider({
           return;
         }
 
-        setSuccessReceiptHtml(buildReceiptHtml(sessionData));
+        setSuccessFlow("instant");
+        setSuccessReceiptHtml(buildPublicReceiptHtml(sessionData));
         closeDrawer();
         setActiveScreen("success");
       } catch {
@@ -633,14 +876,14 @@ export function PublicBookingProvider({
       checkIn,
       checkOut,
       priceResult.price,
-      dayGuests,
-      hasVat,
+      childCount,
+      selectedServices,
+      flexibleSchedule,
       hasUbd,
-      nights,
+      promoCode,
       earlyTime,
       lateTime,
       guestCount,
-      hasPets,
       data.tenantId,
       closeDrawer,
     ]
@@ -654,6 +897,7 @@ export function PublicBookingProvider({
     setActiveScreen,
     drawerOpen,
     drawerStep,
+    drawerScrollKey,
     selectedRoom,
     openDrawer,
     closeDrawer,
@@ -668,12 +912,13 @@ export function PublicBookingProvider({
     selectDate,
     guestCount,
     changeGuests,
-    dayGuests,
-    changeDayGuests,
-    hasPets,
-    setHasPets,
-    hasVat,
-    setHasVat,
+    childCount,
+    changeChildren,
+    availableServices,
+    selectedServices,
+    setServiceQty,
+    showChildren,
+    flexibleSchedule,
     hasUbd,
     setHasUbd,
     earlyTime,
@@ -682,8 +927,13 @@ export function PublicBookingProvider({
     selectTime,
     earlyActive,
     lateActive,
-    showVat,
     showUbd,
+    ubdTariffLabel,
+    ubdTariffHint,
+    showPromoCode,
+    promoCode,
+    setPromoCode,
+    promoCodeStatus,
     proceedDisabled,
     proceedLabel,
     price: priceResult.price,
@@ -695,6 +945,7 @@ export function PublicBookingProvider({
     getRoomById,
     getNextFreeForRoom,
     successReceiptHtml,
+    successFlow,
   };
 
   return (
@@ -702,26 +953,3 @@ export function PublicBookingProvider({
   );
 }
 
-function buildReceiptHtml(b: Record<string, unknown>): string {
-  const inD = new Date(String(b.checkIn)).toLocaleDateString("uk-UA", {
-    day: "numeric",
-    month: "long",
-  });
-  const outD = new Date(String(b.checkOut)).toLocaleDateString("uk-UA", {
-    day: "numeric",
-    month: "long",
-  });
-  const prepay = Number(b.prepayment) || Number(b.paidAmount) || 0;
-  const total = Number(b.totalPrice) || 0;
-  return `
-    <div class="receipt-header">
-      <div class="receipt-title">Підтвердження бронювання</div>
-      <div class="receipt-room">${b.cottage}</div>
-    </div>
-    <div class="receipt-row"><span class="receipt-label">Заїзд</span><span class="receipt-val">${inD}</span></div>
-    <div class="receipt-row"><span class="receipt-label">Виїзд</span><span class="receipt-val">${outD}</span></div>
-    <div class="receipt-row"><span class="receipt-label">Гості</span><span class="receipt-val">${b.guests}</span></div>
-    <div class="receipt-total"><span>До сплати</span><span>${total.toLocaleString("uk-UA")} грн</span></div>
-    <div class="receipt-row"><span class="receipt-label">Передплата</span><span class="receipt-val">${prepay.toLocaleString("uk-UA")} грн</span></div>
-  `;
-}

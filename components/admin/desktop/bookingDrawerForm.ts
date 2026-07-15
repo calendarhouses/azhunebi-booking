@@ -1,6 +1,9 @@
 /** Стан форми drawer (React), без читання DOM під час рендеру. */
 
+import type { ServiceSelectionMap } from "./settings/additionalServicesLogic";
+
 export type YesNo = "Так" | "Ні";
+export type { ServiceSelectionMap };
 
 export type BookingDrawerFormState = {
   name: string;
@@ -13,11 +16,17 @@ export type BookingDrawerFormState = {
   checkIn: string;
   checkOut: string;
   guests: number;
+  children: number;
+  /** @deprecated legacy — лишається для зворотної сумісності при парсингу */
   pets: YesNo;
+  /** @deprecated legacy */
   dayGuests: number;
+  /** @deprecated legacy */
   vat: YesNo;
+  selectedServices: ServiceSelectionMap;
   /** id спецтарифу → Так/Ні */
   specialTariffs: Record<string, YesNo>;
+  promoCode: string;
   status: string;
   earlyCardActive: boolean;
   lateCardActive: boolean;
@@ -40,14 +49,43 @@ export function defaultBookingDrawerForm(): BookingDrawerFormState {
     checkIn: "",
     checkOut: "",
     guests: 2,
+    children: 0,
     pets: "Ні",
     dayGuests: 0,
     vat: "Ні",
+    selectedServices: {},
     specialTariffs: {},
+    promoCode: "",
     status: "Нова бронь",
     earlyCardActive: false,
     lateCardActive: false,
   };
+}
+
+export function getRoomMaxCapacity(
+  roomName: string,
+  roomsList: { name: string; maxCapacity?: number; capacity?: number }[]
+): number {
+  const room = roomsList.find((r) => r.name === roomName);
+  return room ? room.maxCapacity || room.capacity || 10 : 10;
+}
+
+export function clampOccupantsForRoom(
+  adults: number,
+  children: number,
+  roomName: string,
+  roomsList: { name: string; maxCapacity?: number; capacity?: number }[]
+): { adults: number; children: number } {
+  const maxCap = getRoomMaxCapacity(roomName, roomsList);
+  let nextAdults = Math.max(1, adults);
+  let nextChildren = Math.max(0, children);
+  if (nextAdults + nextChildren > maxCap) {
+    nextChildren = Math.max(0, maxCap - nextAdults);
+    if (nextAdults + nextChildren > maxCap) {
+      nextAdults = Math.max(1, maxCap - nextChildren);
+    }
+  }
+  return { adults: nextAdults, children: nextChildren };
 }
 
 export function clampGuestsForRoom(
@@ -66,7 +104,17 @@ export function clampGuestsForRoom(
 /** Поля форми, потрібні калькулятору ціни */
 export type BookingPriceFormInput = Pick<
   BookingDrawerFormState,
-  "checkIn" | "checkOut" | "cottage" | "guests" | "pets" | "dayGuests" | "vat" | "specialTariffs"
+  | "checkIn"
+  | "checkOut"
+  | "cottage"
+  | "guests"
+  | "children"
+  | "pets"
+  | "dayGuests"
+  | "vat"
+  | "selectedServices"
+  | "specialTariffs"
+  | "promoCode"
 >;
 
 export function pickPriceFormInput(form: BookingDrawerFormState): BookingPriceFormInput {
@@ -75,9 +123,12 @@ export function pickPriceFormInput(form: BookingDrawerFormState): BookingPriceFo
     checkOut: form.checkOut,
     cottage: form.cottage,
     guests: form.guests,
+    children: form.children,
     pets: form.pets,
     dayGuests: form.dayGuests,
     vat: form.vat,
+    selectedServices: form.selectedServices,
     specialTariffs: form.specialTariffs,
+    promoCode: form.promoCode,
   };
 }

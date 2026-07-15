@@ -1,20 +1,6 @@
-import imageCompression from "browser-image-compression";
+import { compressImageForUpload } from "@/lib/admin/onboarding/mediaCompression";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { getStoredAuthToken, uploadFile } from "@/lib/gas-api";
-
-const COMPRESS_OPTIONS = {
-  maxSizeMB: 8,
-  maxWidthOrHeight: 1920,
-  useWebWorker: true,
-  fileType: "image/webp" as const,
-  initialQuality: 0.8,
-};
-
-export async function compressRoomPhoto(file: File): Promise<File> {
-  const compressed = await imageCompression(file, COMPRESS_OPTIONS);
-  const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
-  return new File([compressed], `${baseName}.webp`, { type: "image/webp" });
-}
 
 function storagePath(tenantId: string, roomId: number, fileName: string): string {
   return `rooms/${tenantId}/${roomId}/${fileName}`;
@@ -32,21 +18,30 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+function fileExtension(file: File): string {
+  const fromName = file.name.split(".").pop()?.toLowerCase();
+  if (fromName === "webp" || fromName === "jpg" || fromName === "jpeg") return fromName;
+  if (file.type === "image/webp") return "webp";
+  if (file.type === "image/jpeg") return "jpg";
+  return "webp";
+}
+
 export async function uploadRoomPhoto(
   file: File,
   tenantId: string,
   roomId: number
 ): Promise<string> {
-  const webp = await compressRoomPhoto(file);
-  const fileName = `${crypto.randomUUID()}.webp`;
+  const compressed = await compressImageForUpload(file);
+  const ext = fileExtension(compressed);
+  const fileName = `${crypto.randomUUID()}.${ext}`;
   const path = storagePath(tenantId, roomId, fileName);
-  const base64 = await fileToBase64(webp);
+  const base64 = await fileToBase64(compressed);
 
   const { publicUrl } = await uploadFile({
     tenantId,
     path,
     base64,
-    contentType: "image/webp",
+    contentType: compressed.type,
     authToken: getStoredAuthToken(),
   });
 

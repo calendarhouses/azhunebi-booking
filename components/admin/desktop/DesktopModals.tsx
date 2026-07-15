@@ -4,6 +4,7 @@ import { MobileSheetHeader } from "../mobile/MobileSheetHeader";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import { RoomSettingsDrawer } from "../rooms/RoomSettingsDrawer";
 import { PriceConstructorDrawer } from "./settings/PriceConstructorDrawer";
+import { RuleConstructorDrawer } from "./settings/RuleConstructorDrawer";
 import { GenericModalContent } from "./settings/GenericModalContent";
 import type { AdminModalsApi } from "./useAdminModals";
 import type { AdminSettingsPayload } from "./types";
@@ -27,6 +28,15 @@ export function DesktopModals({ modals, settings }: DesktopModalsProps) {
         onClose={modals.closePriceConstructor}
         onSave={modals.savePriceConstructor}
         onChange={(updater) => modals.setPriceForm(updater)}
+      />
+      <RuleConstructorDrawer
+        open={modals.ruleDrawerOpen}
+        saving={modals.ruleSaving}
+        settings={settings}
+        ruleForm={modals.ruleForm}
+        onClose={modals.closeRuleConstructor}
+        onSave={modals.saveRuleConstructor}
+        onChange={(updater) => modals.setRuleForm(updater)}
       />
       <RoomSettingsDrawer
         open={modals.roomDrawerOpen}
@@ -74,8 +84,6 @@ export function DesktopModals({ modals, settings }: DesktopModalsProps) {
                 setRoomForm={modals.setRoomForm}
                 priceForm={modals.priceForm}
                 setPriceForm={modals.setPriceForm}
-                restrictionForm={modals.restrictionForm}
-                setRestrictionForm={modals.setRestrictionForm}
                 discountForm={modals.discountForm}
                 setDiscountForm={modals.setDiscountForm}
                 customServiceForm={modals.customServiceForm}
@@ -141,20 +149,6 @@ export function DesktopModals({ modals, settings }: DesktopModalsProps) {
             </button>
           </div>
         </div>
-      </div>
-
-      <div
-        id="restrictionBarMenu"
-        className="restriction-bar-menu"
-        role="menu"
-        style={{ display: "none" }}
-      >
-        <button type="button" onClick={() => modals.openRestrictionConstructor()}>
-          Конструктор обмежень
-        </button>
-        <button type="button" className="danger" onClick={() => modals.clearRestrictionsAlert()}>
-          Видалити обмеження
-        </button>
       </div>
 
       <div id="financeReportResultModal" className="modal-overlay" style={{ zIndex: 3100 }}>

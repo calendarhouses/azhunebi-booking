@@ -49,7 +49,10 @@ import { showToast } from "@/components/admin/desktop/adminGlobals";
 import { KhataBrandIcon } from "@/components/ui/icons/KhataBrandIcon";
 import { computeOnboardingProgress } from "@/lib/admin/onboarding/computeOnboardingProgress";
 import { GuestPhoneField } from "./GuestPhoneField";
-import { compressImageToWebp } from "@/lib/admin/onboarding/mediaCompression";
+import {
+  COMPRESS_FAIL_MESSAGE,
+  compressImageForUpload,
+} from "@/lib/admin/onboarding/mediaCompression";
 import {
   formatGuestPhoneForSave,
   isValidGuestPhone,
@@ -345,12 +348,16 @@ export function OnboardingWidget({
       if (!file || !file.type.startsWith("image/")) return;
       setIsLogoProcessing(true);
       try {
-        const webpFile = await compressImageToWebp(file);
+        const webpFile = await compressImageForUpload(file);
         const previewUrl = URL.createObjectURL(webpFile);
         setNextLogoPreview(previewUrl);
       } catch (error) {
         console.error("[onboarding] logo compress:", error);
-        showToast("Не вдалося обробити лого");
+        showToast(
+          error instanceof Error && error.message === COMPRESS_FAIL_MESSAGE
+            ? COMPRESS_FAIL_MESSAGE
+            : "Не вдалося обробити лого"
+        );
       } finally {
         setIsLogoProcessing(false);
       }
@@ -372,7 +379,7 @@ export function OnboardingWidget({
     if (inputFiles.length === 0) return;
     setIsObjectPhotoProcessing(true);
     try {
-      const webpFiles = await Promise.all(inputFiles.map((file) => compressImageToWebp(file)));
+      const webpFiles = await Promise.all(inputFiles.map((file) => compressImageForUpload(file)));
       const previewUrls = webpFiles.map((file) => URL.createObjectURL(file));
       setObjectPhotoPreviewUrls((prev) => {
         return [...prev, ...previewUrls].slice(0, 15);
@@ -382,7 +389,11 @@ export function OnboardingWidget({
       }
     } catch (error) {
       console.error("[onboarding] photo compress:", error);
-      showToast("Не вдалося обробити фото");
+      showToast(
+        error instanceof Error && error.message === COMPRESS_FAIL_MESSAGE
+          ? COMPRESS_FAIL_MESSAGE
+          : "Не вдалося обробити фото"
+      );
     } finally {
       setIsObjectPhotoProcessing(false);
     }

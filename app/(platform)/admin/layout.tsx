@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { AdminShell } from "@/components/auth/AdminShell";
+import "@/components/admin/admin-preloader.css";
 import "./admin-isolation.css";
 
 export const metadata: Metadata = {
-  title: "BOSO | Панель Управління",
-  description: "Панель управління BOSO",
-  appleWebApp: { title: "BOSO" },
+  title: "Панель Управління",
+  description: "Панель управління",
+  appleWebApp: { title: "Панель Управління" },
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminShell>
       <div className="admin-layout-shell">
+      <link rel="preload" as="image" href="/images/admin-preloader-logo.png" />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link

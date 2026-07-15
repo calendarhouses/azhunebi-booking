@@ -10,22 +10,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: var(--admin-preloader-logo-size, 150px);
+  height: var(--admin-preloader-logo-size, 150px);
 }
 
 .admin-session-loader__pulse .admin-logo--preloader {
-  height: 56px !important;
-  max-width: 320px;
-  animation: admin-session-pulse 1.5s ease-in-out infinite;
+  width: var(--admin-preloader-logo-size, 150px) !important;
+  height: var(--admin-preloader-logo-size, 150px) !important;
+  min-width: var(--admin-preloader-logo-size, 150px) !important;
+  min-height: var(--admin-preloader-logo-size, 150px) !important;
+  max-width: var(--admin-preloader-logo-size, 150px) !important;
+  max-height: var(--admin-preloader-logo-size, 150px) !important;
+  object-fit: contain !important;
+  animation: adminPreloaderPulse 1.5s ease-in-out infinite;
 }
 
-@keyframes admin-session-pulse {
+@keyframes adminPreloaderPulse {
   0% {
     transform: scale(1);
     opacity: 1;
   }
   50% {
     transform: scale(1.05);
-    opacity: 0.72;
+    opacity: 0.82;
   }
   100% {
     transform: scale(1);

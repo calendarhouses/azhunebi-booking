@@ -1,12 +1,13 @@
 "use client";
 
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Undo2 } from "lucide-react";
 import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon";
+import { TimelineActionTooltip } from "./TimelineActionTooltip";
 import { useGridFocusModeOptional } from "./GridFocusModeContext";
 import type { RoomConfig } from "./types";
 
-export function timelineRoomsHeading(): "ЖИТЛО" {
-  return "ЖИТЛО";
+export function timelineRoomsHeading(): "Будинки" {
+  return "Будинки";
 }
 
 export function roomSidebarDisplayName(room: Pick<RoomConfig, "name" | "short">): string {
@@ -15,50 +16,80 @@ export function roomSidebarDisplayName(room: Pick<RoomConfig, "name" | "short">)
   return room.short?.trim() || "Назва житла";
 }
 
-function TimelineSidebarHeadingWord() {
-  const label = timelineRoomsHeading();
-
-  return (
-    <span className="timeline-sidebar-header__word" aria-label={label}>
-      <span className="timeline-sidebar-header__letter">Ж</span>
-      <span className="timeline-sidebar-header__letter">И</span>
-      <span className="timeline-sidebar-header__letter">Т</span>
-      <span className="timeline-sidebar-header__letter">Л</span>
-      <span className="timeline-sidebar-header__letter">О</span>
-    </span>
-  );
-}
-
 export function TimelineSidebarHeader({
   roomCount: _roomCount,
   className = "",
   showFocusToggle = false,
+  focusModeActive,
+  onFocusToggle,
+  onUndoMove,
+  canUndoMove = false,
+  isUndoing = false,
 }: {
   roomCount?: number;
   className?: string;
   showFocusToggle?: boolean;
+  /** Локальний toggle (напр. сітка цін), без GridFocusModeContext */
+  focusModeActive?: boolean;
+  onFocusToggle?: () => void;
+  onUndoMove?: () => void;
+  canUndoMove?: boolean;
+  isUndoing?: boolean;
 }) {
-  const { isCompactMode, toggleCompactMode } = useGridFocusModeOptional();
+  const globalFocus = useGridFocusModeOptional();
+  const useLocalFocus = onFocusToggle != null;
+  const isFocusActive = useLocalFocus ? Boolean(focusModeActive) : globalFocus.isCompactMode;
+  const toggleFocus = onFocusToggle ?? globalFocus.toggleCompactMode;
 
   return (
     <div className={`timeline-sidebar-header timeline-sidebar-header--khata ${className}`.trim()}>
-      <TimelineSidebarHeadingWord />
-      {showFocusToggle ? (
-        <button
-          type="button"
-          className="timeline-focus-toggle"
-          onClick={toggleCompactMode}
-          aria-pressed={isCompactMode}
-          aria-label={isCompactMode ? "Вимкнути компактний режим" : "Увімкнути компактний режим"}
-          title={isCompactMode ? "Звичайний режим" : "Focus Mode"}
-        >
-          {isCompactMode ? (
-            <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
-          ) : (
-            <Maximize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
-          )}
-        </button>
-      ) : null}
+      <span className="timeline-sidebar-header__title">{timelineRoomsHeading()}</span>
+      <div className="timeline-sidebar-header__actions">
+        {onUndoMove ? (
+          <TimelineActionTooltip
+            title="Назад"
+            hint={
+              isUndoing
+                ? "Скасування…"
+                : canUndoMove
+                  ? "Скасувати останню дію · Ctrl+Z"
+                  : "Немає дій для скасування"
+            }
+            disabled={isUndoing}
+          >
+            <button
+              type="button"
+              className={`timeline-undo-btn${isUndoing ? " timeline-undo-btn--busy" : ""}`}
+              onClick={onUndoMove}
+              disabled={!canUndoMove || isUndoing}
+              aria-label="Скасувати останню дію"
+              aria-busy={isUndoing}
+            >
+              <Undo2 className="timeline-undo-btn__icon" strokeWidth={2} aria-hidden />
+            </button>
+          </TimelineActionTooltip>
+        ) : null}
+        {showFocusToggle ? (
+          <TimelineActionTooltip
+            title={isFocusActive ? "Згорнути" : "Розгорнути"}
+            hint={isFocusActive ? "Звичайний режим перегляду" : "Шахматка на весь екран"}
+          >
+            <button
+              type="button"
+              className="timeline-focus-toggle"
+              onClick={toggleFocus}
+              aria-pressed={isFocusActive}
+              aria-label={isFocusActive ? "Згорнути шахматку" : "Розгорнути шахматку"}
+            >
+              {isFocusActive ? (
+                <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+              ) : (
+                <Maximize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+              )}
+            </button>
+          </TimelineActionTooltip>
+        ) : null}
+      </div>
     </div>
   );
 }

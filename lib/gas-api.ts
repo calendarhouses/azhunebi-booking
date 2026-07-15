@@ -27,6 +27,15 @@ export type GasApiError = {
   message?: string;
 };
 
+const GAS_FETCH_TIMEOUT_MS = 25_000;
+
+function gasFetchSignal(): AbortSignal | undefined {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    return AbortSignal.timeout(GAS_FETCH_TIMEOUT_MS);
+  }
+  return undefined;
+}
+
 function assertGasUrl(): string {
   const url = GAS_URL();
   if (!url) {
@@ -111,6 +120,7 @@ export async function gasFetch<T>(
     headers,
     cache: "no-store",
     redirect: "follow",
+    signal: gasFetchSignal(),
   });
 
   const data = await parseJson<T & GasApiError>(res);
@@ -154,6 +164,7 @@ export async function gasPost<T>(
     body: JSON.stringify(payload),
     cache: "no-store",
     redirect: "follow",
+    signal: gasFetchSignal(),
   });
 
   const data = await parseJson<T & GasApiError>(res);
@@ -470,6 +481,75 @@ export async function getBookingStatusByDisplayId(
     return data.status ?? null;
   } catch {
     return null;
+  }
+}
+
+type GasBookingRecord = {
+  id?: string;
+  name?: string;
+  phone?: string;
+  cottage?: string;
+  checkIn?: string;
+  checkOut?: string;
+  prepayAmount?: number;
+  totalPrice?: number;
+  status?: string;
+  comment?: string;
+};
+
+function reviewWebhookSecret(): string {
+  return (
+    process.env.TELEGRAM_REVIEW_WEBHOOK_SECRET?.trim() ||
+    process.env.TELEGRAM_BOT_TOKEN?.trim() ||
+    ""
+  );
+}
+
+export async function fetchBookingByDisplayId(orderId: string): Promise<{
+  ok: boolean;
+  booking?: GasBookingRecord;
+  reason?: string;
+}> {
+  try {
+    return await gasPost({
+      action: "getBookingByDisplayId",
+      orderId: orderId.trim(),
+      webhookSecret: reviewWebhookSecret(),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+export async function reviewBookingDecision(params: {
+  orderId: string;
+  decision: "approve" | "reject";
+  authToken?: string | null;
+  tenantId?: string | null;
+}): Promise<{
+  ok: boolean;
+  booking?: GasBookingRecord;
+  reason?: string;
+}> {
+  try {
+    const payload: Record<string, unknown> = {
+      action: "reviewBooking",
+      orderId: params.orderId.trim(),
+      decision: params.decision,
+      webhookSecret: reviewWebhookSecret(),
+    };
+    if (params.tenantId) {
+      payload.tenant_id = params.tenantId;
+    }
+    return await gasPost(payload, { authToken: params.authToken ?? undefined });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 

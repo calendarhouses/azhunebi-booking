@@ -26,20 +26,29 @@ export function normalizeDriveImageUrl(url: string | undefined | null): string {
 }
 
 /** URL для <img src> — same-origin проксі, щоб уникнути блокування lh3 у браузері. */
-export function toImageDisplaySrc(url: string | undefined | null): string {
+export function toImageDisplaySrc(
+  url: string | undefined | null,
+  maxWidth = 1920
+): string {
   if (!url || typeof url !== "string") return "";
   const trimmed = url.trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("blob:") || trimmed.startsWith("data:")) return trimmed;
-  if (trimmed.startsWith("/api/image")) return trimmed;
 
+  const width = Math.max(320, Math.min(maxWidth, 1920));
   const fileId = extractDriveFileId(normalizeDriveImageUrl(trimmed));
   if (fileId) {
-    return `/api/image?id=${encodeURIComponent(fileId)}`;
+    return `/api/image?id=${encodeURIComponent(fileId)}&w=${width}`;
   }
 
+  if (trimmed.startsWith("/api/image")) return trimmed;
   if (trimmed.startsWith("/")) return trimmed;
   return normalizeDriveImageUrl(trimmed);
+}
+
+/** Компактні превʼю для карток котеджів (~960px по ширині). */
+export function toImageCardSrc(url: string | undefined | null): string {
+  return toImageDisplaySrc(url, 960);
 }
 
 export function normalizeDriveImageUrls(urls: string[] | undefined | null): string[] {

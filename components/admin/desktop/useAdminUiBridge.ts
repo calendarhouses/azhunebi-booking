@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import {
   expireAdminSession,
   isAdminUnauthorizedError,
@@ -15,6 +16,7 @@ import { bosoHover, bosoLeave } from "./adminTooltip";
 import { closeCustomSelectsOnOutsideClick, selectOption, setBookingSourceDefault, setBookingSourceFromSaved, selectDayChip, selectPeriodChip, toggleAllDiscRooms, toggleAllRoomsChip, toggleCustomSelect, toggleSingleDiscRoom, toggleSingleRoomChip } from "./adminUiHelpers";
 import {
   buildPayloadForServer,
+  buildBookingRecordFromSave,
   collectBookingFromForm,
   handleSaveApiErrors,
   isBookingSaveSuccessful,
@@ -27,6 +29,7 @@ import {
   type PaymentCardInfo,
 } from "./bookingScreenshots";
 import type { AdminInitResponse, AdminViewName, BookingRecord, RoomConfig } from "./types";
+import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 
 export type AdminUiBridgeDeps = {
   activeView: AdminViewName;
@@ -36,6 +39,7 @@ export type AdminUiBridgeDeps = {
   silentSync: () => Promise<void>;
   switchView: (view: AdminViewName) => void;
   signOut?: () => Promise<void>;
+  adminUndo?: AdminUndoApi;
 };
 
 export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
@@ -191,6 +195,7 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
     }
 
     const rowToDelete = bookingToDelete.row;
+    const undoId = depsRef.current.adminUndo?.recordBookingDelete(bookingToDelete);
     setBookings((prev) => {
       const next = prev.filter(
         (b) =>
@@ -226,6 +231,18 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         await expireAdminSession();
         return;
       }
+      depsRef.current.adminUndo?.cancelUndoEntry(undoId);
+      setBookings((prev) => {
+        const exists = prev.some(
+          (b) =>
+            String(b.id) === String(bookingToDelete.id) ||
+            String(b.row) === String(bookingToDelete.row)
+        );
+        if (exists) return prev;
+        const next = [...prev, bookingToDelete];
+        window.allBookings = next;
+        return next;
+      });
       toastImpl("Помилка синхронізації!");
     } finally {
       if (btn) {
@@ -235,8 +252,38 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
     }
   }
 
-  function refreshAfterBookingSave(): void {
-    void depsRef.current.activeView;
+  function applyOptimisticBookingSave(
+    bookingData: Record<string, unknown>,
+    saveResult: { orderId?: string }
+  ): void {
+    const { bookings, setBookings } = depsRef.current;
+    const record = buildBookingRecordFromSave(
+      bookingData,
+      saveResult,
+      bookings,
+      editingRowRef.current
+    );
+    const editingKey =
+      editingRowRef.current != null ? String(editingRowRef.current).trim() : "";
+
+    setBookings((prev) => {
+      let next: BookingRecord[];
+      if (editingKey) {
+        const idx = prev.findIndex(
+          (b) => String(b.id) === editingKey || String(b.row) === editingKey
+        );
+        if (idx >= 0) {
+          next = prev.slice();
+          next[idx] = { ...prev[idx], ...record, row: prev[idx].row, id: record.id };
+        } else {
+          next = [...prev, record];
+        }
+      } else {
+        next = [...prev, record];
+      }
+      window.allBookings = next;
+      return next;
+    });
   }
 
   async function handleBookingSubmit(e: Event): Promise<void> {
@@ -271,6 +318,15 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         return;
       }
 
+      const editingKey =
+        editingRowRef.current != null ? String(editingRowRef.current).trim() : "";
+      const previousBooking = editingKey
+        ? (depsRef.current.bookings.find(
+            (b) => String(b.id) === editingKey || String(b.row) === editingKey
+          ) ?? null)
+        : null;
+      const previousSnapshot = previousBooking ? { ...previousBooking } : null;
+
       const payload = buildPayloadForServer(bookingData, editingRowRef.current);
 
       const json = await postAdminBooking(payload);
@@ -282,10 +338,18 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         return;
       }
 
+      flushSync(() => {
+        applyOptimisticBookingSave(bookingData, json);
+      });
+      const savedRecord = buildBookingRecordFromSave(
+        bookingData,
+        json,
+        depsRef.current.bookings,
+        editingRowRef.current
+      );
+      depsRef.current.adminUndo?.recordBookingSave(previousSnapshot, savedRecord);
       closeDrawer();
       toastImpl("Збережено!");
-      refreshAfterBookingSave();
-      await depsRef.current.silentSync();
     } catch (err) {
       if (isAdminUnauthorizedError(err)) {
         await expireAdminSession();

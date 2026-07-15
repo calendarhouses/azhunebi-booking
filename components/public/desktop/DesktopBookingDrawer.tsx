@@ -1,33 +1,35 @@
 "use client";
 
-import { useState, type MouseEvent, type ReactNode } from "react";
+import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { PublicRoom } from "@/lib/public-booking/types";
-import {
-  getRoomAmenities,
-  getRoomDescription,
-  getRoomDiscounts,
-} from "@/lib/public-booking/desktopRoomContent";
+import { PublicAmenitiesSection } from "../PublicAmenitiesSection";
+import { PublicDiscountsSection } from "../PublicDiscountsSection";
+import { DrawerContent } from "../DrawerContent";
+import { DrawerRoomHeader } from "../DrawerRoomHeader";
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
-import { getNextFreeDateLabel } from "@/lib/public-booking/bookedRanges";
+import { BrandingMapSection } from "../BrandingMapSection";
+import { PublicRoomRulesSection } from "../PublicRoomRulesSection";
 import { formatPriceUa, getRoomImages, getRoomMinPrice } from "@/lib/public-booking/roomHelpers";
+import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
+import { CabinSlideImage } from "../CabinSlideImage";
 import { usePublicBooking } from "../PublicBookingProvider";
 import { BookingCheckoutSummary } from "./BookingCheckoutSummary";
+import { BookingPromoCodeField } from "@/components/admin/desktop/BookingPromoCodeField";
 import { DesktopCalendar } from "./DesktopCalendar";
+import { PublicGuestsAndServicesBlock } from "../PublicGuestsAndServicesBlock";
 
-const DEFAULT_MAP_EMBED =
-  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2555.1302878618076!2d30.221603476541116!3d50.17740027154132!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40d4af1506961329%3A0xf65baf00b5986843!2sBOSO%20Houses!5e0!3m2!1suk!2sua!4v1777888609095!5m2!1suk!2sua";
-const DEFAULT_MAP_LINK = "https://maps.app.goo.gl/qi22qhUQdB223LJy7";
-
-const EARLY_TIMES = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
-const LATE_TIMES = [
-  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00",
-];
+function formatFlexFeeLabel(amount: number, requiresApproval: boolean, selected: boolean): string {
+  if (!selected) return requiresApproval ? "За запитом" : `${amount.toLocaleString("uk-UA")} ₴`;
+  if (requiresApproval) return `Запит · від ${amount.toLocaleString("uk-UA")} ₴`;
+  return `+${amount.toLocaleString("uk-UA")} ₴`;
+}
 
 export function DesktopBookingDrawer() {
   const {
     runtime,
     drawerOpen: open,
     drawerStep: step,
+    drawerScrollKey,
     selectedRoom: room,
     closeDrawer: onClose,
     goDrawerStep: setStep,
@@ -35,16 +37,22 @@ export function DesktopBookingDrawer() {
     slideDetail,
     guestCount,
     changeGuests,
-    dayGuests,
-    changeDayGuests,
-    hasPets,
-    setHasPets,
-    hasVat,
-    setHasVat,
+    childCount,
+    changeChildren,
+    availableServices,
+    selectedServices,
+    setServiceQty,
+    showChildren,
+    flexibleSchedule,
     hasUbd,
     setHasUbd,
-    showVat,
     showUbd,
+    ubdTariffLabel,
+    ubdTariffHint,
+    showPromoCode,
+    promoCode,
+    setPromoCode,
+    promoCodeStatus,
     earlyActive,
     lateActive,
     earlyTime,
@@ -58,12 +66,15 @@ export function DesktopBookingDrawer() {
     checkOut,
     submitCheckout,
     submitting,
+    getNextFreeForRoom,
   } = usePublicBooking();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [comment, setComment] = useState("");
+  const detailSliderRef = useRef<HTMLDivElement>(null);
+  const detailSliderTrackStyle = useSliderTrackStyle(detailSliderRef, detailSlide);
 
   if (!room) {
     return (
@@ -80,12 +91,8 @@ export function DesktopBookingDrawer() {
   const roomAsPublic = room as PublicRoom;
   const images = getRoomImages(roomAsPublic);
   const minPrice = getRoomMinPrice(roomAsPublic, runtime?.customPrices || {});
-  const amenities = getRoomAmenities(roomAsPublic);
-  const roomDiscounts = getRoomDiscounts(room.id, runtime?.discounts || []);
   const branding = runtime?.branding || {};
-  const mapEmbed = (branding.maps_embed_url as string) || DEFAULT_MAP_EMBED;
-  const mapLink = (branding.maps_external_url as string) || DEFAULT_MAP_LINK;
-  const nextFree = runtime ? getNextFreeDateLabel(runtime.bookings, room) : "—";
+  const nextFree = runtime ? getNextFreeForRoom(roomAsPublic) : "—";
   const maxGuests = room.maxCapacity || room.capacity;
 
   const overlayClick = (e: MouseEvent) => {
@@ -107,29 +114,12 @@ export function DesktopBookingDrawer() {
           id="drawer-step-info"
           className={`drawer-step ${step === "info" ? "active" : ""}`}
         >
-          <div className="drawer-content">
-            <div className="detail-slider-wrap" id="detailSlider">
-              <div
-                className="slider-track"
-                id="track-detail"
-                style={{
-                  display: "flex",
-                  height: "100%",
-                  transition: "transform 0.4s cubic-bezier(0.4,0,0.2,1)",
-                  transform: `translateX(-${detailSlide * 100}%)`,
-                }}
-              >
+          <DrawerContent scrollResetKey={`${drawerScrollKey}-info`}>
+            <div className="detail-slider-wrap" id="detailSlider" ref={detailSliderRef}>
+              <div className="slider-track" id="track-detail" style={detailSliderTrackStyle}>
                 {images.map((url, i) => (
-                  <div
-                    className="slide"
-                    key={i}
-                    style={{ minWidth: "100%", height: "100%" }}
-                  >
-                    <img
-                      src={url}
-                      alt={room.name}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
+                  <div className="slide" key={i}>
+                    <CabinSlideImage src={url} alt={room.name} />
                   </div>
                 ))}
               </div>
@@ -144,251 +134,20 @@ export function DesktopBookingDrawer() {
               </div>
             </div>
 
-            <h2 className="detail-title" id="detailTitle">
-              {room.name} ({room.desc})
-            </h2>
-            <div className="detail-meta" id="detailMeta">
-              <div className="detail-meta-item">
-                До {room.maxCapacity || room.capacity} гостей
-              </div>
-              <div className="detail-meta-item">
-                Вільний:{" "}
-                <strong style={{ color: "var(--accent)", marginLeft: 4 }}>{nextFree}</strong>
-              </div>
-            </div>
+            <DrawerRoomHeader room={roomAsPublic} nextFreeLabel={nextFree} />
 
-            <h3 className="section-title">Про котедж</h3>
-            <p
-              id="detailDesc"
-              style={{
-                fontSize: 15,
-                color: "#4B5563",
-                lineHeight: 1.7,
-                marginBottom: 24,
-              }}
-            >
-              {getRoomDescription(room)}
-            </p>
+            <PublicAmenitiesSection room={roomAsPublic} resetKey={room.id} />
 
-            <div className="divider" />
-            <h3 className="section-title">Що включено</h3>
-            <div className="amenities-grid" id="amenitiesList">
-              {amenities.map((a, i) => (
-                <div key={i} className="amenity-item">
-                  {a.icon} {a.label}
-                </div>
-              ))}
-            </div>
+            <PublicDiscountsSection
+              roomId={room.id}
+              discounts={runtime?.discounts || []}
+              resetKey={room.id}
+            />
 
-            <div className="divider" />
-            <h3 className="section-title">Знижки за тривалість</h3>
-            <div id="detailDiscounts" className="discounts-grid">
-              {roomDiscounts.map((d) => {
-                const nightsMatch = d.condition.match(/\d+/);
-                const nightsText = nightsMatch
-                  ? `Від ${nightsMatch[0]} ночей`
-                  : d.condition;
-                return (
-                  <div key={d.id} className="discount-card">
-                    <div className="cond">
-                      {DesktopIcons.moon}
-                      <span>{nightsText}</span>
-                    </div>
-                    <div className="pct">-{d.discount}</div>
-                  </div>
-                );
-              })}
-            </div>
+            <PublicRoomRulesSection room={room} />
 
-            <div className="divider" />
-            <h3 className="section-title">Правила</h3>
-            <div className="rules-grid">
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                    <path d="M12 6v6l4 2" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                label="Заселення"
-                text="15:00 – 23:00"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                }
-                label="Виселення"
-                text="до 11:00"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 12c-2 0-4 1.5-4 4s2 6 4 6 4-3.5 4-6-2-4-4-4z"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                }
-                label="Тварина"
-                text="За узгодженням"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M18 20V10M12 20V4M6 20v-6M4 22h16"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                }
-                label="Куріння"
-                text="Лише на вулиці"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                }
-                label="Режим тиші"
-                text="22:00 – 08:00"
-              />
-            </div>
-
-            <div className="divider" />
-            <h3 className="section-title">ВІДМІНА БРОНЮВАННЯ</h3>
-            <div className="rules-grid" style={{ gridTemplateColumns: "1fr", gap: 12 }}>
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                    <path d="M12 8v4l3 3" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                label="За 30-14 днів"
-                text="Повертаємо 80% передоплати або безкоштовно переносимо дати відпочинку"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                    <path d="M21 3v5h-5" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                label="За 13-7 днів"
-                text="Повертаємо 50% від внесеної передоплати"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                    <path d="M12 14v4M10 16h4" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                label="За 6 днів"
-                text="Сума передоплати зберігається як депозит, що діє протягом 3 місяців"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                    <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="1.5" />
-                    <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                }
-                label="Менше ніж за 72 години"
-                text="Передоплата не повертається та не переноситься"
-              />
-            </div>
-
-            <div className="divider" />
-            <h3 className="section-title">Безпека на території</h3>
-            <div className="rules-grid" style={{ marginBottom: 40 }}>
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="1.5"
-                    />
-                    <circle cx="12" cy="13" r="4" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                text="Камери на території"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path d="M7 21h10M9 21V7a3 3 0 0 1 6 0v14" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                text="Є вогнегасник"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                    <path d="M12 8v8M8 12h8" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                text="Є аптечка"
-              />
-              <RuleCard
-                icon={
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" fill="none" strokeWidth="1.5" />
-                  </svg>
-                }
-                text="Датчик диму"
-              />
-            </div>
-
-            <div className="divider" />
-            <h3 className="section-title">Ви відпочиватимете тут</h3>
-            <div className="map-wrapper">
-              <iframe
-                src={mapEmbed}
-                width="600"
-                height="450"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Карта"
-              />
-            </div>
-            <a href={mapLink} target="_blank" rel="noreferrer" className="map-external-link">
-              ПРОКЛАСТИ МАРШРУТ
-            </a>
-          </div>
+            <BrandingMapSection branding={branding} />
+          </DrawerContent>
 
           <div className="sticky-cta">
             <div className="sticky-price">
@@ -409,7 +168,7 @@ export function DesktopBookingDrawer() {
           id="drawer-step-calendar"
           className={`drawer-step ${step === "calendar" ? "active" : ""}`}
         >
-          <div className="drawer-content">
+          <DrawerContent scrollResetKey={`${drawerScrollKey}-calendar`}>
             <button type="button" className="back-btn" onClick={() => setStep("info")}>
               {DesktopIcons.chevronLeft} Назад до котеджу
             </button>
@@ -441,99 +200,17 @@ export function DesktopBookingDrawer() {
               <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
                 Гості
               </h3>
-              <div className="guests-row">
-                <div>
-                  <div className="guests-label">Дорослі</div>
-                  <div className="guests-sub" style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                    З ночівлею
-                  </div>
-                </div>
-                <div className="counter-wrap">
-                  <button
-                    type="button"
-                    className="cnt-btn"
-                    disabled={guestCount <= 1}
-                    onClick={() => changeGuests(-1)}
-                  >
-                    −
-                  </button>
-                  <span className="cnt-val" id="guestCount">
-                    {guestCount}
-                  </span>
-                  <button
-                    type="button"
-                    className="cnt-btn"
-                    disabled={guestCount >= maxGuests}
-                    onClick={() => changeGuests(1)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className="guests-row"
-                style={{ marginTop: 8, borderTop: "1px dashed var(--border)", paddingTop: 16 }}
-              >
-                <div>
-                  <div className="guests-label">Денні гості</div>
-                  <div className="guests-sub" style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                    Без ночівлі (+500 грн, 10:00 - 21:00)
-                  </div>
-                </div>
-                <div className="counter-wrap">
-                  <button
-                    type="button"
-                    className="cnt-btn"
-                    disabled={dayGuests <= 0}
-                    onClick={() => changeDayGuests(-1)}
-                  >
-                    −
-                  </button>
-                  <span className="cnt-val" id="dayGuestCount">
-                    {dayGuests}
-                  </span>
-                  <button type="button" className="cnt-btn" onClick={() => changeDayGuests(1)}>
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {showVat ? (
-                <div
-                  id="vatContainer"
-                  className="guests-row"
-                  style={{ marginTop: 8, borderTop: "1px dashed var(--border)", paddingTop: 16 }}
-                >
-                  <div>
-                    <div className="guests-label">Чан</div>
-                    <div className="guests-sub" style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                      Оплата на місці
-                    </div>
-                  </div>
-                  <div
-                    className="pets-toggle"
-                    style={{ marginTop: 0, paddingTop: 0, border: "none", flex: "0 0 auto", width: 140 }}
-                  >
-                    <button
-                      type="button"
-                      className={`pet-opt ${!hasVat ? "active" : ""}`}
-                      style={{ padding: 8 }}
-                      onClick={() => setHasVat(false)}
-                    >
-                      Ні
-                    </button>
-                    <button
-                      type="button"
-                      className={`pet-opt ${hasVat ? "active" : ""}`}
-                      style={{ padding: 8 }}
-                      onClick={() => setHasVat(true)}
-                    >
-                      Так
-                    </button>
-                  </div>
-                </div>
-              ) : null}
+              <PublicGuestsAndServicesBlock
+                adults={guestCount}
+                children={childCount}
+                maxOccupants={maxGuests}
+                showChildren={showChildren}
+                availableServices={availableServices}
+                selectedServices={selectedServices}
+                onChangeAdults={changeGuests}
+                onChangeChildren={changeChildren}
+                onSetServiceQty={setServiceQty}
+              />
 
               {showUbd ? (
                 <div
@@ -541,9 +218,9 @@ export function DesktopBookingDrawer() {
                   style={{ marginTop: 8, borderTop: "1px dashed var(--border)", paddingTop: 16 }}
                 >
                   <div>
-                    <div className="guests-label">Знижка УБД</div>
+                    <div className="guests-label">{ubdTariffLabel}</div>
                     <div className="guests-sub" style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                      -10% (потрібне посвідчення)
+                      {ubdTariffHint}
                     </div>
                   </div>
                   <div
@@ -570,43 +247,27 @@ export function DesktopBookingDrawer() {
                 </div>
               ) : null}
 
-              <div className="pets-toggle">
-                <button
-                  type="button"
-                  className={`pet-opt ${!hasPets ? "active" : ""}`}
-                  onClick={() => setHasPets(false)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                  </svg>
-                  <span>Без тварини</span>
-                </button>
-                <button
-                  type="button"
-                  className={`pet-opt ${hasPets ? "active" : ""}`}
-                  onClick={() => setHasPets(true)}
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z" />
-                  </svg>
-                  <span>З твариною</span>
-                </button>
-              </div>
-
               <div className="guests-block" style={{ marginTop: 20 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Гнучкий графік</h3>
                 <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
-                  Стандартний заїзд з 15:00, виїзд до 11:00
+                  Стандартний заїзд з {flexibleSchedule.standardCheckIn}, виїзд до{" "}
+                  {flexibleSchedule.standardCheckOut}
+                  {flexibleSchedule.requiresApproval
+                    ? " · ранній/пізній за запитом адміністратора"
+                    : ""}
                 </p>
                 <ServiceCard
                   title="Ранній заїзд"
                   active={earlyActive}
-                  priceLabel={earlyTime ? "+500 грн" : "Оберіть дати"}
+                  priceLabel={formatFlexFeeLabel(
+                    flexibleSchedule.earlyFee,
+                    flexibleSchedule.requiresApproval,
+                    !!earlyTime
+                  )}
                   onToggle={() => toggleService("early")}
                 >
                   <TimeChips
-                    times={EARLY_TIMES}
+                    times={flexibleSchedule.earlyTimes}
                     selected={earlyTime}
                     onSelect={(t) => selectTime("early", t)}
                   />
@@ -614,18 +275,22 @@ export function DesktopBookingDrawer() {
                 <ServiceCard
                   title="Пізній виїзд"
                   active={lateActive}
-                  priceLabel={lateTime ? "+500 грн" : "Оберіть дати"}
+                  priceLabel={formatFlexFeeLabel(
+                    flexibleSchedule.lateFee,
+                    flexibleSchedule.requiresApproval,
+                    !!lateTime
+                  )}
                   onToggle={() => toggleService("late")}
                 >
                   <TimeChips
-                    times={LATE_TIMES}
+                    times={flexibleSchedule.lateTimes}
                     selected={lateTime}
                     onSelect={(t) => selectTime("late", t)}
                   />
                 </ServiceCard>
               </div>
             </div>
-          </div>
+          </DrawerContent>
 
           <div className="sticky-cta">
             <button
@@ -643,7 +308,7 @@ export function DesktopBookingDrawer() {
           id="drawer-step-checkout"
           className={`drawer-step ${step === "checkout" ? "active" : ""}`}
         >
-          <div className="drawer-content">
+          <DrawerContent scrollResetKey={`${drawerScrollKey}-checkout`}>
             <button type="button" className="back-btn" onClick={() => setStep("calendar")}>
               {DesktopIcons.chevronLeft} Змінити дати
             </button>
@@ -722,6 +387,14 @@ export function DesktopBookingDrawer() {
                   />
                 </div>
               </div>
+              {showPromoCode ? (
+                <BookingPromoCodeField
+                  variant="public"
+                  value={promoCode}
+                  onChange={setPromoCode}
+                  status={promoCodeStatus}
+                />
+              ) : null}
               <div className="form-field">
                 <label>Коментар</label>
                 <textarea
@@ -732,7 +405,7 @@ export function DesktopBookingDrawer() {
                 />
               </div>
             </div>
-          </div>
+          </DrawerContent>
 
           <div className="sticky-cta">
             <button
@@ -807,22 +480,3 @@ function TimeChips({
   );
 }
 
-function RuleCard({
-  icon,
-  label,
-  text,
-}: {
-  icon: ReactNode;
-  label?: string;
-  text: string;
-}) {
-  return (
-    <div className="rule-card">
-      {icon}
-      <div>
-        {label ? <span>{label}</span> : null}
-        {text}
-      </div>
-    </div>
-  );
-}

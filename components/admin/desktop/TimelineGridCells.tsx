@@ -1,15 +1,15 @@
 "use client";
 
 import { memo } from "react";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 export type TimelineGridCellProps = {
   dateString: string;
   isWeekend: boolean;
   roomName: string;
   selectedClass: string;
+  hoverClass: string;
   isDraggingOver: boolean;
-  onMouseDown: (roomName: string, dateString: string) => void;
   onMouseEnter: (roomName: string, dateString: string) => void;
 };
 
@@ -19,8 +19,8 @@ function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps
     prev.isWeekend === next.isWeekend &&
     prev.roomName === next.roomName &&
     prev.selectedClass === next.selectedClass &&
+    prev.hoverClass === next.hoverClass &&
     prev.isDraggingOver === next.isDraggingOver &&
-    prev.onMouseDown === next.onMouseDown &&
     prev.onMouseEnter === next.onMouseEnter
   );
 }
@@ -30,16 +30,15 @@ export const TimelineGridCell = memo(function TimelineGridCell({
   isWeekend,
   roomName,
   selectedClass,
+  hoverClass,
   isDraggingOver,
-  onMouseDown,
   onMouseEnter,
 }: TimelineGridCellProps) {
   return (
     <div
-      className={`timeline-cell${isWeekend ? " weekend" : ""}${isDraggingOver ? " timeline-cell--drag-hover" : ""} ${selectedClass}`.trim()}
+      className={`timeline-cell${isWeekend ? " weekend" : ""}${isDraggingOver ? " timeline-cell--drag-hover" : ""} ${selectedClass} ${hoverClass}`.trim()}
       data-room={roomName}
       data-date={dateString}
-      onMouseDown={() => onMouseDown(roomName, dateString)}
       onMouseEnter={() => onMouseEnter(roomName, dateString)}
     />
   );
@@ -53,10 +52,14 @@ export type TimelineGridRowProps = {
   virtualOffsetPx: number;
   renderDays: { dateString: string; isWeekend: boolean }[];
   selectionKey: string;
+  hoverPreviewKey: string;
   selectedClassForDate: (roomName: string, dateString: string) => string;
+  hoverClassForDate: (roomName: string, dateString: string) => string;
   bookingDragHoverKey: string | null;
-  onCellMouseDown: (roomName: string, dateString: string) => void;
   onCellMouseEnter: (roomName: string, dateString: string) => void;
+  onTrackMouseDown: (roomName: string, event: MouseEvent<HTMLDivElement>) => void;
+  onTrackMouseMove: (roomName: string, event: MouseEvent<HTMLDivElement>) => void;
+  onTrackMouseLeave: (roomName: string) => void;
   roomName: string;
   blocksSignature: string;
   children: ReactNode;
@@ -74,9 +77,13 @@ function rowPropsEqual(prev: TimelineGridRowProps, next: TimelineGridRowProps): 
     prev.blocksSignature === next.blocksSignature &&
     prev.bookingDragHoverKey === next.bookingDragHoverKey &&
     prev.selectionKey === next.selectionKey &&
+    prev.hoverPreviewKey === next.hoverPreviewKey &&
     prev.selectedClassForDate === next.selectedClassForDate &&
-    prev.onCellMouseDown === next.onCellMouseDown &&
-    prev.onCellMouseEnter === next.onCellMouseEnter
+    prev.hoverClassForDate === next.hoverClassForDate &&
+    prev.onCellMouseEnter === next.onCellMouseEnter &&
+    prev.onTrackMouseDown === next.onTrackMouseDown &&
+    prev.onTrackMouseMove === next.onTrackMouseMove &&
+    prev.onTrackMouseLeave === next.onTrackMouseLeave
   );
 }
 
@@ -88,9 +95,12 @@ export const TimelineGridRow = memo(function TimelineGridRow({
   virtualOffsetPx,
   renderDays,
   selectedClassForDate,
+  hoverClassForDate,
   bookingDragHoverKey,
-  onCellMouseDown,
   onCellMouseEnter,
+  onTrackMouseDown,
+  onTrackMouseMove,
+  onTrackMouseLeave,
   roomName,
   children,
 }: TimelineGridRowProps) {
@@ -107,6 +117,9 @@ export const TimelineGridRow = memo(function TimelineGridRow({
       <div
         className="timeline-track-window"
         style={isVirtualTimeline ? { marginLeft: virtualOffsetPx } : undefined}
+        onMouseDown={(event) => onTrackMouseDown(roomName, event)}
+        onMouseMove={(event) => onTrackMouseMove(roomName, event)}
+        onMouseLeave={() => onTrackMouseLeave(roomName)}
       >
         {renderDays.map((day) => (
           <TimelineGridCell
@@ -115,8 +128,8 @@ export const TimelineGridRow = memo(function TimelineGridRow({
             isWeekend={day.isWeekend}
             roomName={roomName}
             selectedClass={selectedClassForDate(roomName, day.dateString)}
+            hoverClass={hoverClassForDate(roomName, day.dateString)}
             isDraggingOver={bookingDragHoverKey === `${roomName}:${day.dateString}`}
-            onMouseDown={onCellMouseDown}
             onMouseEnter={onCellMouseEnter}
           />
         ))}

@@ -9,16 +9,12 @@ import {
   scrollToRestrictionsGrid,
 } from "../../desktop/settings/DesktopRestrictionsGrid";
 import type { AdminModalsApi } from "../../desktop/useAdminModals";
+import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
+import { AdditionalServicesSettingsPage } from "../../desktop/settings/AdditionalServicesSettingsPage";
+import { SIDEBAR_SETTINGS_ITEMS } from "../../desktop/sidebarSettingsItems";
 import type { AdminSettingsPayload, RoomConfig, SettingsTabName } from "../../desktop/types";
 
-/** Таби — як <div class="m-tab"> у old_boso_mobile.html */
-const MOBILE_SETTINGS_TABS: { tab: SettingsTabName; label: string }[] = [
-  { tab: "branding", label: "Сторінка хати" },
-  { tab: "rooms", label: "Твоє житло" },
-  { tab: "prices", label: "Ціни та тарифи" },
-  { tab: "restrictions", label: "Правила заїзду" },
-  { tab: "discounts", label: "Знижки" },
-];
+const MOBILE_SETTINGS_TABS = SIDEBAR_SETTINGS_ITEMS.map(({ tab, label }) => ({ tab, label }));
 
 function tabPaneStyle(active: SettingsTabName, tab: SettingsTabName): CSSProperties | undefined {
   return active === tab ? undefined : { display: "none" };
@@ -170,6 +166,7 @@ export interface MobileSettingsViewProps {
   modals: AdminModalsApi;
   priceTimelineBaseDateRef: React.MutableRefObject<Date>;
   restrictionsTimelineBaseDateRef: React.MutableRefObject<Date>;
+  adminUndo: AdminUndoApi;
 }
 
 /** Розмітка 1:1 з old_boso_mobile.html #view-settings */
@@ -182,6 +179,7 @@ export function MobileSettingsView({
   modals,
   priceTimelineBaseDateRef,
   restrictionsTimelineBaseDateRef,
+  adminUndo,
 }: MobileSettingsViewProps) {
   const restrictionsWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -248,6 +246,7 @@ export function MobileSettingsView({
         <BrandingSettingsPanel
           settings={settings}
           onSettingsChange={onSettingsChange ?? (() => {})}
+          isActive={activeTab === "branding"}
         />
       </div>
 
@@ -271,17 +270,13 @@ export function MobileSettingsView({
           modals={modals}
           baseDateRef={priceTimelineBaseDateRef}
           layout="mobile"
+          isTabActive={activeTab === "prices"}
+          adminUndo={adminUndo}
         />
       </div>
 
-      <div id="set-restrictions" className="settings-tab-content" style={tabPaneStyle(activeTab, "restrictions")}>
-        <DesktopRestrictionsGrid
-          settings={settings}
-          modals={modals}
-          baseDateRef={restrictionsTimelineBaseDateRef}
-          wrapperRef={restrictionsWrapperRef}
-          layout="mobile"
-        />
+      <div id="set-services" className="settings-tab-content" style={tabPaneStyle(activeTab, "services")}>
+        <AdditionalServicesSettingsPage settings={settings} modals={modals} />
       </div>
 
       <div id="set-discounts" className="settings-tab-content" style={tabPaneStyle(activeTab, "discounts")}>
@@ -299,6 +294,18 @@ export function MobileSettingsView({
             onEdit={(id) => modals.openGenericModal("discount", id)}
           />
         </table>
+      </div>
+
+      <div id="set-restrictions" className="settings-tab-content" style={tabPaneStyle(activeTab, "restrictions")}>
+        <DesktopRestrictionsGrid
+          settings={settings}
+          modals={modals}
+          baseDateRef={restrictionsTimelineBaseDateRef}
+          wrapperRef={restrictionsWrapperRef}
+          layout="mobile"
+          isTabActive={activeTab === "restrictions"}
+          adminUndo={adminUndo}
+        />
       </div>
     </div>
   );

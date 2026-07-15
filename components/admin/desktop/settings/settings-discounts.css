@@ -222,6 +222,10 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.discount-filter-panel {
+  padding-bottom: 32px;
+}
+
 .discount-filter-tabs__track {
   display: flex;
   gap: 0.5rem;

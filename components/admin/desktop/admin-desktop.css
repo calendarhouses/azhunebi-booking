@@ -497,6 +497,36 @@
             border-right-color: rgba(255, 255, 255, 0.97);
             filter: drop-shadow(-1px 0 0 rgba(193, 172, 118, 0.18));
         }
+        .sidebar-nav-tip--portal.sidebar-nav-tip--below {
+            transform: translateX(-50%);
+            animation: timelineActionTipIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .sidebar-nav-tip--portal.sidebar-nav-tip--below::before {
+            right: auto;
+            left: 50%;
+            top: auto;
+            bottom: 100%;
+            transform: translateX(-50%);
+            border: 7px solid transparent;
+            border-right-color: transparent;
+            border-bottom-color: rgba(255, 255, 255, 0.97);
+            filter: drop-shadow(0 -1px 0 rgba(193, 172, 118, 0.18));
+        }
+        @keyframes timelineActionTipIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        .timeline-action-tooltip-anchor {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
         @keyframes sidebarNavTipIn {
             from {
                 opacity: 0;
@@ -555,7 +585,7 @@
             border-color: rgba(193, 172, 118, 0.45);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 10px rgba(30, 40, 24, 0.28);
         }
-        .admin-logo {
+        .admin-logo:not(.admin-logo--preloader) {
             display: block;
             width: 100%;
             height: auto;
@@ -571,12 +601,18 @@
             max-height: 52px;
         }
         .admin-logo--auth { width: auto !important; height: 44px !important; max-width: 240px; object-position: center; }
+        #preloader .admin-logo--preloader,
         .admin-logo--preloader {
-            width: auto !important;
-            height: 48px !important;
-            max-width: 280px;
-            object-position: center;
-            animation: pulseAnim 1.5s infinite;
+            display: block !important;
+            width: var(--admin-preloader-logo-size, 150px) !important;
+            height: var(--admin-preloader-logo-size, 150px) !important;
+            min-width: var(--admin-preloader-logo-size, 150px) !important;
+            min-height: var(--admin-preloader-logo-size, 150px) !important;
+            max-width: var(--admin-preloader-logo-size, 150px) !important;
+            max-height: var(--admin-preloader-logo-size, 150px) !important;
+            object-fit: contain !important;
+            object-position: center !important;
+            animation: adminPreloaderPulse 1.5s ease-in-out infinite;
         }
         .auth-login-logo .admin-logo,
         .pulse-logo .admin-logo { margin: 0 auto; }
@@ -842,6 +878,79 @@
             line-height: 1.45;
             max-width: 72ch;
         }
+        .branding-prepayment-accordion {
+            --svc-accent: #5c6b4b;
+            --svc-accent-soft: #f4f6f0;
+            --svc-accent-border: #d4dcc8;
+            --svc-stone-50: #fafaf9;
+            --svc-stone-200: #e7e5e4;
+            --svc-stone-400: #a8a29e;
+            --svc-stone-500: #78716c;
+            --svc-stone-900: #1c1917;
+            --branding-prepay-duration: 0.42s;
+            --branding-prepay-ease: cubic-bezier(0.33, 1, 0.68, 1);
+            grid-column: 1 / -1;
+            margin: 4px 0 8px;
+            align-self: stretch;
+        }
+        .branding-prepayment-accordion .svc-accordion__chevron {
+            transition: transform var(--branding-prepay-duration) var(--branding-prepay-ease);
+        }
+        .branding-prepayment-accordion .branding-prepayment-collapse.svc-accordion__collapse {
+            display: grid;
+            grid-template-rows: 0fr;
+            opacity: 0;
+            transition:
+                grid-template-rows var(--branding-prepay-duration) var(--branding-prepay-ease),
+                opacity var(--branding-prepay-duration) var(--branding-prepay-ease);
+        }
+        .branding-prepayment-accordion:not(.is-open) .branding-prepayment-collapse.svc-accordion__collapse {
+            pointer-events: none;
+        }
+        .branding-prepayment-accordion.is-open .branding-prepayment-collapse.svc-accordion__collapse {
+            grid-template-rows: 1fr;
+            opacity: 1;
+        }
+        .branding-prepayment-collapse__panel {
+            overflow: hidden;
+            min-height: 0;
+        }
+        .branding-prepayment-collapse__content {
+            transform: translateY(-8px);
+            transition: transform var(--branding-prepay-duration) var(--branding-prepay-ease);
+        }
+        .branding-prepayment-accordion.is-open .branding-prepayment-collapse__content {
+            transform: translateY(0);
+        }
+        .branding-prepayment-accordion.is-open .branding-prepayment-collapse__content.svc-accordion__panel {
+            border-top: 1px solid var(--svc-stone-200);
+        }
+        .branding-prepayment-modes {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .branding-prepayment-value {
+            max-width: 240px;
+        }
+        .branding-prepayment-value .svc-field__suffix-wrap--doba .svc-field__input {
+            padding-right: 52px;
+        }
+        .branding-prepayment-value .svc-field__suffix-wrap--doba .svc-field__suffix {
+            min-width: 36px;
+            text-align: right;
+        }
+        .branding-prepayment-preview {
+            display: inline-flex;
+            align-items: center;
+            margin: 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px dashed #C5D4B8;
+            background: #F4F6F0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #4D5C3D;
+            letter-spacing: -0.01em;
+        }
         .branding-logo-row {
             grid-column: 1 / -1;
             display: flex;
@@ -1006,6 +1115,18 @@
             flex-direction: column;
             overflow: hidden;
         }
+        .main-content--grid-focus .timeline-view-root--focus > .price-grid-toolbar,
+        .main-content--grid-focus .timeline-view-root--focus > .timeline-toolbar--focus {
+            flex-shrink: 0;
+            margin-bottom: 8px;
+            padding-top: 2px;
+            position: relative;
+            z-index: 2;
+        }
+        .timeline-toolbar--focus .mode-toggle,
+        .price-grid-toolbar__actions .mode-toggle {
+            margin-left: 0;
+        }
         .timeline-focus-head,
         .timeline-focus-body {
             width: 100%;
@@ -1014,7 +1135,97 @@
         .timeline-focus-head {
             display: flex;
             flex-shrink: 0;
+            align-items: stretch;
+            height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            min-height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            max-height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            overflow: hidden;
             border-bottom: 1px solid #E5E7EB;
+        }
+        .timeline-focus-head .timeline-months {
+            flex: 0 0 var(--timeline-months-height, 24px);
+            flex-shrink: 0;
+            min-height: var(--timeline-months-height, 24px);
+            max-height: var(--timeline-months-height, 24px);
+        }
+        .timeline-focus-head .timeline-dates {
+            display: flex;
+            flex: 0 0 var(--timeline-dates-height, 32px);
+            flex-shrink: 0;
+            min-height: var(--timeline-dates-height, 32px);
+            max-height: var(--timeline-dates-height, 32px);
+            overflow: visible;
+        }
+        .timeline-focus-body {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            margin-top: 0;
+        }
+        .timeline-wrapper--focus-layout .timeline-dates {
+            flex: 0 0 var(--timeline-dates-height);
+            height: var(--timeline-dates-height);
+            min-height: var(--timeline-dates-height);
+            max-height: var(--timeline-dates-height);
+            border-bottom: none;
+            align-items: stretch;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+        .timeline-wrapper--focus-layout .timeline-months {
+            flex: 0 0 var(--timeline-months-height);
+            height: var(--timeline-months-height);
+            min-height: var(--timeline-months-height);
+            max-height: var(--timeline-months-height);
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .timeline-wrapper--focus-layout .timeline-grid-head {
+            display: flex;
+            flex-direction: column;
+            align-self: stretch;
+            height: 100%;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
+        }
+        .timeline-wrapper--focus-layout .timeline-head-track {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            height: 100%;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
+            width: max-content;
+            min-width: 100%;
+        }
+        .timeline-wrapper--focus-layout .timeline-dates .timeline-track-window {
+            flex: 1 1 auto;
+            align-self: stretch;
+            height: var(--timeline-dates-height);
+            min-height: var(--timeline-dates-height);
+            max-height: var(--timeline-dates-height);
+            align-items: stretch;
+            overflow: hidden;
+        }
+        .timeline-wrapper--focus-layout .timeline-date {
+            align-self: stretch;
+            height: var(--timeline-dates-height);
+            min-height: var(--timeline-dates-height);
+            max-height: var(--timeline-dates-height);
+            justify-content: center;
+            padding: 0;
+            box-sizing: border-box;
+            position: relative;
+            overflow: visible;
+        }
+        .timeline-wrapper--focus-layout .timeline-sidebar--focus-head .timeline-sidebar-header {
+            height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            min-height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            max-height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            box-sizing: border-box;
         }
         .timeline-sidebar--focus-head {
             width: 220px;
@@ -1022,6 +1233,10 @@
             border-right: 1px solid #E5E7EB;
             background: #F9FAFB;
             padding-bottom: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
         }
         .timeline-sidebar--focus-head .timeline-sidebar-header {
             border-bottom: none;
@@ -1042,12 +1257,6 @@
             overflow-anchor: none;
             -webkit-overflow-scrolling: touch;
         }
-        .timeline-focus-body {
-            display: flex;
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: hidden;
-        }
         .timeline-sidebar--focus-body {
             width: 220px;
             flex-shrink: 0;
@@ -1058,12 +1267,18 @@
             padding-bottom: 0;
             min-height: 0;
         }
+        .timeline-wrapper--focus-layout .timeline-focus-body .timeline-grid-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        .timeline-wrapper--focus-layout .timeline-focus-body .timeline-grid-container::-webkit-scrollbar:horizontal {
+            height: 8px;
+        }
         .main-content--grid-focus .timeline-focus-body .timeline-grid-container {
             flex: 1 1 auto;
             min-width: 0;
             min-height: 0;
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
         }
         .main-content--settings > .header {
             position: relative;
@@ -1184,6 +1399,17 @@
             z-index: 1;
             padding: 16px 28px 22px;
         }
+        /* Ціни: toolbar окремо, шахматка — окремий білий блок (як головна шахматка) */
+        .settings-content--prices-tab {
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+            min-height: 0;
+        }
+        .settings-content--prices-tab .price-grid-toolbar {
+            margin-bottom: 12px;
+        }
         .settings-room-row-desc {
             display: block;
             margin-top: 6px;
@@ -1288,6 +1514,19 @@
             from {
                 opacity: 0;
                 transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .khata-quick-edit-popover--above {
+            animation: khataQuickEditPopoverInAbove 0.18s ease-out;
+        }
+        @keyframes khataQuickEditPopoverInAbove {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
             }
             to {
                 opacity: 1;
@@ -1446,6 +1685,7 @@
             --timeline-sidebar-header-height: 90px;
             --timeline-months-height: 30px;
             --timeline-dates-height: 60px;
+            --timeline-booking-block-inset: 7px;
             display: flex;
             border: 1px solid #E5E7EB;
             border-radius: 16px;
@@ -1458,9 +1698,13 @@
         .timeline-wrapper--compact {
             --timeline-row-height: 48px;
             --timeline-room-height: 48px;
-            --timeline-sidebar-header-height: 68px;
             --timeline-months-height: 24px;
-            --timeline-dates-height: 44px;
+            --timeline-dates-height: 32px;
+            --timeline-sidebar-header-height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
+            --timeline-booking-block-inset: 2px;
+        }
+        .timeline-wrapper--focus-layout .booking-block {
+            padding: 3px 6px;
         }
         .timeline-wrapper--focus-layout .timeline-row-bg,
         .timeline-wrapper--focus-layout .timeline-cell,
@@ -1488,13 +1732,65 @@
         .timeline-sidebar-header--khata {
             padding-inline: var(--timeline-sidebar-padding-inline);
             color: var(--accent);
-            --timeline-sidebar-brand-size: 20px;
+            text-transform: none;
+            letter-spacing: 0;
             justify-content: space-between;
             gap: 8px;
-            --timeline-sidebar-brand-orange: #c06e3f;
-            --timeline-sidebar-letter-size: calc(var(--timeline-sidebar-brand-size) * 1.38);
-            --timeline-sidebar-word-gap: 0.14em;
-            --timeline-sidebar-word-gap-tight: calc(var(--timeline-sidebar-word-gap) - 2px);
+        }
+        .timeline-sidebar-header--khata .timeline-sidebar-header__title {
+            font-size: 17px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #374151;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .timeline-sidebar-header__actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .timeline-undo-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            background: #FFFFFF;
+            color: #4B5563;
+            cursor: pointer;
+            transition: background 200ms ease, color 200ms ease, border-color 200ms ease, opacity 200ms ease;
+        }
+        .timeline-undo-btn:hover:not(:disabled) {
+            background: #F3F4F6;
+            color: #111827;
+            border-color: #D1D5DB;
+        }
+        .timeline-undo-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .timeline-undo-btn--busy {
+            opacity: 0.7;
+            cursor: wait;
+        }
+        .timeline-undo-btn--busy .timeline-undo-btn__icon {
+            animation: timeline-undo-spin 0.8s linear infinite;
+        }
+        @keyframes timeline-undo-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(-360deg); }
+        }
+        .timeline-undo-btn__icon {
+            width: 14px;
+            height: 14px;
+        }
+        .timeline-wrapper--compact .timeline-sidebar-header--khata .timeline-sidebar-header__title {
+            font-size: 16px;
         }
         .timeline-focus-toggle {
             flex-shrink: 0;
@@ -1503,7 +1799,6 @@
             justify-content: center;
             width: 28px;
             height: 28px;
-            margin-left: auto;
             border: 1px solid #E5E7EB;
             border-radius: 8px;
             background: #FFFFFF;
@@ -1626,6 +1921,7 @@
         
         .timeline-dates {
             display: flex;
+            align-items: stretch;
             height: var(--timeline-dates-height, 60px);
             min-height: var(--timeline-dates-height, 60px);
             border-bottom: 1px solid #E5E7EB;
@@ -1634,8 +1930,32 @@
             flex-shrink: 0;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
         }
-        .timeline-date { width: var(--timeline-cell-width, 60px); flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid #F3F4F6; font-size: 14px; font-weight: 600; }
-        .timeline-date span { font-size: 11px; font-weight: 500; color: #9CA3AF; text-transform: uppercase; }
+        .timeline-date {
+            width: var(--timeline-cell-width, 60px);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            border-right: 1px solid #F3F4F6;
+            font-size: 14px;
+            line-height: 1;
+            font-weight: 600;
+            align-self: stretch;
+            min-height: 0;
+            padding: 0;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .timeline-date span {
+            font-size: 10px;
+            font-weight: 500;
+            color: #9CA3AF;
+            text-transform: uppercase;
+            line-height: 1;
+        }
         .timeline-date.today { color: var(--accent); background: #EFF6FF; }
         .timeline-date.today span { color: var(--accent); }
         .timeline-date.weekend { background: #F9FAFB; color: #EF4444; }
@@ -1652,6 +1972,12 @@
         .timeline-track-window {
             display: flex;
             flex-shrink: 0;
+            align-items: stretch;
+            align-self: stretch;
+            flex: 1 1 auto;
+            height: 100%;
+            min-height: 100%;
+            box-sizing: border-box;
         }
         .timeline-row-bg--virtual {
             display: block;
@@ -1693,8 +2019,11 @@
             flex-shrink: 0;
             align-items: stretch;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
+            overflow: visible;
         }
         .timeline-cell {
+            position: relative;
+            overflow: visible;
             width: var(--timeline-cell-width, 60px); flex-shrink: 0; border-right: 1px solid #F3F4F6;
             height: 100%; min-height: var(--timeline-row-height, 70px); align-self: stretch; box-sizing: border-box;
             transition: min-height 300ms ease-in-out;
@@ -1707,30 +2036,90 @@
             -webkit-user-select: none;
         }
 
-        /* Підсвітка обраних дат — на всю висоту клітинки (без scale) */
-        .timeline-cell.cell-selected {
-            background-color: rgba(85, 107, 47, 0.14) !important;
-            border-top: 2px solid var(--accent) !important;
-            border-bottom: 2px solid var(--accent) !important;
-            border-left: none !important;
+        /* Підсвітка обраних дат — половинки клітинок (як картки броней) */
+        #timelineGrid .timeline-cell.cell-selected {
+            background-color: transparent !important;
+            border: none !important;
             border-right: 1px solid #F3F4F6 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             transform: none !important;
-            z-index: 5;
+            z-index: 6;
         }
-        .timeline-cell.cell-selected-start {
-            border-left: 2px solid var(--accent) !important;
-            border-radius: 8px 0 0 8px !important;
+
+        #timelineGrid .timeline-cell.cell-selected-start {
+            z-index: 8;
         }
-        .timeline-cell.cell-selected-end {
-            border-right: 2px solid var(--accent) !important;
-            border-radius: 0 8px 8px 0 !important;
+
+        #timelineGrid .timeline-cell.cell-selected::before {
+            content: "";
+            position: absolute;
+            top: var(--timeline-booking-block-inset, 7px);
+            bottom: var(--timeline-booking-block-inset, 7px);
+            background-color: rgba(85, 107, 47, 0.14);
+            border-top: 2px solid var(--accent);
+            border-bottom: 2px solid var(--accent);
+            pointer-events: none;
+            z-index: 1;
+            box-sizing: border-box;
         }
-        .timeline-cell.cell-selected-start.cell-selected-end {
-            border-left: 2px solid var(--accent) !important;
-            border-right: 2px solid var(--accent) !important;
-            border-radius: 8px !important;
+
+        #timelineGrid .timeline-cell.cell-selected:not(.cell-selected-start):not(.cell-selected-end)::before {
+            left: 0;
+            right: -1px;
+        }
+
+        /* Заїзд — права половина клітинки */
+        #timelineGrid .timeline-cell.cell-selected-start:not(.cell-selected-end)::before {
+            left: 50%;
+            right: -1px;
+            border-left: 2px solid var(--accent);
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+        }
+
+        /* Остання ніч (багатоденне) — повна клітинка, з’єднується з «хвостом» виїзду */
+        #timelineGrid .timeline-cell.cell-selected-end:not(.cell-selected-start)::before {
+            left: 0;
+            right: -1px;
+        }
+
+        /* 1 ніч — від середини заїзду до середини виїзду (наступна клітинка) */
+        #timelineGrid .timeline-cell.cell-selected-start.cell-selected-end::before {
+            left: 50%;
+            width: 100%;
+            right: auto;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+        }
+
+        #timelineGrid .timeline-row-bg .timeline-cell.cell-selected-start.cell-selected-end:last-child::before {
+            left: 50%;
+            width: 50%;
+            border-right: 2px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Виїзд — ліва половина клітинки дати виїзду (кінець рамки справа посередині) */
+        #timelineGrid .timeline-cell.cell-selected-tail {
+            z-index: 7;
+        }
+
+        #timelineGrid .timeline-cell.cell-selected-tail::before {
+            content: "";
+            position: absolute;
+            top: var(--timeline-booking-block-inset, 7px);
+            bottom: var(--timeline-booking-block-inset, 7px);
+            left: -1px;
+            width: calc(50% + 1px);
+            background-color: rgba(85, 107, 47, 0.14);
+            border-top: 2px solid var(--accent);
+            border-bottom: 2px solid var(--accent);
+            border-right: 2px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            pointer-events: none;
+            z-index: 1;
+            box-sizing: border-box;
         }
         
         /* --- БЛОКИ БРОНЮВАННЯ НА ШАХМАТЦІ --- */
@@ -1894,6 +2283,31 @@
             flex-shrink: 0;
         }
 
+        .booking-fin-badge--one-night-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            min-width: 18px;
+            height: 16px;
+            padding: 0;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .booking-fin-badge--one-night-neutral {
+            background: rgba(0, 0, 0, 0.06);
+            color: #9ca3af;
+        }
+
+        .booking-fin-icon__check {
+            width: 11px;
+            height: 11px;
+            display: block;
+        }
+
         .booking-block.status-confirmed .booking-guest-name {
             text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
         }
@@ -1914,21 +2328,143 @@
         }
 
         .booking-inner-content--compact .booking-guest-name {
-            flex: 1;
+            flex: 1 1 auto;
             min-width: 0;
-            font-size: 12px;
-            line-height: 1.15;
+            font-size: 13px;
+            line-height: 1.2;
+        }
+
+        .booking-inner-content--compact .booking-guest-chip--compact {
+            flex-shrink: 0;
+            font-size: 10px;
+            padding: 2px 7px 2px 5px;
+        }
+
+        .booking-inner-content--compact .booking-guest-chip--compact .booking-guest-chip-icon {
+            width: 10px;
+            height: 10px;
         }
 
         .booking-inner-content--compact .booking-fin-badge {
             flex-shrink: 0;
-            font-size: 9px;
-            padding: 1px 5px;
-            border-radius: 4px;
+            margin-left: auto;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 5px;
         }
 
-        .timeline-wrapper--compact .booking-block {
-            padding: 3px 6px;
+        .booking-inner-content--compact-one-night {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            gap: 2px;
+            height: 100%;
+        }
+
+        .booking-inner-content--compact-one-night .booking-guest-name {
+            flex: 0 1 auto;
+            font-size: 11px;
+            line-height: 1.15;
+        }
+
+        .booking-inner-content--compact-short-stay {
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            height: 100%;
+            min-width: 0;
+        }
+
+        .booking-inner-content--compact-short-stay .booking-guest-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 13px;
+            line-height: 1.2;
+        }
+
+        .booking-compact-short-stay-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            flex-shrink: 0;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .booking-compact-short-stay-meta .booking-guest-chip--compact {
+            flex-shrink: 0;
+            font-size: 10px;
+            padding: 2px 7px 2px 5px;
+        }
+
+        .booking-compact-short-stay-meta .booking-guest-chip--compact .booking-guest-chip-icon {
+            width: 10px;
+            height: 10px;
+        }
+
+        .booking-compact-short-stay-meta .booking-fin-badge {
+            flex-shrink: 0;
+            margin-left: 0;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 5px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .booking-compact-one-night-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .booking-compact-one-night-foot .booking-fin-badge--one-night-icon {
+            margin-left: 0;
+            flex-shrink: 0;
+        }
+
+        .booking-compact-one-night-foot .booking-fin-badge:not(.booking-fin-badge--one-night-icon) {
+            margin-left: 0;
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 9px;
+            padding: 1px 5px;
+        }
+
+        .booking-compact-one-night-foot .booking-guest-chip--compact {
+            flex-shrink: 0;
+            font-size: 9px;
+            padding: 1px 5px 1px 4px;
+        }
+
+        .booking-compact-one-night-foot .booking-guest-chip--compact .booking-guest-chip-icon {
+            width: 8px;
+            height: 8px;
+        }
+
+        .booking-inner-content--one-night-stack {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: center;
+            gap: 4px;
+            height: 100%;
+        }
+
+        .booking-inner-content--one-night-stack .booking-guest-name {
+            flex: 0 1 auto;
+            font-size: 13px;
+            line-height: 1.2;
+        }
+
+        .booking-inner-content--one-night-stack .booking-compact-one-night-foot {
+            margin-top: 0;
         }
 
         .timeline-wrapper--compact .timeline-room__name {
@@ -1962,6 +2498,20 @@
             box-shadow: none; 
         }
 
+        /* 3b. ОЧІКУЄ ПІДТВЕРДЖЕННЯ: Сірий */
+        .booking-block.status-pending-review {
+            background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+            color: #374151;
+            border-color: rgba(0,0,0,0.06);
+        }
+        .booking-block.status-pending-review .booking-guest-name {
+            color: #374151;
+        }
+        .booking-block.status-pending-review .booking-guest-chip {
+            background: rgba(255,255,255,0.55);
+            color: #4B5563;
+        }
+
         /* 4. HUTSHUB: Спеціальний сіро-зелений колір під їхній логотип */
         .booking-block.status-hutshub { 
             background: linear-gradient(135deg, #C9D6D2 0%, #B2C4BE 100%);
@@ -1986,17 +2536,19 @@
         /* --- Преміум шахматка цін --- */
         .price-grid-premium {
             --price-grid-month-h: 30px;
-            --price-grid-dates-h: 48px;
+            --price-grid-dates-h: 28px;
             --price-grid-header-h: calc(var(--price-grid-month-h) + var(--price-grid-dates-h));
             --price-grid-row-h: 58px;
         }
         .price-grid-premium .timeline-wrapper.price-grid-timeline {
-            border-color: #f5f5f4;
-            box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
+            border: 1px solid #E5E7EB;
+            border-radius: 16px;
+            background: #FFFFFF;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             user-select: none;
             -webkit-user-select: none;
             align-items: stretch;
-            overflow: visible;
+            overflow: hidden;
         }
         .price-grid-premium .timeline-grid-container {
             overflow-x: auto;
@@ -2023,9 +2575,12 @@
         .price-grid-premium .timeline-sidebar-header,
         .price-grid-premium .timeline-room,
         .price-grid-premium .timeline-month-cell,
-        .price-grid-premium .timeline-date,
         .price-grid-premium .timeline-row-bg {
-            border-color: #f5f5f4;
+            border-color: #E5E7EB;
+        }
+        .price-grid-premium .timeline-date,
+        .price-grid-premium .price-grid-date {
+            border-color: #F3F4F6;
         }
         .price-grid-premium .price-grid-date--weekend {
             background: #fafaf9;
@@ -2045,6 +2600,266 @@
             align-self: stretch;
             box-sizing: border-box;
             outline: none;
+        }
+        .price-grid-premium button.price-cell,
+        .price-grid-premium div.price-cell {
+            border: none;
+            border-right: 1px solid #F3F4F6;
+        }
+        .price-grid-premium .timeline-dates,
+        .price-grid-premium .price-grid-dates {
+            align-items: stretch;
+            height: var(--price-grid-dates-h);
+            min-height: var(--price-grid-dates-h);
+            max-height: var(--price-grid-dates-h);
+            border-bottom: none;
+            box-sizing: border-box;
+        }
+        .price-grid-premium .timeline-date {
+            flex-shrink: 0;
+            align-self: stretch;
+            height: auto;
+            min-height: 0;
+            border-right: 1px solid #F3F4F6;
+            position: relative;
+        }
+        .price-grid-premium .timeline-month-cell {
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 13px;
+        }
+        .price-grid-premium .timeline-date,
+        .price-grid-premium .price-grid-date {
+            line-height: 1;
+            gap: 0;
+            padding: 0;
+            font-size: 13px;
+            justify-content: center;
+        }
+        .price-grid-premium .timeline-date span,
+        .price-grid-premium .price-grid-date span {
+            font-size: 9px;
+            line-height: 1;
+            margin-top: 1px;
+        }
+        .price-grid-premium .price-grid-row {
+            height: var(--price-grid-row-h);
+            min-height: var(--price-grid-row-h);
+            position: relative;
+            overflow: visible;
+        }
+        .price-grid-premium .price-grid-room {
+            height: var(--price-grid-row-h);
+            min-height: var(--price-grid-row-h);
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+        .price-grid-premium .price-grid-room .timeline-room__icon {
+            width: 13px;
+            height: 13px;
+        }
+        .price-grid-premium .price-grid-room:last-child {
+            border-bottom: none;
+        }
+        .price-grid-premium .price-grid-row:last-child {
+            border-bottom: none;
+        }
+        .price-grid-premium .timeline-rows {
+            padding-bottom: 0;
+            overflow: visible;
+        }
+        /* Розгорнута шахматка цін (focus mode) — як головна шахматка */
+        .main-content--price-grid-focus {
+            padding: 4px 6px 6px 4px;
+            overflow: hidden;
+        }
+        .main-content--price-grid-focus > .admin-settings-view {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            display: flex !important;
+            flex-direction: column;
+        }
+        .main-content--price-grid-focus > .header {
+            max-height: 0;
+            margin-bottom: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .main-content--price-grid-focus .admin-settings-view {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content--price-grid-focus .settings-content--full-width {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            display: flex !important;
+            flex-direction: column;
+        }
+        .main-content--price-grid-focus .settings-tab-content--active {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            display: flex !important;
+            flex-direction: column;
+        }
+        .price-grid-view--focus {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .price-grid-view--focus .price-grid-toolbar {
+            flex-shrink: 0;
+        }
+        .price-grid-premium--focus {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            --price-grid-month-h: 24px;
+            --price-grid-dates-h: 32px;
+            --price-grid-header-h: calc(var(--price-grid-month-h) + var(--price-grid-dates-h));
+            --price-grid-row-h: 44px;
+            --timeline-row-height: var(--price-grid-row-h);
+            --timeline-room-height: var(--price-grid-row-h);
+        }
+        .price-grid-premium--focus .timeline-grid-head {
+            display: flex;
+            flex-direction: column;
+            align-self: stretch;
+            height: 100%;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
+        }
+        .price-grid-premium--focus .timeline-head-track {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            height: 100%;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
+            width: max-content;
+            min-width: 100%;
+        }
+        .price-grid-premium--focus .timeline-wrapper.price-grid-timeline {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+            max-height: 100%;
+            margin-top: 0;
+            overflow: hidden;
+            align-items: stretch;
+            border-color: #E5E7EB;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .price-grid-timeline--focus-root {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+            max-height: 100%;
+            flex-direction: column;
+            overflow: hidden;
+            margin-bottom: 0;
+            --timeline-row-height: var(--price-grid-row-h);
+            --timeline-room-height: var(--price-grid-row-h);
+            --timeline-sidebar-header-height: var(--price-grid-header-h);
+            --timeline-months-height: var(--price-grid-month-h);
+            --timeline-dates-height: var(--price-grid-dates-h);
+        }
+        .main-content--price-grid-focus .price-grid-timeline--focus-root .timeline-focus-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .price-grid-premium--focus .timeline-grid-container {
+            -webkit-overflow-scrolling: touch;
+        }
+        .main-content--price-grid-focus .price-grid-timeline--focus-root .timeline-focus-body .timeline-grid-container {
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .main-content--price-grid-focus .price-grid-timeline--focus-root .timeline-sidebar--focus-body {
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 16px;
+        }
+        .price-grid-premium--focus .timeline-sidebar--focus-body .price-grid-room,
+        .price-grid-premium--focus .timeline-focus-body .timeline-row-bg.price-grid-row {
+            height: var(--price-grid-row-h);
+            min-height: var(--price-grid-row-h);
+        }
+        .price-grid-premium--focus .timeline-focus-body .timeline-row-bg {
+            height: var(--price-grid-row-h);
+            min-height: var(--price-grid-row-h);
+        }
+        .price-grid-premium--focus .timeline-focus-body .price-cell {
+            min-height: var(--price-grid-row-h);
+            font-size: 13px;
+        }
+        .price-grid-premium--focus .timeline-focus-body .price-cell .text-sm {
+            font-size: 13px;
+        }
+        .price-grid-premium--focus .timeline-focus-body .price-cell .text-xs {
+            font-size: 11px;
+        }
+        .price-grid-premium--focus .timeline-months {
+            flex: 0 0 var(--price-grid-month-h);
+            height: var(--price-grid-month-h);
+            min-height: var(--price-grid-month-h);
+            max-height: var(--price-grid-month-h);
+        }
+        .price-grid-premium--focus .timeline-dates {
+            flex: 0 0 var(--price-grid-dates-h);
+            height: var(--price-grid-dates-h);
+            min-height: var(--price-grid-dates-h);
+            max-height: var(--price-grid-dates-h);
+            align-items: stretch;
+            border-bottom: none;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+        .price-grid-premium--focus .timeline-sidebar--focus-head .timeline-sidebar-header {
+            height: var(--price-grid-header-h);
+            min-height: var(--price-grid-header-h);
+            max-height: var(--price-grid-header-h);
+        }
+        .price-grid-premium--focus .timeline-date,
+        .price-grid-premium--focus .price-grid-date {
+            height: var(--price-grid-dates-h);
+            min-height: var(--price-grid-dates-h);
+            max-height: var(--price-grid-dates-h);
+            align-self: stretch;
+            line-height: 1;
+            gap: 0;
+            padding: 0;
+            font-size: 12px;
+            justify-content: center;
+            position: relative;
+            overflow: visible;
+        }
+        .price-grid-premium--focus .timeline-date span,
+        .price-grid-premium--focus .price-grid-date span {
+            font-size: 9px;
+            line-height: 1;
+            margin-top: 1px;
+        }
+        .price-grid-premium--focus .timeline-rows {
+            padding-bottom: 16px;
+            overflow: visible;
         }
         #priceGrid .price-cell.timeline-cell:hover:not(.cell-selected):not(.price-cell--editing) {
             background: #fff !important;
@@ -2068,18 +2883,13 @@
             border-top: none !important;
             border-bottom: none !important;
             border-left: none !important;
-            border-right: 1px solid #f5f5f4 !important;
+            border-right: 1px solid #F3F4F6 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             z-index: 2;
         }
         #priceGrid .price-cell.price-cell--weekend.price-cell--editing {
             background: #fafaf9 !important;
-        }
-        .price-grid-premium button.price-cell,
-        .price-grid-premium div.price-cell {
-            border: none;
-            border-right: 1px solid #f5f5f4;
         }
         .price-cell-editor {
             display: flex;
@@ -2131,126 +2941,7 @@
             z-index: 2;
             overflow: visible;
         }
-        .price-grid-premium .timeline-month-cell {
-            text-transform: none;
-            letter-spacing: 0;
-            font-size: 13px;
-        }
-        .price-grid-premium .timeline-date {
-            flex-shrink: 0;
-        }
-        .price-grid-premium .price-grid-dates {
-            height: var(--price-grid-dates-h);
-            min-height: var(--price-grid-dates-h);
-        }
-        .price-grid-premium .price-grid-row {
-            height: var(--price-grid-row-h);
-            min-height: var(--price-grid-row-h);
-            position: relative;
-            overflow: visible;
-        }
-        .price-grid-premium .price-grid-room {
-            height: var(--price-grid-row-h);
-            min-height: var(--price-grid-row-h);
-            flex-shrink: 0;
-            box-sizing: border-box;
-        }
-        .price-grid-premium .price-grid-room .timeline-room__icon {
-            width: 13px;
-            height: 13px;
-        }
-        .price-grid-premium .price-grid-room:last-child {
-            border-bottom: none;
-        }
-        .price-grid-premium .price-grid-row:last-child {
-            border-bottom: none;
-        }
-        .price-grid-premium .timeline-rows {
-            padding-bottom: 0;
-            overflow: visible;
-        }
-
-        /* --- Шторка конструктора цін --- */
-        .price-constructor-backdrop {
-            position: fixed;
-            inset: 0;
-            z-index: 1400;
-            border: none;
-            background: rgba(28, 25, 23, 0.35);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.28s ease;
-            cursor: default;
-        }
-        .price-constructor-backdrop--open {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .price-constructor-drawer {
-            position: fixed;
-            inset-block: 0;
-            right: 0;
-            z-index: 1410;
-            display: flex;
-            width: min(520px, 100vw);
-            flex-direction: column;
-            background: #fff;
-            border-left: 1px solid #e7e5e4;
-            box-shadow: none;
-            transform: translateX(100%);
-            transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-            overflow: hidden;
-        }
-        .price-constructor-drawer--open {
-            transform: translateX(0);
-        }
-        .price-constructor-drawer__close {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            flex-shrink: 0;
-            border: 1px solid #e7e5e4;
-            border-radius: 999px;
-            background: #fff;
-            color: #57534e;
-            cursor: pointer;
-            transition: background 0.15s ease, border-color 0.15s ease;
-        }
-        .price-constructor-drawer__close:hover {
-            background: #fafaf9;
-            border-color: #d6d3d1;
-        }
-        .price-constructor-drawer__footer {
-            flex-shrink: 0;
-            padding: 16px 24px 24px;
-            border-top: 1px solid #f5f5f4;
-            background: #fff;
-        }
-
-        .price-constructor-drawer__save {
-            width: 100%;
-            padding: 14px 20px;
-            border: 1px solid var(--accent-premium-border);
-            border-radius: 12px;
-            background: var(--accent-gradient);
-            color: #f4f7ee;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.25s ease;
-            box-shadow: none;
-        }
-        .price-constructor-drawer__save:hover:not(:disabled) {
-            background: var(--accent-gradient-hover);
-            box-shadow: none;
-        }
-        .price-constructor-drawer__save:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-
+        /* --- Конструктор цін / правил (контент; shell — settings-side-drawer.css) --- */
         .price-constructor-section-heading {
             display: flex;
             align-items: center;
@@ -2480,7 +3171,10 @@
             justify-content: space-between;
             gap: 16px;
             flex-wrap: nowrap;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 2;
         }
         .price-grid-toolbar__nav {
             display: flex;
@@ -2492,6 +3186,34 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-shrink: 0;
+        }
+        .price-grid-toolbar__actions .btn-primary,
+        .price-grid-toolbar__actions .btn-outline-danger {
+            padding: 7px 12px;
+            font-size: 13px;
+            gap: 5px;
+            border-radius: 8px;
+            line-height: 1.2;
+        }
+        .price-grid-toolbar__actions .btn-primary {
+            box-shadow: 0 1px 2px rgba(85, 107, 47, 0.12);
+        }
+        .price-grid-toolbar__actions .btn-outline-danger {
+            box-shadow: 0 1px 2px rgba(220, 38, 38, 0.06);
+        }
+        .price-grid-toolbar__actions .btn-primary:hover {
+            transform: none;
+            box-shadow: 0 2px 4px rgba(85, 107, 47, 0.16);
+        }
+        .price-grid-toolbar__actions .btn-outline-danger:hover {
+            transform: none;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+        }
+        .price-grid-toolbar__actions .btn-primary svg,
+        .price-grid-toolbar__actions .btn-outline-danger svg {
+            width: 16px;
+            height: 16px;
             flex-shrink: 0;
         }
         .price-grid-toolbar--mobile {
@@ -2509,7 +3231,7 @@
             border-top: none !important;
             border-bottom: none !important;
             border-left: none !important;
-            border-right: 1px solid #f5f5f4 !important;
+            border-right: 1px solid #F3F4F6 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             transform: none !important;
@@ -2650,7 +3372,9 @@
 
         /* Налаштування: білий блок росте разом із контентом (не обрізає шахматку) */
         .main-content > #view-settings,
-        #view-settings {
+        .main-content > .admin-settings-view,
+        #view-settings,
+        .admin-settings-view {
             flex: 1 1 auto;
             min-height: 0;
             height: auto !important;
@@ -2659,35 +3383,45 @@
             display: flex;
             flex-direction: column;
         }
-        #view-settings .settings-content {
+        #view-settings .settings-content,
+        .admin-settings-view .settings-content {
             flex: 0 0 auto;
             height: auto;
             width: 100%;
             overflow: visible;
         }
-        #view-settings:has(.settings-content--compact) {
+        #view-settings .settings-content > .settings-tab-content,
+        .admin-settings-view .settings-content > .settings-tab-content {
+            flex: 0 0 auto;
+        }
+        #view-settings:has(.settings-content--compact),
+        .admin-settings-view:has(.settings-content--compact) {
             flex: 0 0 auto;
             width: auto;
             max-width: 100%;
             align-items: flex-start;
         }
-        #view-settings:has(.settings-content--full-width) {
+        #view-settings:has(.settings-content--full-width),
+        .admin-settings-view:has(.settings-content--full-width) {
             flex: 0 0 auto;
             width: 100%;
             max-width: 100%;
             align-items: stretch;
         }
-        #view-settings .settings-content--compact {
+        #view-settings .settings-content--compact,
+        .admin-settings-view .settings-content--compact {
             width: fit-content;
             max-width: 100%;
         }
         @media (min-width: 1680px) {
-            #view-settings .settings-content--compact:has(.branding-settings-panel) {
+            #view-settings .settings-content--compact:has(.branding-settings-panel),
+            .admin-settings-view .settings-content--compact:has(.branding-settings-panel) {
                 width: 100%;
                 max-width: var(--branding-form-max, 720px);
             }
         }
-        #view-settings .settings-content--full-width {
+        #view-settings .settings-content--full-width,
+        .admin-settings-view .settings-content--full-width {
             width: 100%;
             max-width: 100%;
         }
@@ -2715,6 +3449,9 @@
             overflow-x: auto;
             min-width: 0;
         }
+        .main-content--price-grid-focus #set-prices #priceScroll {
+            min-height: 0;
+        }
         #set-rooms .settings-rooms-table {
             width: 100%;
             min-width: 0;
@@ -2722,61 +3459,20 @@
         #set-restrictions {
             width: 100%;
         }
-        #set-restrictions .timeline-wrapper {
-            margin-top: 20px;
-            margin-bottom: 24px;
-            align-items: stretch;
-            width: 100%;
-            max-width: 100%;
+        #set-restrictions .price-grid-premium .timeline-wrapper.price-grid-timeline {
+            margin-top: 0;
+            margin-bottom: 0;
         }
-        #set-restrictions #restrictionScroll {
-            overflow-x: auto;
-            min-width: 0;
+        .rule-cell--closed {
+            background: #FEF2F2 !important;
         }
-        #set-restrictions .timeline-sidebar {
-            align-self: stretch;
+        .rule-cell--min-nights {
+            background: rgba(85, 107, 47, 0.06) !important;
         }
-
-        .restriction-bar-menu {
-            position: fixed;
-            z-index: 3500;
-            display: none;
-            flex-direction: column;
-            gap: 4px;
-            background: #fff;
-            border: 1px solid #E5E7EB;
-            border-radius: 12px;
-            padding: 6px;
-            box-shadow: 0 16px 32px rgba(17, 24, 39, 0.14);
-            min-width: 200px;
-        }
-        .restriction-bar-menu button {
-            width: 100%;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: left;
-            background: #F9FAFB;
-            color: #374151;
-            transition: 0.15s;
-        }
-        .restriction-bar-menu button:hover {
-            background: #F3F4F6;
-            color: #111827;
-        }
-        .restriction-bar-menu button.danger {
-            color: #DC2626;
-        }
-        .restriction-bar-menu button.danger:hover {
-            background: #FEF2F2;
-        }
-        #restrictionGrid .restriction-cell.timeline-cell.cell-selected {
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected {
             background-color: rgba(85, 107, 47, 0.14) !important;
-            border-top: 2px solid var(--accent) !important;
-            border-bottom: 2px solid var(--accent) !important;
+            border-top: none !important;
+            border-bottom: none !important;
             border-left: none !important;
             border-right: 1px solid #F3F4F6 !important;
             border-radius: 0 !important;
@@ -2784,21 +3480,48 @@
             transform: none !important;
             z-index: 5;
         }
-        #restrictionGrid .restriction-cell.timeline-cell.cell-selected.has-restriction {
-            background-color: rgba(85, 107, 47, 0.1) !important;
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected.cell-selected-row-first {
+            border-top: 2px solid var(--accent) !important;
         }
-        #restrictionGrid .restriction-cell.timeline-cell.cell-selected-start {
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected.cell-selected-row-last {
+            border-bottom: 2px solid var(--accent) !important;
+        }
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-start {
             border-left: 2px solid var(--accent) !important;
-            border-radius: 8px 0 0 8px !important;
         }
-        #restrictionGrid .restriction-cell.timeline-cell.cell-selected-end {
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-end {
             border-right: 2px solid var(--accent) !important;
-            border-radius: 0 8px 8px 0 !important;
         }
-        #restrictionGrid .restriction-cell.timeline-cell.cell-selected-start.cell-selected-end {
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-start.cell-selected-row-first {
+            border-top-left-radius: 8px !important;
+        }
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-end.cell-selected-row-first {
+            border-top-right-radius: 8px !important;
+        }
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-start.cell-selected-row-last {
+            border-bottom-left-radius: 8px !important;
+        }
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-end.cell-selected-row-last {
+            border-bottom-right-radius: 8px !important;
+        }
+        #restrictionGrid .rule-cell.timeline-cell.cell-selected-start.cell-selected-end.cell-selected-row-first.cell-selected-row-last {
             border-left: 2px solid var(--accent) !important;
             border-right: 2px solid var(--accent) !important;
             border-radius: 8px !important;
+        }
+        #restrictionGrid .rule-cell.timeline-cell:hover:not(.cell-selected) {
+            background: #fff !important;
+            transform: none !important;
+            box-shadow: none !important;
+            border-top: 2px solid var(--accent) !important;
+            border-bottom: 2px solid var(--accent) !important;
+            border-left: 2px solid var(--accent) !important;
+            border-right: 2px solid var(--accent) !important;
+            border-radius: 8px !important;
+            z-index: 5;
+        }
+        #restrictionGrid .rule-cell.price-cell--weekend.timeline-cell:hover:not(.cell-selected) {
+            background: #fafaf9 !important;
         }
 
         /* ВІКНА ТА МОДАЛКИ */
@@ -3121,26 +3844,65 @@
         .mode-btn.active { background: #FFFFFF; color: #111827; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
         /* --- СТИЛІ ДЛЯ ІНТЕРАКТИВНОСТІ ШАХМАТКИ (PREMIUM EFFECT) --- */
-.timeline-date {
-    /* Плавність для всіх ефектів */
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease, z-index 0s;
-    cursor: pointer; /* Змінюємо курсор на "руку" для клікабельності */
-    position: relative; /* Необхідно для коректного z-index */
-    z-index: 1;
-}
+        .timeline-date {
+            transition: background-color 0.18s ease, color 0.18s ease;
+            cursor: default;
+            z-index: 1;
+        }
 
-/* Ефект при наведенні курсору */
-.timeline-date:hover {
-    background-color: rgba(85, 107, 47, 0.1) !important; /* Легке підсвічування новим акцентним кольором (оливковим) */
-    transform: scale(1.15) translateY(-2px); /* Збільшення на 15% та легке підняття вгору */
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* М'яка преміум-тінь */
-    z-index: 10; /* Виводимо дату на передній план, щоб вона не перекривалася сусідами */
-}
+        .timeline-date::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 2px;
+            background: transparent;
+            pointer-events: none;
+            transition: background-color 0.18s ease;
+            z-index: 1;
+        }
 
-/* Окремо для сьогоднішньої дати, щоб зберегти її унікальність */
-.timeline-date.today:hover {
-    background-color: #EFF6FF !important; /* Трохи насиченіший колір акценту лісу */
-}
+        .timeline-date:hover {
+            background-color: rgba(85, 107, 47, 0.06) !important;
+            box-shadow: none;
+            z-index: 2;
+        }
+
+        .timeline-date:hover::after {
+            background: var(--accent);
+        }
+
+        .timeline-date.weekend:hover {
+            color: #EF4444;
+            background-color: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        .timeline-date.weekend:hover::after {
+            background: rgba(239, 68, 68, 0.45);
+        }
+
+        .timeline-date.today:hover {
+            color: var(--accent);
+            background-color: rgba(85, 107, 47, 0.08) !important;
+        }
+
+        .timeline-date.today:hover::after {
+            background: var(--accent);
+        }
+
+        .timeline-date.today:hover span {
+            color: var(--accent);
+        }
+
+        .price-grid-premium .price-grid-date--weekend:hover {
+            background-color: rgba(154, 52, 18, 0.05) !important;
+        }
+
+        .price-grid-premium .price-grid-date--weekend:hover::after {
+            background: rgba(154, 52, 18, 0.4);
+        }
+
 /* --- ПРЕМІУМ-ІНТЕРАКТИВНІСТЬ СІТКИ --- */
         .timeline-cell {
             transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
@@ -3170,18 +3932,62 @@
         }
         .timeline-wrapper--booking-drag .timeline-date:hover,
         .timeline-wrapper--booking-drag .timeline-date.today:hover {
-            background-color: transparent !important;
+            background-color: inherit !important;
             transform: none !important;
             box-shadow: none !important;
         }
 
-        .timeline-cell:hover:not(.cell-selected) {
-            background-color: var(--card-bg) !important;
-            transform: scale(1.1);
+        #timelineGrid .timeline-cell.cell-hover-preview-one-night,
+        #timelineGrid .timeline-cell.cell-hover-preview-checkin-only,
+        #timelineGrid .timeline-cell.cell-hover-preview-checkout-only {
             z-index: 10;
-            box-shadow: 0 8px 16px rgba(85, 107, 47, 0.15);
+        }
+
+        #timelineGrid .timeline-cell.cell-hover-preview-one-night::after,
+        #timelineGrid .timeline-cell.cell-hover-preview-checkin-only::after,
+        #timelineGrid .timeline-cell.cell-hover-preview-checkout-only::after {
+            content: "";
+            position: absolute;
+            top: var(--timeline-booking-block-inset, 7px);
+            bottom: var(--timeline-booking-block-inset, 7px);
+            background-color: rgba(85, 107, 47, 0.12);
             border: 2px solid var(--accent);
-            border-radius: 6px;
+            pointer-events: none;
+            z-index: 2;
+            box-sizing: border-box;
+        }
+
+        /* 1 ніч — рамка під курсором: права половина заїзду + ліва половина виїзду */
+        #timelineGrid .timeline-cell.cell-hover-preview-one-night::after {
+            left: 50%;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Край сітки: лише права половина заїзду */
+        #timelineGrid .timeline-cell.cell-hover-preview-checkin-only::after {
+            left: 50%;
+            width: 50%;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Край сітки: лише ліва половина виїзду */
+        #timelineGrid .timeline-cell.cell-hover-preview-checkout-only::after {
+            left: 0;
+            width: 50%;
+            border-radius: 8px 0 0 8px;
+        }
+
+        /* 1-ше / останнє число місяця — та сама половина, дзеркальні кути (як у карток броней) */
+        #timelineGrid .timeline-cell.cell-hover-preview-checkout-only.cell-hover-preview--flip-corners::after {
+            border-radius: 0 8px 8px 0;
+        }
+
+        #timelineGrid .timeline-cell.cell-hover-preview-checkin-only.cell-hover-preview--flip-corners::after {
+            border-radius: 8px 0 0 8px;
+        }
+
+        #timelineGrid .timeline-cell:hover:not(.cell-selected):not(.cell-selected-tail) {
             cursor: pointer;
         }
       /* --- ПРЕМІУМ КНОПКИ (ТВАРИНИ ТА СТАТУС НОМЕРІВ) --- */
@@ -3271,8 +4077,8 @@ input[type="number"] {
 .custom-option:hover { background: #F3F4F6; color: #111827; }
 .custom-option.selected { background: #F0FDF4; color: #059669; font-weight: 600; }
     /* --- ПРІЛОАДЕР --- */
-        #preloader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 99999; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        #preloader.preloader-hidden { display: none !important; pointer-events: none !important; visibility: hidden; }
+        #preloader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 99999; display: flex; align-items: center; justify-content: center; transition: opacity 0.4s ease, visibility 0.4s ease; }
+        #preloader.preloader-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         @keyframes pulseAnim { 
             0% { transform: scale(1); opacity: 1; } 
             50% { transform: scale(1.05); opacity: 0.7; } 
@@ -3725,4 +4531,93 @@ input[type="number"] {
             font-weight: 800;
             color: #DC2626;
             font-variant-numeric: tabular-nums;
+        }
+
+        .booking-additional-services {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .booking-additional-services__title {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #9CA3AF;
+        }
+
+        .booking-additional-services__list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .booking-additional-services__item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid #E5E7EB;
+            background: #FAFAFA;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .booking-additional-services__item.is-active {
+            border-color: #A7F3D0;
+            background: linear-gradient(180deg, #F0FDF4 0%, #FAFAFA 100%);
+        }
+
+        .booking-additional-services__name {
+            margin: 0 0 2px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1F2937;
+        }
+
+        .booking-additional-services__price {
+            margin: 0;
+            font-size: 12px;
+            color: #6B7280;
+        }
+
+        .booking-additional-services__toggle {
+            margin: 0 !important;
+            flex-shrink: 0;
+        }
+
+        .booking-additional-services__badge {
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #FEF3C7;
+            color: #92400E;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .booking-promo-field__input {
+            width: 120px;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 10px;
+            background: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .booking-promo-field__input:focus {
+            outline: none;
+            border-color: #6B8E4E;
+            box-shadow: 0 0 0 3px rgba(107, 142, 78, 0.14);
         }

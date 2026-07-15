@@ -7,6 +7,12 @@ import {
 } from "@/lib/admin/adminSession";
 import { loadAdminNav, saveAdminNav } from "@/lib/admin/adminNavPersistence";
 import { parseAdminFetchError } from "@/lib/admin/parseAdminApiError";
+import { setCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
+import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
+import {
+  consumePrefetchedAdminInit,
+} from "@/lib/admin/adminInitPrefetch";
+import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
 import { isDiscountDraftId, dedupeDiscountsList } from "@/lib/admin/discountDraft";
@@ -15,6 +21,7 @@ import {
   reconcilePendingDeletedDiscounts,
 } from "@/lib/admin/discountPendingDeletes";
 import { fetchAdminInitData, silentSyncAdminData } from "./adminApi";
+import { mergeBookingsWithPending } from "./bookingUtils";
 import { PAGE_TITLES, showToast, syncLegacyGlobals } from "./adminGlobals";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
 import type {
@@ -35,9 +42,11 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     roomsList: Array.isArray(s.roomsList) ? s.roomsList : [],
     discountsList: Array.isArray(s.discountsList) ? s.discountsList : [],
     customServicesList: Array.isArray(s.customServicesList) ? s.customServicesList : [],
+    flexibleScheduleSettings: s.flexibleScheduleSettings,
     sysServicesList: Array.isArray(s.sysServicesList) ? s.sysServicesList : [],
     customPrices: s.customPrices && typeof s.customPrices === "object" ? s.customPrices : {},
     restrictions: s.restrictions && typeof s.restrictions === "object" ? s.restrictions : {},
+    closedDates: s.closedDates && typeof s.closedDates === "object" ? s.closedDates : {},
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
   };
@@ -90,6 +99,8 @@ export function useAdminApp(options?: {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appVisible, setAppVisible] = useState(false);
   const loadedTenantIdRef = useRef<string | null>(null);
+  const appVisibleRef = useRef(false);
+  appVisibleRef.current = appVisible;
   const initialViewBootstrapped = useRef(false);
   const activeViewRef = useRef<AdminViewName>("grid");
   activeViewRef.current = activeView;
@@ -97,8 +108,15 @@ export function useAdminApp(options?: {
   const applyServerData = useCallback(
     (data: AdminInitResponse, options?: { silent?: boolean }) => {
       const merged = mergeSettings(data.settings);
-      const nextBookings = data.bookings || [];
-      setBookings(nextBookings);
+      const serverBookings = data.bookings || [];
+      let mergedBookings: BookingRecord[] = serverBookings;
+
+      setBookings((prev) => {
+        mergedBookings = mergeBookingsWithPending(serverBookings, prev);
+        window.allBookings = mergedBookings;
+        return mergedBookings;
+      });
+
       setSettings((prev) => {
         const localRoomDrafts = (prev.roomsList || []).filter((r) => isRoomDraftId(r.id));
         const localDiscountDrafts = (prev.discountsList || []).filter((d) => isDiscountDraftId(d.id));
@@ -122,7 +140,7 @@ export function useAdminApp(options?: {
             discountsList: dedupeDiscountsList(serverDiscounts),
           };
         }
-        syncLegacyGlobals({ bookings: nextBookings, settings: nextSettings });
+        syncLegacyGlobals({ bookings: mergedBookings, settings: nextSettings });
         return nextSettings;
       });
       if (!options?.silent) {
@@ -143,9 +161,17 @@ export function useAdminApp(options?: {
   const loadInitData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
+    setAppVisible(false);
     try {
-      const data = await fetchAdminInitData();
+      const tenantId = membership?.tenantId || "";
+      const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
+      const data = prefetched ? await prefetched : await fetchAdminInitData();
       applyServerData(data);
+      const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
+      if (tenantId && logoUrl) {
+        setCachedTenantLogoUrl(tenantId, logoUrl);
+        setLastAdminTenantId(tenantId);
+      }
       setAppVisible(true);
     } catch (err) {
       if (isAdminUnauthorizedError(err)) {
@@ -162,12 +188,19 @@ export function useAdminApp(options?: {
     } finally {
       setIsLoading(false);
     }
-  }, [applyServerData]);
+  }, [applyServerData, membership?.tenantId]);
 
   useEffect(() => {
+    if (!authReady) return;
+
     const tenantId = membership?.tenantId;
-    if (!authReady || !tenantId) return;
-    if (loadedTenantIdRef.current === tenantId) return;
+    if (!tenantId) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (loadedTenantIdRef.current === tenantId && appVisibleRef.current) return;
+
     loadedTenantIdRef.current = tenantId;
     setAppVisible(false);
     void loadInitData();

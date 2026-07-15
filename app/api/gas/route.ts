@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 
 export const runtime = "nodejs";
 
@@ -99,7 +100,66 @@ export async function POST(request: Request) {
       redirect: "follow",
       cache: "no-store",
     });
-    return passthroughResponse(upstream);
+    const responseText = await upstream.text();
+    let payload: Record<string, unknown> | null = null;
+    try {
+      payload = JSON.parse(body) as Record<string, unknown>;
+    } catch {
+      payload = null;
+    }
+
+    let result: Record<string, unknown> | null = null;
+    try {
+      result = JSON.parse(responseText) as Record<string, unknown>;
+    } catch {
+      return new NextResponse(responseText, {
+        status: upstream.status,
+        headers: {
+          "Content-Type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+        },
+      });
+    }
+
+    const isPendingReview =
+      payload?.status === BOOKING_STATUS_PENDING_REVIEW ||
+      isPendingReviewStatus(String(payload?.status || ""));
+
+    if (
+      upstream.ok &&
+      result?.success !== false &&
+      !result?.error &&
+      payload?.source === "Сайт" &&
+      isPendingReview &&
+      result?.orderId
+    ) {
+      try {
+        const { notifyPendingBookingReview } = await import(
+          "@/lib/telegram/bookingReviewNotify"
+        );
+        await notifyPendingBookingReview({
+          orderId: String(result.orderId),
+          name: String(payload.name || ""),
+          phone: String(payload.phone || ""),
+          cottage: String(payload.cottage || ""),
+          checkIn: String(payload.checkIn || ""),
+          checkOut: String(payload.checkOut || ""),
+          guests: Number(payload.guests) || 2,
+          totalPrice: Number(payload.totalPrice) || 0,
+          prepayAmount: Number(payload.prepayAmount) || Number(result.prepayment) || 0,
+          comment: String(payload.comment || ""),
+          source: "Сайт",
+        });
+      } catch (err) {
+        console.error("[GAS proxy] notifyPendingBookingReview:", err);
+      }
+      return NextResponse.json({
+        ...result,
+        flow: "pending_review",
+        paymentData: undefined,
+      });
+    }
+
+    return NextResponse.json(result, { status: upstream.status });
   } catch (err) {
     return NextResponse.json(
       {

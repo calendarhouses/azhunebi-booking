@@ -1,12 +1,6 @@
-import { AdminLogo } from "@/components/admin/desktop/AdminLogo";
-import "./admin-session-loader.css";
+import { AdminPreloader } from "@/components/admin/AdminPreloader";
+import { ADMIN_PRELOADER_LOGO_SRC } from "@/lib/admin/adminPreloaderLogo";
 
 export function AdminSessionLoader() {
-  return (
-    <div className="admin-session-loader" role="status" aria-label="Завантаження">
-      <div className="admin-session-loader__pulse">
-        <AdminLogo variant="preloader" />
-      </div>
-    </div>
-  );
+  return <AdminPreloader visible logoUrl={ADMIN_PRELOADER_LOGO_SRC} />;
 }

@@ -6,18 +6,29 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
 import {
   fetchMembership,
   getSession,
+  getStoredAuthToken,
   GAS_AUTH_TOKEN_KEY,
   signOut as gasSignOut,
   type GasUser,
 } from "@/lib/gas-api";
 import { clearAdminTenantId, setAdminTenantId } from "@/components/admin/desktop/adminApi";
+import { getCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
+import {
+  ADMIN_PRELOADER_LOGO_SRC,
+  getLastAdminTenantId,
+  resolveAdminPreloaderLogoUrl,
+  setLastAdminTenantId,
+} from "@/lib/admin/adminPreloaderLogo";
+import {
+  clearAdminInitPrefetch,
+  prefetchAdminInitData,
+} from "@/lib/admin/adminInitPrefetch";
 
 export type TenantMembership = {
   tenantId: string;
@@ -32,6 +43,7 @@ type AuthContextValue = {
   loading: boolean;
   error: string | null;
   ready: boolean;
+  preloaderLogoUrl: string;
   signOut: () => Promise<void>;
   refreshMembership: () => Promise<void>;
 };
@@ -55,16 +67,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<TenantMembership | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const userIdRef = useRef<string | null>(null);
+  const [preloaderLogoUrl, setPreloaderLogoUrl] = useState<string>(() => {
+    if (typeof window === "undefined") return ADMIN_PRELOADER_LOGO_SRC;
+    const tenantId = getLastAdminTenantId();
+    return resolveAdminPreloaderLogoUrl(
+      tenantId ? getCachedTenantLogoUrl(tenantId) : null
+    );
+  });
+  const syncPreloaderLogo = useCallback((tenantId: string | null | undefined) => {
+    if (!tenantId) {
+      setPreloaderLogoUrl(ADMIN_PRELOADER_LOGO_SRC);
+      return;
+    }
+    setLastAdminTenantId(tenantId);
+    setPreloaderLogoUrl(
+      resolveAdminPreloaderLogoUrl(getCachedTenantLogoUrl(tenantId))
+    );
+  }, []);
 
   const applyMembership = useCallback((m: TenantMembership | null) => {
     setMembership(m);
+    syncPreloaderLogo(m?.tenantId);
     if (m?.tenantId) {
       setAdminTenantId(m.tenantId);
     } else {
       clearAdminTenantId();
+      clearAdminInitPrefetch();
     }
-  }, []);
+  }, [syncPreloaderLogo]);
 
   const refreshMembership = useCallback(async () => {
     const session = await getSession();
@@ -77,6 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { membership: m, error: err } = await fetchMembership(session.accessToken);
     applyMembership(m);
     setError(err);
+    if (session?.accessToken && m?.tenantId) {
+      void prefetchAdminInitData(m.tenantId, session.accessToken);
+    }
   }, [applyMembership]);
 
   useEffect(() => {
@@ -84,12 +117,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const init = async () => {
       setLoading(true);
+
+      const token = getStoredAuthToken();
+      const lastTenantId = getLastAdminTenantId();
+      if (token && lastTenantId) {
+        setAdminTenantId(lastTenantId);
+        void prefetchAdminInitData(lastTenantId, token);
+      }
+
       const session = await getSession();
 
       if (cancelled) return;
 
       setUser(session?.user ?? null);
-      userIdRef.current = session?.user?.id ?? null;
 
       if (!session) {
         applyMembership(null);
@@ -102,6 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       applyMembership(m);
       setError(err);
+      if (m?.tenantId) {
+        void prefetchAdminInitData(m.tenantId, session.accessToken);
+      }
       setLoading(false);
     };
 
@@ -122,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     clearAdminTenantId();
+    clearAdminInitPrefetch();
     clearAuthCookie();
     await gasSignOut();
     setUser(null);
@@ -139,10 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       ready,
+      preloaderLogoUrl,
       signOut,
       refreshMembership,
     }),
-    [user, membership, loading, error, ready, signOut, refreshMembership]
+    [user, membership, loading, error, ready, preloaderLogoUrl, signOut, refreshMembership]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

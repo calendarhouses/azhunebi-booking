@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AdminGridDashboard, bookingMoveKey } from "@/components/admin/dashboard/AdminGridDashboard";
+import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
+import { useAdminUndo, resolveActiveUndoScope } from "@/components/admin/undo/useAdminUndo";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { expireAdminSession } from "@/lib/admin/adminSession";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
@@ -9,13 +10,14 @@ import { isDiscountDraftId } from "@/lib/admin/discountDraft";
 import { DesktopBookingDrawer } from "../desktop/DesktopBookingDrawer";
 import { DesktopModals } from "../desktop/DesktopModals";
 import { DesktopOverlays } from "../desktop/DesktopOverlays";
-import { DesktopPreloader } from "../desktop/DesktopPreloader";
 import { registerAdminDesktopHandlers } from "../desktop/registerAdminDesktopHandlers";
 import { DesktopBookingsListView } from "../desktop/views/DesktopBookingsListView";
 import { DesktopGuestsView } from "../desktop/views/DesktopGuestsView";
 import { DesktopReportsView } from "../desktop/views/DesktopReportsView";
 import { MobileSettingsView } from "./views/MobileSettingsView";
 import { AdminLoadErrorScreen } from "@/components/admin/AdminLoadErrorScreen";
+import { AdminDocumentTitleSync } from "@/components/admin/AdminDocumentTitleSync";
+import { useAdminBootFromAdmin } from "@/components/admin/useAdminBootFromAdmin";
 import { useAdminApp } from "../desktop/useAdminApp";
 import { useAdminModals } from "../desktop/useAdminModals";
 import { useAdminUiBridge } from "../desktop/useAdminUiBridge";
@@ -32,6 +34,16 @@ export function AdminMobileApp() {
     : undefined;
   const pauseSilentSyncRef = useRef(false);
   const admin = useAdminApp({ platform: "mobile", pauseSilentSyncRef });
+  useAdminBootFromAdmin(admin, membership?.tenantId);
+  const adminUndo = useAdminUndo({
+    bookings: admin.bookings,
+    roomsList: admin.settings.roomsList,
+    setBookings: admin.setBookings,
+    setSettings: admin.setSettings,
+    onAfterBookingChange: admin.silentSync,
+    onSessionExpired: expireAdminSession,
+    activeUndoScope: resolveActiveUndoScope(admin.activeView, admin.settingsTab),
+  });
   const bridge = useAdminUiBridge({
     activeView: admin.activeView,
     bookings: admin.bookings,
@@ -40,6 +52,7 @@ export function AdminMobileApp() {
     silentSync: admin.silentSync,
     switchView: admin.switchView,
     signOut,
+    adminUndo,
   });
 
   const drawer = useBookingDrawer({
@@ -62,6 +75,7 @@ export function AdminMobileApp() {
     settingsTab: admin.settingsTab,
     priceTimelineBaseDateRef,
     restrictionsTimelineBaseDateRef,
+    adminUndo,
   });
 
   useEffect(() => {
@@ -104,12 +118,15 @@ export function AdminMobileApp() {
     );
   }
 
+  const branding = (admin.settings.branding || {}) as Record<string, unknown>;
+  const documentSiteTitle =
+    String(branding.site_title || "").trim() || membership?.tenantName || null;
+
   return (
     <MobileUiProvider>
+    <AdminDocumentTitleSync siteTitle={documentSiteTitle} enabled={admin.appVisible} />
     <div className="boso-admin-mobile">
       <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
-        <DesktopPreloader hidden={!admin.isLoading} />
-
         <MobileTopBar
           title={admin.pageMeta.title}
           showMainAction={admin.showMainAction}
@@ -145,13 +162,7 @@ export function AdminMobileApp() {
               onCreateBooking={(room, checkIn, checkOut) =>
                 drawer.openNewBookingDrawer(room, checkIn, checkOut)
               }
-              onBookingUpdated={(updated) => {
-                admin.setBookings((prev) =>
-                  prev.map((b) => (bookingMoveKey(b) === bookingMoveKey(updated) ? updated : b))
-                );
-              }}
-              onAfterBookingChange={admin.silentSync}
-              onSessionExpired={expireAdminSession}
+              adminUndo={adminUndo}
             />
           ) : null}
           <AdminViewPane view="guests" active={admin.activeView}>
@@ -187,6 +198,7 @@ export function AdminMobileApp() {
               modals={modals}
               priceTimelineBaseDateRef={priceTimelineBaseDateRef}
               restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}
+              adminUndo={adminUndo}
             />
           ) : null}
 
@@ -198,6 +210,7 @@ export function AdminMobileApp() {
             drawer={drawer}
             settings={admin.settings}
             bookings={admin.bookings}
+            onBookingReviewed={() => admin.silentSync()}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

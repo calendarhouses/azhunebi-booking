@@ -414,6 +414,19 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     font-size: 10px; 
     text-transform: uppercase;
 }
+.timeline-sidebar-header--khata {
+    text-transform: none;
+    letter-spacing: 0;
+    color: #374151;
+}
+.timeline-sidebar-header--khata .timeline-sidebar-header__title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #374151;
+    text-transform: none;
+    text-align: center;
+}
 /* ЗБІЛЬШЕНО: Висота рядка 60px */
 .timeline-room { height: 60px; border-bottom: 1px solid #E5E7EB; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 4px; font-size: 12px; font-weight: 700; color: #111827; line-height: 1.1;}
 .timeline-room span { font-size: 10px; font-weight: 500; color: #6B7280; margin-top: 4px; }
@@ -559,6 +572,10 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .booking-block.status-new { background: linear-gradient(135deg, #DEB887 0%, #CDA062 100%); color: #1A1A1A; }
 .booking-block.status-confirmed { background: linear-gradient(135deg, #6B8E23 0%, #4B5D28 100%); color: #FFFFFF; }
 .booking-block.status-cancelled { background: #F9FAFB; color: #9CA3AF; border: 1px dashed #D1D5DB; }
+.booking-block.status-pending-review {
+  background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+  color: #374151;
+}
 
 .booking-block.status-hutshub { background: linear-gradient(135deg, #C9D6D2 0%, #B2C4BE 100%); color: #1A332A; border-color: rgba(26, 51, 42, 0.15); }
 .booking-block .booking-guest-name { font-weight: 800 !important; }
@@ -1404,7 +1421,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-.boso-admin-mobile .preloader-hidden { opacity: 0 !important; pointer-events: none !important; }
+.boso-admin-mobile .preloader-hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
 
 /* Контекстне меню обмежень (було лише в admin-desktop.css — без цього текст «витікає» в main-content) */
 .boso-admin-mobile .restriction-bar-menu {
