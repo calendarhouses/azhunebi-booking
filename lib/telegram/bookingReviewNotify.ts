@@ -1,5 +1,5 @@
 import { processBookingReview } from "@/lib/admin/processBookingReview";
-import { getPublicSiteBaseUrl, normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
+import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { parsePendingServiceIdsFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { isTelegramConfigured } from "./config";
@@ -8,7 +8,6 @@ import {
   editTelegramMessage,
   sendTelegramMessage,
 } from "./sendMessage";
-import { getReviewWebhookSecret } from "./reviewSecret";
 
 export type PendingReviewNotifyInput = {
   orderId: string;
@@ -90,29 +89,7 @@ export function buildPendingReviewCaption(data: PendingReviewNotifyInput): strin
 }
 
 export function buildPendingReviewKeyboard(data: PendingReviewNotifyInput) {
-  const base = getPublicSiteBaseUrl().replace(/\/$/, "");
-  const isHttpsPublic = base.startsWith("https://");
   const orderId = data.orderId.trim();
-
-  if (isHttpsPublic) {
-    const secret = encodeURIComponent(getReviewWebhookSecret());
-    const encodedOrderId = encodeURIComponent(orderId);
-    return {
-      inline_keyboard: [
-        [
-          {
-            text: "✅ Прийняти",
-            url: `${base}/api/booking-review?decision=approve&orderId=${encodedOrderId}&key=${secret}`,
-          },
-          {
-            text: "❌ Відхилити",
-            url: `${base}/api/booking-review?decision=reject&orderId=${encodedOrderId}&key=${secret}`,
-          },
-        ],
-      ],
-    };
-  }
-
   return {
     inline_keyboard: [
       [
@@ -124,13 +101,7 @@ export function buildPendingReviewKeyboard(data: PendingReviewNotifyInput) {
 }
 
 export function buildPendingReviewCaptionWithHint(data: PendingReviewNotifyInput): string {
-  const base = getPublicSiteBaseUrl().replace(/\/$/, "");
-  let caption = buildPendingReviewCaption(data);
-  if (!base.startsWith("https://")) {
-    caption +=
-      "\n\n<i>Локально: кнопки в TG потребують webhook. Або відкрийте бронь в адмінці — там є «Прийняти».</i>";
-  }
-  return caption;
+  return buildPendingReviewCaption(data);
 }
 
 export async function notifyPendingBookingReview(
@@ -184,7 +155,7 @@ export async function handleBookingReviewCallback(
     await editTelegramMessage(
       chatId,
       messageId,
-      `❌ <b>Відхилено</b>\n🆔 <code>${orderId}</code>\n\nЗаявку скасовано.`,
+      `❌ <b>Скасовано</b>\n🆔 <code>${orderId}</code>\n\nЗаявку відхилено.`,
       { inline_keyboard: [] }
     );
     return;
