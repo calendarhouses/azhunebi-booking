@@ -9,9 +9,8 @@ import { BookingSpecialTariffsFields } from "./BookingSpecialTariffsFields";
 import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
-import { isAwaitingPaymentStatus, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
+import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 import { findBookingInList, resolveBookingOrderId } from "./bookingUtils";
-import { GuestMessengerButtons } from "../shared/GuestMessengerButtons";
 import {
   BookingReviewActions,
   BOOKING_STATUS_AWAITING_PAYMENT,
@@ -127,31 +126,6 @@ export function DesktopBookingDrawer({
             >
               Поточний статус: Очікує підтвердження
             </p>
-          ) : null}
-          {isAwaitingPaymentStatus(form.status) && form.phone ? (
-            <div
-              className="form-section"
-              style={{
-                marginTop: 8,
-                padding: 16,
-                borderRadius: 12,
-                border: "1px dashed #BFDBFE",
-                background: "#F8FAFC",
-              }}
-            >
-              <GuestMessengerButtons
-                booking={{
-                  id: activeBooking?.id,
-                  name: form.name,
-                  phone: form.phone,
-                  cottage: form.cottage,
-                  checkIn: form.checkIn,
-                  checkOut: form.checkOut,
-                  prepayAmount: Number(activeBooking?.prepayAmount) || undefined,
-                  totalPrice: Number(activeBooking?.totalPrice) || undefined,
-                }}
-              />
-            </div>
           ) : null}
           <form id="adminBookingForm">
             <div className="form-section">
