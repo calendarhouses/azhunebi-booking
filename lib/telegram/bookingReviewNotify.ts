@@ -142,10 +142,13 @@ export async function handleBookingReviewCallback(
 
   const result = await processBookingReview({ orderId, decision });
   if (!result.ok) {
-    await answerTelegramCallback(
-      callbackQueryId,
-      result.reason === "not_found" ? "Бронь не знайдено" : "Помилка оновлення"
-    );
+    const alert =
+      result.reason === "not_found"
+        ? "Бронь не знайдено"
+        : result.reason === "unauthorized"
+          ? "Немає доступу (секрет GAS). Звернись до розробника."
+          : `Помилка: ${result.reason || "оновлення"}`;
+    await answerTelegramCallback(callbackQueryId, alert);
     return;
   }
 

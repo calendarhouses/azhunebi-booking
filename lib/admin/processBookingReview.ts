@@ -35,9 +35,15 @@ export async function processBookingReview(params: {
       });
 
   if (!result.ok) {
+    const reason =
+      result.reason ||
+      (result as { error?: string }).error ||
+      "update_failed";
     return {
       ok: false,
-      reason: result.reason,
+      reason: String(reason).toLowerCase().includes("unauthorized")
+        ? "unauthorized"
+        : String(reason),
       orderId,
       decision: params.decision,
     };
@@ -47,14 +53,17 @@ export async function processBookingReview(params: {
     return { ok: true, orderId, decision: "reject" };
   }
 
-  const booking =
+  // Статус уже змінено в GAS — SMS/reload не повинні ламати успіх approve.
+  let booking =
     result.booking || (await fetchBookingByDisplayId(orderId).catch(() => null))?.booking;
+
   if (!booking) {
+    console.warn("[review] approve ok but booking payload missing", orderId);
     return {
-      ok: false,
-      reason: "booking_load_failed",
+      ok: true,
       orderId,
       decision: "approve",
+      smsLine: "Підтверджено, але дані броні не підвантажились для SMS.",
     };
   }
 
@@ -69,12 +78,23 @@ export async function processBookingReview(params: {
     totalPrice: booking.totalPrice,
   };
 
-  const notifyResult = await notifyGuestBookingApproved(guestBooking);
-  return {
-    ok: true,
-    orderId,
-    decision: "approve",
-    smsLine: formatSmsStatusLine(notifyResult),
-    booking: guestBooking,
-  };
+  try {
+    const notifyResult = await notifyGuestBookingApproved(guestBooking);
+    return {
+      ok: true,
+      orderId,
+      decision: "approve",
+      smsLine: formatSmsStatusLine(notifyResult),
+      booking: guestBooking,
+    };
+  } catch (err) {
+    console.error("[review] SMS notify threw", err);
+    return {
+      ok: true,
+      orderId,
+      decision: "approve",
+      smsLine: "Підтверджено, але SMS не вдалося надіслати.",
+      booking: guestBooking,
+    };
+  }
 }

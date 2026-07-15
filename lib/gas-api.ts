@@ -533,6 +533,7 @@ export async function reviewBookingDecision(params: {
   ok: boolean;
   booking?: GasBookingRecord;
   reason?: string;
+  error?: string;
 }> {
   try {
     const payload: Record<string, unknown> = {
@@ -544,7 +545,25 @@ export async function reviewBookingDecision(params: {
     if (params.tenantId) {
       payload.tenant_id = params.tenantId;
     }
-    return await gasPost(payload, { authToken: params.authToken ?? undefined });
+    const data = await gasPost<{
+      ok?: boolean;
+      booking?: GasBookingRecord;
+      reason?: string;
+      error?: string;
+      success?: boolean;
+      message?: string;
+    }>(payload, { authToken: params.authToken ?? undefined });
+
+    if (data.ok === true) {
+      return { ok: true, booking: data.booking };
+    }
+
+    const err = String(data.error || data.reason || data.message || "update_failed");
+    return {
+      ok: false,
+      reason: err.toLowerCase().includes("unauthorized") ? "unauthorized" : err,
+      error: data.error,
+    };
   } catch (err) {
     return {
       ok: false,
