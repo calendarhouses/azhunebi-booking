@@ -222,7 +222,7 @@ export function RuleConstructorDrawer({
             <SectionHeading
               customIcon={<RoomSidebarHouseIcon className="price-constructor-section-heading__icon" />}
             >
-              В якій саме хаті застосувати?
+              В якому саме будинку застосувати?
             </SectionHeading>
             <div className="price-constructor-chip-grid grid grid-cols-2 gap-3">
               <ToggleCard active={ruleForm.allRoomsActive} onClick={toggleAllRooms} className="col-span-2">

@@ -2555,7 +2555,7 @@
             overflow-y: visible;
         }
         .price-grid-premium .timeline-sidebar.price-grid-sidebar {
-            padding-bottom: 0;
+            padding-bottom: 40px;
             align-self: stretch;
             display: flex;
             flex-direction: column;
@@ -2665,7 +2665,7 @@
             border-bottom: none;
         }
         .price-grid-premium .timeline-rows {
-            padding-bottom: 0;
+            padding-bottom: 40px;
             overflow: visible;
         }
         /* Розгорнута шахматка цін (focus mode) — як головна шахматка */
@@ -2784,6 +2784,7 @@
         }
         .price-grid-premium--focus .timeline-grid-container {
             -webkit-overflow-scrolling: touch;
+            overflow-y: auto;
         }
         .main-content--price-grid-focus .price-grid-timeline--focus-root .timeline-focus-body .timeline-grid-container {
             flex: 1 1 auto;
@@ -2795,7 +2796,7 @@
             min-height: 0;
             overflow-y: auto;
             overflow-x: hidden;
-            padding-bottom: 16px;
+            padding-bottom: 40px;
         }
         .price-grid-premium--focus .timeline-sidebar--focus-body .price-grid-room,
         .price-grid-premium--focus .timeline-focus-body .timeline-row-bg.price-grid-row {
@@ -2858,7 +2859,7 @@
             margin-top: 1px;
         }
         .price-grid-premium--focus .timeline-rows {
-            padding-bottom: 16px;
+            padding-bottom: 40px;
             overflow: visible;
         }
         #priceGrid .price-cell.timeline-cell:hover:not(.cell-selected):not(.price-cell--editing) {
@@ -3440,6 +3441,7 @@
         #set-prices .price-grid-premium {
             width: 100%;
             max-width: 100%;
+            margin-bottom: 24px;
         }
         #set-prices .price-grid-timeline {
             width: 100%;
@@ -3458,6 +3460,10 @@
         }
         #set-restrictions {
             width: 100%;
+            padding-bottom: 24px;
+        }
+        #set-restrictions .price-grid-premium {
+            margin-bottom: 24px;
         }
         #set-restrictions .price-grid-premium .timeline-wrapper.price-grid-timeline {
             margin-top: 0;
