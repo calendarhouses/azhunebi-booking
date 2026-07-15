@@ -110,16 +110,14 @@ export function DesktopBookingsListView({
       {guestFilter ? (
         <div
           id="guestFilterTab"
+          className={isMobile ? "m-card-section guest-filter-banner" : undefined}
           style={
             isMobile
               ? {
                   display: "block",
-                  background: "#FFF",
-                  padding: 12,
-                  borderRadius: 12,
                   marginBottom: 16,
-                  border: "1px dashed #D1D5DB",
                   textAlign: "center",
+                  borderStyle: "dashed",
                 }
               : {
                   display: "flex",

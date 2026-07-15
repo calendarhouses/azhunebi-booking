@@ -14,6 +14,12 @@ const iconPhone = (
   </svg>
 );
 
+function telHref(phone: string): string | null {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length < 9) return null;
+  return `tel:+${digits}`;
+}
+
 export interface MobileGuestCardProps {
   name: string;
   phone: string;
@@ -23,6 +29,7 @@ export interface MobileGuestCardProps {
 
 export function MobileGuestCard({ name, phone, count, onShowBookings }: MobileGuestCardProps) {
   const initial = name.charAt(0).toUpperCase() || "👤";
+  const callHref = telHref(phone);
 
   return (
     <article className="boso-mobile-card boso-mobile-guest-card">
@@ -50,6 +57,11 @@ export function MobileGuestCard({ name, phone, count, onShowBookings }: MobileGu
       </div>
 
       <div className="boso-mobile-card__messengers">
+        {callHref ? (
+          <a href={callHref} className="btn-action tap-btn boso-mobile-card__call">
+            Дзвінок
+          </a>
+        ) : null}
         <a
           href={`https://t.me/+${phone}`}
           target="_blank"

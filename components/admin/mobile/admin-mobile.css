@@ -1,101 +1,183 @@
-/* Derived from old_boso_mobile.html */
-/* --- МОБІЛЬНА ПРЕМІУМ-ПАЛІТРА ТА БАЗА --- */
+/* --- МОБІЛЬНА ПРЕМІУМ-ПАЛІТРА (спільно з desktop premium tokens) --- */
 :root {
-    --bg-color: #F9FAFB; 
+    --bg-color: #F7F8F6;
     --card-bg: #FFFFFF;
-    --text-main: #111827; 
+    --text-main: #1A1A1A;
     --text-muted: #6B7280;
-    --accent: #556B2F; 
-    --accent-hover: #4B5D28; 
-    --success: #059669; 
-    --warning: #D97706; 
-    --danger: #DC2626; 
-    --nav-bg: #FFFFFF;
-    --safe-bottom: env(safe-area-inset-bottom, 16px);
+    --accent: #556B2F;
+    --accent-hover: #4B5D28;
+    --accent-soft: rgba(85, 107, 47, 0.1);
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --nav-bg: rgba(255, 255, 255, 0.92);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --tap-min: 44px;
+    --mobile-radius: 16px;
+    --mobile-radius-lg: 22px;
+    --mobile-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    --accent-gradient: linear-gradient(
+        135deg,
+        rgba(85, 107, 47, 0.96),
+        rgba(105, 125, 58, 0.92) 58%,
+        rgba(145, 124, 78, 0.84)
+    );
+    --accent-gradient-hover: linear-gradient(
+        135deg,
+        rgba(73, 92, 40, 0.97),
+        rgba(95, 113, 52, 0.94) 58%,
+        rgba(128, 108, 68, 0.9)
+    );
+    --accent-premium-border: rgba(193, 172, 118, 0.35);
+    --accent-premium-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 6px 18px rgba(30, 40, 24, 0.28);
+    --accent-premium-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 22px rgba(30, 40, 24, 0.34);
 }
 
-.boso-admin-mobile :where(*) { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; touch-action: pan-x pan-y; }
+.boso-admin-mobile :where(*) { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; touch-action: pan-x pan-y; }
 
 /* Вбиваємо системні свайпи Safari (Назад/Вперед) */
-.boso-admin-mobile { overscroll-behavior-x: none; overscroll-behavior-y: none; } 
+.boso-admin-mobile { overscroll-behavior-x: none; overscroll-behavior-y: none; }
 
 .boso-admin-mobile { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
+
+.m-card-section {
+    background: var(--card-bg);
+    border: 1px solid rgba(229, 231, 235, 0.9);
+    border-radius: var(--mobile-radius);
+    box-shadow: var(--mobile-shadow);
+    padding: 16px;
+}
+
+.m-sheet-handle {
+    width: 42px;
+    height: 5px;
+    border-radius: 999px;
+    background: #D1D5DB;
+    margin: 0 auto 12px;
+}
+
+.tap-btn {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+}
+
 /* --- ВЕРХНЯ ПАНЕЛЬ (TOP BAR) --- */
-.top-bar { 
-    height: 60px; 
-    background: var(--card-bg); 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 0 16px; 
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
-    z-index: 50; 
+.top-bar {
+    height: calc(60px + var(--safe-top));
+    padding: var(--safe-top) 14px 0;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+    z-index: 50;
     flex-shrink: 0;
     position: relative;
+    gap: 8px;
 }
-.top-logo { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; min-width: 0; }
+.top-logo { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; min-width: 0; flex: 1; }
 .top-logo span { color: var(--accent); }
 .top-logo .admin-logo { max-height: 32px; width: auto; max-width: 96px; object-fit: contain; }
-.top-title { font-size: 16px; font-weight: 700; color: var(--text-main); text-align: center; position: absolute; left: 50%; transform: translateX(-50%); }
-.top-action-btn { 
-    width: 38px; height: 38px; 
-    background: var(--accent-gradient); 
-    color: #F4F7EE; 
-    border-radius: 10px; 
-    display: flex; align-items: center; justify-content: center; 
-    border: 1px solid var(--accent-premium-border); cursor: pointer;
+.top-title { font-size: 15px; font-weight: 700; color: var(--text-main); text-align: center; position: absolute; left: 50%; transform: translateX(-50%); max-width: 46%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.top-bar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+.top-link-btn,
+.top-action-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.top-link-btn {
+    background: #F3F4F6;
+    color: var(--accent);
+    border: 1px solid #E5E7EB;
+}
+.top-action-btn {
+    background: var(--accent-gradient);
+    color: #F4F7EE;
+    border: 1px solid var(--accent-premium-border);
     box-shadow: var(--accent-premium-shadow);
 }
+.top-link-btn:active,
+.top-action-btn:active {
+    transform: scale(0.96);
+}
 
-/* --- НИЖНЯ НАВІГАЦІЯ (МАКСИМАЛЬНИЙ КОМФОРТ) --- */
-.bottom-nav { 
-    /* Збільшуємо загальну висоту до 90px, щоб підняти контент вище */
-    height: calc(85px + var(--safe-bottom)); 
-    background: var(--nav-bg); 
-    display: flex; 
-    justify-content: space-around; 
-    align-items: flex-start; 
-    /* Додаємо великий відступ знизу (18px), щоб букви не різало закругленням */
-    padding: 12px 0 calc(18px + var(--safe-bottom)) 0; 
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.08); 
-    z-index: 50; 
+/* --- НИЖНЯ НАВІГАЦІЯ --- */
+.bottom-nav {
+    height: calc(78px + var(--safe-bottom));
+    background: var(--nav-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 10px 4px calc(12px + var(--safe-bottom)) 4px;
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
+    z-index: 50;
     flex-shrink: 0;
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid rgba(229, 231, 235, 0.9);
 }
 
-.nav-item { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    /* Збільшений проміжок між іконкою та текстом для кращої читабельності */
-    gap: 7px; 
-    color: #9CA3AF; 
-    width: 20%; 
-    cursor: pointer; 
-    transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 5px 0;
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    color: #9CA3AF;
+    width: 20%;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 6px 0;
+    min-height: var(--tap-min);
+    border-radius: 14px;
 }
 
-.nav-item.active { 
-    color: var(--accent); 
-    /* Мікро-збільшення активної іконки */
-    transform: scale(1.08) translateY(-2px); 
+.nav-item.active {
+    color: var(--accent);
+    transform: translateY(-1px);
 }
 
-.nav-icon { 
-    width: 28px; 
-    height: 28px; 
-    stroke: currentColor; 
-    fill: none; 
-    stroke-width: 1.8; 
+.nav-item.active .nav-icon-wrap {
+    background: var(--accent-soft);
 }
 
-.nav-text { 
-    font-size: 11px; 
-    font-weight: 700; 
-    letter-spacing: 0.2px;
-    /* Гарантуємо, що текст не притиснутий */
-    line-height: 1; 
+.nav-icon-wrap {
+    width: 40px;
+    height: 32px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.nav-icon {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+}
+
+.nav-text {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15px;
+    line-height: 1;
 }
 
 /* --- ОСНОВНИЙ КОНТЕНТ --- */
@@ -143,10 +225,10 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 .boso-mobile-card {
     background: var(--card-bg);
-    border-radius: 16px;
+    border-radius: var(--mobile-radius);
     padding: 16px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    border: 1px solid #E5E7EB;
+    box-shadow: var(--mobile-shadow);
+    border: 1px solid rgba(229, 231, 235, 0.9);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -384,10 +466,36 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
      
 /* --- МОБІЛЬНА ШАХМАТКА --- */
 .timeline-toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-.timeline-nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.timeline-nav { display: flex; align-items: center; gap: 8px; background: white; padding: 6px 10px; border-radius: 10px; border: 1px solid #E5E7EB; }
-.btn-icon { background: #F9FAFB; border: 1px solid #E5E7EB; padding: 6px; border-radius: 8px; color: #4B5563; display: flex; align-items: center; justify-content: center;}
-.timeline-month-label { font-weight: 700; font-size: 13px; min-width: 110px; text-align: center; }
+.timeline-nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; flex-wrap: wrap; }
+.timeline-toolbar-actions { display: flex; align-items: center; gap: 8px; width: 100%; }
+.timeline-toolbar-actions .mode-toggle { flex: 1; min-width: 0; }
+.timeline-toolbar-actions .timeline-undo-btn--toolbar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: var(--tap-min);
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    background: #FFF;
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: var(--mobile-shadow);
+}
+.timeline-toolbar-actions .timeline-undo-btn--toolbar:disabled {
+    opacity: 0.45;
+    box-shadow: none;
+}
+.timeline-toolbar-actions .timeline-undo-btn--toolbar .timeline-undo-btn__icon {
+    width: 16px;
+    height: 16px;
+}
+.timeline-nav { display: flex; align-items: center; gap: 8px; background: white; padding: 6px 10px; border-radius: 10px; border: 1px solid #E5E7EB; min-width: 0; flex: 1; }
+.btn-icon { background: #F9FAFB; border: 1px solid #E5E7EB; padding: 6px; border-radius: 8px; color: #4B5563; display: flex; align-items: center; justify-content: center; min-width: var(--tap-min); min-height: var(--tap-min);}
+.timeline-month-label { font-weight: 700; font-size: 13px; min-width: 0; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .mode-toggle { display: flex; background: #E5E7EB; padding: 3px; border-radius: 10px; width: 100%;}
 .mode-btn { flex: 1; padding: 8px; font-size: 13px; font-weight: 600; color: #6B7280; text-align: center; border-radius: 8px; transition: 0.2s;}
@@ -601,8 +709,9 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17,24,39,0.5); backdrop-filter: blur(4px); z-index: 1000; opacity: 0; pointer-events: none; transition: 0.3s; }
 .drawer-overlay.active { opacity: 1; pointer-events: all; }
 .drawer { 
-    position: absolute; bottom: -100%; left: 0; width: 100%; max-height: 90vh; 
-    background: #FFF; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); 
+    position: absolute; bottom: -100%; left: 0; width: 100%; max-height: 92dvh; 
+    background: #FFF; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .drawer-overlay.active .drawer { bottom: 0; }
 .flatpickr-calendar { z-index: 10050 !important; }
@@ -1469,4 +1578,81 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
 @keyframes room-photo-spin {
     to { transform: rotate(360deg); }
+}
+
+/* --- Premium polish: cards, reports, booking microcards --- */
+.boso-mobile-card__action-btns {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    min-width: 0;
+}
+.boso-mobile-card__call {
+    flex: 0 0 auto;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none !important;
+    background: #ECFDF5;
+    color: #047857;
+    font-weight: 700;
+    font-size: 13px;
+}
+.boso-mobile-card__details {
+    flex: 1;
+}
+.boso-mobile-guest-card .boso-mobile-card__messengers {
+    flex-wrap: wrap;
+}
+.boso-mobile-guest-card .boso-mobile-card__call {
+    flex: 1;
+    min-width: calc(33% - 6px);
+}
+#view-guests input#guestSearch {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid #E5E7EB;
+    margin-bottom: 16px;
+    font-size: 15px;
+    background: #FFF;
+    box-shadow: var(--mobile-shadow);
+    min-height: var(--tap-min);
+}
+.boso-admin-mobile #view-grid .booking-block {
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+.boso-admin-mobile #view-grid .booking-inner-content--mobile .booking-guest-name {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.15;
+}
+.boso-admin-mobile #view-reports .metric-card {
+    border-radius: var(--mobile-radius);
+    box-shadow: var(--mobile-shadow);
+    min-height: 112px;
+}
+.boso-admin-mobile #view-reports .reports-tabs .m-tab,
+.boso-admin-mobile #view-reports .reports-tabs button {
+    min-height: 40px;
+}
+.boso-admin-mobile #view-settings .btn-primary.tap-btn {
+    width: 100%;
+    min-height: var(--tap-min);
+    margin-bottom: 14px;
+    border-radius: 14px;
+}
+.boso-admin-mobile #view-settings .settings-tab-content {
+    padding-bottom: calc(24px + var(--safe-bottom));
+}
+.boso-admin-mobile .modal-overlay.active .modal-box {
+    padding-bottom: calc(16px + var(--safe-bottom));
+}
+.boso-admin-mobile .modal-box .m-sheet-handle {
+    display: block;
 }

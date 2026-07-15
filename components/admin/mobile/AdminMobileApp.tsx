@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAdminUndo, resolveActiveUndoScope } from "@/components/admin/undo/useAdminUndo";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -14,7 +14,7 @@ import { registerAdminDesktopHandlers } from "../desktop/registerAdminDesktopHan
 import { DesktopBookingsListView } from "../desktop/views/DesktopBookingsListView";
 import { DesktopGuestsView } from "../desktop/views/DesktopGuestsView";
 import { DesktopReportsView } from "../desktop/views/DesktopReportsView";
-import { MobileSettingsView } from "./views/MobileSettingsView";
+import { DesktopSettingsView } from "../desktop/views/DesktopSettingsView";
 import { AdminLoadErrorScreen } from "@/components/admin/AdminLoadErrorScreen";
 import { AdminDocumentTitleSync } from "@/components/admin/AdminDocumentTitleSync";
 import { useAdminBootFromAdmin } from "@/components/admin/useAdminBootFromAdmin";
@@ -131,6 +131,7 @@ export function AdminMobileApp() {
           title={admin.pageMeta.title}
           showMainAction={admin.showMainAction}
           onCreateBooking={() => drawer.openNewBookingDrawer()}
+          publicBookUrl={publicBookUrl}
         />
 
         <div className="main-content">
@@ -189,7 +190,8 @@ export function AdminMobileApp() {
             />
           </AdminViewPane>
           {admin.activeView === "settings" ? (
-            <MobileSettingsView
+            <DesktopSettingsView
+              layout="mobile"
               settings={admin.settings}
               tenantName={membership?.tenantName}
               onSettingsChange={admin.setSettings}

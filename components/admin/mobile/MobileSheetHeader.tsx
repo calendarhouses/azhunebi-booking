@@ -19,7 +19,7 @@ export function MobileSheetHeader({ title, onClose, className = "drawer-header" 
         padding: "12px 20px 16px",
       }}
     >
-      <div className="drag-handle" />
+      <div className="m-sheet-handle drag-handle" aria-hidden />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
         {typeof title === "string" ? <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{title}</h2> : title}
         <button type="button" className="close-btn tap-btn" onClick={onClose} aria-label="Закрити">

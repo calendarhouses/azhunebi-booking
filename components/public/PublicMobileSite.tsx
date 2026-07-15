@@ -20,12 +20,26 @@ export function PublicMobileSite() {
 
   const logoUrl = (runtime?.branding.logo_url as string) || null;
   const siteTitle = (runtime?.branding.site_title as string) || runtime?.tenantName || null;
+  const brandName = siteTitle || runtime?.tenantName || "Бронювання";
 
   return (
     <>
       <PublicPreloader visible={preloaderVisible} logoUrl={logoUrl} alt={siteTitle} />
 
       <div id="screen-list" className={`screen ${activeScreen === "list" ? "active" : ""}`}>
+        <header className="public-mobile-brand">
+          <div className="public-mobile-brand__inner">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="public-mobile-brand__logo" src={logoUrl} alt={brandName} />
+            ) : null}
+            <div className="public-mobile-brand__text">
+              <h1 className="public-mobile-brand__title">{brandName}</h1>
+              <p className="public-mobile-brand__sub">Оберіть будинок і дати перебування</p>
+            </div>
+          </div>
+        </header>
+
         <div className="page-wrap" id="cabinsContainer">
           {!runtime || runtime.rooms.length === 0 ? (
             <div className="loading-state">
@@ -49,7 +63,7 @@ export function PublicMobileSite() {
       <MobileBookingDrawer />
 
       <div id="screen-success" className={`screen ${activeScreen === "success" ? "active" : ""}`}>
-        <div className="page-wrap">
+        <div className="page-wrap page-wrap--success">
           <div className="success-wrap fade-in">
             <div
               className={`success-icon-premium${successFlow === "pending_review" ? " success-icon-premium--pending" : ""}`}

@@ -99,7 +99,7 @@ export function MobileBottomNav({ activeView, onNavigate }: MobileBottomNavProps
             if (e.key === "Enter" || e.key === " ") onNavigate(item.view);
           }}
         >
-          {item.icon}
+          <span className="nav-icon-wrap">{item.icon}</span>
           <span className="nav-text">{item.label}</span>
         </div>
       ))}

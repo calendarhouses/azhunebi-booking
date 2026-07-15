@@ -1,6 +1,6 @@
 "use client";
 
-import { Infinity as InfinityIcon } from "lucide-react";
+import { Infinity as InfinityIcon, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent, WheelEvent } from "react";
 import { parseSafeDate } from "../adminDates";
@@ -1307,9 +1307,24 @@ export function DesktopTimelineView({
     .filter(Boolean)
     .join(" ");
 
-  const sidebarUndoProps = onUndoMove
-    ? { onUndoMove, canUndoMove, isUndoing }
-    : {};
+  const sidebarUndoProps =
+    onUndoMove && !isMobile ? { onUndoMove, canUndoMove, isUndoing } : {};
+
+  const timelineUndoButton =
+    isMobile && onUndoMove ? (
+      <button
+        type="button"
+        className={`timeline-undo-btn timeline-undo-btn--toolbar tap-btn${isUndoing ? " timeline-undo-btn--busy" : ""}`}
+        onClick={onUndoMove}
+        disabled={!canUndoMove || isUndoing}
+        aria-label="Скасувати останню дію"
+        aria-busy={isUndoing}
+        title={canUndoMove ? "Скасувати останню дію" : "Немає дій для скасування"}
+      >
+        <Undo2 className="timeline-undo-btn__icon" strokeWidth={2} aria-hidden />
+        <span>Назад</span>
+      </button>
+    ) : null;
 
   const timelineMonthNav = (
     <div className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}>
@@ -1411,17 +1426,23 @@ export function DesktopTimelineView({
   ) : (
     <div className="timeline-toolbar">
       {isMobile ? (
-        <div className="timeline-nav-row">
-          {timelineMonthNav}
-          {timelineTodayButton}
-        </div>
+        <>
+          <div className="timeline-nav-row">
+            {timelineMonthNav}
+            {timelineTodayButton}
+          </div>
+          <div className="timeline-toolbar-actions">
+            {timelineUndoButton}
+            {timelineModeToggle}
+          </div>
+        </>
       ) : (
         <>
           {timelineMonthNav}
           {timelineTodayButton}
+          {timelineModeToggle}
         </>
       )}
-      {timelineModeToggle}
     </div>
   );
 

@@ -11,6 +11,12 @@ import {
 import type { BookingRecord } from "../desktop/types";
 import { iconCalMobile, iconMoonMobile, iconPhoneMobile } from "./mobileBookingRowIcons";
 
+function telHref(phone: string): string | null {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length < 9) return null;
+  return `tel:+${digits}`;
+}
+
 export interface MobileBookingCardProps {
   booking: BookingRecord;
   onOpen: (event: React.MouseEvent | null, row: number | string) => void;
@@ -25,6 +31,7 @@ export function MobileBookingCard({ booking: b, onOpen }: MobileBookingCardProps
   const clientName = displayClientName(b.name);
   const initial = clientName.charAt(0).toUpperCase() || "👤";
   const phoneDisplay = displayPhone(b.phone);
+  const callHref = telHref(String(b.phone || ""));
 
   return (
     <article className="boso-mobile-card boso-mobile-booking-card">
@@ -59,13 +66,20 @@ export function MobileBookingCard({ booking: b, onOpen }: MobileBookingCardProps
 
       <div className="boso-mobile-card__actions">
         <div className={`badge ${badgeClass} boso-mobile-card__status`}>{b.status}</div>
-        <button
-          type="button"
-          className="btn-primary tap-btn boso-mobile-card__details"
-          onClick={(e) => onOpen(e, b.id || b.row)}
-        >
-          Деталі
-        </button>
+        <div className="boso-mobile-card__action-btns">
+          {callHref ? (
+            <a href={callHref} className="btn-action tap-btn boso-mobile-card__call" aria-label="Зателефонувати">
+              Дзвінок
+            </a>
+          ) : null}
+          <button
+            type="button"
+            className="btn-primary tap-btn boso-mobile-card__details"
+            onClick={(e) => onOpen(e, b.id || b.row)}
+          >
+            Деталі
+          </button>
+        </div>
       </div>
     </article>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, type CSSProperties } from "react";
 import { MessengerIcon } from "@/components/admin/shared/MessengerButtons";
+import { useMobileUi } from "@/components/admin/mobile/MobileUiContext";
 import { METRIC_ICON_PATHS } from "./metricIcons";
 import type { BosoDetailItem, BosoDetailKey } from "./types";
 import {
@@ -173,6 +174,7 @@ export function AnalyticsDetailsDrawer({
   onOpenBooking,
   onEditTransaction,
 }: AnalyticsDetailsDrawerProps) {
+  const isMobile = useMobileUi();
   const iconPaths =
     METRIC_ICON_PATHS[detailKey as keyof typeof METRIC_ICON_PATHS] ?? METRIC_ICON_PATHS.sum;
 
@@ -205,16 +207,28 @@ export function AnalyticsDetailsDrawer({
       />
       <aside
         className={cn(
-          "absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-white antialiased",
-          "shadow-[-16px_0_40px_rgba(15,23,42,0.08)]",
-          "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          open ? "translate-x-0" : "translate-x-full"
+          "flex flex-col bg-white antialiased",
+          isMobile
+            ? [
+                "absolute bottom-0 left-0 right-0 max-h-[92dvh] w-full rounded-t-[22px]",
+                "shadow-[0_-16px_40px_rgba(15,23,42,0.12)]",
+                "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "pb-[env(safe-area-inset-bottom,0px)]",
+                open ? "translate-y-0" : "translate-y-full",
+              ]
+            : [
+                "absolute right-0 top-0 h-full w-full max-w-lg",
+                "shadow-[-16px_0_40px_rgba(15,23,42,0.08)]",
+                "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                open ? "translate-x-0" : "translate-x-full",
+              ]
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="analytics-details-title"
       >
-        <header className="shrink-0 border-b border-slate-200 p-6">
+        {isMobile ? <div className="m-sheet-handle mt-3 shrink-0" aria-hidden /> : null}
+        <header className={cn("shrink-0 border-b border-slate-200", isMobile ? "px-5 pb-4 pt-1" : "p-6")}>
           <div className="flex items-center gap-3">
             <MetricHeaderIcon
               compact
@@ -224,7 +238,10 @@ export function AnalyticsDetailsDrawer({
             />
             <h2
               id="analytics-details-title"
-              className="min-w-0 flex-1 text-xl font-semibold leading-tight tracking-tight text-slate-900"
+              className={cn(
+                "min-w-0 flex-1 font-semibold leading-tight tracking-tight text-slate-900",
+                isMobile ? "text-lg" : "text-xl"
+              )}
             >
               {title}
             </h2>
@@ -239,7 +256,12 @@ export function AnalyticsDetailsDrawer({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/60 to-white p-6">
+        <div
+          className={cn(
+            "flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/60 to-white",
+            isMobile ? "p-4" : "p-6"
+          )}
+        >
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
               <MetricHeaderIcon iconPaths={iconPaths} iconBg={bgHex} iconColor={colorHex} />
@@ -279,7 +301,12 @@ export function AnalyticsDetailsDrawer({
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-slate-200 bg-slate-50 px-6 py-4">
+        <footer
+          className={cn(
+            "shrink-0 border-t border-slate-200 bg-slate-50",
+            isMobile ? "px-5 py-3" : "px-6 py-4"
+          )}
+        >
           <button type="button" className={cn(btnPrimaryClass, "w-full")} onClick={onClose}>
             Закрити
           </button>
