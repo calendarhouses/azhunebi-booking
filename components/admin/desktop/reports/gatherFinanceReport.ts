@@ -5,29 +5,54 @@ import {
   paidUntilDate,
   paymentsInPeriod,
 } from "@/lib/admin/bookingPayments";
-import type { BookingRecord, RoomConfig, TransactionConfig } from "../types";
+import type {
+  BookingRecord,
+  CustomServiceConfig,
+  RoomConfig,
+  TransactionConfig,
+} from "../types";
 import {
   formatFinanceReportPeriodDisplay,
   getReportPeriodDates,
   isBookingCheckInInPeriod,
 } from "./reportPeriod";
+import { attributeBookingServiceFees } from "./serviceFeeAttribution";
 import type { FinanceReport, ReportPeriod } from "./types";
 
 export type GatherFinanceReportInput = {
   bookings: BookingRecord[];
   transactions: TransactionConfig[];
   roomsList?: RoomConfig[];
+  customServicesList?: CustomServiceConfig[];
   period: ReportPeriod;
   periodLabel: string;
   customRange?: { start: Date; end: Date } | null;
 };
 
 export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceReport {
-  const { bookings, transactions, roomsList = [], period, periodLabel, customRange } = input;
+  const {
+    bookings,
+    transactions,
+    roomsList = [],
+    customServicesList = [],
+    period,
+    periodLabel,
+    customRange,
+  } = input;
   const { startDate, endDate } = getReportPeriodDates(period, periodLabel, customRange);
   const periodDisplay = formatFinanceReportPeriodDisplay(period, periodLabel, startDate, endDate);
 
-  const breakdown = { base: 0, guests: 0, pets: 0, earlyLate: 0 };
+  const breakdown = {
+    base: 0,
+    guests: 0,
+    pets: 0,
+    earlyLate: 0,
+    services: {} as Record<string, number>,
+  };
+  const serviceNames: Record<string, string> = {};
+  customServicesList.forEach((s) => {
+    serviceNames[String(s.id)] = s.name || `Послуга ${s.id}`;
+  });
   const payments = { cash: 0, card: 0, fop: 0 };
   let bookingsCount = 0;
   let bookingIncome = 0;
@@ -68,7 +93,7 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
     if (!isBookingCheckInInPeriod(String(b.checkIn), startDate, endDate)) return;
 
     const price = Number(b.totalPrice) || 0;
-    const paid = paidUntilDate(b, endDate);
+    void paidUntilDate(b, endDate);
     const periodPays = paymentsInPeriod(b, startDate, endDate);
 
     periodPays.forEach((p) => {
@@ -114,12 +139,30 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
             ? 500 + 200 * nights
             : 0;
       const feeEarlyLate = (Number(b.earlyFee) || 0) + (Number(b.lateFee) || 0);
+      const { lines, leftoverOther } = attributeBookingServiceFees({
+        booking: b,
+        services: customServicesList,
+        nights,
+      });
       const ratio = price > 0 ? periodPaidSum / price : 1;
       breakdown.pets += Math.round(feePets * ratio);
       breakdown.guests += Math.round(feeGuests * ratio);
       breakdown.earlyLate += Math.round(feeEarlyLate * ratio);
+      let servicesPaid = 0;
+      for (const line of lines) {
+        const part = Math.round(line.amount * ratio);
+        breakdown.services[line.id] = (breakdown.services[line.id] || 0) + part;
+        serviceNames[line.id] = line.name;
+        servicesPaid += part;
+      }
+      const leftoverPaid = Math.round(leftoverOther * ratio);
       breakdown.base += Math.round(
-        periodPaidSum - feePets * ratio - feeGuests * ratio - feeEarlyLate * ratio
+        periodPaidSum -
+          feePets * ratio -
+          feeGuests * ratio -
+          feeEarlyLate * ratio -
+          servicesPaid -
+          leftoverPaid
       );
     }
   });
@@ -133,6 +176,14 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
     incomeLines.push({ title: "Тварини", amount: breakdown.pets, sub: "" });
   if (breakdown.earlyLate > 0)
     incomeLines.push({ title: "Гнучкий графік", amount: breakdown.earlyLate, sub: "" });
+  for (const [id, amount] of Object.entries(breakdown.services)) {
+    if (amount <= 0) continue;
+    incomeLines.push({
+      title: serviceNames[id] || `Послуга ${id}`,
+      amount,
+      sub: "Додаткова послуга",
+    });
+  }
 
   const expenseLines: FinanceReport["expenseLines"] = [];
   let manualIncomeTotal = 0;

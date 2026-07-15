@@ -360,7 +360,7 @@ export function useAdminModals({
         });
       } else if (type === "transaction") {
         const t = id ? transactions.find((x) => x.id === id) : undefined;
-        setTransactionForm(buildTransactionForm(t || {}));
+        setTransactionForm(buildTransactionForm(t || {}, settings.customServicesList));
       }
       setGenericOpen(true);
     },

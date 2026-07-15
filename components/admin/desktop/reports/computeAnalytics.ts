@@ -10,6 +10,7 @@ import { activeBookingPhrase, otherCheckInDatePhrase } from "../adminPlural";
 import type {
   AdminSettingsPayload,
   BookingRecord,
+  CustomServiceConfig,
   RoomConfig,
   TransactionConfig,
 } from "../types";
@@ -18,6 +19,11 @@ import {
   getAnalyticsPeriodRange,
   isBookingCheckInInPeriod,
 } from "./reportPeriod";
+import {
+  attributeBookingServiceFees,
+  matchServiceByCategoryName,
+  serviceDetailKey,
+} from "./serviceFeeAttribution";
 import type {
   AnalyticsResult,
   BosoDetailItem,
@@ -32,6 +38,7 @@ export type ComputeAnalyticsInput = {
   transactions: TransactionConfig[];
   roomsList: RoomConfig[];
   customPrices: AdminSettingsPayload["customPrices"];
+  customServicesList?: CustomServiceConfig[];
   period: ReportPeriod;
   periodLabel: string;
   customRange?: { start: Date; end: Date } | null;
@@ -123,16 +130,28 @@ function addPeriodPaymentStats(
   }
 }
 
+function ensureDetailBucket(details: BosoDetails, key: string): BosoDetailItem[] {
+  if (!details[key]) details[key] = [];
+  return details[key];
+}
+
 export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult {
   const {
     bookings,
     transactions,
     roomsList,
     customPrices,
+    customServicesList = [],
     period,
     periodLabel,
     customRange,
   } = input;
+
+  const services = customServicesList || [];
+  const serviceNames: Record<string, string> = {};
+  services.forEach((s) => {
+    serviceNames[String(s.id)] = s.name || `Послуга ${s.id}`;
+  });
 
   const periodRange = getAnalyticsPeriodRange(period, periodLabel, customRange);
   const { startDate, endDate, prevStartDate, prevEndDate } = periodRange;
@@ -155,12 +174,17 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
   let currGuests = 0;
   let currPets = 0;
   let currEarlyLate = 0;
-  let currVat = 0;
-  let currBikes = 0;
   let currOther = 0;
   let totalIncome = 0;
   let totalExpense = 0;
-  const incomeBreakdown = { base: 0, guests: 0, pets: 0, earlyLate: 0 };
+  const serviceRevenue: Record<string, number> = {};
+  const incomeBreakdown = {
+    base: 0,
+    guests: 0,
+    pets: 0,
+    earlyLate: 0,
+    services: {} as Record<string, number>,
+  };
   const details: BosoDetails = emptyBosoDetails();
 
   const globalRoomCounts: Record<string, number> = {};
@@ -239,10 +263,6 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
           : b.pets === "Так" || b.pets === true
             ? 500 + 200 * nights
             : 0;
-      const feeDayGuests =
-        b.dayGuestFee !== undefined && b.dayGuestFee !== ""
-          ? Number(b.dayGuestFee)
-          : 0;
 
       if (feeGuests > 0) {
         currGuests += feeGuests;
@@ -252,12 +272,29 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
         currPets += feePets;
         details.pets.push({ ...baseObj, amount: feePets });
       }
-      if (feeDayGuests > 0) {
-        currOther += feeDayGuests;
+
+      const { lines: serviceLines, leftoverOther } = attributeBookingServiceFees({
+        booking: b,
+        services,
+        nights,
+      });
+      let bookingServicesTotal = 0;
+      for (const line of serviceLines) {
+        serviceRevenue[line.id] = (serviceRevenue[line.id] || 0) + line.amount;
+        if (!serviceNames[line.id]) serviceNames[line.id] = line.name;
+        bookingServicesTotal += line.amount;
+        ensureDetailBucket(details, serviceDetailKey(line.id)).push({
+          ...baseObj,
+          amount: line.amount,
+          name: `${baseObj.name} (${line.name})`,
+        });
+      }
+      if (leftoverOther > 0) {
+        currOther += leftoverOther;
         details.other.push({
           ...baseObj,
-          amount: feeDayGuests,
-          name: `${baseObj.name} (Денні гості)`,
+          amount: leftoverOther,
+          name: `${baseObj.name} (Інші послуги)`,
         });
       }
 
@@ -286,8 +323,20 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
         incomeBreakdown.pets += feePets * ratio;
         incomeBreakdown.guests += feeGuests * ratio;
         incomeBreakdown.earlyLate += feeEarlyLate * ratio;
+        let servicesPaid = 0;
+        for (const line of serviceLines) {
+          const part = line.amount * ratio;
+          incomeBreakdown.services[line.id] = (incomeBreakdown.services[line.id] || 0) + part;
+          servicesPaid += part;
+        }
+        const leftoverPaid = leftoverOther * ratio;
         incomeBreakdown.base +=
-          paid - feePets * ratio - feeGuests * ratio - feeEarlyLate * ratio;
+          paid -
+          feePets * ratio -
+          feeGuests * ratio -
+          feeEarlyLate * ratio -
+          servicesPaid -
+          leftoverPaid;
       }
 
       if (b.cottage) {
@@ -303,6 +352,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       sourceCounts[src] = (sourceCounts[src] || 0) + 1;
       const rawDateKey = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, "0")}-${String(bDate.getDate()).padStart(2, "0")}`;
       revenueTimeline[rawDateKey] = (revenueTimeline[rawDateKey] || 0) + price;
+      void bookingServicesTotal;
     }
 
     if (
@@ -339,15 +389,26 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       if (t.category === "Плата за раннє заселення/пізнє виселення") {
         currEarlyLate += t.amount;
         details.earlyLate.push(tObj);
-      } else if (t.category === "Чан") {
-        currVat += t.amount;
-        details.vat.push(tObj);
-      } else if (t.category === "Оренда велосипедів") {
-        currBikes += t.amount;
-        details.bikes.push(tObj);
-      } else if (t.category === "Інший дохід" || t.category === "Міні-бар") {
-        currOther += t.amount;
-        details.other.push(tObj);
+      } else if (t.category === "Додаткові гості") {
+        currGuests += t.amount;
+        details.guests.push(tObj);
+      } else if (t.category === "Домашні тварини") {
+        currPets += t.amount;
+        details.pets.push(tObj);
+      } else {
+        const matched = matchServiceByCategoryName(String(t.category || ""), services);
+        if (matched) {
+          const id = String(matched.id);
+          serviceRevenue[id] = (serviceRevenue[id] || 0) + t.amount;
+          serviceNames[id] = matched.name || serviceNames[id] || `Послуга ${id}`;
+          ensureDetailBucket(details, serviceDetailKey(id)).push(tObj);
+        } else if (t.category === "Інший дохід" || t.category === "Міні-бар") {
+          currOther += t.amount;
+          details.other.push(tObj);
+        } else {
+          currOther += t.amount;
+          details.other.push(tObj);
+        }
       }
     } else {
       totalExpense += t.amount;
@@ -368,8 +429,8 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       bestRoom = r;
     }
   }
-  const extraTotal =
-    currPets + currGuests + currVat + currBikes + currEarlyLate + currOther;
+  const servicesTotal = Object.values(serviceRevenue).reduce((s, v) => s + v, 0);
+  const extraTotal = currPets + currGuests + currEarlyLate + currOther + servicesTotal;
   let aiSummaryHtml = "";
   if (currSum === 0 && currCount === 0) {
     if (bookingsOutsidePeriod > 0 && period !== "all") {
@@ -395,10 +456,12 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
   const serviceCardOrder = [
     { id: "cardPets", val: currPets },
     { id: "cardGuests", val: currGuests },
-    { id: "cardVat", val: currVat },
-    { id: "cardBikes", val: currBikes },
     { id: "cardEarlyLate", val: currEarlyLate },
     { id: "cardOther", val: currOther },
+    ...Object.entries(serviceRevenue).map(([id, val]) => ({
+      id: `cardSvc-${id}`,
+      val,
+    })),
   ]
     .sort((a, b) => b.val - a.val)
     .map((s) => ({ id: s.id, val: s.val }));
@@ -436,6 +499,14 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
     incomeBreakdown.earlyLate,
     "income"
   );
+  for (const [id, amount] of Object.entries(incomeBreakdown.services)) {
+    pushSystemRow(
+      serviceNames[id] || `Послуга ${id}`,
+      "Додаткова послуга",
+      amount,
+      "income"
+    );
+  }
 
   filteredTrans.forEach((t) => {
     const dateStr = parseSafeDate(String(t.date)).toLocaleDateString("uk-UA", {
@@ -471,8 +542,8 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       currGuests,
       currPets,
       currEarlyLate,
-      currVat,
-      currBikes,
+      serviceRevenue,
+      serviceNames,
       currOther,
       totalIncome,
       totalExpense,

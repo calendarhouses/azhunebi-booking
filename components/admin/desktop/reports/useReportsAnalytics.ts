@@ -115,6 +115,7 @@ export function useReportsAnalytics(params: UseReportsAnalyticsParams) {
       transactions,
       roomsList,
       customPrices,
+      customServicesList: settings.customServicesList || [],
       period,
       periodLabel,
       customRange,
@@ -125,7 +126,16 @@ export function useReportsAnalytics(params: UseReportsAnalyticsParams) {
       window.bosoDetails = result.details;
     }
     return result;
-  }, [bookings, transactions, roomsList, customPrices, period, periodLabel, customRange]);
+  }, [
+    bookings,
+    transactions,
+    roomsList,
+    customPrices,
+    settings.customServicesList,
+    period,
+    periodLabel,
+    customRange,
+  ]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -414,6 +424,8 @@ export function useReportsAnalytics(params: UseReportsAnalyticsParams) {
       const report = gatherFinanceReport({
         bookings,
         transactions,
+        roomsList,
+        customServicesList: settings.customServicesList || [],
         period,
         periodLabel,
         customRange,
@@ -506,6 +518,8 @@ export function useReportsAnalytics(params: UseReportsAnalyticsParams) {
   }, [
     bookings,
     transactions,
+    roomsList,
+    settings.customServicesList,
     period,
     periodLabel,
     customRange,
@@ -543,7 +557,15 @@ export function useReportsAnalytics(params: UseReportsAnalyticsParams) {
       return { period, periodLabel, startDate: new Date(), endDate: new Date() };
     };
     w.gatherFinanceReportForPeriod = () =>
-      gatherFinanceReport({ bookings, transactions, period, periodLabel, customRange });
+      gatherFinanceReport({
+        bookings,
+        transactions,
+        roomsList,
+        customServicesList: settings.customServicesList || [],
+        period,
+        periodLabel,
+        customRange,
+      });
     w.downloadFinanceReportToTelegram = downloadFinanceReportToTelegram;
     w.openUniversalDetails = openUniversalDetails;
     w.closeUniversalDetails = closeUniversalDetails;
@@ -574,6 +596,8 @@ export function useReportsAnalytics(params: UseReportsAnalyticsParams) {
     closeFinanceReportResultModal,
     bookings,
     transactions,
+    roomsList,
+    settings.customServicesList,
     period,
     periodLabel,
     customRange,

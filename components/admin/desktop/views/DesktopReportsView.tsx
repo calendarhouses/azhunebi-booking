@@ -1,16 +1,25 @@
 "use client";
 
 import { useEffect, type CSSProperties, type MouseEvent } from "react";
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../types";
+import { buildIncomeCategories, EXPENSE_CATEGORIES } from "../types";
 import type { AdminSettingsPayload, BookingRecord, TransactionConfig } from "../types";
 import { getCategoryIconPath, INLINE_CARD_CAT_ICONS, DEFAULT_CAT_ICON } from "../reports/financeCategoryIcons";
 import { FinanceMobileTable } from "../../mobile/FinanceMobileTable";
 import { MetricCard } from "../reports/MetricCard";
 import { METRIC_ICON_PATHS } from "../reports/metricIcons";
+import { serviceDetailKey } from "../reports/serviceFeeAttribution";
 import { useReportsAnalytics } from "../reports/useReportsAnalytics";
 import { useAnimatedMetric } from "../reports/useAnimatedMetric";
 import { AnalyticsDetailsDrawer } from "../reports/AnalyticsDetailsDrawer";
 import { createFlatpickr } from "../flatpickrAdmin";
+
+const CUSTOM_SERVICE_CARD_COLORS = [
+  { color: "#B45309", bg: "#FFEDD5" },
+  { color: "#047857", bg: "#ECFDF5" },
+  { color: "#0369A1", bg: "#E0F2FE" },
+  { color: "#BE185D", bg: "#FCE7F3" },
+  { color: "#7C3AED", bg: "#F3E8FF" },
+] as const;
 
 export interface DesktopReportsViewProps {
   style?: CSSProperties;
@@ -96,7 +105,7 @@ export function DesktopReportsView({
     }
   }, [r.editingTxId]);
 
-  const incomeCategories = INCOME_CATEGORIES;
+  const incomeCategories = buildIncomeCategories(settings.customServicesList);
   const expenseCategories = EXPENSE_CATEGORIES;
   const inlineCategories = r.inlineCardType === "income" ? incomeCategories : expenseCategories;
   const isIncomeCards = r.inlineCardType === "income";
@@ -104,60 +113,93 @@ export function DesktopReportsView({
   const cardBg = isIncomeCards ? "#ECFDF5" : "#FEF2F2";
   const cardBtn = isIncomeCards ? "#10B981" : "#EF4444";
 
-  const serviceCards = [
+  type ReportServiceCard = {
+    id: string;
+    iconPaths: string;
+    title: string;
+    val: number;
+    color: string;
+    bg: string;
+    detail: [string, string, string, string, string];
+  };
+
+  const customServices = settings.customServicesList || [];
+  const serviceIds = new Set<string>();
+  for (const s of customServices) {
+    const id = String(s.id ?? "").trim();
+    if (!id) continue;
+    const revenue = m?.serviceRevenue?.[id] ?? 0;
+    if (s.active !== false || revenue > 0) serviceIds.add(id);
+  }
+  for (const id of Object.keys(m?.serviceRevenue || {})) {
+    if ((m?.serviceRevenue?.[id] ?? 0) > 0) serviceIds.add(id);
+  }
+
+  const dynamicServiceCards: ReportServiceCard[] = [...serviceIds].map((id, index) => {
+    const fromSettings = customServices.find((s) => String(s.id) === id);
+    const title =
+      m?.serviceNames?.[id] ||
+      String(fromSettings?.name || "").trim() ||
+      `Послуга ${id}`;
+    const palette = CUSTOM_SERVICE_CARD_COLORS[index % CUSTOM_SERVICE_CARD_COLORS.length];
+    return {
+      id: `cardSvc-${id}`,
+      iconPaths: METRIC_ICON_PATHS.other,
+      title,
+      val: m?.serviceRevenue?.[id] ?? 0,
+      color: palette.color,
+      bg: palette.bg,
+      detail: [serviceDetailKey(id), title, palette.color, palette.bg, "Дохід"],
+    };
+  });
+
+  const serviceCards: ReportServiceCard[] = [
     {
       id: "cardGuests",
-      iconKey: "guests" as const,
+      iconPaths: METRIC_ICON_PATHS.guests,
       title: "Додаткові гості",
       val: m?.currGuests ?? 0,
       color: "#1D4ED8",
       bg: "#E0E7FF",
-      detail: ["guests", "Додаткові гості", "#1D4ED8", "#E0E7FF", "Дохід"] as const,
+      detail: ["guests", "Додаткові гості", "#1D4ED8", "#E0E7FF", "Дохід"],
     },
-    {
-      id: "cardPets",
-      iconKey: "pets" as const,
-      title: "Тварини",
-      val: m?.currPets ?? 0,
-      color: "#E11D48",
-      bg: "#FCE7F3",
-      detail: ["pets", "Тварини", "#E11D48", "#FCE7F3", "Дохід"] as const,
-    },
-    {
-      id: "cardVat",
-      iconKey: "vat" as const,
-      title: "Чан",
-      val: m?.currVat ?? 0,
-      color: "#B45309",
-      bg: "#FFEDD5",
-      detail: ["vat", "Чан", "#B45309", "#FFEDD5", "Дохід"] as const,
-    },
-    {
-      id: "cardBikes",
-      iconKey: "bikes" as const,
-      title: "Велосипеди",
-      val: m?.currBikes ?? 0,
-      color: "#047857",
-      bg: "#ECFDF5",
-      detail: ["bikes", "Велосипеди", "#047857", "#ECFDF5", "Дохід"] as const,
-    },
+    ...((m?.currPets ?? 0) > 0
+      ? [
+          {
+            id: "cardPets",
+            iconPaths: METRIC_ICON_PATHS.pets,
+            title: "Тварини",
+            val: m?.currPets ?? 0,
+            color: "#E11D48",
+            bg: "#FCE7F3",
+            detail: ["pets", "Тварини", "#E11D48", "#FCE7F3", "Дохід"] as [
+              string,
+              string,
+              string,
+              string,
+              string,
+            ],
+          },
+        ]
+      : []),
     {
       id: "cardEarlyLate",
-      iconKey: "earlyLate" as const,
+      iconPaths: METRIC_ICON_PATHS.earlyLate,
       title: "Гнучкий графік",
       val: m?.currEarlyLate ?? 0,
       color: "#6D28D9",
       bg: "#F3E8FF",
-      detail: ["earlyLate", "Гнучкий графік", "#6D28D9", "#F3E8FF", "Дохід"] as const,
+      detail: ["earlyLate", "Гнучкий графік", "#6D28D9", "#F3E8FF", "Дохід"],
     },
+    ...dynamicServiceCards,
     {
       id: "cardOther",
-      iconKey: "other" as const,
+      iconPaths: METRIC_ICON_PATHS.other,
       title: "Інший дохід",
       val: m?.currOther ?? 0,
       color: "#4B5563",
       bg: "#F3F4F6",
-      detail: ["other", "Інший дохід", "#4B5563", "#F3F4F6", "Дохід"] as const,
+      detail: ["other", "Інший дохід", "#4B5563", "#F3F4F6", "Дохід"],
     },
   ];
   const orderedServices = [...serviceCards].sort((a, b) => {
@@ -501,7 +543,7 @@ export function DesktopReportsView({
               iconBg={svc.bg}
               iconColor={svc.color}
               iconSize={18}
-              iconPaths={METRIC_ICON_PATHS[svc.iconKey]}
+              iconPaths={svc.iconPaths}
               title={svc.title}
               value={svc.val}
               animationKey={metricsAnimationKey}

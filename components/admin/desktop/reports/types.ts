@@ -2,6 +2,7 @@ import type { TransactionConfig } from "../types";
 
 export type ReportPeriod = "current" | "prev" | "next" | "year" | "all" | "custom";
 
+/** Системні ключі + динамічні `svc:<id>` для карток послуг. */
 export type BosoDetailKey =
   | "sum"
   | "paid"
@@ -11,13 +12,12 @@ export type BosoDetailKey =
   | "count"
   | "pets"
   | "guests"
-  | "vat"
-  | "bikes"
   | "earlyLate"
   | "other"
   | "fop"
   | "card"
-  | "cash";
+  | "cash"
+  | string;
 
 export interface BosoDetailItem {
   name: string;
@@ -30,7 +30,7 @@ export interface BosoDetailItem {
   rawDate: number;
 }
 
-export type BosoDetails = Record<BosoDetailKey, BosoDetailItem[]>;
+export type BosoDetails = Record<string, BosoDetailItem[]>;
 
 export function emptyBosoDetails(): BosoDetails {
   return {
@@ -42,8 +42,6 @@ export function emptyBosoDetails(): BosoDetails {
     count: [],
     pets: [],
     guests: [],
-    vat: [],
-    bikes: [],
     earlyLate: [],
     other: [],
     fop: [],
@@ -66,6 +64,8 @@ export interface IncomeBreakdown {
   guests: number;
   pets: number;
   earlyLate: number;
+  /** Оплачена частка по id кастомної послуги */
+  services: Record<string, number>;
 }
 
 export interface AccrualMetrics {
@@ -90,8 +90,9 @@ export interface AnalyticsMetrics {
   currGuests: number;
   currPets: number;
   currEarlyLate: number;
-  currVat: number;
-  currBikes: number;
+  /** Суми по id послуг з customServicesList */
+  serviceRevenue: Record<string, number>;
+  serviceNames: Record<string, string>;
   currOther: number;
   totalIncome: number;
   totalExpense: number;

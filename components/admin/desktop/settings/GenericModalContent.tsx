@@ -17,7 +17,7 @@ import type {
   RoomRules,
   TransactionConfig,
 } from "../types";
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../types";
+import { buildIncomeCategories, EXPENSE_CATEGORIES } from "../types";
 import { RoomPhotosUpload } from "./RoomPhotosUpload";
 import { AMENITIES_CATEGORIES, buildDefaultAmenitiesState } from "@/constants/amenitiesDict";
 
@@ -222,9 +222,13 @@ export function buildCustomServiceForm(s: Partial<CustomServiceConfig>): CustomS
   };
 }
 
-export function buildTransactionForm(t: Partial<TransactionConfig>): TransactionFormState {
+export function buildTransactionForm(
+  t: Partial<TransactionConfig>,
+  customServicesList?: CustomServiceConfig[] | null
+): TransactionFormState {
   const type = t.type === "income" ? "income" : "expense";
-  const cats = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const cats =
+    type === "income" ? buildIncomeCategories(customServicesList) : EXPENSE_CATEGORIES;
   return {
     type,
     category: t.category || cats[0],
@@ -566,8 +570,8 @@ export function GenericModalContent({
   }
 
   if (type === "transaction") {
-    const cats =
-      transactionForm.type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const incomeCats = buildIncomeCategories(settings.customServicesList);
+    const cats = transactionForm.type === "income" ? incomeCats : EXPENSE_CATEGORIES;
     return (
       <>
         <div className="form-group">
@@ -592,7 +596,7 @@ export function GenericModalContent({
                 setTransactionForm((f) => ({
                   ...f,
                   type: "income",
-                  category: INCOME_CATEGORIES[0],
+                  category: incomeCats[0],
                 }))
               }
             >

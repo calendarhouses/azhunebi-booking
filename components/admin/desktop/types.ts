@@ -209,15 +209,37 @@ export interface AdminInitResponse {
   bookings: BookingRecord[];
 }
 
-export const INCOME_CATEGORIES = [
+export const BASE_INCOME_CATEGORIES = [
   "Плата за раннє заселення/пізнє виселення",
   "Додаткові гості",
   "Домашні тварини",
   "Міні-бар",
+  "Інший дохід",
+] as const;
+
+/** @deprecated використай buildIncomeCategories(customServicesList) */
+export const INCOME_CATEGORIES = [
+  ...BASE_INCOME_CATEGORIES.slice(0, 4),
   "Чан",
   "Оренда велосипедів",
   "Інший дохід",
 ];
+
+export function buildIncomeCategories(
+  customServicesList?: Array<{ name?: string }> | null
+): string[] {
+  const fromServices = (customServicesList || [])
+    .map((s) => String(s.name || "").trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of [...BASE_INCOME_CATEGORIES, ...fromServices]) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    out.push(name);
+  }
+  return out;
+}
 
 export const EXPENSE_CATEGORIES = [
   "Прибирання",
