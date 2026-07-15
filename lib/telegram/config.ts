@@ -12,6 +12,8 @@ export type TelegramConfig = {
 };
 
 export function getTelegramConfig(): TelegramConfig {
+  // Booking uses a dedicated bot (@azhunebibooking_bot). Never reuse @azhunebifood_bot —
+  // Telegram allows only one webhook URL per bot token.
   const opsThread = process.env.TELEGRAM_ADMIN_OPS_THREAD_ID?.trim();
   const financeThread = process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID?.trim();
   return {

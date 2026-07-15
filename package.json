@@ -8,7 +8,9 @@
     "dev:reset": "sh scripts/dev-reset.sh",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "telegram:webhook": "node scripts/set-telegram-webhook.mjs",
+    "telegram:webhook:info": "node scripts/set-telegram-webhook.mjs --info"
   },
   "dependencies": {
     "flatpickr": "^4.6.13",
