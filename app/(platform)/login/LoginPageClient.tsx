@@ -14,8 +14,8 @@ export default function LoginPageClient() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/admin";
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("test@gmail.com");
+  const [password, setPassword] = useState("test");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,9 +44,7 @@ export default function LoginPageClient() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <div className={styles.logo}>
-          ХАТА<span>.</span>
-        </div>
+        <div className={styles.logo}>АЖ У НЕБІ</div>
         <p className={styles.subtitle}>Панель управління комплексом</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
@@ -57,7 +55,7 @@ export default function LoginPageClient() {
               className={styles.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="test@gmail.com"
               autoComplete="email"
               required
             />

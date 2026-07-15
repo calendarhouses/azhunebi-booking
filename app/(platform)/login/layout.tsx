@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Вхід | ХАТА",
+  title: "Вхід | АЖ У НЕБІ",
   description: "Вхід у панель управління",
 };
 
