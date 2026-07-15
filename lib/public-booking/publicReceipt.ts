@@ -280,7 +280,7 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
         "receipt-block--finance"
       )}
 
-      <p class="receipt-premium__footer">Ми звʼяжемось з вами у месенджері протягом кількох годин.</p>
+      <p class="receipt-premium__footer">Ми надішлемо вам SMS з деталями та посиланням на оплату.</p>
     </div>
   `;
 }
