@@ -83,8 +83,7 @@ export function buildPendingReviewCaption(data: PendingReviewNotifyInput): strin
     `📅 ${dates} · ${data.guests || 2} гостей\n` +
     `📋 Причина: <i>${reasonLine}</i>\n\n` +
     `💰 Вартість: <b>${formatMoneyUa(total)}</b>\n` +
-    `💳 Передплата: <b>${formatMoneyUa(prepay)}</b>\n` +
-    `🆔 <code>${data.orderId}</code>`
+    `💳 Передплата: <b>${formatMoneyUa(prepay)}</b>`
   );
 }
 
