@@ -19,9 +19,9 @@
 }
 
 .logo {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 0.04em;
   color: #1a1a1a;
   text-align: center;
   margin-bottom: 8px;
