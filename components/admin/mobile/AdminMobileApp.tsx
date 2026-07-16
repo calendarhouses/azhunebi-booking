@@ -121,6 +121,7 @@ export function AdminMobileApp() {
   const branding = (admin.settings.branding || {}) as Record<string, unknown>;
   const documentSiteTitle =
     String(branding.site_title || "").trim() || membership?.tenantName || null;
+  const brandLogoUrl = String(branding.logo_url || "").trim() || null;
 
   return (
     <MobileUiProvider>
@@ -132,6 +133,8 @@ export function AdminMobileApp() {
             showMainAction={admin.showMainAction}
             onCreateBooking={() => drawer.openNewBookingDrawer()}
             publicBookUrl={publicBookUrl}
+            logoUrl={brandLogoUrl}
+            logoAlt={documentSiteTitle}
           />
 
           <div className="main-content">

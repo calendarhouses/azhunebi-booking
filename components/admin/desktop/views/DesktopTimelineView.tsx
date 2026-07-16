@@ -1388,14 +1388,16 @@ export function DesktopTimelineView({
   );
 
   const timelineModeToggle = (
-    <div className="mode-toggle">
-      <div
+    <div className="mode-toggle" role="group" aria-label="Режим шахматки">
+      <button
+        type="button"
         id="mode-month"
         className={`mode-btn${mode === "month" ? " active" : ""}`}
         onClick={() => setTimelineMode("month")}
+        aria-pressed={mode === "month"}
       >
         Місяць
-      </div>
+      </button>
       <button
         type="button"
         id="mode-cont"

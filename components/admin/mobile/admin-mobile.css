@@ -1722,9 +1722,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   z-index: 2000;
 }
 
-.boso-admin-mobile .admin-mobile-portals > * {
-  pointer-events: auto;
-}
+/* Do NOT force pointer-events on children — inactive overlays must stay click-through */
 
 /* Chessboard: readable rooms + visible day grid */
 .boso-admin-mobile .timeline-wrapper {
@@ -1888,6 +1886,14 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   display: flex !important;
   align-items: flex-end !important;
   justify-content: stretch !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.28s ease !important;
+}
+
+.boso-admin-mobile .drawer-overlay.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .boso-admin-mobile .drawer {
@@ -1906,6 +1912,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  pointer-events: auto !important;
 }
 
 .boso-admin-mobile .drawer-overlay.active .drawer {
@@ -1930,10 +1937,22 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
 .boso-admin-mobile .modal-overlay {
   z-index: 3100 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.boso-admin-mobile .modal-overlay.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .boso-admin-mobile .admin-side-drawer-overlay {
   z-index: 3200 !important;
+  pointer-events: none !important;
+}
+
+.boso-admin-mobile .admin-side-drawer-overlay.active {
+  pointer-events: auto !important;
 }
 
 /* Settings / constructors: full-width sheets on phone */
@@ -1941,5 +1960,47 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   width: 100% !important;
   max-width: 100% !important;
   border-radius: 22px 22px 0 0 !important;
+}
+
+/* Infinite / month toggle — clear tap targets */
+.boso-admin-mobile .timeline-toolbar-actions .mode-toggle {
+  margin: 0 !important;
+  width: auto !important;
+  flex: 1 1 auto !important;
+  min-height: var(--tap-min);
+  align-items: stretch;
+}
+
+.boso-admin-mobile .timeline-toolbar-actions .mode-btn {
+  flex: 1 1 auto;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.boso-admin-mobile .timeline-toolbar-actions .mode-btn--infinite {
+  flex: 0 0 52px;
+  width: 52px;
+  min-width: 52px;
+  min-height: var(--tap-min);
+}
+
+.boso-admin-mobile .timeline-toolbar-actions .mode-btn--infinite__icon {
+  width: 22px !important;
+  height: 22px !important;
+  display: block !important;
+  color: currentColor;
+}
+
+.boso-admin-mobile .timeline-undo-btn--toolbar,
+.boso-admin-mobile .timeline-toolbar-actions .mode-btn,
+.boso-admin-mobile .bottom-nav .nav-item,
+.boso-admin-mobile .top-action-btn,
+.boso-admin-mobile .top-link-btn {
+  pointer-events: auto !important;
+  touch-action: manipulation;
 }
 

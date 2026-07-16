@@ -1,10 +1,14 @@
 import { AdminLogo } from "../desktop/AdminLogo";
+import { ADMIN_PRELOADER_LOGO_SRC } from "@/lib/admin/adminPreloaderLogo";
 
 export interface MobileTopBarProps {
   title: string;
   showMainAction: boolean;
   onCreateBooking?: () => void;
   publicBookUrl?: string;
+  /** Tenant branding logo; falls back to АЖ У НЕБІ mark (not ХАТА). */
+  logoUrl?: string | null;
+  logoAlt?: string | null;
 }
 
 export function MobileTopBar({
@@ -12,11 +16,17 @@ export function MobileTopBar({
   showMainAction,
   onCreateBooking,
   publicBookUrl,
+  logoUrl,
+  logoAlt,
 }: MobileTopBarProps) {
   return (
     <div className="top-bar">
       <div className="top-logo">
-        <AdminLogo variant="sidebar" />
+        <AdminLogo
+          variant="sidebar"
+          logoUrl={logoUrl || ADMIN_PRELOADER_LOGO_SRC}
+          alt={logoAlt || "АЖ У НЕБІ"}
+        />
       </div>
       <div className="top-title" id="mobileTopTitle">
         {title}
