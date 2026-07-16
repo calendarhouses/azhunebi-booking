@@ -3,16 +3,28 @@
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GAS_AUTH_TOKEN_KEY, signInWithPassword } from "@/lib/gas-api";
+import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
 import styles from "./login.module.css";
 
 function setAuthCookie(token: string) {
   document.cookie = `${GAS_AUTH_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
 }
 
+function defaultAdminPath() {
+  if (typeof navigator !== "undefined" && isMobileUserAgent(navigator.userAgent)) {
+    return "/admin/mobile";
+  }
+  return "/admin";
+}
+
 export default function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/admin";
+  const nextParam = searchParams.get("next");
+  const next =
+    nextParam && nextParam.startsWith("/admin")
+      ? nextParam
+      : defaultAdminPath();
 
   const [email, setEmail] = useState("test@gmail.com");
   const [password, setPassword] = useState("test");
@@ -37,7 +49,8 @@ export default function LoginPageClient() {
     }
 
     setAuthCookie(session.accessToken);
-    router.replace(next.startsWith("/admin") ? next : "/admin");
+    const target = next.startsWith("/admin") ? next : defaultAdminPath();
+    router.replace(target);
     router.refresh();
   };
 

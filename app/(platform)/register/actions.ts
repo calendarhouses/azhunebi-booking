@@ -1,8 +1,9 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { GAS_AUTH_TOKEN_KEY, registerAccount } from "@/lib/gas-api";
+import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
 
 export type RegisterActionState = {
   error: string | null;
@@ -45,5 +46,6 @@ export async function registerAction(
     });
   }
 
-  redirect("/admin");
+  const ua = (await headers()).get("user-agent");
+  redirect(isMobileUserAgent(ua) ? "/admin/mobile" : "/admin");
 }

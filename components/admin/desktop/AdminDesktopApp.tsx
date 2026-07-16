@@ -29,6 +29,7 @@ import { useBookingDrawer } from "./useBookingDrawer";
 import { getAdminViewStyle } from "./adminViewDom";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
 import { DiscountTemplatesToggleButton } from "./settings/DiscountTemplatesToggleButton";
+import { RedirectPhoneToMobileAdmin } from "@/components/admin/RedirectPhoneToMobileAdmin";
 import "./settings/settings-side-drawer.css";
 import "./settings/settings-discounts.css";
 import "./settings/settings-additional-services.css";
@@ -171,6 +172,7 @@ export function AdminDesktopApp() {
 
   return (
     <GridFocusModeProvider tenantId={membership?.tenantId}>
+      <RedirectPhoneToMobileAdmin />
       <AdminDocumentTitleSync siteTitle={sidebarBrandName} enabled={admin.appVisible} />
       <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
         <DesktopSidebar
