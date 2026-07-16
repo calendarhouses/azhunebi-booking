@@ -471,10 +471,11 @@ export function DesktopTimelineView({
     const onEnd = () => {
       active = false;
     };
-    const onWheel = (e: globalThis.WheelEvent) => {
-      e.preventDefault();
-      scroll.scrollTop += e.deltaY;
-      scroll.scrollLeft += e.deltaX;
+    const onWheel = (e: Event) => {
+      const we = e as globalThis.WheelEvent;
+      we.preventDefault();
+      scroll.scrollTop += we.deltaY;
+      scroll.scrollLeft += we.deltaX;
     };
 
     clip.addEventListener("touchstart", onStart, { passive: true });
