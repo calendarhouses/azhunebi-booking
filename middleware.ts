@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/auth/middleware";
+import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
 
 const PUBLIC_HOSTS = new Set(["azhunebi.com", "www.azhunebi.com"]);
-const PUBLIC_CANONICAL_HOST = "www.azhunebi.com";
+const PUBLIC_CANONICAL_HOST = "azhunebi.com";
 const ADMIN_HOST = "admin.azhunebi.com";
+const AUTH_COOKIE = "gas_auth_token";
 
 function requestHostname(request: NextRequest): string {
   const forwardedHost = request.headers.get("x-forwarded-host");
@@ -19,18 +21,35 @@ function redirectToHost(request: NextRequest, hostname: string) {
   return NextResponse.redirect(url);
 }
 
+function redirectToCleanAdminRoot(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.protocol = "https:";
+  url.hostname = ADMIN_HOST;
+  url.port = "";
+  url.pathname = "/";
+  url.search = "";
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = requestHostname(request);
   const pathname = request.nextUrl.pathname;
 
   if (PUBLIC_HOSTS.has(hostname)) {
-    // Адмінські сторінки завжди мають одну адресу й одні cookies авторизації.
+    // Канонічний сайт без www.
+    if (hostname === "www.azhunebi.com") {
+      return redirectToHost(request, PUBLIC_CANONICAL_HOST);
+    }
+
+    // Адмінка завжди відкривається чистим admin.azhunebi.com без /admin чи /login.
     if (
       pathname === "/login" ||
-      pathname === "/register" ||
       pathname === "/admin" ||
       pathname.startsWith("/admin/")
     ) {
+      return redirectToCleanAdminRoot(request);
+    }
+    if (pathname === "/register") {
       return redirectToHost(request, ADMIN_HOST);
     }
 
@@ -50,12 +69,33 @@ export async function middleware(request: NextRequest) {
   }
 
   if (hostname === ADMIN_HOST) {
-    // Вхід на admin.azhunebi.com одразу відкриває адмінку.
+    // Старі/внутрішні адреси завжди очищаються до admin.azhunebi.com.
+    if (
+      pathname === "/login" ||
+      pathname === "/admin" ||
+      pathname === "/admin/" ||
+      pathname === "/admin/mobile"
+    ) {
+      return redirectToCleanAdminRoot(request);
+    }
+
+    // На чистому корені внутрішньо показуємо login або потрібну версію адмінки.
     if (pathname === "/") {
       const url = request.nextUrl.clone();
-      url.pathname = "/admin";
+      const hasSession = Boolean(request.cookies.get(AUTH_COOKIE)?.value);
+
+      if (!hasSession) {
+        url.pathname = "/login";
+        url.searchParams.set("next", "/");
+        return NextResponse.rewrite(url);
+      }
+
+      const mobile = isMobileUserAgent(request.headers.get("user-agent"));
+      const forceDesktop = request.nextUrl.searchParams.get("desktop") === "1";
+      const forceMobile = request.nextUrl.searchParams.get("mobile") === "1";
+      url.pathname = mobile && !forceDesktop || forceMobile ? "/admin/mobile" : "/admin";
       url.search = "";
-      return NextResponse.redirect(url);
+      return NextResponse.rewrite(url);
     }
 
     // Публічні бронювання та оплата не повинні жити на адмінському домені.
@@ -65,6 +105,14 @@ export async function middleware(request: NextRequest) {
       pathname === "/pay" ||
       pathname.startsWith("/pay/")
     ) {
+      if (pathname === "/book/default" || pathname === "/book/default/") {
+        const url = request.nextUrl.clone();
+        url.protocol = "https:";
+        url.hostname = PUBLIC_CANONICAL_HOST;
+        url.port = "";
+        url.pathname = "/";
+        return NextResponse.redirect(url);
+      }
       return redirectToHost(request, PUBLIC_CANONICAL_HOST);
     }
   }

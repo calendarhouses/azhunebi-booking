@@ -13,6 +13,12 @@ function setAuthCookie(token: string) {
 }
 
 function defaultAdminPath() {
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname === "admin.azhunebi.com"
+  ) {
+    return "/";
+  }
   if (typeof navigator !== "undefined" && isMobileUserAgent(navigator.userAgent)) {
     return "/admin/mobile";
   }
@@ -24,7 +30,7 @@ export default function LoginPageClient() {
   const searchParams = useSearchParams();
   const nextParam = searchParams.get("next");
   const next =
-    nextParam && nextParam.startsWith("/admin")
+    nextParam === "/" || (nextParam && nextParam.startsWith("/admin"))
       ? nextParam
       : defaultAdminPath();
 
@@ -52,6 +58,10 @@ export default function LoginPageClient() {
 
     setAuthCookie(session.accessToken);
     const target = next.startsWith("/admin") ? next : defaultAdminPath();
+    if (target === "/") {
+      window.location.replace("/");
+      return;
+    }
     router.replace(target);
     router.refresh();
   };
