@@ -209,19 +209,19 @@ export function AnalyticsDetailsDrawer({
         className={cn(
           "flex flex-col bg-white antialiased",
           isMobile
-            ? [
+            ? cn(
                 "absolute bottom-0 left-0 right-0 max-h-[92dvh] w-full rounded-t-[22px]",
                 "shadow-[0_-16px_40px_rgba(15,23,42,0.12)]",
                 "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                 "pb-[env(safe-area-inset-bottom,0px)]",
-                open ? "translate-y-0" : "translate-y-full",
-              ]
-            : [
+                open ? "translate-y-0" : "translate-y-full"
+              )
+            : cn(
                 "absolute right-0 top-0 h-full w-full max-w-lg",
                 "shadow-[-16px_0_40px_rgba(15,23,42,0.08)]",
                 "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                open ? "translate-x-0" : "translate-x-full",
-              ]
+                open ? "translate-x-0" : "translate-x-full"
+              )
         )}
         role="dialog"
         aria-modal="true"
