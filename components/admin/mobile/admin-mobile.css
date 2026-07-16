@@ -726,10 +726,11 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 
 .booking-block.pressing {
-    transform: scale(1.04) translateY(-2px) !important;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.25) !important;
-    z-index: 120 !important; /* Підіймаємо над усіма */
-    opacity: 0.95;
+    transform: scale(1.05) translateY(-3px) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 2px 0 rgba(255,255,255,0.2) inset !important;
+    z-index: 120 !important;
+    opacity: 0.98;
+    filter: brightness(1.03);
 }
 
 .booking-block.status-new { background: linear-gradient(135deg, #DEB887 0%, #CDA062 100%); color: #1A1A1A; }
@@ -2374,10 +2375,16 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   position: relative;
 }
 
-/* Override global touch-action: manipulation so pan scroll is reliable */
+/* Override global touch-action: manipulation so pan scroll is reliable.
+   Booking cards keep touch-action:none so drag still works. */
 .boso-admin-mobile .timeline-mobile-scroll,
 .boso-admin-mobile .timeline-mobile-scroll * {
   touch-action: pan-x pan-y !important;
+}
+
+.boso-admin-mobile .timeline-mobile-scroll .booking-block,
+.boso-admin-mobile .timeline-mobile-scroll .booking-block * {
+  touch-action: none !important;
 }
 
 .boso-admin-mobile .timeline-mobile-board {
@@ -2761,7 +2768,10 @@ body.boso-grid-view .boso-admin-mobile .main-content {
 
 .boso-admin-mobile .timeline-toolbar .timeline-nav-row {
   display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: 1fr;
+  align-items: center !important;
+  column-gap: 8px;
   transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.24s ease, margin 0.32s ease, max-height 0.32s ease;
   overflow: hidden !important;
@@ -2770,7 +2780,19 @@ body.boso-grid-view .boso-admin-mobile .main-content {
 
 .boso-admin-mobile .timeline-toolbar .timeline-nav-row > * {
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
+}
+
+.boso-admin-mobile .timeline-toolbar .timeline-nav-row .timeline-nav {
+  width: auto !important;
+  max-width: 100%;
+  justify-self: stretch;
+}
+
+.boso-admin-mobile .timeline-toolbar .timeline-nav-row .timeline-today-btn {
+  justify-self: end;
+  overflow: visible;
 }
 
 .boso-admin-mobile .timeline-toolbar--dense-focus {

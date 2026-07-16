@@ -357,6 +357,9 @@ export function DesktopTimelineView({
   const lastDragFramePointerRef = useRef({ x: 0, y: 0 });
   const dragAutoScrollRafRef = useRef<number | null>(null);
   const verticalPageRef = useRef<HTMLElement | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressShownRef = useRef(false);
+  const longPressTargetRef = useRef<HTMLElement | null>(null);
 
   const infiniteRange = useMemo(
     () => buildInfiniteTimelineRange(infiniteAnchor),
@@ -554,6 +557,12 @@ export function DesktopTimelineView({
     moveCleanupRef.current = null;
     moveSessionRef.current = null;
     draggingBlockRef.current = null;
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressTargetRef.current?.classList.remove("pressing");
+    longPressTargetRef.current = null;
     if (dragAutoScrollRafRef.current != null) {
       cancelAnimationFrame(dragAutoScrollRafRef.current);
     }
@@ -801,6 +810,15 @@ export function DesktopTimelineView({
     [activeBookings, activeRooms, clearDragUiState, clearMoveListeners, onMoveBooking, scheduleRecompute, stopDragAutoScroll]
   );
 
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressTargetRef.current?.classList.remove("pressing");
+    longPressTargetRef.current = null;
+  }, []);
+
   const handleBookingPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>, block: BookingBlockData, gridRowIndex: number) => {
       if (!onMoveBooking) return;
@@ -812,10 +830,27 @@ export function DesktopTimelineView({
 
       e.preventDefault();
       e.stopPropagation();
-      bosoLeave();
+
+      const target = e.currentTarget;
+      clearLongPress();
+      longPressShownRef.current = false;
+
+      if (e.pointerType === "touch") {
+        longPressTargetRef.current = target;
+        target.classList.add("pressing");
+        longPressTimerRef.current = setTimeout(() => {
+          const session = moveSessionRef.current;
+          if (!session || session.moved) return;
+          longPressShownRef.current = true;
+          if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
+          bosoHover(target, block.booking.row, "main");
+        }, 420);
+      } else {
+        bosoLeave();
+      }
 
       try {
-        e.currentTarget.setPointerCapture(e.pointerId);
+        target.setPointerCapture(e.pointerId);
       } catch {
         /* ignore — capture is best-effort on some browsers */
       }
@@ -824,6 +859,7 @@ export function DesktopTimelineView({
       const gridRect = scrollEl?.getBoundingClientRect();
       const scrollLeft = scrollEl?.scrollLeft ?? 0;
       const xInGrid = e.clientX - (gridRect?.left ?? 0) + scrollLeft;
+      const moveThreshold = e.pointerType === "touch" ? 10 : BOOKING_MOVE_THRESHOLD;
 
       clearMoveListeners();
 
@@ -850,8 +886,11 @@ export function DesktopTimelineView({
 
         const dx = ev.clientX - session.startX;
         const dy = ev.clientY - session.startY;
-        if (!session.moved && Math.hypot(dx, dy) < BOOKING_MOVE_THRESHOLD) return;
+        if (!session.moved && Math.hypot(dx, dy) < moveThreshold) return;
 
+        clearLongPress();
+        bosoLeave();
+        longPressShownRef.current = false;
         session.moved = true;
 
         if (!session.previewActive) {
@@ -872,6 +911,19 @@ export function DesktopTimelineView({
         const session = moveSessionRef.current;
         if (!session || ev.pointerId !== session.pointerId) return;
         stopDragAutoScroll();
+
+        const wasPeek = !session.moved && longPressShownRef.current;
+        clearLongPress();
+        bosoLeave();
+        longPressShownRef.current = false;
+
+        if (wasPeek) {
+          clearMoveListeners();
+          moveSessionRef.current = null;
+          dragEndedAtRef.current = Date.now();
+          return;
+        }
+
         finishBookingDrag(session);
       };
 
@@ -879,6 +931,9 @@ export function DesktopTimelineView({
         const session = moveSessionRef.current;
         if (!session || ev.pointerId !== session.pointerId) return;
         stopDragAutoScroll();
+        clearLongPress();
+        bosoLeave();
+        longPressShownRef.current = false;
         clearMoveListeners();
         moveSessionRef.current = null;
         clearDragUiState();
@@ -896,6 +951,7 @@ export function DesktopTimelineView({
     [
       activeRooms,
       clearDragUiState,
+      clearLongPress,
       clearMoveListeners,
       ensureDragFrame,
       finishBookingDrag,
