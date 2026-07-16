@@ -66,7 +66,7 @@ export function buildBookingMovePayload(
     cottage: room.name,
     roomId: room.id,
     row: booking.row,
-    id: booking.id,
+    id: booking.id != null && String(booking.id).trim() !== "" ? String(booking.id).trim() : booking.id,
     name: booking.name,
   };
 }

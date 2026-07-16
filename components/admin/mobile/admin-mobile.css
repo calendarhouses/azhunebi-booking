@@ -2611,10 +2611,13 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .booking-inner-content--mobile-expanded {
   display: flex !important;
   flex-direction: column !important;
+  align-items: stretch !important;
   justify-content: center !important;
   gap: 3px !important;
   padding: 2px 4px !important;
   height: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-mobile .booking-inner-content--mobile-expanded-one-night {
@@ -2622,6 +2625,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .booking-inner-content--mobile-expanded .booking-guest-name {
+  position: relative !important;
+  z-index: 2 !important;
+  flex: 0 0 auto !important;
+  display: block !important;
   font-size: 11px !important;
   font-weight: 800 !important;
   line-height: 1.15 !important;
@@ -2629,6 +2636,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  order: 0 !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-expanded .booking-mobile-meta-row {
+  position: relative !important;
+  z-index: 1 !important;
+  flex: 0 0 auto !important;
+  order: 1 !important;
 }
 
 /* Dense chessboard — 44px rows */
@@ -2667,10 +2682,15 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
   padding: 0 !important;
-  gap: 1px !important;
+  gap: 2px !important;
   height: 100% !important;
   justify-content: center !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense-meta-only {
@@ -2681,6 +2701,29 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: 100% !important;
   height: 100% !important;
   padding: 0 1px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense .booking-guest-name {
+  position: relative !important;
+  z-index: 2 !important;
+  flex: 0 0 auto !important;
+  display: block !important;
+  order: 0 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense .booking-mobile-meta-row {
+  position: relative !important;
+  z-index: 1 !important;
+  flex: 0 0 auto !important;
+  order: 1 !important;
+  width: 100% !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-guest-chip--text {
