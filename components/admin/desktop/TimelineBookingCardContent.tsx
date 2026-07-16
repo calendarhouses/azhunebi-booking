@@ -135,7 +135,7 @@ function PriceBadge({
   );
 }
 
-/** Сума → гості, в один ряд, ідеально вирівняні. */
+/** Сума → гості, в один ряд. */
 function MobileMetaRow({
   block,
   showGuestChip,
@@ -202,54 +202,62 @@ export function TimelineBookingCardContent({
   const { showGuestChip } = resolveTimelineGuestChipVisibility(block);
   const oneNightFinKind = isOneNight ? getTimelineOneNightFinKind(block.booking) : null;
   const guestTextOnly = block.contentWidth < 72;
+  const name = block.guestName?.trim() || "";
 
-  /** Dense mobile: 1-night — only price + guests, no name. */
-  if (mobile && compact && isOneNight) {
+  /**
+   * Dense (розгорнута): < 3 ночей — без імені, лише сума + гості.
+   * Dense ≥ 3 ночей — ім’я + meta.
+   */
+  if (mobile && compact) {
+    if (block.nights < 3) {
+      return (
+        <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
+          <MobileMetaRow
+            block={block}
+            showGuestChip={showGuestChip}
+            oneNightFinKind={oneNightFinKind}
+            textOnly={guestTextOnly || isOneNight || block.contentWidth < 96}
+          />
+        </div>
+      );
+    }
     return (
-      <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
-        <MobileMetaRow
-          block={block}
-          showGuestChip={showGuestChip}
-          oneNightFinKind={oneNightFinKind}
-          textOnly
-        />
-      </div>
-    );
-  }
-
-  /** Dense mobile: short multi-night — meta only (no name). */
-  if (mobile && compact && block.nights < 3) {
-    return (
-      <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
+      <div className="booking-inner-content booking-inner-content--mobile-dense">
+        {name ? <div className="booking-guest-name">{name}</div> : null}
         <MobileMetaRow
           block={block}
           showGuestChip={showGuestChip}
           oneNightFinKind={null}
-          textOnly={guestTextOnly || block.contentWidth < 96}
+          textOnly={guestTextOnly}
         />
       </div>
     );
   }
 
-  /** Expanded mobile: name (if multi) + price then guests, perfectly aligned. */
+  /**
+   * Standard (звичайна): 1 ніч — без імені; 2+ ночей — ім’я + сума + гості.
+   */
   if (mobile && !compact) {
+    if (isOneNight) {
+      return (
+        <div className="booking-inner-content booking-inner-content--mobile booking-inner-content--mobile-expanded booking-inner-content--mobile-expanded-one-night">
+          <MobileMetaRow
+            block={block}
+            showGuestChip={showGuestChip}
+            oneNightFinKind={oneNightFinKind}
+            textOnly
+          />
+        </div>
+      );
+    }
     return (
-      <div
-        className={[
-          "booking-inner-content",
-          "booking-inner-content--mobile",
-          "booking-inner-content--mobile-expanded",
-          isOneNight ? "booking-inner-content--mobile-expanded-one-night" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        {!isOneNight ? <div className="booking-guest-name">{block.guestName}</div> : null}
+      <div className="booking-inner-content booking-inner-content--mobile booking-inner-content--mobile-expanded">
+        {name ? <div className="booking-guest-name">{name}</div> : null}
         <MobileMetaRow
           block={block}
           showGuestChip={showGuestChip}
-          oneNightFinKind={oneNightFinKind}
-          textOnly={guestTextOnly || isOneNight}
+          oneNightFinKind={null}
+          textOnly={guestTextOnly}
         />
       </div>
     );

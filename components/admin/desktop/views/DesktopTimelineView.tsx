@@ -297,10 +297,149 @@ export function DesktopTimelineView({
   /** Desktop focus layout: sticky dates via transform sync. Mobile uses unified board scroll. */
   const stickyChrome = compactGrid;
   const mobileBoard = isMobile;
-  /** Mobile CSS locks rooms at 60px (dense 44) — keep JS in sync for drag hit-testing. */
+  const boardBodyRef = useRef<HTMLDivElement>(null);
+  const roomsClipRef = useRef<HTMLDivElement>(null);
+  const [denseFitRowHeight, setDenseFitRowHeight] = useState(40);
+  const activeRooms = useMemo(() => roomsList.filter((r) => r.active), [roomsList]);
+
+  useEffect(() => {
+    if (!mobileBoard || !mobileDense) return;
+    const el = boardBodyRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const h = el.clientHeight;
+      const n = Math.max(activeRooms.length, 1);
+      const next = Math.max(34, Math.min(44, Math.floor(h / n)));
+      setDenseFitRowHeight(next);
+    };
+
+    measure();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [mobileBoard, mobileDense, activeRooms.length]);
+
+  /** Kill iOS rubber-band: only axis scroll inside cells, never pull the whole board. */
+  useEffect(() => {
+    if (!mobileBoard) return;
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+
+    let startX = 0;
+    let startY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      const maxX = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+      const maxY = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+      const atLeft = scroll.scrollLeft <= 0;
+      const atRight = scroll.scrollLeft >= maxX - 0.5;
+      const atTop = scroll.scrollTop <= 0;
+      const atBottom = scroll.scrollTop >= maxY - 0.5;
+
+      const pullLeft = atLeft && dx > 0;
+      const pullRight = atRight && dx < 0;
+      const pullTop = atTop && dy > 0;
+      const pullBottom = atBottom && dy < 0;
+
+      if (pullLeft || pullRight || pullTop || pullBottom) {
+        e.preventDefault();
+      }
+    };
+
+    scroll.addEventListener("touchstart", onTouchStart, { passive: true });
+    scroll.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      scroll.removeEventListener("touchstart", onTouchStart);
+      scroll.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [mobileBoard, mode, daysCount, activeRooms.length, rowHeight]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    document.body.classList.toggle("boso-grid-dense", mobileDense);
+    document.body.classList.add("boso-grid-view");
+    return () => {
+      document.body.classList.remove("boso-grid-dense");
+      document.body.classList.remove("boso-grid-view");
+    };
+  }, [isMobile, mobileDense]);
+
+  /** Rooms column: forward pan to the cells scroller (one scroll surface). */
+  useEffect(() => {
+    if (!mobileBoard) return;
+    const clip = roomsClipRef.current;
+    const scroll = scrollRef.current;
+    if (!clip || !scroll) return;
+
+    let lastY = 0;
+    let lastX = 0;
+    let active = false;
+
+    const onStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      active = true;
+      lastY = e.touches[0].clientY;
+      lastX = e.touches[0].clientX;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!active || !e.touches[0]) return;
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      const x = e.touches[0].clientX;
+      scroll.scrollTop += lastY - y;
+      scroll.scrollLeft += lastX - x;
+      lastY = y;
+      lastX = x;
+    };
+    const onEnd = () => {
+      active = false;
+    };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      scroll.scrollTop += e.deltaY;
+      scroll.scrollLeft += e.deltaX;
+    };
+
+    clip.addEventListener("touchstart", onStart, { passive: true });
+    clip.addEventListener("touchmove", onMove, { passive: false });
+    clip.addEventListener("touchend", onEnd, { passive: true });
+    clip.addEventListener("touchcancel", onEnd, { passive: true });
+    clip.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      clip.removeEventListener("touchstart", onStart);
+      clip.removeEventListener("touchmove", onMove);
+      clip.removeEventListener("touchend", onEnd);
+      clip.removeEventListener("touchcancel", onEnd);
+      clip.removeEventListener("wheel", onWheel);
+    };
+  }, [mobileBoard, mode, daysCount, rowHeight]);
+
+  /** Dates header: never rubber-band / pull the page. */
+  useEffect(() => {
+    if (!mobileBoard) return;
+    const head = document.querySelector(
+      ".timeline-wrapper--mobile-board .timeline-mobile-head"
+    ) as HTMLElement | null;
+    if (!head) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    head.addEventListener("touchmove", block, { passive: false });
+    return () => head.removeEventListener("touchmove", block);
+  }, [mobileBoard]);
+
+  /** Mobile CSS locks rooms at 60px (dense fits all houses) — keep JS in sync for drag. */
   const rowHeight = isMobile
     ? mobileDense
-      ? 44
+      ? denseFitRowHeight
       : 60
     : getTimelineRowHeight(compactGrid);
   const [mode, setMode] = useState<TimelineMode>("month");
@@ -346,8 +485,6 @@ export function DesktopTimelineView({
   const lastDragFramePointerRef = useRef({ x: 0, y: 0 });
   const dragAutoScrollRafRef = useRef<number | null>(null);
   const verticalPageRef = useRef<HTMLElement | null>(null);
-
-  const activeRooms = useMemo(() => roomsList.filter((r) => r.active), [roomsList]);
 
   const infiniteRange = useMemo(
     () => buildInfiniteTimelineRange(infiniteAnchor),
@@ -1422,8 +1559,8 @@ export function DesktopTimelineView({
       className={`timeline-focus-toggle timeline-focus-toggle--toolbar tap-btn${mobileDense ? " is-active" : ""}`}
       onClick={toggleCompactMode}
       aria-pressed={mobileDense}
-      aria-label={mobileDense ? "Звичайний розмір шахматки" : "Ущільнити шахматку"}
-      title={mobileDense ? "Звичайний розмір" : "Ущільнити — більше будинків на екрані"}
+      aria-label={mobileDense ? "Звичайний розмір шахматки" : "Розгорнути шахматку"}
+      title={mobileDense ? "Звичайний розмір" : "Розгорнути — усі будинки на екрані"}
     >
       {mobileDense ? (
         <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
@@ -1436,20 +1573,19 @@ export function DesktopTimelineView({
   const timelineMonthNav = (
     <div
       className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}
-      style={isMobile ? { height: 40, minHeight: 40, maxHeight: 40, padding: "0 10px", boxSizing: "border-box" } : undefined}
+      style={
+        isMobile
+          ? { height: 40, minHeight: 40, maxHeight: 40, padding: "0 6px", boxSizing: "border-box" }
+          : undefined
+      }
     >
       <button
         type="button"
-        className={`btn-icon${isMobile ? " tap-btn" : ""}`}
+        className="btn-icon timeline-nav-arrow"
         onClick={() => shiftTimeline(-1)}
+        aria-label="Попередній період"
       >
-        <svg
-          width={isMobile ? 14 : 16}
-          height={isMobile ? 14 : 16}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
@@ -1461,16 +1597,11 @@ export function DesktopTimelineView({
       </span>
       <button
         type="button"
-        className={`btn-icon${isMobile ? " tap-btn" : ""}`}
+        className="btn-icon timeline-nav-arrow"
         onClick={() => shiftTimeline(1)}
+        aria-label="Наступний період"
       >
-        <svg
-          width={isMobile ? 14 : 16}
-          height={isMobile ? 14 : 16}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -1551,10 +1682,10 @@ export function DesktopTimelineView({
       </div>
     </div>
   ) : (
-    <div className="timeline-toolbar">
+    <div className={`timeline-toolbar${mobileDense ? " timeline-toolbar--dense-focus" : ""}`}>
       {isMobile ? (
         <>
-          <div className="timeline-nav-row">
+          <div className="timeline-nav-row" aria-hidden={mobileDense || undefined}>
             {timelineMonthNav}
             {timelineTodayButton}
           </div>
@@ -1577,9 +1708,12 @@ export function DesktopTimelineView({
   return (
     <div
       id={useViewRootId ? "view-grid" : undefined}
-      className={
-        stickyChrome || mobileBoard ? "timeline-view-root--focus" : undefined
-      }
+      className={[
+        stickyChrome || mobileBoard ? "timeline-view-root--focus" : "",
+        mobileDense ? "timeline-view-root--mobile-dense" : "",
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined}
       style={rootStyle}
     >
       {timelineToolbar}
@@ -1616,8 +1750,8 @@ export function DesktopTimelineView({
                 </div>
               </div>
             </div>
-            <div className="timeline-mobile-body">
-              <div className="timeline-mobile-rooms-clip">
+            <div className="timeline-mobile-body" ref={boardBodyRef}>
+              <div className="timeline-mobile-rooms-clip" ref={roomsClipRef}>
                 <div className="timeline-mobile-rooms-track" id="timelineRooms" ref={roomsTrackRef}>
                   {timelineRoomRows}
                 </div>

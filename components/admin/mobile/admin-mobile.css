@@ -2469,7 +2469,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   overflow: auto !important;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y !important;
-  overscroll-behavior: contain;
+  overscroll-behavior: none !important;
+  overscroll-behavior-x: none !important;
+  overscroll-behavior-y: none !important;
   background: #fff !important;
   position: relative;
 }
@@ -2702,6 +2704,145 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .time-extension svg {
   display: none !important;
+}
+
+
+/* Nav arrows: sit INSIDE the 40px month card (not 44px tap targets) */
+.boso-admin-mobile .timeline-nav-row .timeline-nav .btn-icon,
+.boso-admin-mobile .timeline-nav-row .timeline-nav .timeline-nav-arrow {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  flex: 0 0 28px !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile .timeline-nav-row .timeline-month-label {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  text-align: center !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Rubber-band / page pull: lock chrome, only cells scroll */
+body.boso-grid-view {
+  overscroll-behavior: none !important;
+  overflow: hidden !important;
+}
+
+body.boso-grid-view .boso-admin-mobile,
+body.boso-grid-view .boso-admin-mobile .main-content {
+  overscroll-behavior: none !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board,
+.boso-admin-mobile .timeline-mobile-head,
+.boso-admin-mobile .timeline-mobile-body,
+.boso-admin-mobile .timeline-mobile-rooms-clip,
+.boso-admin-mobile .timeline-mobile-dates-clip {
+  overscroll-behavior: none !important;
+  touch-action: manipulation;
+}
+
+.boso-admin-mobile .timeline-mobile-rooms-clip {
+  touch-action: none;
+}
+
+/* Dense focus: hide month/today, animate board up — fit all houses */
+.boso-admin-mobile .timeline-toolbar {
+  transition: margin 0.32s cubic-bezier(0.22, 1, 0.36, 1), gap 0.32s ease;
+}
+
+.boso-admin-mobile .timeline-toolbar .timeline-nav-row {
+  display: grid !important;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s ease, margin 0.32s ease, max-height 0.32s ease;
+  overflow: hidden !important;
+  opacity: 1;
+}
+
+.boso-admin-mobile .timeline-toolbar .timeline-nav-row > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.boso-admin-mobile .timeline-toolbar--dense-focus {
+  gap: 0 !important;
+  margin-bottom: 6px !important;
+}
+
+.boso-admin-mobile .timeline-toolbar--dense-focus .timeline-nav-row {
+  grid-template-rows: 0fr !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+  max-height: 0 !important;
+}
+
+.boso-admin-mobile .timeline-view-root--mobile-dense .timeline-wrapper--mobile-board {
+  transition: flex 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg,
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-dense .timeline-room {
+  height: var(--timeline-room-height, 40px) !important;
+  min-height: var(--timeline-room-height, 40px) !important;
+  max-height: var(--timeline-room-height, 40px) !important;
+  transition: height 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    min-height 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-head {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-corner .timeline-sidebar-header {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-months {
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  flex: 0 0 18px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-dates {
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  flex: 0 0 30px !important;
+}
+
+/* Guest names must show in standard multi-night cards */
+.boso-admin-mobile .booking-inner-content--mobile-expanded .booking-guest-name {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-height: none !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  color: inherit !important;
 }
 
 .boso-admin-mobile #adminCheckIn,
