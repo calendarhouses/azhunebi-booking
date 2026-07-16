@@ -332,6 +332,7 @@ export function DesktopTimelineView({
   const gridHeadScrollRef = useRef<HTMLDivElement>(null);
   const headTrackRef = useRef<HTMLDivElement>(null);
   const sidebarBodyScrollRef = useRef<HTMLDivElement>(null);
+  const focusBodyScrollRef = useRef<HTMLDivElement>(null);
   const scrollSyncRef = useRef(false);
   const gridRowsRef = useRef<HTMLDivElement>(null);
   const draggingBlockRef = useRef<BookingBlockData | null>(null);
@@ -593,17 +594,19 @@ export function DesktopTimelineView({
     if (stickyChrome) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
-    if (sidebar && sidebar.scrollTop !== grid.scrollTop) {
+    // Mobile: vertical scroll lives on focus-body (rooms+cells move together).
+    // Desktop focus: sync sidebar ↔ grid scrollTop.
+    if (!isMobile && sidebar && sidebar.scrollTop !== grid.scrollTop) {
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
     if (!isBookingDraggingRef.current) {
       scheduleRecompute();
     }
-  }, [stickyChrome, scheduleRecompute, syncFocusHeadTrack]);
+  }, [stickyChrome, isMobile, scheduleRecompute, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
-    if (scrollSyncRef.current) return;
+    if (isMobile || scrollSyncRef.current) return;
     const sidebar = sidebarBodyScrollRef.current;
     const grid = scrollRef.current;
     if (!sidebar || !grid) return;
@@ -613,18 +616,25 @@ export function DesktopTimelineView({
       grid.scrollTop = sidebar.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, []);
+  }, [isMobile]);
 
   const handleGridWheel = useCallback(
     (event: WheelEvent<HTMLDivElement>) => {
       if (!stickyChrome) return;
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (isMobile) {
+        const body = focusBodyScrollRef.current;
+        if (!body) return;
+        event.preventDefault();
+        body.scrollTop += event.deltaY;
+        return;
+      }
       const sidebar = sidebarBodyScrollRef.current;
       if (!sidebar) return;
       event.preventDefault();
       sidebar.scrollTop += event.deltaY;
     },
-    [stickyChrome]
+    [stickyChrome, isMobile]
   );
 
   const clearDragUiState = useCallback(() => {
@@ -671,11 +681,15 @@ export function DesktopTimelineView({
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
     return {
       horizontal: scrollRef.current,
-      vertical: stickyChrome ? scrollRef.current : null,
-      verticalSync: stickyChrome ? sidebarBodyScrollRef.current : null,
+      vertical: stickyChrome
+        ? isMobile
+          ? focusBodyScrollRef.current
+          : scrollRef.current
+        : null,
+      verticalSync: stickyChrome && !isMobile ? sidebarBodyScrollRef.current : null,
       verticalPage: stickyChrome ? null : verticalPageRef.current,
     };
-  }, [stickyChrome]);
+  }, [stickyChrome, isMobile]);
 
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
@@ -1520,7 +1534,7 @@ export function DesktopTimelineView({
                 </div>
               </div>
             </div>
-            <div className="timeline-focus-body">
+            <div className="timeline-focus-body" ref={focusBodyScrollRef}>
               <div
                 className="timeline-sidebar timeline-sidebar--focus-body"
                 ref={sidebarBodyScrollRef}

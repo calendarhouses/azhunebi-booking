@@ -62,7 +62,7 @@ export function BookingQuickEditDrawer({
         aria-labelledby="qeTitle"
       >
         <MobileSheetHeader
-          title={<span id="qeTitle">Редагування: {title}</span>}
+          title={<span id="qeTitle">{title}</span>}
           onClose={onClose}
         />
         <div className="drawer-body" style={{ padding: 20, textAlign: "center", flex: "0 0 auto" }}>

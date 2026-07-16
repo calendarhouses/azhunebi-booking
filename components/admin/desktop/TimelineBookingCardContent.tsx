@@ -60,16 +60,18 @@ function GuestChipIcon() {
 function GuestChip({
   value,
   compact = false,
+  textOnly = false,
 }: {
   value: string;
   compact?: boolean;
+  textOnly?: boolean;
 }) {
   return (
     <span
-      className={`booking-guest-chip${compact ? " booking-guest-chip--compact" : ""}`}
+      className={`booking-guest-chip${compact ? " booking-guest-chip--compact" : ""}${textOnly ? " booking-guest-chip--text" : ""}`}
       aria-label={`Гостей: ${value}`}
     >
-      <GuestChipIcon />
+      {textOnly ? null : <GuestChipIcon />}
       {value}
     </span>
   );
@@ -128,7 +130,9 @@ function CompactStackedStayCard({
     <div className="booking-inner-content booking-inner-content--compact booking-inner-content--compact-short-stay">
       <div className="booking-guest-name">{block.guestName}</div>
       <div className="booking-compact-short-stay-meta">
-        {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
+        {showGuestChip && block.guestChip ? (
+          <GuestChip value={block.guestChip} compact textOnly={block.contentWidth < 72} />
+        ) : null}
         <span
           className="booking-fin-badge"
           style={{
@@ -151,6 +155,33 @@ export function TimelineBookingCardContent({
   const isOneNight = block.nights === 1;
   const { showGuestChip } = resolveTimelineGuestChipVisibility(block);
   const oneNightFinKind = isOneNight ? getTimelineOneNightFinKind(block.booking) : null;
+  const guestTextOnly = block.contentWidth < 72;
+
+  /** Dense mobile: short stays — only price + guests in one row (no name). */
+  if (mobile && compact && block.nights < 3) {
+    return (
+      <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
+        <div className="booking-mobile-dense-meta">
+          {showGuestChip && block.guestChip ? (
+            <GuestChip value={block.guestChip} compact textOnly={guestTextOnly || block.nights === 1} />
+          ) : null}
+          {oneNightFinKind ? (
+            <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
+          ) : (
+            <span
+              className="booking-fin-badge"
+              style={{
+                background: block.finBadge.bg,
+                color: block.finBadge.color,
+              }}
+            >
+              {block.finText}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (isOneNight && !mobile) {
     return (
@@ -168,7 +199,7 @@ export function TimelineBookingCardContent({
             <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
           ) : null}
           {showGuestChip && block.guestChip ? (
-            <GuestChip value={block.guestChip} compact />
+            <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
           ) : null}
         </div>
       </div>
@@ -193,7 +224,9 @@ export function TimelineBookingCardContent({
         <div className="booking-guest-name">{block.guestName}</div>
         {mobile ? (
           <div className="booking-mobile-dense-meta">
-            {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
+            {showGuestChip && block.guestChip ? (
+              <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
+            ) : null}
             <span
               className="booking-fin-badge"
               style={{
@@ -206,7 +239,9 @@ export function TimelineBookingCardContent({
           </div>
         ) : (
           <>
-            {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
+            {showGuestChip && block.guestChip ? (
+              <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
+            ) : null}
             <span
               className="booking-fin-badge"
               style={{
@@ -235,7 +270,9 @@ export function TimelineBookingCardContent({
     >
       <div className="booking-card-top">
         <div className="booking-guest-name">{block.guestName}</div>
-        {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} /> : null}
+        {showGuestChip && block.guestChip ? (
+          <GuestChip value={block.guestChip} textOnly={guestTextOnly} />
+        ) : null}
       </div>
       <div className="booking-card-bottom">
         {oneNightFinKind ? (

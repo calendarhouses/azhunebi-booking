@@ -170,12 +170,13 @@ export function getTimelineOneNightFinAriaLabel(kind: TimelineOneNightFinKind): 
   return "Без суми";
 }
 
-/** Міні-напис у кутку картки (2+ ночі): «2» або «2+1» за денними гостями. */
+/** Міні-напис у кутку картки: «2», «2+1» (дорослі+діти) або «2+1» з денними гостями. */
 export function formatTimelineGuestChip(booking: BookingRecord): string {
-  const guests = Math.max(1, Number(booking.guests) || 2);
-  const { dayGuests } = parseBookingComment(String(booking.comment || ""));
-  if (dayGuests > 0) return `${guests}+${dayGuests}`;
-  return String(guests);
+  const adults = Math.max(1, Number(booking.guests) || 2);
+  const { children, dayGuests } = parseBookingComment(String(booking.comment || ""));
+  if (children > 0) return `${adults}+${children}`;
+  if (dayGuests > 0) return `${adults}+${dayGuests}`;
+  return String(adults);
 }
 
 /** Компактний текст суми для вузьких карток (1 ніч). */
