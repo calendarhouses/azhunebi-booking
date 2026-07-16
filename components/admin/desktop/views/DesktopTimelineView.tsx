@@ -332,6 +332,7 @@ export function DesktopTimelineView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridHeadScrollRef = useRef<HTMLDivElement>(null);
   const headTrackRef = useRef<HTMLDivElement>(null);
+  const roomsTrackRef = useRef<HTMLDivElement>(null);
   const sidebarBodyScrollRef = useRef<HTMLDivElement>(null);
   const focusBodyScrollRef = useRef<HTMLDivElement>(null);
   const scrollSyncRef = useRef(false);
@@ -388,6 +389,17 @@ export function DesktopTimelineView({
     const track = headTrackRef.current;
     if (!track) return;
     track.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
+  }, []);
+
+  const syncMobileBoardChrome = useCallback((scrollLeft: number, scrollTop: number) => {
+    const datesTrack = headTrackRef.current;
+    const roomsTrack = roomsTrackRef.current;
+    if (datesTrack) {
+      datesTrack.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
+    }
+    if (roomsTrack) {
+      roomsTrack.style.transform = `translate3d(0, ${-scrollTop}px, 0)`;
+    }
   }, []);
 
   const days = useMemo(() => buildDays(startDate, daysCount), [startDate, daysCount]);
@@ -486,7 +498,9 @@ export function DesktopTimelineView({
         const grid = scrollRef.current;
         if (!grid) return;
         grid.scrollLeft += dir * 7 * cellWidth;
-        if (stickyChrome) {
+        if (mobileBoard) {
+          syncMobileBoardChrome(grid.scrollLeft, grid.scrollTop);
+        } else if (stickyChrome) {
           syncFocusHeadTrack(grid.scrollLeft);
         }
         scheduleRecompute();
@@ -499,7 +513,7 @@ export function DesktopTimelineView({
         return d;
       });
     },
-    [mode, cellWidth, stickyChrome, scheduleRecompute, syncFocusHeadTrack]
+    [mode, cellWidth, stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, syncMobileBoardChrome]
   );
 
   const setTimelineMode = useCallback((m: TimelineMode) => {
@@ -579,11 +593,24 @@ export function DesktopTimelineView({
       scrollLeft = Math.max(0, (todayIndex - 3) * cellWidth);
     }
     el.scrollLeft = scrollLeft;
-    if (stickyChrome) {
+    if (mobileBoard) {
+      syncMobileBoardChrome(scrollLeft, el.scrollTop);
+    } else if (stickyChrome) {
       syncFocusHeadTrack(scrollLeft);
     }
     scheduleRecompute();
-  }, [mode, infiniteAnchor, startDate, daysCount, cellWidth, stickyChrome, scheduleRecompute, syncFocusHeadTrack]);
+  }, [
+    mode,
+    infiniteAnchor,
+    startDate,
+    daysCount,
+    cellWidth,
+    stickyChrome,
+    mobileBoard,
+    scheduleRecompute,
+    syncFocusHeadTrack,
+    syncMobileBoardChrome,
+  ]);
 
   const handleGridContainerScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
@@ -591,18 +618,26 @@ export function DesktopTimelineView({
     const sidebar = sidebarBodyScrollRef.current;
     if (!grid) return;
 
+    if (mobileBoard) {
+      syncMobileBoardChrome(grid.scrollLeft, grid.scrollTop);
+      if (!isBookingDraggingRef.current) {
+        scheduleRecompute();
+      }
+      return;
+    }
+
     scrollSyncRef.current = true;
     if (stickyChrome) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
-    if (!mobileBoard && stickyChrome && sidebar && sidebar.scrollTop !== grid.scrollTop) {
+    if (stickyChrome && sidebar && sidebar.scrollTop !== grid.scrollTop) {
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
     if (!isBookingDraggingRef.current) {
       scheduleRecompute();
     }
-  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack]);
+  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, syncMobileBoardChrome]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (mobileBoard || scrollSyncRef.current) return;
@@ -710,15 +745,26 @@ export function DesktopTimelineView({
     scrollSyncRef.current = true;
     const scrolled = applyDragEdgeScroll(x, y, targets);
     if (scrolled && (stickyChrome || mobileBoard)) {
-      const scrollLeft = scrollRef.current?.scrollLeft ?? 0;
-      if (stickyChrome) syncFocusHeadTrack(scrollLeft);
+      const el = scrollRef.current;
+      if (el && mobileBoard) {
+        syncMobileBoardChrome(el.scrollLeft, el.scrollTop);
+      } else if (el && stickyChrome) {
+        syncFocusHeadTrack(el.scrollLeft);
+      }
     }
     scrollSyncRef.current = false;
 
     updateDragFloatPosition(session, block);
 
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragFrame);
-  }, [stickyChrome, mobileBoard, getDragScrollTargets, syncFocusHeadTrack, updateDragFloatPosition]);
+  }, [
+    stickyChrome,
+    mobileBoard,
+    getDragScrollTargets,
+    syncFocusHeadTrack,
+    syncMobileBoardChrome,
+    updateDragFloatPosition,
+  ]);
 
   const ensureDragFrame = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) return;
@@ -1388,7 +1434,10 @@ export function DesktopTimelineView({
   ) : null;
 
   const timelineMonthNav = (
-    <div className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}>
+    <div
+      className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}
+      style={isMobile ? { height: 40, minHeight: 40, maxHeight: 40, padding: "0 10px", boxSizing: "border-box" } : undefined}
+    >
       <button
         type="button"
         className={`btn-icon${isMobile ? " tap-btn" : ""}`}
@@ -1433,7 +1482,26 @@ export function DesktopTimelineView({
       type="button"
       className={`btn-secondary timeline-today-btn${isMobile ? " tap-btn" : ""}`}
       onClick={resetToToday}
-      style={isMobile ? undefined : { padding: "8px 16px", fontSize: 13 }}
+      style={
+        isMobile
+          ? {
+              height: 40,
+              minHeight: 40,
+              maxHeight: 40,
+              padding: "0 14px",
+              fontSize: 12,
+              fontWeight: 700,
+              width: "auto",
+              flex: "0 0 auto",
+              boxSizing: "border-box",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 10,
+              lineHeight: 1,
+            }
+          : { padding: "8px 16px", fontSize: 13 }
+      }
     >
       Сьогодні
     </button>
@@ -1523,17 +1591,12 @@ export function DesktopTimelineView({
             "--timeline-cell-width": `${cellWidth}px`,
             "--timeline-room-height": `${rowHeight}px`,
             "--timeline-row-height": `${rowHeight}px`,
-            ...(isVirtualTimeline ? { "--timeline-grid-width": `${gridTotalWidth}px` } : {}),
+            "--timeline-grid-width": `${gridTotalWidth}px`,
           } as CSSProperties
         }
       >
         {mobileBoard ? (
-          <div
-            className="timeline-mobile-scroll timeline-scroll-surface"
-            id="timelineScroll"
-            ref={scrollRef}
-            onScroll={handleGridContainerScroll}
-          >
+          <>
             <div className="timeline-mobile-head">
               <div className="timeline-mobile-corner">
                 <TimelineSidebarHeader
@@ -1542,36 +1605,40 @@ export function DesktopTimelineView({
                   {...sidebarUndoProps}
                 />
               </div>
-              <div
-                className="timeline-mobile-dates"
-                style={
-                  isVirtualTimeline
-                    ? { width: gridTotalWidth, minWidth: gridTotalWidth }
-                    : { width: "max-content" }
-                }
-              >
-                {timelineMonths}
-                {timelineDates}
+              <div className="timeline-mobile-dates-clip">
+                <div
+                  className="timeline-mobile-dates-track"
+                  ref={headTrackRef}
+                  style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
+                >
+                  {timelineMonths}
+                  {timelineDates}
+                </div>
               </div>
             </div>
             <div className="timeline-mobile-body">
-              <div className="timeline-mobile-rooms" id="timelineRooms">
-                {timelineRoomRows}
+              <div className="timeline-mobile-rooms-clip">
+                <div className="timeline-mobile-rooms-track" id="timelineRooms" ref={roomsTrackRef}>
+                  {timelineRoomRows}
+                </div>
               </div>
               <div
-                className={`timeline-rows timeline-mobile-cells${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
-                id="timelineGrid"
-                ref={gridRowsRef}
-                style={
-                  isVirtualTimeline
-                    ? { width: gridTotalWidth, minWidth: gridTotalWidth }
-                    : { width: "max-content", minWidth: "100%" }
-                }
+                className="timeline-mobile-cells-scroll timeline-scroll-surface"
+                id="timelineScroll"
+                ref={scrollRef}
+                onScroll={handleGridContainerScroll}
               >
-                {timelineRows}
+                <div
+                  className={`timeline-rows timeline-mobile-cells${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
+                  id="timelineGrid"
+                  ref={gridRowsRef}
+                  style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
+                >
+                  {timelineRows}
+                </div>
               </div>
             </div>
-          </div>
+          </>
         ) : stickyChrome ? (
           <>
             <div className="timeline-focus-head">

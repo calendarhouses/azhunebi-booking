@@ -108,11 +108,11 @@ export const TimelineGridRow = memo(function TimelineGridRow({
     <div
       className={`timeline-row-bg${isVirtualTimeline ? " timeline-row-bg--virtual" : ""}`}
       id={`grid-row-${rowIndex}`}
-      style={
-        isVirtualTimeline
-          ? { position: "relative", width: gridTotalWidth, minWidth: gridTotalWidth }
-          : { position: "relative" }
-      }
+      style={{
+        position: "relative",
+        width: gridTotalWidth,
+        minWidth: gridTotalWidth,
+      }}
     >
       <div
         className="timeline-track-window"
