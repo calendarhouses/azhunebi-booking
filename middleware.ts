@@ -34,6 +34,13 @@ export async function middleware(request: NextRequest) {
       return redirectToHost(request, ADMIN_HOST);
     }
 
+    // Старе пряме посилання очищається до канонічного домену без /book/default.
+    if (pathname === "/book/default" || pathname === "/book/default/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+
     // Красивий публічний URL без /book/default у рядку браузера.
     if (pathname === "/") {
       const url = request.nextUrl.clone();
