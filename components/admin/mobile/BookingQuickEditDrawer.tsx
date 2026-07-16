@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { MobileSheetHeader } from "./MobileSheetHeader";
 
 export interface BookingQuickEditDrawerProps {
@@ -13,7 +14,7 @@ export interface BookingQuickEditDrawerProps {
   onSave: (value: number) => void;
 }
 
-/** Редагування суми — як #quickEditDrawer у old_boso_mobile.html */
+/** Редагування суми — bottom sheet поверх booking drawer (portal у body). */
 export function BookingQuickEditDrawer({
   open,
   title,
@@ -24,21 +25,47 @@ export function BookingQuickEditDrawer({
   onSave,
 }: BookingQuickEditDrawerProps) {
   const [draft, setDraft] = useState(String(value));
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (open) setDraft(String(value));
   }, [open, value]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
-  return (
-    <div id="quickEditDrawer" className="drawer-overlay active" style={{ zIndex: 2500 }}>
-      <div className="drawer" style={{ maxHeight: "60vh" }}>
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <div
+      id="quickEditDrawer"
+      className="drawer-overlay active booking-quick-edit-overlay"
+      style={{ zIndex: 3600 }}
+      onClick={onClose}
+    >
+      <div
+        className="drawer booking-quick-edit-sheet"
+        style={{ maxHeight: "min(60dvh, 420px)" }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="qeTitle"
+      >
         <MobileSheetHeader
           title={<span id="qeTitle">Редагування: {title}</span>}
           onClose={onClose}
         />
-        <div className="drawer-body" style={{ padding: 20, textAlign: "center" }}>
+        <div className="drawer-body" style={{ padding: 20, textAlign: "center", flex: "0 0 auto" }}>
           <label
             style={{
               fontSize: 11,
@@ -59,6 +86,7 @@ export function BookingQuickEditDrawer({
             id="qeInput"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            autoFocus
             style={{
               fontSize: 32,
               fontWeight: 800,
@@ -74,35 +102,43 @@ export function BookingQuickEditDrawer({
             }}
           />
         </div>
-        <div
-          className="drawer-footer booking-quick-edit-footer"
-          style={{ flexDirection: "row", gap: 12, padding: "16px 20px calc(16px + var(--safe-bottom))" }}
-        >
-          <button
-            type="button"
-            className="btn-secondary"
-            style={{ flex: 1, margin: 0, height: 46 }}
-            onClick={() => setDraft(String(defaultValue))}
-          >
-            Скинути
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            style={{ flex: 2, margin: 0, height: 46 }}
-            onClick={() => {
-              let next = Math.max(0, Math.round(Number(draft) || 0));
-              if (maxAmount !== undefined && Number.isFinite(maxAmount)) {
-                next = Math.min(next, Math.max(0, Math.round(maxAmount)));
-              }
-              onSave(next);
-              onClose();
-            }}
-          >
-            Зберегти
-          </button>
+        <div className="drawer-footer booking-quick-edit-footer drawer-footer--mobile">
+          <div className="drawer-footer-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ flex: 1, margin: 0, height: 46 }}
+              onClick={onClose}
+            >
+              Скасувати
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ flex: 1, margin: 0, height: 46 }}
+              onClick={() => setDraft(String(defaultValue))}
+            >
+              Скинути
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              style={{ flex: 1.4, margin: 0, height: 46 }}
+              onClick={() => {
+                let next = Math.max(0, Math.round(Number(draft) || 0));
+                if (maxAmount !== undefined && Number.isFinite(maxAmount)) {
+                  next = Math.min(next, Math.max(0, Math.round(maxAmount)));
+                }
+                onSave(next);
+                onClose();
+              }}
+            >
+              Зберегти
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

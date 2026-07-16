@@ -1,6 +1,6 @@
 "use client";
 
-import { Infinity as InfinityIcon, Undo2 } from "lucide-react";
+import { Infinity as InfinityIcon, Maximize2, Minimize2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent, WheelEvent } from "react";
 import { parseSafeDate } from "../adminDates";
@@ -289,9 +289,17 @@ export function DesktopTimelineView({
   isUndoing = false,
 }: DesktopTimelineViewProps) {
   const isMobile = layout === "mobile";
-  const { isCompactMode } = useGridFocusModeOptional();
+  const { isCompactMode, toggleCompactMode } = useGridFocusModeOptional();
+  /** Desktop: focus layout. Mobile: denser rows only (same toggle). */
   const compactGrid = !isMobile && isCompactMode;
-  const rowHeight = getTimelineRowHeight(compactGrid);
+  const mobileDense = isMobile && isCompactMode;
+  const denseRows = compactGrid || mobileDense;
+  /** Mobile CSS locks rooms at 60px (dense 42) — keep JS in sync for drag hit-testing. */
+  const rowHeight = isMobile
+    ? mobileDense
+      ? 42
+      : 60
+    : getTimelineRowHeight(compactGrid);
   const [mode, setMode] = useState<TimelineMode>("month");
   const [infiniteAnchor, setInfiniteAnchor] = useState(() => new Date());
   const [baseDate, setBaseDate] = useState(() => {
@@ -648,14 +656,14 @@ export function DesktopTimelineView({
         );
       }
 
-      const layout = getTimelineBookingBlockLayout(rowHeight, compactGrid);
+      const layout = getTimelineBookingBlockLayout(rowHeight, denseRows);
       const top = session.targetRoomIndex * rowHeight + layout.top;
       const left = block.left + pixelDelta;
       el.style.transform = `translate3d(${left}px, ${top}px, 0)`;
       el.style.width = `${block.width}px`;
       el.style.height = `${layout.height}px`;
     },
-    [activeRooms.length, cellWidth, rowHeight]
+    [activeRooms.length, cellWidth, rowHeight, denseRows]
   );
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
@@ -1256,7 +1264,7 @@ export function DesktopTimelineView({
                     {iconClock}
                   </div>
                 ))}
-                <TimelineBookingCardContent block={block} mobile={isMobile} compact={compactGrid} />
+                <TimelineBookingCardContent block={block} mobile={isMobile} compact={denseRows} />
               </div>
             );
           })}
@@ -1272,11 +1280,11 @@ export function DesktopTimelineView({
             left: 0,
             top: 0,
             width: draggingBlockRef.current.width,
-            height: getTimelineBookingBlockLayout(rowHeight, compactGrid).height,
+            height: getTimelineBookingBlockLayout(rowHeight, denseRows).height,
             paddingLeft: draggingBlockRef.current.padLeft,
             paddingRight: draggingBlockRef.current.padRight,
             pointerEvents: "none",
-            transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, compactGrid).top}px, 0)`,
+            transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,
           }}
         >
           {draggingBlockRef.current.extensions.map((ext, idx) => (
@@ -1297,7 +1305,7 @@ export function DesktopTimelineView({
           <TimelineBookingCardContent
             block={draggingBlockRef.current}
             mobile={isMobile}
-            compact={compactGrid}
+            compact={denseRows}
           />
         </div>
       ) : null}
@@ -1308,6 +1316,7 @@ export function DesktopTimelineView({
     "timeline-wrapper",
     isBookingDragging ? "timeline-wrapper--booking-drag" : "",
     compactGrid ? "timeline-wrapper--compact timeline-wrapper--focus-layout" : "",
+    mobileDense ? "timeline-wrapper--mobile-dense" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -1327,9 +1336,25 @@ export function DesktopTimelineView({
         title={canUndoMove ? "Скасувати останню дію" : "Немає дій для скасування"}
       >
         <Undo2 className="timeline-undo-btn__icon" strokeWidth={2} aria-hidden />
-        <span>Назад</span>
       </button>
     ) : null;
+
+  const timelineDensityButton = isMobile ? (
+    <button
+      type="button"
+      className={`timeline-focus-toggle timeline-focus-toggle--toolbar tap-btn${mobileDense ? " is-active" : ""}`}
+      onClick={toggleCompactMode}
+      aria-pressed={mobileDense}
+      aria-label={mobileDense ? "Звичайний розмір шахматки" : "Ущільнити шахматку"}
+      title={mobileDense ? "Звичайний розмір" : "Ущільнити — більше будинків на екрані"}
+    >
+      {mobileDense ? (
+        <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+      ) : (
+        <Maximize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+      )}
+    </button>
+  ) : null;
 
   const timelineMonthNav = (
     <div className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}>
@@ -1441,6 +1466,7 @@ export function DesktopTimelineView({
           <div className="timeline-toolbar-actions">
             {timelineUndoButton}
             {timelineModeToggle}
+            {timelineDensityButton}
           </div>
         </>
       ) : (

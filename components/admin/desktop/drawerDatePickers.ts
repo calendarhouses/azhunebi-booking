@@ -10,6 +10,7 @@ export const DRAWER_DATE_PICKER_OPTS = {
   disableMobile: true,
   allowInput: false,
   clickOpens: true,
+  static: false,
 } as const;
 
 function isoToFlatpickrDate(iso: string): Date | undefined {
@@ -61,6 +62,7 @@ export function initDrawerDatePickers(opts: {
 
   const checkOutPicker = createFlatpickr(checkOutEl, {
     ...DRAWER_DATE_PICKER_OPTS,
+    appendTo: document.body,
     defaultDate: isoToFlatpickrDate(opts.checkOut),
     onChange: (_selected, _dateStr, instance) => {
       opts.onCheckOutChange(normalizeDateToIso(instance.input.value));
@@ -69,6 +71,7 @@ export function initDrawerDatePickers(opts: {
 
   const checkInPicker = createFlatpickr(checkInEl, {
     ...DRAWER_DATE_PICKER_OPTS,
+    appendTo: document.body,
     defaultDate: isoToFlatpickrDate(opts.checkIn),
     onChange: (_selected, _dateStr, instance) => {
       const iso = normalizeDateToIso(instance.input.value);

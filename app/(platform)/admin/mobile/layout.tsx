@@ -11,7 +11,19 @@ import "@/components/admin/mobile/admin-mobile.css";
 export const metadata: Metadata = {
   title: "Панель Управління",
   description: "Мобільна панель управління",
-  appleWebApp: { title: "Панель Управління" },
+  applicationName: "Адмінка",
+  appleWebApp: {
+    capable: true,
+    title: "Адмінка",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [{ url: "/images/admin-preloader-logo.png", type: "image/png" }],
+    apple: [{ url: "/images/admin-preloader-logo.png" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -20,6 +32,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#556B2F" },
+    { media: "(prefers-color-scheme: dark)", color: "#556B2F" },
+  ],
 };
 
 export default function AdminMobileLayout({ children }: { children: React.ReactNode }) {

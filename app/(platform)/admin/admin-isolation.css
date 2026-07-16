@@ -1,8 +1,6 @@
 /* Ізоляція /admin від globals.css + Tailwind preflight (як body у old_boso_admin.html) */
 html:has(.boso-admin-page),
-html:has(.boso-admin-page) body,
-html:has(.boso-admin-mobile),
-html:has(.boso-admin-mobile) body {
+html:has(.boso-admin-page) body {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
@@ -14,6 +12,25 @@ html:has(.boso-admin-mobile) body {
   font-family: "Inter", sans-serif !important;
   display: flex !important;
   flex-direction: column !important;
+}
+
+/* Mobile: 100dvh so bottom nav sits on the real visual bottom (Safari chrome). */
+html:has(.boso-admin-mobile),
+html:has(.boso-admin-mobile) body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100dvh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  background: #fdfcfb !important;
+  color: #1a1a1a !important;
+  font-family: "Inter", sans-serif !important;
+  display: flex !important;
+  flex-direction: column !important;
+  touch-action: pan-y !important;
 }
 
 .admin-layout-shell {

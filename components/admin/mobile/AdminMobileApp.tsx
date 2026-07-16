@@ -10,6 +10,7 @@ import { isDiscountDraftId } from "@/lib/admin/discountDraft";
 import { DesktopBookingDrawer } from "../desktop/DesktopBookingDrawer";
 import { DesktopModals } from "../desktop/DesktopModals";
 import { DesktopOverlays } from "../desktop/DesktopOverlays";
+import { GridFocusModeProvider } from "../desktop/GridFocusModeContext";
 import { registerAdminDesktopHandlers } from "../desktop/registerAdminDesktopHandlers";
 import { DesktopBookingsListView } from "../desktop/views/DesktopBookingsListView";
 import { DesktopGuestsView } from "../desktop/views/DesktopGuestsView";
@@ -126,6 +127,7 @@ export function AdminMobileApp() {
 
   return (
     <MobileUiProvider>
+      <GridFocusModeProvider tenantId={membership?.tenantId}>
       <AdminDocumentTitleSync siteTitle={documentSiteTitle} enabled={admin.appVisible} />
       <div className="boso-admin-mobile">
         <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
@@ -234,6 +236,7 @@ export function AdminMobileApp() {
           <DesktopOverlays />
         </div>
       </div>
+      </GridFocusModeProvider>
     </MobileUiProvider>
   );
 }

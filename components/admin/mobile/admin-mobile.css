@@ -10,7 +10,7 @@
 
 /* --- Shared tokens live in admin-tokens.css (loaded by layout) --- */
 
-.boso-admin-mobile :where(*) { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; touch-action: pan-x pan-y; }
+.boso-admin-mobile :where(*) { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 /* Вбиваємо системні свайпи Safari (Назад/Вперед) */
 .boso-admin-mobile { overscroll-behavior-x: none; overscroll-behavior-y: none; }
@@ -453,24 +453,24 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .tap-btn:active { transform: scale(0.95); opacity: 0.8; }
      
 /* --- МОБІЛЬНА ШАХМАТКА --- */
-.timeline-toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-.timeline-nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; flex-wrap: wrap; }
-.timeline-toolbar-actions { display: flex; align-items: center; gap: 8px; width: 100%; }
-.timeline-toolbar-actions .mode-toggle { flex: 1; min-width: 0; }
+.timeline-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.timeline-nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; flex-wrap: nowrap; }
+.timeline-toolbar-actions { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: flex-start; }
+.timeline-toolbar-actions .mode-toggle { flex: 0 0 auto; width: auto; min-width: 0; }
 .timeline-toolbar-actions .timeline-undo-btn--toolbar {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    min-height: var(--tap-min);
-    padding: 0 14px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
     border-radius: 12px;
     border: 1px solid #E5E7EB;
     background: #FFF;
     color: var(--text-main);
-    font-size: 13px;
-    font-weight: 700;
     box-shadow: var(--mobile-shadow);
 }
 .timeline-toolbar-actions .timeline-undo-btn--toolbar:disabled {
@@ -478,15 +478,74 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     box-shadow: none;
 }
 .timeline-toolbar-actions .timeline-undo-btn--toolbar .timeline-undo-btn__icon {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
+}
+.timeline-toolbar-actions .timeline-focus-toggle--toolbar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    background: #FFF;
+    color: var(--text-main);
+    box-shadow: var(--mobile-shadow);
+}
+.timeline-toolbar-actions .timeline-focus-toggle--toolbar.is-active {
+    border-color: rgba(85, 107, 47, 0.45);
+    background: #F4F7EE;
+    color: var(--accent);
+}
+.timeline-toolbar-actions .timeline-focus-toggle__icon {
+    width: 18px;
+    height: 18px;
 }
 .timeline-nav { display: flex; align-items: center; gap: 8px; background: white; padding: 6px 10px; border-radius: 10px; border: 1px solid #E5E7EB; min-width: 0; flex: 1; }
 .btn-icon { background: #F9FAFB; border: 1px solid #E5E7EB; padding: 6px; border-radius: 8px; color: #4B5563; display: flex; align-items: center; justify-content: center; min-width: var(--tap-min); min-height: var(--tap-min);}
 .timeline-month-label { font-weight: 700; font-size: 13px; min-width: 0; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.mode-toggle { display: flex; background: #E5E7EB; padding: 3px; border-radius: 10px; width: 100%;}
-.mode-btn { flex: 1; padding: 8px; font-size: 13px; font-weight: 600; color: #6B7280; text-align: center; border-radius: 8px; transition: 0.2s;}
+/* Scope full-width mode toggle to timeline only — never crush booking service rows */
+.timeline-toolbar-actions .mode-toggle,
+.boso-admin-mobile .timeline-toolbar-actions .mode-toggle {
+    display: flex;
+    background: #E5E7EB;
+    padding: 2px;
+    border-radius: 10px;
+    width: auto;
+    flex: 0 0 auto;
+}
+.timeline-toolbar-actions .mode-btn {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6B7280;
+    text-align: center;
+    border-radius: 8px;
+    transition: 0.2s;
+    min-height: 32px;
+    line-height: 1.2;
+}
+.timeline-toolbar-actions .mode-btn.active { background: #FFFFFF; color: #111827; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.timeline-toolbar-actions .mode-btn--infinite {
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    padding: 6px;
+}
+.timeline-toolbar-actions .mode-btn--infinite__icon {
+    width: 16px;
+    height: 16px;
+}
+
+.mode-toggle { display: inline-flex; background: #E5E7EB; padding: 3px; border-radius: 10px; width: auto; }
+.mode-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #6B7280; text-align: center; border-radius: 8px; transition: 0.2s;}
 .mode-btn.active { background: #FFFFFF; color: #111827; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
 .timeline-wrapper { display: flex; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.04); height: 60vh; min-height: 400px;}
@@ -1350,7 +1409,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .boso-admin-mobile #view-grid .timeline-rows .timeline-row-bg:last-child {
     border-bottom: none;
 }
-.boso-admin-mobile #view-grid .booking-block {
+.boso-admin-mobile #view-grid .booking-block:not(.booking-block--drag-float) {
     top: 7px !important;
     height: calc(100% - 14px) !important;
 }
@@ -1689,13 +1748,19 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 .boso-admin-mobile .bottom-nav {
-  position: relative;
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
   flex: 0 0 auto;
   height: calc(72px + var(--safe-bottom));
   padding: 8px 4px calc(10px + var(--safe-bottom)) 4px;
   z-index: 80;
   background: var(--nav-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.1);
+  margin-top: auto;
 }
 
 .boso-admin-mobile .top-bar {
@@ -1839,7 +1904,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   background: #F9FAFB !important;
 }
 
-.boso-admin-mobile #view-grid .booking-block {
+.boso-admin-mobile #view-grid .booking-block:not(.booking-block--drag-float) {
   top: 7px !important;
   height: calc(100% - 14px) !important;
 }
@@ -1866,7 +1931,8 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 /* Booking drawer = bottom sheet on phone (desktop CSS slides from right) */
-.boso-admin-mobile .drawer-overlay {
+.boso-admin-mobile .drawer-overlay,
+body.boso-admin-mobile-active .drawer-overlay {
   position: fixed !important;
   inset: 0 !important;
   width: 100% !important;
@@ -1880,12 +1946,14 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   transition: opacity 0.28s ease !important;
 }
 
-.boso-admin-mobile .drawer-overlay.active {
+.boso-admin-mobile .drawer-overlay.active,
+body.boso-admin-mobile-active .drawer-overlay.active {
   opacity: 1 !important;
   pointer-events: auto !important;
 }
 
-.boso-admin-mobile .drawer {
+.boso-admin-mobile .drawer,
+body.boso-admin-mobile-active .drawer {
   position: relative !important;
   left: auto !important;
   right: auto !important;
@@ -1902,14 +1970,18 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   flex-direction: column !important;
   overflow: hidden !important;
   pointer-events: auto !important;
+  padding-bottom: 0 !important;
+  background: #fff !important;
 }
 
-.boso-admin-mobile .drawer-overlay.active .drawer {
+.boso-admin-mobile .drawer-overlay.active .drawer,
+body.boso-admin-mobile-active .drawer-overlay.active .drawer {
   transform: translateY(0) !important;
 }
 
-.boso-admin-mobile .drawer-body {
-  flex: 1 1 auto !important;
+.boso-admin-mobile .drawer-body,
+body.boso-admin-mobile-active .drawer-body {
+  flex: 1 1 0% !important;
   min-height: 0 !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
@@ -1917,11 +1989,51 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 .boso-admin-mobile .drawer-footer,
-.boso-admin-mobile .drawer-footer--mobile {
+.boso-admin-mobile .drawer-footer--mobile,
+body.boso-admin-mobile-active .drawer-footer,
+body.boso-admin-mobile-active .drawer-footer--mobile {
+  flex: 0 0 auto !important;
   flex-shrink: 0 !important;
   padding: 12px 16px calc(12px + var(--safe-bottom)) !important;
   background: #fff !important;
   border-top: 1px solid #E5E7EB !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.boso-admin-mobile .drawer-footer--mobile .drawer-footer-delete,
+body.boso-admin-mobile-active .drawer-footer--mobile .drawer-footer-delete {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+body.boso-admin-mobile-active .booking-quick-edit-footer .drawer-footer-actions {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
+body.boso-admin-mobile-active .booking-quick-edit-footer .btn-secondary,
+body.boso-admin-mobile-active .booking-quick-edit-footer .btn-primary {
+  width: auto !important;
+}
+
+.boso-admin-mobile .modal-box {
+  max-height: 92dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.boso-admin-mobile .modal-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+.boso-admin-mobile .modal-footer {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
 }
 
 .boso-admin-mobile .modal-overlay {
@@ -1999,46 +2111,140 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   padding-bottom: calc(12px + var(--safe-bottom));
 }
 
-/* Infinite / month toggle — clear tap targets */
+/* Infinite / month toggle — compact, not stretched */
 .boso-admin-mobile .timeline-toolbar-actions .mode-toggle {
   margin: 0 !important;
   width: auto !important;
-  flex: 1 1 auto !important;
-  min-height: var(--tap-min);
+  flex: 0 0 auto !important;
+  min-height: 0;
   align-items: stretch;
 }
 
 .boso-admin-mobile .timeline-toolbar-actions .mode-btn {
-  flex: 1 1 auto;
-  min-height: var(--tap-min);
+  flex: 0 0 auto;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  padding: 6px 12px;
 }
 
 .boso-admin-mobile .timeline-toolbar-actions .mode-btn--infinite {
-  flex: 0 0 52px;
-  width: 52px;
-  min-width: 52px;
-  min-height: var(--tap-min);
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  min-height: 32px;
 }
 
 .boso-admin-mobile .timeline-toolbar-actions .mode-btn--infinite__icon {
-  width: 22px !important;
-  height: 22px !important;
+  width: 16px !important;
+  height: 16px !important;
   display: block !important;
   color: currentColor;
 }
 
 .boso-admin-mobile .timeline-undo-btn--toolbar,
+.boso-admin-mobile .timeline-focus-toggle--toolbar,
 .boso-admin-mobile .timeline-toolbar-actions .mode-btn,
 .boso-admin-mobile .bottom-nav .nav-item,
 .boso-admin-mobile .top-action-btn,
 .boso-admin-mobile .top-link-btn {
   pointer-events: auto !important;
   touch-action: manipulation;
+}
+
+/* Booking services / special tariffs — never crush labels */
+.boso-admin-mobile .booking-additional-services__item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.boso-admin-mobile .booking-additional-services__item > div:first-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.boso-admin-mobile .booking-additional-services__name,
+.boso-admin-mobile .booking-additional-services__price {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal !important;
+  writing-mode: horizontal-tb !important;
+}
+
+.boso-admin-mobile .booking-additional-services__toggle.mode-toggle,
+.boso-admin-mobile .booking-additional-services__toggle {
+  width: auto !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  align-self: center;
+}
+
+.boso-admin-mobile .booking-additional-services__toggle .mode-btn {
+  flex: 0 0 auto !important;
+  min-width: 44px;
+  padding: 8px 12px !important;
+}
+
+/* Dense chessboard — fit ~12 houses */
+.boso-admin-mobile .timeline-wrapper--mobile-dense {
+  --timeline-room-height: 42px;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-rooms-list > *,
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-dense .timeline-room {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room-name {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+  -webkit-line-clamp: 2;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room-icon,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .room-sidebar-house-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Timeline scroll only inside grid; page itself does not pan-x */
+.boso-admin-mobile .timeline-grid-container,
+.boso-admin-mobile .timeline-scroll-surface {
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+}
+
+.boso-admin-mobile .timeline-wrapper {
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
+.boso-admin-mobile #adminCheckIn,
+.boso-admin-mobile #adminCheckOut,
+.boso-admin-mobile .flatpickr-input {
+  touch-action: manipulation !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+body.boso-admin-mobile-active .flatpickr-calendar {
+  z-index: 10050 !important;
+}
+
+body.boso-admin-mobile-active .booking-quick-edit-overlay {
+  pointer-events: auto !important;
 }
 
 /* --- F1–F4 polish surfaces --- */
