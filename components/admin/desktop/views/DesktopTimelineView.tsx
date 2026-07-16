@@ -2,7 +2,7 @@
 
 import { Infinity as InfinityIcon, Maximize2, Minimize2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, MouseEvent, WheelEvent } from "react";
+import type { CSSProperties, MouseEvent, WheelEvent as ReactWheelEvent } from "react";
 import { parseSafeDate } from "../adminDates";
 import { bosoHover, bosoLeave } from "../adminTooltip";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
@@ -471,7 +471,7 @@ export function DesktopTimelineView({
     const onEnd = () => {
       active = false;
     };
-    const onWheel = (e: WheelEvent) => {
+    const onWheel = (e: globalThis.WheelEvent) => {
       e.preventDefault();
       scroll.scrollTop += e.deltaY;
       scroll.scrollLeft += e.deltaX;
@@ -790,7 +790,7 @@ export function DesktopTimelineView({
   }, [mobileBoard]);
 
   const handleGridWheel = useCallback(
-    (event: WheelEvent<HTMLDivElement>) => {
+    (event: ReactWheelEvent<HTMLDivElement>) => {
       if (!stickyChrome || mobileBoard) return;
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
       const sidebar = sidebarBodyScrollRef.current;
