@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { RoomFormState } from "@/components/admin/desktop/settings/GenericModalContent";
 import type { RoomDrawerTab } from "@/components/admin/desktop/useAdminModals";
+import { useMobileUi } from "@/components/admin/mobile/MobileUiContext";
 import { AMENITIES_CATEGORIES, buildDefaultAmenitiesState } from "@/constants/amenitiesDict";
 import { AmenityCategoryIcon, AmenityIcon } from "@/constants/amenityIcons";
 import { LineIcon } from "@/components/ui/LineIcon";
@@ -180,11 +181,25 @@ export function RoomSettingsDrawer({
   onDelete,
   onRoomFormChange,
 }: Props) {
+  const isMobile = useMobileUi();
   const [tab, setTab] = useState<RoomDrawerTab>(initialTab);
 
   useEffect(() => {
     if (open) setTab(initialTab);
   }, [initialTab, open]);
+
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return;
+    const html = document.documentElement;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = html.style.overflow;
+    document.body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBody;
+      html.style.overflow = prevHtml;
+    };
+  }, [open]);
 
   return (
     <div
@@ -202,19 +217,42 @@ export function RoomSettingsDrawer({
       />
       <aside
         className={cn(
-          "absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col bg-white antialiased",
-          "shadow-[-16px_0_40px_rgba(15,23,42,0.08)]",
-          "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          open ? "translate-x-0" : "translate-x-full"
+          "flex flex-col bg-white antialiased",
+          isMobile
+            ? cn(
+                "absolute bottom-0 left-0 right-0 max-h-[92dvh] w-full rounded-t-[22px]",
+                "shadow-[0_-16px_40px_rgba(15,23,42,0.12)]",
+                "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "pb-[env(safe-area-inset-bottom,0px)]",
+                open ? "translate-y-0" : "translate-y-full"
+              )
+            : cn(
+                "absolute right-0 top-0 h-full w-full max-w-2xl",
+                "shadow-[-16px_0_40px_rgba(15,23,42,0.08)]",
+                "transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                open ? "translate-x-0" : "translate-x-full"
+              )
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="room-drawer-title"
       >
-        <header className="shrink-0 border-b border-slate-200 p-6">
+        {isMobile ? <div className="m-sheet-handle mt-3 shrink-0" aria-hidden /> : null}
+        <header
+          className={cn(
+            "shrink-0 border-b border-slate-200",
+            isMobile ? "px-5 pb-4 pt-1" : "p-6"
+          )}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h2 id="room-drawer-title" className="text-xl font-semibold tracking-tight text-slate-900">
+              <h2
+                id="room-drawer-title"
+                className={cn(
+                  "font-semibold tracking-tight text-slate-900",
+                  isMobile ? "text-lg" : "text-xl"
+                )}
+              >
                 {title}
               </h2>
               <p className="mt-1 text-sm text-slate-500">Основні параметри та зручності котеджу</p>
@@ -244,7 +282,7 @@ export function RoomSettingsDrawer({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className={cn("flex-1 overflow-y-auto", isMobile ? "px-5 py-4" : "p-6")}>
           {loading ? (
             <div className="animate-pulse space-y-6">
               <div className="h-28 rounded-xl bg-slate-100" />
@@ -460,7 +498,12 @@ export function RoomSettingsDrawer({
           )}
         </div>
 
-        <footer className="flex shrink-0 items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4">
+        <footer
+          className={cn(
+            "flex shrink-0 items-center justify-between gap-4 border-t border-slate-200 bg-slate-50",
+            isMobile ? "px-5 py-3" : "px-6 py-4"
+          )}
+        >
           <div>
             {onDelete && roomId ? (
               <button type="button" className={btnDangerClass} onClick={() => void onDelete()}>

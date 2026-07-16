@@ -24,10 +24,17 @@ export interface MobileGuestCardProps {
   name: string;
   phone: string;
   count: number;
+  lastVisitLabel?: string;
   onShowBookings?: (phone: string, name: string) => void;
 }
 
-export function MobileGuestCard({ name, phone, count, onShowBookings }: MobileGuestCardProps) {
+export function MobileGuestCard({
+  name,
+  phone,
+  count,
+  lastVisitLabel,
+  onShowBookings,
+}: MobileGuestCardProps) {
   const initial = name.charAt(0).toUpperCase() || "👤";
   const callHref = telHref(phone);
 
@@ -45,6 +52,9 @@ export function MobileGuestCard({ name, phone, count, onShowBookings }: MobileGu
             >
               {iconPhone}+{phone}
             </button>
+            {lastVisitLabel ? (
+              <span className="boso-mobile-card__last-visit">{lastVisitLabel}</span>
+            ) : null}
           </div>
         </div>
         <button
@@ -81,6 +91,16 @@ export function MobileGuestCard({ name, phone, count, onShowBookings }: MobileGu
           WhatsApp
         </a>
       </div>
+
+      {onShowBookings ? (
+        <button
+          type="button"
+          className="btn-secondary tap-btn boso-mobile-card__show-bookings"
+          onClick={() => onShowBookings(phone, name)}
+        >
+          Показати броні
+        </button>
+      ) : null}
     </article>
   );
 }

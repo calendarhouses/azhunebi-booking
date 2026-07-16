@@ -1,38 +1,14 @@
-/* --- МОБІЛЬНА ПРЕМІУМ-ПАЛІТРА (спільно з desktop premium tokens) --- */
-:root {
-    --bg-color: #F7F8F6;
-    --card-bg: #FFFFFF;
-    --text-main: #1A1A1A;
-    --text-muted: #6B7280;
-    --accent: #556B2F;
-    --accent-hover: #4B5D28;
-    --accent-soft: rgba(85, 107, 47, 0.1);
-    --success: #059669;
-    --warning: #D97706;
-    --danger: #DC2626;
-    --nav-bg: rgba(255, 255, 255, 0.92);
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --tap-min: 44px;
-    --mobile-radius: 16px;
-    --mobile-radius-lg: 22px;
-    --mobile-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-    --accent-gradient: linear-gradient(
-        135deg,
-        rgba(85, 107, 47, 0.96),
-        rgba(105, 125, 58, 0.92) 58%,
-        rgba(145, 124, 78, 0.84)
-    );
-    --accent-gradient-hover: linear-gradient(
-        135deg,
-        rgba(73, 92, 40, 0.97),
-        rgba(95, 113, 52, 0.94) 58%,
-        rgba(128, 108, 68, 0.9)
-    );
-    --accent-premium-border: rgba(193, 172, 118, 0.35);
-    --accent-premium-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 6px 18px rgba(30, 40, 24, 0.28);
-    --accent-premium-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 22px rgba(30, 40, 24, 0.34);
-}
+/*
+  Mobile shell contract:
+  - Root: .boso-admin-mobile (column flex, 100dvh). Body gets .boso-admin-mobile-active for portaled sheets.
+  - Fixed chrome: .top-bar + .bottom-nav; scroll only in .main-content (min-height: 0).
+  - Overlays/portals: .admin-mobile-portals; closed overlays use pointer-events: none.
+  - Editors: bottom sheets (.drawer / .admin-side-drawer / Tailwind drawers via useMobileUi).
+  - Tokens: admin-tokens.css; shared chrome/forms: admin-shared-ui.css (not full admin-desktop.css).
+  - z-index: top/bottom ~50–60; booking drawer ~1000; modals/sheets ~3100–3200.
+*/
+
+/* --- Shared tokens live in admin-tokens.css (loaded by layout) --- */
 
 .boso-admin-mobile :where(*) { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; touch-action: pan-x pan-y; }
 
@@ -380,6 +356,18 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     flex-shrink: 0;
     border: none;
     cursor: pointer;
+}
+.boso-mobile-card__last-visit {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+.boso-mobile-card__show-bookings {
+    width: 100%;
+    margin-top: 12px;
+    justify-content: center;
 }
 .boso-mobile-card__actions {
     display: flex;
@@ -1658,58 +1646,61 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 /* ============================================================
-   MOBILE SHELL HARD OVERRIDE (after admin-desktop.css)
-   Desktop CSS is loaded for shared views; these rules win for phone.
+   MOBILE SHELL CONTRACT (tokens + shared-ui; no admin-desktop.css)
    ============================================================ */
 
 .boso-admin-mobile {
-  height: 100dvh !important;
-  max-height: 100dvh !important;
-  overflow: hidden !important;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-.boso-admin-mobile #admin-app,
+.boso-admin-mobile #admin-app {
+  display: none;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  align-items: stretch;
+}
+
 .boso-admin-mobile #admin-app.is-visible {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 1 auto !important;
-  width: 100% !important;
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow: hidden !important;
-  align-items: stretch !important;
+  display: flex;
 }
 
 .boso-admin-mobile .main-content {
-  flex: 1 1 0 !important;
-  min-height: 0 !important;
-  min-width: 0 !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 12px 12px 8px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: flex-start !important;
-  align-items: stretch !important;
+  padding: 12px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 .boso-admin-mobile .bottom-nav {
-  position: relative !important;
-  flex: 0 0 auto !important;
-  flex-shrink: 0 !important;
-  height: calc(72px + var(--safe-bottom)) !important;
-  padding: 8px 4px calc(10px + var(--safe-bottom)) 4px !important;
-  z-index: 80 !important;
-  background: var(--nav-bg) !important;
-  box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.1) !important;
+  position: relative;
+  flex: 0 0 auto;
+  height: calc(72px + var(--safe-bottom));
+  padding: 8px 4px calc(10px + var(--safe-bottom)) 4px;
+  z-index: 80;
+  background: var(--nav-bg);
+  box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.1);
 }
 
 .boso-admin-mobile .top-bar {
-  flex-shrink: 0 !important;
-  z-index: 80 !important;
+  flex-shrink: 0;
+  z-index: 80;
 }
 
 .boso-admin-mobile .admin-mobile-portals {
@@ -1722,17 +1713,15 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   z-index: 2000;
 }
 
-/* Do NOT force pointer-events on children — inactive overlays must stay click-through */
-
 /* Chessboard: readable rooms + visible day grid */
 .boso-admin-mobile .timeline-wrapper {
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  flex: 0 0 auto !important;
-  align-items: stretch !important;
-  width: 100% !important;
-  overflow: hidden !important;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  flex: 0 0 auto;
+  align-items: stretch;
+  width: 100%;
+  overflow: hidden;
 }
 
 .boso-admin-mobile .timeline-sidebar {
@@ -1946,20 +1935,68 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   pointer-events: auto !important;
 }
 
-.boso-admin-mobile .admin-side-drawer-overlay {
-  z-index: 3200 !important;
-  pointer-events: none !important;
+.boso-admin-mobile .admin-side-drawer-overlay,
+body.boso-admin-mobile-active .admin-side-drawer-overlay {
+  z-index: 3200;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
 }
 
-.boso-admin-mobile .admin-side-drawer-overlay.active {
-  pointer-events: auto !important;
+.boso-admin-mobile .admin-side-drawer-overlay.active,
+body.boso-admin-mobile-active .admin-side-drawer-overlay.active {
+  pointer-events: auto;
 }
 
-/* Settings / constructors: full-width sheets on phone */
-.boso-admin-mobile .admin-side-drawer {
+/* Constructors / service editors = bottom sheets on phone (incl. body portals) */
+.boso-admin-mobile .admin-side-drawer,
+body.boso-admin-mobile-active .admin-side-drawer {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
   width: 100% !important;
   max-width: 100% !important;
+  height: auto !important;
+  max-height: 92dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
   border-radius: 22px 22px 0 0 !important;
+  box-shadow: 0 -16px 48px rgba(28, 25, 23, 0.14) !important;
+  transform: translateY(110%) !important;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.boso-admin-mobile .admin-side-drawer::before,
+body.boso-admin-mobile-active .admin-side-drawer::before {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 5px;
+  margin: 10px auto 4px;
+  border-radius: 999px;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
+.boso-admin-mobile .admin-side-drawer-overlay.active .admin-side-drawer,
+body.boso-admin-mobile-active .admin-side-drawer-overlay.active .admin-side-drawer {
+  transform: translateY(0) !important;
+}
+
+.boso-admin-mobile .admin-side-drawer__footer,
+.boso-admin-mobile .admin-side-drawer__header,
+body.boso-admin-mobile-active .admin-side-drawer__footer,
+body.boso-admin-mobile-active .admin-side-drawer__header {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.boso-admin-mobile .admin-side-drawer__footer,
+body.boso-admin-mobile-active .admin-side-drawer__footer {
+  padding-bottom: calc(12px + var(--safe-bottom));
 }
 
 /* Infinite / month toggle — clear tap targets */
@@ -2003,4 +2040,125 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   pointer-events: auto !important;
   touch-action: manipulation;
 }
+
+/* --- F1–F4 polish surfaces --- */
+.boso-admin-mobile .drawer-body {
+  padding: 16px 16px 28px !important;
+}
+
+.boso-admin-mobile .drawer-header,
+.boso-admin-mobile .drawer .drawer-header {
+  padding: 8px 16px 12px !important;
+}
+
+.boso-admin-mobile .form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.boso-admin-mobile .form-group[style*="span 2"],
+.boso-admin-mobile .form-group {
+  grid-column: 1 / -1 !important;
+}
+
+.boso-admin-mobile .status-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.boso-admin-mobile .status-btn {
+  flex: 1 1 calc(50% - 4px);
+  min-height: var(--tap-min);
+  justify-content: center;
+}
+
+.boso-admin-mobile .timeline-toolbar {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.boso-admin-mobile .timeline-nav-row {
+  gap: 8px;
+}
+
+.boso-admin-mobile .timeline-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.boso-admin-mobile #view-list .mobile-settings-tabs,
+.boso-admin-mobile #view-settings .mobile-settings-tabs,
+.boso-admin-mobile .reports-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  margin-bottom: 14px;
+}
+
+.boso-admin-mobile .m-tab,
+.boso-admin-mobile .r-tab {
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
+.boso-admin-mobile #view-reports .metrics-grid,
+.boso-admin-mobile #view-reports [style*="gridTemplateColumns"] {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+}
+
+.boso-admin-mobile .discount-template-card {
+  width: 100%;
+}
+
+.boso-admin-mobile #set-discounts .discount-template-cards-grid,
+.boso-admin-mobile #set-discounts .discount-templates-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.boso-admin-mobile #set-rooms .settings-rooms-table tbody tr,
+.boso-admin-mobile #set-discounts table tbody tr {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--mobile-radius);
+  box-shadow: var(--mobile-shadow);
+}
+
+.boso-admin-mobile .branding-settings-panel .btn-primary,
+.boso-admin-mobile #view-settings .btn-primary.tap-btn {
+  position: sticky;
+  bottom: 8px;
+  z-index: 5;
+}
+
+.boso-admin-mobile .guest-filter-banner {
+  border-style: dashed !important;
+}
+
+.boso-admin-mobile .charts-grid {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.boso-admin-mobile .chart-card {
+  min-width: 0;
+}
+
+.boso-admin-mobile #view-reports .metric-card {
+  min-height: 88px;
+}
+
 

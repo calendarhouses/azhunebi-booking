@@ -18,6 +18,7 @@ import { DesktopSettingsView } from "../desktop/views/DesktopSettingsView";
 import { AdminLoadErrorScreen } from "@/components/admin/AdminLoadErrorScreen";
 import { AdminDocumentTitleSync } from "@/components/admin/AdminDocumentTitleSync";
 import { useAdminBootFromAdmin } from "@/components/admin/useAdminBootFromAdmin";
+import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAdminApp } from "../desktop/useAdminApp";
 import { useAdminModals } from "../desktop/useAdminModals";
 import { useAdminUiBridge } from "../desktop/useAdminUiBridge";
@@ -121,7 +122,7 @@ export function AdminMobileApp() {
   const branding = (admin.settings.branding || {}) as Record<string, unknown>;
   const documentSiteTitle =
     String(branding.site_title || "").trim() || membership?.tenantName || null;
-  const brandLogoUrl = String(branding.logo_url || "").trim() || null;
+  const brandLogoUrl = normalizeDriveImageUrl(String(branding.logo_url || "")) || null;
 
   return (
     <MobileUiProvider>
@@ -208,6 +209,7 @@ export function AdminMobileApp() {
                 onSettingsChange={admin.setSettings}
                 activeTab={admin.settingsTab}
                 onSettingsTab={admin.switchSettingsTab}
+                onLogout={() => void signOut()}
                 modals={modals}
                 priceTimelineBaseDateRef={priceTimelineBaseDateRef}
                 restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}

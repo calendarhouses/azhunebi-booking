@@ -4,8 +4,6 @@ import {
   ADMIN_PRELOADER_LOGO_SRC,
 } from "@/lib/admin/adminPreloaderLogo";
 
-const SIDEBAR_DEFAULT_LOGO_SRC = "/images/logo.png";
-
 type AdminLogoVariant = "sidebar" | "auth" | "preloader";
 
 const AUTH_SIZE = { height: 44, maxWidth: 240 } as const;
@@ -21,7 +19,8 @@ export function AdminLogo({
   logoUrl?: string | null;
   alt?: string | null;
 }) {
-  const defaultSrc = variant === "preloader" ? ADMIN_PRELOADER_LOGO_SRC : SIDEBAR_DEFAULT_LOGO_SRC;
+  // Never fall back to /images/logo.png (ХАТА) — use АЖ У НЕБІ preloader mark.
+  const defaultSrc = ADMIN_PRELOADER_LOGO_SRC;
   const src = logoUrl ? toImageDisplaySrc(logoUrl) : defaultSrc;
   const label =
     String(alt || (variant === "preloader" ? ADMIN_PRELOADER_LOGO_ALT : "Логотип")).trim() ||

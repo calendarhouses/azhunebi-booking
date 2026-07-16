@@ -42,6 +42,7 @@ export interface DesktopSettingsViewProps {
   onSettingsChange?: (next: AdminSettingsPayload) => void;
   activeTab?: SettingsTabName;
   onSettingsTab?: (tab: SettingsTabName) => void;
+  onLogout?: () => void;
   modals: AdminModalsApi;
   priceTimelineBaseDateRef: React.MutableRefObject<Date>;
   restrictionsTimelineBaseDateRef: React.MutableRefObject<Date>;
@@ -57,6 +58,7 @@ export function DesktopSettingsView({
   onSettingsChange,
   activeTab = "rooms",
   onSettingsTab,
+  onLogout,
   modals,
   priceTimelineBaseDateRef,
   restrictionsTimelineBaseDateRef,
@@ -108,6 +110,10 @@ export function DesktopSettingsView({
             type="button"
             className="btn-secondary mobile-logout-btn tap-btn"
             onClick={() => {
+              if (onLogout) {
+                onLogout();
+                return;
+              }
               (window as Window & { BosoAuth?: { logout?: () => void } }).BosoAuth?.logout?.();
             }}
           >
@@ -141,7 +147,7 @@ export function DesktopSettingsView({
             settings={settings}
             onLogoPreviewChange={onLogoPreviewChange}
             onSettingsChange={onSettingsChange ?? (() => {})}
-            isActive={!isMobile && activeTab === "branding"}
+            isActive={activeTab === "branding"}
           />
         </div>
         ) : null}
@@ -156,7 +162,7 @@ export function DesktopSettingsView({
             <button
               type="button"
               className="btn-primary tap-btn"
-              onClick={() => modals.addRoomDraft()}
+              onClick={() => modals.openRoomDrawer(null)}
             >
               + Додати житло
             </button>

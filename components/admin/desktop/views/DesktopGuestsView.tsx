@@ -79,6 +79,7 @@ export function DesktopGuestsView({
                 name={g.name}
                 phone={g.phone}
                 count={g.count}
+                lastVisitLabel={formatGuestLastVisit(g.lastVisit)}
                 onShowBookings={onShowGuestBookings}
               />
             ))
