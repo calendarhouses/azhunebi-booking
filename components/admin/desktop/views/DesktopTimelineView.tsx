@@ -297,28 +297,7 @@ export function DesktopTimelineView({
   /** Desktop focus layout: sticky dates via transform sync. Mobile uses unified board scroll. */
   const stickyChrome = compactGrid;
   const mobileBoard = isMobile;
-  const boardBodyRef = useRef<HTMLDivElement>(null);
-  const roomsClipRef = useRef<HTMLDivElement>(null);
-  const [denseFitRowHeight, setDenseFitRowHeight] = useState(40);
   const activeRooms = useMemo(() => roomsList.filter((r) => r.active), [roomsList]);
-
-  useEffect(() => {
-    if (!mobileBoard || !mobileDense) return;
-    const el = boardBodyRef.current;
-    if (!el) return;
-
-    const measure = () => {
-      const h = el.clientHeight;
-      const n = Math.max(activeRooms.length, 1);
-      const next = Math.max(34, Math.min(44, Math.floor(h / n)));
-      setDenseFitRowHeight(next);
-    };
-
-    measure();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    ro?.observe(el);
-    return () => ro?.disconnect();
-  }, [mobileBoard, mobileDense, activeRooms.length]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -330,10 +309,10 @@ export function DesktopTimelineView({
     };
   }, [isMobile, mobileDense]);
 
-  /** Mobile CSS locks rooms at 60px (dense fits all houses) — keep JS in sync for drag. */
+  /** Fixed dense row height — never shrink to “fit N houses” (looks like strips). */
   const rowHeight = isMobile
     ? mobileDense
-      ? denseFitRowHeight
+      ? 44
       : 60
     : getTimelineRowHeight(compactGrid);
   const [mode, setMode] = useState<TimelineMode>("month");
@@ -365,7 +344,6 @@ export function DesktopTimelineView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridHeadScrollRef = useRef<HTMLDivElement>(null);
   const headTrackRef = useRef<HTMLDivElement>(null);
-  const roomsTrackRef = useRef<HTMLDivElement>(null);
   const sidebarBodyScrollRef = useRef<HTMLDivElement>(null);
   const focusBodyScrollRef = useRef<HTMLDivElement>(null);
   const scrollSyncRef = useRef(false);
@@ -397,113 +375,6 @@ export function DesktopTimelineView({
     return infiniteRange.daysCount;
   }, [mode, startDate, infiniteRange.daysCount]);
 
-  /** Kill iOS rubber-band: only axis scroll inside cells, never pull the whole board. */
-  useEffect(() => {
-    if (!mobileBoard) return;
-    const scroll = scrollRef.current;
-    if (!scroll) return;
-
-    let startX = 0;
-    let startY = 0;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      const dx = e.touches[0].clientX - startX;
-      const dy = e.touches[0].clientY - startY;
-      const maxX = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
-      const maxY = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-      const atLeft = scroll.scrollLeft <= 0;
-      const atRight = scroll.scrollLeft >= maxX - 0.5;
-      const atTop = scroll.scrollTop <= 0;
-      const atBottom = scroll.scrollTop >= maxY - 0.5;
-
-      const pullLeft = atLeft && dx > 0;
-      const pullRight = atRight && dx < 0;
-      const pullTop = atTop && dy > 0;
-      const pullBottom = atBottom && dy < 0;
-
-      if (pullLeft || pullRight || pullTop || pullBottom) {
-        e.preventDefault();
-      }
-    };
-
-    scroll.addEventListener("touchstart", onTouchStart, { passive: true });
-    scroll.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => {
-      scroll.removeEventListener("touchstart", onTouchStart);
-      scroll.removeEventListener("touchmove", onTouchMove);
-    };
-  }, [mobileBoard, mode, daysCount, activeRooms.length, rowHeight]);
-
-  /** Rooms column: forward pan to the cells scroller (one scroll surface). */
-  useEffect(() => {
-    if (!mobileBoard) return;
-    const clip = roomsClipRef.current;
-    const scroll = scrollRef.current;
-    if (!clip || !scroll) return;
-
-    let lastY = 0;
-    let lastX = 0;
-    let active = false;
-
-    const onStart = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      active = true;
-      lastY = e.touches[0].clientY;
-      lastX = e.touches[0].clientX;
-    };
-    const onMove = (e: TouchEvent) => {
-      if (!active || !e.touches[0]) return;
-      e.preventDefault();
-      const y = e.touches[0].clientY;
-      const x = e.touches[0].clientX;
-      scroll.scrollTop += lastY - y;
-      scroll.scrollLeft += lastX - x;
-      lastY = y;
-      lastX = x;
-    };
-    const onEnd = () => {
-      active = false;
-    };
-    const onWheel = (e: Event) => {
-      const we = e as globalThis.WheelEvent;
-      we.preventDefault();
-      scroll.scrollTop += we.deltaY;
-      scroll.scrollLeft += we.deltaX;
-    };
-
-    clip.addEventListener("touchstart", onStart, { passive: true });
-    clip.addEventListener("touchmove", onMove, { passive: false });
-    clip.addEventListener("touchend", onEnd, { passive: true });
-    clip.addEventListener("touchcancel", onEnd, { passive: true });
-    clip.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      clip.removeEventListener("touchstart", onStart);
-      clip.removeEventListener("touchmove", onMove);
-      clip.removeEventListener("touchend", onEnd);
-      clip.removeEventListener("touchcancel", onEnd);
-      clip.removeEventListener("wheel", onWheel);
-    };
-  }, [mobileBoard, mode, daysCount, rowHeight]);
-
-  /** Dates header: never rubber-band / pull the page. */
-  useEffect(() => {
-    if (!mobileBoard) return;
-    const head = document.querySelector(
-      ".timeline-wrapper--mobile-board .timeline-mobile-head"
-    ) as HTMLElement | null;
-    if (!head) return;
-    const block = (e: TouchEvent) => e.preventDefault();
-    head.addEventListener("touchmove", block, { passive: false });
-    return () => head.removeEventListener("touchmove", block);
-  }, [mobileBoard]);
-
   const fittedCellWidth = useTimelineCellWidth(scrollRef, daysCount, !isMobile && mode === "month");
   const cellWidth = mode === "continuous" ? TIMELINE_CELL_BASE : fittedCellWidth;
   const isVirtualTimeline = mode === "continuous";
@@ -527,17 +398,6 @@ export function DesktopTimelineView({
     const track = headTrackRef.current;
     if (!track) return;
     track.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
-  }, []);
-
-  const syncMobileBoardChrome = useCallback((scrollLeft: number, scrollTop: number) => {
-    const datesTrack = headTrackRef.current;
-    const roomsTrack = roomsTrackRef.current;
-    if (datesTrack) {
-      datesTrack.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
-    }
-    if (roomsTrack) {
-      roomsTrack.style.transform = `translate3d(0, ${-scrollTop}px, 0)`;
-    }
   }, []);
 
   const days = useMemo(() => buildDays(startDate, daysCount), [startDate, daysCount]);
@@ -636,9 +496,7 @@ export function DesktopTimelineView({
         const grid = scrollRef.current;
         if (!grid) return;
         grid.scrollLeft += dir * 7 * cellWidth;
-        if (mobileBoard) {
-          syncMobileBoardChrome(grid.scrollLeft, grid.scrollTop);
-        } else if (stickyChrome) {
+        if (stickyChrome && !mobileBoard) {
           syncFocusHeadTrack(grid.scrollLeft);
         }
         scheduleRecompute();
@@ -651,7 +509,7 @@ export function DesktopTimelineView({
         return d;
       });
     },
-    [mode, cellWidth, stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, syncMobileBoardChrome]
+    [mode, cellWidth, stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack]
   );
 
   const setTimelineMode = useCallback((m: TimelineMode) => {
@@ -731,9 +589,7 @@ export function DesktopTimelineView({
       scrollLeft = Math.max(0, (todayIndex - 3) * cellWidth);
     }
     el.scrollLeft = scrollLeft;
-    if (mobileBoard) {
-      syncMobileBoardChrome(scrollLeft, el.scrollTop);
-    } else if (stickyChrome) {
+    if (stickyChrome && !mobileBoard) {
       syncFocusHeadTrack(scrollLeft);
     }
     scheduleRecompute();
@@ -747,7 +603,6 @@ export function DesktopTimelineView({
     mobileBoard,
     scheduleRecompute,
     syncFocusHeadTrack,
-    syncMobileBoardChrome,
   ]);
 
   const handleGridContainerScroll = useCallback(() => {
@@ -757,7 +612,6 @@ export function DesktopTimelineView({
     if (!grid) return;
 
     if (mobileBoard) {
-      syncMobileBoardChrome(grid.scrollLeft, grid.scrollTop);
       if (!isBookingDraggingRef.current) {
         scheduleRecompute();
       }
@@ -775,7 +629,7 @@ export function DesktopTimelineView({
     if (!isBookingDraggingRef.current) {
       scheduleRecompute();
     }
-  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, syncMobileBoardChrome]);
+  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (mobileBoard || scrollSyncRef.current) return;
@@ -882,13 +736,9 @@ export function DesktopTimelineView({
 
     scrollSyncRef.current = true;
     const scrolled = applyDragEdgeScroll(x, y, targets);
-    if (scrolled && (stickyChrome || mobileBoard)) {
+    if (scrolled && stickyChrome && !mobileBoard) {
       const el = scrollRef.current;
-      if (el && mobileBoard) {
-        syncMobileBoardChrome(el.scrollLeft, el.scrollTop);
-      } else if (el && stickyChrome) {
-        syncFocusHeadTrack(el.scrollLeft);
-      }
+      if (el) syncFocusHeadTrack(el.scrollLeft);
     }
     scrollSyncRef.current = false;
 
@@ -900,7 +750,6 @@ export function DesktopTimelineView({
     mobileBoard,
     getDragScrollTargets,
     syncFocusHeadTrack,
-    syncMobileBoardChrome,
     updateDragFloatPosition,
   ]);
 
@@ -1561,7 +1410,7 @@ export function DesktopTimelineView({
       onClick={toggleCompactMode}
       aria-pressed={mobileDense}
       aria-label={mobileDense ? "Звичайний розмір шахматки" : "Розгорнути шахматку"}
-      title={mobileDense ? "Звичайний розмір" : "Розгорнути — усі будинки на екрані"}
+      title={mobileDense ? "Звичайний розмір" : "Розгорнути шахматку"}
     >
       {mobileDense ? (
         <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
@@ -1731,38 +1580,39 @@ export function DesktopTimelineView({
         }
       >
         {mobileBoard ? (
-          <>
-            <div className="timeline-mobile-head">
-              <div className="timeline-mobile-corner">
-                <TimelineSidebarHeader
-                  roomCount={activeRooms.length}
-                  showFocusToggle={false}
-                  {...sidebarUndoProps}
-                />
-              </div>
-              <div className="timeline-mobile-dates-clip">
+          <div
+            className="timeline-mobile-scroll timeline-scroll-surface"
+            id="timelineScroll"
+            ref={scrollRef}
+            onScroll={handleGridContainerScroll}
+          >
+            <div
+              className="timeline-mobile-board"
+              style={{
+                width: gridTotalWidth + 88,
+                minWidth: gridTotalWidth + 88,
+              }}
+            >
+              <div className="timeline-mobile-head">
+                <div className="timeline-mobile-corner">
+                  <TimelineSidebarHeader
+                    roomCount={activeRooms.length}
+                    showFocusToggle={false}
+                    {...sidebarUndoProps}
+                  />
+                </div>
                 <div
-                  className="timeline-mobile-dates-track"
-                  ref={headTrackRef}
+                  className="timeline-mobile-dates"
                   style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
                 >
                   {timelineMonths}
                   {timelineDates}
                 </div>
               </div>
-            </div>
-            <div className="timeline-mobile-body" ref={boardBodyRef}>
-              <div className="timeline-mobile-rooms-clip" ref={roomsClipRef}>
-                <div className="timeline-mobile-rooms-track" id="timelineRooms" ref={roomsTrackRef}>
+              <div className="timeline-mobile-body">
+                <div className="timeline-mobile-rooms" id="timelineRooms">
                   {timelineRoomRows}
                 </div>
-              </div>
-              <div
-                className="timeline-mobile-cells-scroll timeline-scroll-surface"
-                id="timelineScroll"
-                ref={scrollRef}
-                onScroll={handleGridContainerScroll}
-              >
                 <div
                   className={`timeline-rows timeline-mobile-cells${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
                   id="timelineGrid"
@@ -1773,7 +1623,7 @@ export function DesktopTimelineView({
                 </div>
               </div>
             </div>
-          </>
+          </div>
         ) : stickyChrome ? (
           <>
             <div className="timeline-focus-head">
