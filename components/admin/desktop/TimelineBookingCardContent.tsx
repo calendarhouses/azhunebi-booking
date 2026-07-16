@@ -115,6 +115,52 @@ function OneNightFinBadge({
   );
 }
 
+function PriceBadge({
+  finText,
+  finBadge,
+}: {
+  finText: string;
+  finBadge: { bg: string; color: string };
+}) {
+  return (
+    <span
+      className="booking-fin-badge"
+      style={{
+        background: finBadge.bg,
+        color: finBadge.color,
+      }}
+    >
+      {finText}
+    </span>
+  );
+}
+
+/** Сума → гості, в один ряд, ідеально вирівняні. */
+function MobileMetaRow({
+  block,
+  showGuestChip,
+  oneNightFinKind,
+  textOnly,
+}: {
+  block: TimelineBookingCardBlock;
+  showGuestChip: boolean;
+  oneNightFinKind: TimelineOneNightFinKind | null;
+  textOnly: boolean;
+}) {
+  return (
+    <div className="booking-mobile-meta-row">
+      {oneNightFinKind ? (
+        <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
+      ) : (
+        <PriceBadge finText={block.finText} finBadge={block.finBadge} />
+      )}
+      {showGuestChip && block.guestChip ? (
+        <GuestChip value={block.guestChip} compact textOnly={textOnly} />
+      ) : null}
+    </div>
+  );
+}
+
 export function resolveTimelineGuestChipVisibility(block: TimelineBookingCardBlock) {
   return { showGuestChip: Boolean(block.guestChip) };
 }
@@ -157,28 +203,54 @@ export function TimelineBookingCardContent({
   const oneNightFinKind = isOneNight ? getTimelineOneNightFinKind(block.booking) : null;
   const guestTextOnly = block.contentWidth < 72;
 
-  /** Dense mobile: short stays — only price + guests in one row (no name). */
+  /** Dense mobile: 1-night — only price + guests, no name. */
+  if (mobile && compact && isOneNight) {
+    return (
+      <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
+        <MobileMetaRow
+          block={block}
+          showGuestChip={showGuestChip}
+          oneNightFinKind={oneNightFinKind}
+          textOnly
+        />
+      </div>
+    );
+  }
+
+  /** Dense mobile: short multi-night — meta only (no name). */
   if (mobile && compact && block.nights < 3) {
     return (
       <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
-        <div className="booking-mobile-dense-meta">
-          {showGuestChip && block.guestChip ? (
-            <GuestChip value={block.guestChip} compact textOnly={guestTextOnly || block.nights === 1} />
-          ) : null}
-          {oneNightFinKind ? (
-            <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
-          ) : (
-            <span
-              className="booking-fin-badge"
-              style={{
-                background: block.finBadge.bg,
-                color: block.finBadge.color,
-              }}
-            >
-              {block.finText}
-            </span>
-          )}
-        </div>
+        <MobileMetaRow
+          block={block}
+          showGuestChip={showGuestChip}
+          oneNightFinKind={null}
+          textOnly={guestTextOnly || block.contentWidth < 96}
+        />
+      </div>
+    );
+  }
+
+  /** Expanded mobile: name (if multi) + price then guests, perfectly aligned. */
+  if (mobile && !compact) {
+    return (
+      <div
+        className={[
+          "booking-inner-content",
+          "booking-inner-content--mobile",
+          "booking-inner-content--mobile-expanded",
+          isOneNight ? "booking-inner-content--mobile-expanded-one-night" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {!isOneNight ? <div className="booking-guest-name">{block.guestName}</div> : null}
+        <MobileMetaRow
+          block={block}
+          showGuestChip={showGuestChip}
+          oneNightFinKind={oneNightFinKind}
+          textOnly={guestTextOnly || isOneNight}
+        />
       </div>
     );
   }
@@ -212,47 +284,12 @@ export function TimelineBookingCardContent({
 
   if (compact) {
     return (
-      <div
-        className={[
-          "booking-inner-content",
-          "booking-inner-content--compact",
-          mobile ? "booking-inner-content--mobile-dense" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
+      <div className="booking-inner-content booking-inner-content--compact">
         <div className="booking-guest-name">{block.guestName}</div>
-        {mobile ? (
-          <div className="booking-mobile-dense-meta">
-            {showGuestChip && block.guestChip ? (
-              <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
-            ) : null}
-            <span
-              className="booking-fin-badge"
-              style={{
-                background: block.finBadge.bg,
-                color: block.finBadge.color,
-              }}
-            >
-              {block.finText}
-            </span>
-          </div>
-        ) : (
-          <>
-            {showGuestChip && block.guestChip ? (
-              <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
-            ) : null}
-            <span
-              className="booking-fin-badge"
-              style={{
-                background: block.finBadge.bg,
-                color: block.finBadge.color,
-              }}
-            >
-              {block.finText}
-            </span>
-          </>
-        )}
+        {showGuestChip && block.guestChip ? (
+          <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
+        ) : null}
+        <PriceBadge finText={block.finText} finBadge={block.finBadge} />
       </div>
     );
   }
@@ -278,15 +315,7 @@ export function TimelineBookingCardContent({
         {oneNightFinKind ? (
           <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
         ) : (
-          <span
-            className="booking-fin-badge"
-            style={{
-              background: block.finBadge.bg,
-              color: block.finBadge.color,
-            }}
-          >
-            {block.finText}
-          </span>
+          <PriceBadge finText={block.finText} finBadge={block.finBadge} />
         )}
       </div>
     </div>

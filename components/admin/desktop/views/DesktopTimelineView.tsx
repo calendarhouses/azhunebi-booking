@@ -294,8 +294,9 @@ export function DesktopTimelineView({
   const compactGrid = !isMobile && isCompactMode;
   const mobileDense = isMobile && isCompactMode;
   const denseRows = compactGrid || mobileDense;
-  /** Keep dates sticky + sync room column with grid (fixes white void + pull-under-dates). */
-  const stickyChrome = isMobile || compactGrid;
+  /** Desktop focus layout: sticky dates via transform sync. Mobile uses unified board scroll. */
+  const stickyChrome = compactGrid;
+  const mobileBoard = isMobile;
   /** Mobile CSS locks rooms at 60px (dense 44) — keep JS in sync for drag hit-testing. */
   const rowHeight = isMobile
     ? mobileDense
@@ -463,10 +464,10 @@ export function DesktopTimelineView({
     );
 
   useEffect(() => {
-    if (!compactGrid) return;
+    if (!stickyChrome) return;
     const grid = scrollRef.current;
     if (grid) syncFocusHeadTrack(grid.scrollLeft);
-  }, [compactGrid, syncFocusHeadTrack]);
+  }, [stickyChrome, syncFocusHeadTrack]);
 
   const resetToToday = useCallback(() => {
     const d = new Date();
@@ -485,7 +486,7 @@ export function DesktopTimelineView({
         const grid = scrollRef.current;
         if (!grid) return;
         grid.scrollLeft += dir * 7 * cellWidth;
-        if (compactGrid) {
+        if (stickyChrome) {
           syncFocusHeadTrack(grid.scrollLeft);
         }
         scheduleRecompute();
@@ -498,7 +499,7 @@ export function DesktopTimelineView({
         return d;
       });
     },
-    [mode, cellWidth, compactGrid, scheduleRecompute, syncFocusHeadTrack]
+    [mode, cellWidth, stickyChrome, scheduleRecompute, syncFocusHeadTrack]
   );
 
   const setTimelineMode = useCallback((m: TimelineMode) => {
@@ -578,7 +579,7 @@ export function DesktopTimelineView({
       scrollLeft = Math.max(0, (todayIndex - 3) * cellWidth);
     }
     el.scrollLeft = scrollLeft;
-    if (compactGrid) {
+    if (stickyChrome) {
       syncFocusHeadTrack(scrollLeft);
     }
     scheduleRecompute();
@@ -594,19 +595,17 @@ export function DesktopTimelineView({
     if (stickyChrome) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
-    // Mobile: vertical scroll lives on focus-body (rooms+cells move together).
-    // Desktop focus: sync sidebar ↔ grid scrollTop.
-    if (!isMobile && sidebar && sidebar.scrollTop !== grid.scrollTop) {
+    if (!mobileBoard && stickyChrome && sidebar && sidebar.scrollTop !== grid.scrollTop) {
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
     if (!isBookingDraggingRef.current) {
       scheduleRecompute();
     }
-  }, [stickyChrome, isMobile, scheduleRecompute, syncFocusHeadTrack]);
+  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
-    if (isMobile || scrollSyncRef.current) return;
+    if (mobileBoard || scrollSyncRef.current) return;
     const sidebar = sidebarBodyScrollRef.current;
     const grid = scrollRef.current;
     if (!sidebar || !grid) return;
@@ -616,25 +615,18 @@ export function DesktopTimelineView({
       grid.scrollTop = sidebar.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, [isMobile]);
+  }, [mobileBoard]);
 
   const handleGridWheel = useCallback(
     (event: WheelEvent<HTMLDivElement>) => {
-      if (!stickyChrome) return;
+      if (!stickyChrome || mobileBoard) return;
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-      if (isMobile) {
-        const body = focusBodyScrollRef.current;
-        if (!body) return;
-        event.preventDefault();
-        body.scrollTop += event.deltaY;
-        return;
-      }
       const sidebar = sidebarBodyScrollRef.current;
       if (!sidebar) return;
       event.preventDefault();
       sidebar.scrollTop += event.deltaY;
     },
-    [stickyChrome, isMobile]
+    [stickyChrome, mobileBoard]
   );
 
   const clearDragUiState = useCallback(() => {
@@ -660,6 +652,7 @@ export function DesktopTimelineView({
       session.deltaDays = Math.round(pixelDelta / cellWidth);
 
       if (rowsEl) {
+        // Visual hit-test: rows move with the unified board scroll (incl. sticky head).
         session.targetRoomIndex = resolveTargetRoomIndex(
           y,
           rowsEl.getBoundingClientRect().top,
@@ -681,15 +674,11 @@ export function DesktopTimelineView({
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
     return {
       horizontal: scrollRef.current,
-      vertical: stickyChrome
-        ? isMobile
-          ? focusBodyScrollRef.current
-          : scrollRef.current
-        : null,
-      verticalSync: stickyChrome && !isMobile ? sidebarBodyScrollRef.current : null,
-      verticalPage: stickyChrome ? null : verticalPageRef.current,
+      vertical: stickyChrome || mobileBoard ? scrollRef.current : null,
+      verticalSync: stickyChrome && !mobileBoard ? sidebarBodyScrollRef.current : null,
+      verticalPage: stickyChrome || mobileBoard ? null : verticalPageRef.current,
     };
-  }, [stickyChrome, isMobile]);
+  }, [stickyChrome, mobileBoard]);
 
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
@@ -720,16 +709,16 @@ export function DesktopTimelineView({
 
     scrollSyncRef.current = true;
     const scrolled = applyDragEdgeScroll(x, y, targets);
-    if (scrolled && compactGrid) {
+    if (scrolled && (stickyChrome || mobileBoard)) {
       const scrollLeft = scrollRef.current?.scrollLeft ?? 0;
-      syncFocusHeadTrack(scrollLeft);
+      if (stickyChrome) syncFocusHeadTrack(scrollLeft);
     }
     scrollSyncRef.current = false;
 
     updateDragFloatPosition(session, block);
 
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragFrame);
-  }, [compactGrid, getDragScrollTargets, syncFocusHeadTrack, updateDragFloatPosition]);
+  }, [stickyChrome, mobileBoard, getDragScrollTargets, syncFocusHeadTrack, updateDragFloatPosition]);
 
   const ensureDragFrame = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) return;
@@ -791,6 +780,12 @@ export function DesktopTimelineView({
       e.preventDefault();
       e.stopPropagation();
       bosoLeave();
+
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore — capture is best-effort on some browsers */
+      }
 
       const scrollEl = scrollRef.current;
       const gridRect = scrollEl?.getBoundingClientRect();
@@ -1063,7 +1058,7 @@ export function DesktopTimelineView({
       : bookingBlockLayout;
 
   const rootStyle: CSSProperties | undefined = isMobile
-    ? { display: "flex", flexDirection: "column", ...style }
+    ? { display: "flex", flexDirection: "column", flex: "1 1 0%", minHeight: 0, ...style }
     : style;
 
   const timelineMonths = (
@@ -1106,8 +1101,9 @@ export function DesktopTimelineView({
     <TimelineRoomRow
       key={room.id}
       room={room}
-      compact={compactGrid}
+      compact={denseRows}
       showDesc={!isMobile && !compactGrid}
+      style={{ height: rowHeight, minHeight: rowHeight, maxHeight: rowHeight }}
     />
   ));
 
@@ -1156,7 +1152,9 @@ export function DesktopTimelineView({
           onTrackMouseMove={onTrackMouseMove}
           onTrackMouseLeave={onTrackMouseLeave}
           roomName={room.name}
-          blocksSignature={`${room.id}:${draggingBookingKey}:${blocks.map((b) => b.booking.row).join(",")}`}
+          blocksSignature={`${room.id}:${draggingBookingKey}:${denseRows ? "d" : "n"}:${rowHeight}:${blocks
+            .map((b) => `${b.booking.row}:${b.guestChip}:${b.finText}:${b.nights}`)
+            .join(",")}`}
         >
           {blocks.map((block) => {
             const isDraggingCard =
@@ -1173,8 +1171,14 @@ export function DesktopTimelineView({
                   left: block.left,
                   width: block.width,
                   position: "absolute",
-                  paddingLeft: block.padLeft,
-                  paddingRight: block.padRight,
+                  paddingLeft:
+                    isMobile && block.extensions.length > 0
+                      ? Math.min(block.padLeft, denseRows ? 6 : 10)
+                      : block.padLeft,
+                  paddingRight:
+                    isMobile && block.extensions.length > 0
+                      ? Math.min(block.padRight, denseRows ? 6 : 10)
+                      : block.padRight,
                   cursor: onMoveBooking ? "grab" : "pointer",
                   touchAction: onMoveBooking ? "none" : undefined,
                   ...bookingBlockStyle,
@@ -1216,7 +1220,7 @@ export function DesktopTimelineView({
                 {block.extensions.map((ext, idx) => (
                   <div
                     key={idx}
-                    className={`time-extension ${ext.type}`}
+                    className={`time-extension ${ext.type}${isMobile ? " time-extension--mobile" : ""}`}
                     style={{
                       width: ext.width,
                       left: ext.left - block.left,
@@ -1280,7 +1284,7 @@ export function DesktopTimelineView({
                         : undefined
                     }
                   >
-                    {iconClock}
+                    {isMobile ? null : iconClock}
                   </div>
                 ))}
                 <TimelineBookingCardContent block={block} mobile={isMobile} compact={denseRows} />
@@ -1300,8 +1304,14 @@ export function DesktopTimelineView({
             top: 0,
             width: draggingBlockRef.current.width,
             height: getTimelineBookingBlockLayout(rowHeight, denseRows).height,
-            paddingLeft: draggingBlockRef.current.padLeft,
-            paddingRight: draggingBlockRef.current.padRight,
+            paddingLeft:
+              isMobile && draggingBlockRef.current.extensions.length > 0
+                ? Math.min(draggingBlockRef.current.padLeft, denseRows ? 6 : 10)
+                : draggingBlockRef.current.padLeft,
+            paddingRight:
+              isMobile && draggingBlockRef.current.extensions.length > 0
+                ? Math.min(draggingBlockRef.current.padRight, denseRows ? 6 : 10)
+                : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,
           }}
@@ -1309,7 +1319,7 @@ export function DesktopTimelineView({
           {draggingBlockRef.current.extensions.map((ext, idx) => (
             <div
               key={idx}
-              className={`time-extension ${ext.type}`}
+              className={`time-extension ${ext.type}${isMobile ? " time-extension--mobile" : ""}`}
               style={{
                 width: ext.width,
                 left: ext.left - draggingBlockRef.current!.left,
@@ -1318,7 +1328,7 @@ export function DesktopTimelineView({
                 height: "100%",
               }}
             >
-              {iconClock}
+              {isMobile ? null : iconClock}
             </div>
           ))}
           <TimelineBookingCardContent
@@ -1336,7 +1346,7 @@ export function DesktopTimelineView({
     isBookingDragging ? "timeline-wrapper--booking-drag" : "",
     stickyChrome ? "timeline-wrapper--focus-layout" : "",
     compactGrid ? "timeline-wrapper--compact" : "",
-    isMobile ? "timeline-wrapper--mobile-chrome" : "",
+    mobileBoard ? "timeline-wrapper--mobile-board" : "",
     mobileDense ? "timeline-wrapper--mobile-dense" : "",
   ]
     .filter(Boolean)
@@ -1421,13 +1431,9 @@ export function DesktopTimelineView({
   const timelineTodayButton = (
     <button
       type="button"
-      className={`btn-secondary${isMobile ? " tap-btn" : ""}`}
+      className={`btn-secondary timeline-today-btn${isMobile ? " tap-btn" : ""}`}
       onClick={resetToToday}
-      style={
-        isMobile
-          ? { padding: "6px 12px", fontSize: 12, width: "auto" }
-          : { padding: "8px 16px", fontSize: 13 }
-      }
+      style={isMobile ? undefined : { padding: "8px 16px", fontSize: 13 }}
     >
       Сьогодні
     </button>
@@ -1503,7 +1509,9 @@ export function DesktopTimelineView({
   return (
     <div
       id={useViewRootId ? "view-grid" : undefined}
-      className={stickyChrome ? "timeline-view-root--focus" : undefined}
+      className={
+        stickyChrome || mobileBoard ? "timeline-view-root--focus" : undefined
+      }
       style={rootStyle}
     >
       {timelineToolbar}
@@ -1513,11 +1521,58 @@ export function DesktopTimelineView({
         style={
           {
             "--timeline-cell-width": `${cellWidth}px`,
+            "--timeline-room-height": `${rowHeight}px`,
+            "--timeline-row-height": `${rowHeight}px`,
             ...(isVirtualTimeline ? { "--timeline-grid-width": `${gridTotalWidth}px` } : {}),
           } as CSSProperties
         }
       >
-        {stickyChrome ? (
+        {mobileBoard ? (
+          <div
+            className="timeline-mobile-scroll timeline-scroll-surface"
+            id="timelineScroll"
+            ref={scrollRef}
+            onScroll={handleGridContainerScroll}
+          >
+            <div className="timeline-mobile-head">
+              <div className="timeline-mobile-corner">
+                <TimelineSidebarHeader
+                  roomCount={activeRooms.length}
+                  showFocusToggle={false}
+                  {...sidebarUndoProps}
+                />
+              </div>
+              <div
+                className="timeline-mobile-dates"
+                style={
+                  isVirtualTimeline
+                    ? { width: gridTotalWidth, minWidth: gridTotalWidth }
+                    : { width: "max-content" }
+                }
+              >
+                {timelineMonths}
+                {timelineDates}
+              </div>
+            </div>
+            <div className="timeline-mobile-body">
+              <div className="timeline-mobile-rooms" id="timelineRooms">
+                {timelineRoomRows}
+              </div>
+              <div
+                className={`timeline-rows timeline-mobile-cells${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
+                id="timelineGrid"
+                ref={gridRowsRef}
+                style={
+                  isVirtualTimeline
+                    ? { width: gridTotalWidth, minWidth: gridTotalWidth }
+                    : { width: "max-content", minWidth: "100%" }
+                }
+              >
+                {timelineRows}
+              </div>
+            </div>
+          </div>
+        ) : stickyChrome ? (
           <>
             <div className="timeline-focus-head">
               <div className="timeline-sidebar timeline-sidebar--focus-head">

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Maximize2, Minimize2, Undo2 } from "lucide-react";
 import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon";
 import { TimelineActionTooltip } from "./TimelineActionTooltip";
@@ -99,15 +100,17 @@ export function TimelineRoomRow({
   className = "",
   showDesc = true,
   compact = false,
+  style,
 }: {
   room: Pick<RoomConfig, "name" | "short" | "desc">;
   className?: string;
   showDesc?: boolean;
   compact?: boolean;
+  style?: CSSProperties;
 }) {
   const desc = room.desc?.trim();
   return (
-    <div className={`timeline-room ${className}`.trim()}>
+    <div className={`timeline-room ${className}`.trim()} style={style}>
       <div className="timeline-room__label">
         <RoomSidebarHouseIcon className="timeline-room__icon" />
         <span className="timeline-room__name">{roomSidebarDisplayName(room)}</span>

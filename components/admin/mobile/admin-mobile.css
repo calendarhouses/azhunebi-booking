@@ -1377,53 +1377,71 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .btn-icon-only.danger { background: #FEF2F2; border-color: #FECACA; color: #DC2626; }
 .metric-card.danger-card { border-color: #FECACA; background: #FFFBFB; }
 .boso-admin-mobile .section-title { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; }
-/* --- Шахматка: висота по контенту, без «порожнього 4-го номера» --- */
-.boso-admin-mobile #view-grid {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    flex-shrink: 0;
+/* --- Шахматка: заповнює viewport, один спільний скрол --- */
+.boso-admin-mobile #view-grid,
+.boso-admin-mobile .admin-grid-dashboard--mobile-fill {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
 }
+
+.boso-admin-mobile .admin-grid-dashboard--mobile-fill .admin-grid-timeline-host {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
 .boso-admin-mobile #view-grid > .timeline-toolbar {
-    flex-shrink: 0;
+  flex-shrink: 0 !important;
 }
-.boso-admin-mobile #view-grid > .timeline-wrapper {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: calc(100dvh - 220px);
-    flex: 0 0 auto;
-    align-items: flex-start;
-    align-self: flex-start;
-    width: 100%;
+
+.boso-admin-mobile #view-grid > .timeline-wrapper,
+.boso-admin-mobile .admin-grid-dashboard--mobile-fill .timeline-wrapper {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  flex: 1 1 0% !important;
+  align-items: stretch !important;
+  align-self: stretch !important;
+  width: 100% !important;
 }
+
 .boso-admin-mobile #view-grid .timeline-sidebar {
-    align-self: flex-start;
-    height: auto;
-    flex-shrink: 0;
+  align-self: flex-start;
+  height: auto;
+  flex-shrink: 0;
 }
 .boso-admin-mobile #view-grid #timelineRooms {
-    display: block;
+  display: block;
 }
 .boso-admin-mobile #view-grid .timeline-room:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 .boso-admin-mobile #view-grid .timeline-grid-container {
-    flex: 0 1 auto;
-    align-self: flex-start;
-    max-height: calc(100dvh - 220px);
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .boso-admin-mobile #view-grid .timeline-rows .timeline-row-bg:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 .boso-admin-mobile #view-grid .booking-block:not(.booking-block--drag-float) {
-    top: 7px !important;
-    height: calc(100% - 14px) !important;
+  top: 7px !important;
+  height: calc(100% - 14px) !important;
 }
 .boso-admin-mobile .main-content {
-    justify-content: flex-start;
-    align-items: stretch;
+  justify-content: flex-start;
+  align-items: stretch;
 }
 .boso-admin-mobile #set-prices .timeline-wrapper,
 .boso-admin-mobile #set-restrictions .timeline-wrapper {
@@ -1755,6 +1773,13 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   align-items: stretch;
 }
 
+/* Grid view: main-content must NOT scroll — board owns X+Y */
+.boso-admin-mobile:has(#view-grid) .main-content,
+.boso-admin-mobile .main-content:has(#view-grid) {
+  overflow: hidden !important;
+  padding-bottom: 4px;
+}
+
 .boso-admin-mobile .bottom-nav {
   position: sticky;
   bottom: 0;
@@ -1791,10 +1816,14 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   height: auto;
   min-height: 0;
   max-height: none;
-  flex: 0 0 auto;
+  flex: 1 1 0%;
   align-items: stretch;
   width: 100%;
   overflow: hidden;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board {
+  flex: 1 1 0% !important;
 }
 
 .boso-admin-mobile .timeline-sidebar {
@@ -1817,9 +1846,9 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 .boso-admin-mobile .timeline-room {
-  height: 60px !important;
-  min-height: 60px !important;
-  max-height: 60px !important;
+  height: var(--timeline-room-height, 60px) !important;
+  min-height: var(--timeline-room-height, 60px) !important;
+  max-height: var(--timeline-room-height, 60px) !important;
   padding: 4px 6px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -1881,8 +1910,8 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 
 .boso-admin-mobile .timeline-row-bg {
-  height: 60px !important;
-  min-height: 60px !important;
+  height: var(--timeline-room-height, 60px) !important;
+  min-height: var(--timeline-room-height, 60px) !important;
   border-bottom: 1px solid #E5E7EB !important;
 }
 
@@ -2301,83 +2330,93 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   margin-bottom: 10px !important;
 }
 
-/* Sticky dates chrome — rooms + grid scroll in sync */
+/* Unified mobile chessboard — ONE scroll for dates + rooms + cells */
 .boso-admin-mobile #view-grid.timeline-view-root--focus,
 .boso-admin-mobile .timeline-view-root--focus {
   display: flex !important;
   flex-direction: column !important;
-  flex: 1 1 auto !important;
+  flex: 1 1 0% !important;
   min-height: 0 !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome {
+.boso-admin-mobile .timeline-wrapper--mobile-board {
   display: flex !important;
   flex-direction: column !important;
-  flex: 1 1 auto !important;
+  flex: 1 1 0% !important;
   min-height: 0 !important;
   max-height: none !important;
   height: auto !important;
   overflow: hidden !important;
   touch-action: manipulation;
   overscroll-behavior: none;
+  border-radius: 12px;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-focus-head {
+.boso-admin-mobile .timeline-mobile-scroll {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y !important;
+  overscroll-behavior: contain;
+  position: relative;
+  background: #fff;
+}
+
+.boso-admin-mobile .timeline-mobile-head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
   display: flex !important;
-  flex-shrink: 0 !important;
+  flex-direction: row !important;
   align-items: stretch !important;
-  width: 100% !important;
+  width: max-content !important;
+  min-width: 100% !important;
   height: 56px !important;
   min-height: 56px !important;
   max-height: 56px !important;
-  overflow: hidden !important;
-  border-bottom: 1px solid #E5E7EB !important;
   background: #fff !important;
-  z-index: 6;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-sidebar--focus-head {
+.boso-admin-mobile .timeline-mobile-corner {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 22 !important;
   width: 88px !important;
   min-width: 88px !important;
   max-width: 88px !important;
   flex-shrink: 0 !important;
-  border-right: 1px solid #E5E7EB !important;
   background: #F9FAFB !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
+  border-right: 1px solid #E5E7EB !important;
+  box-sizing: border-box !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-sidebar--focus-head .timeline-sidebar-header {
+.boso-admin-mobile .timeline-mobile-corner .timeline-sidebar-header {
   height: 56px !important;
   min-height: 56px !important;
   max-height: 56px !important;
   border-bottom: none !important;
+  padding: 0 4px !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-grid-head {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-  height: 100% !important;
-}
-
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-head-track {
+.boso-admin-mobile .timeline-mobile-dates {
   display: flex !important;
   flex-direction: column !important;
-  height: 100% !important;
-  width: max-content !important;
-  min-width: 100% !important;
+  flex-shrink: 0 !important;
+  background: #fff !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-months {
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-months {
   height: 22px !important;
   min-height: 22px !important;
   max-height: 22px !important;
   flex: 0 0 22px !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-dates {
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates {
   height: 34px !important;
   min-height: 34px !important;
   max-height: 34px !important;
@@ -2385,52 +2424,36 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   border-bottom: none !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-focus-body {
+.boso-admin-mobile .timeline-mobile-body {
   display: flex !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  -webkit-overflow-scrolling: touch;
-  width: 100% !important;
-  touch-action: pan-y !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  width: max-content !important;
+  min-width: 100% !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-sidebar--focus-body {
+.boso-admin-mobile .timeline-mobile-rooms {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 12 !important;
   width: 88px !important;
   min-width: 88px !important;
   max-width: 88px !important;
   flex-shrink: 0 !important;
-  border-right: 1px solid #E5E7EB !important;
   background: #F9FAFB !important;
-  overflow: visible !important;
-  min-height: 0 !important;
-  padding-bottom: 0 !important;
-  height: max-content !important;
-  align-self: flex-start !important;
+  border-right: 1px solid #E5E7EB !important;
+  box-sizing: border-box !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-focus-body .timeline-grid-container {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  overscroll-behavior-x: contain !important;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x !important;
+.boso-admin-mobile .timeline-mobile-cells {
+  position: relative !important;
+  flex-shrink: 0 !important;
   background: #fff !important;
-  height: max-content !important;
-  align-self: flex-start !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-rows {
-  min-height: 100% !important;
-}
-
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-row-bg {
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg {
   border-bottom: 1px solid #E5E7EB !important;
+  background-color: #fff !important;
   background-image: repeating-linear-gradient(
     to right,
     transparent 0,
@@ -2440,12 +2463,125 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   ) !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-chrome .timeline-cell {
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell {
   border-right: 1px solid #F3F4F6 !important;
   box-sizing: border-box !important;
 }
 
-/* Dense chessboard — premium cards at 44px rows */
+.boso-admin-mobile .timeline-wrapper--mobile-board.timeline-wrapper--booking-drag .timeline-mobile-scroll {
+  touch-action: none !important;
+}
+
+/* Month nav + Today: same control height */
+.boso-admin-mobile .timeline-nav-row {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+
+.boso-admin-mobile .timeline-nav-row .timeline-nav {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.boso-admin-mobile .timeline-nav-row .timeline-today-btn {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  white-space: nowrap;
+}
+
+/* Booking cards — meta row: price then guests */
+.boso-admin-mobile .booking-block {
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .booking-inner-content {
+  position: relative !important;
+  z-index: 2 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .time-extension--mobile,
+.boso-admin-mobile .time-extension {
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+.boso-admin-mobile .time-extension svg {
+  display: none !important;
+}
+
+.boso-admin-mobile .booking-mobile-meta-row,
+.boso-admin-mobile .booking-mobile-dense-meta {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .booking-mobile-meta-row .booking-guest-chip,
+.boso-admin-mobile .booking-mobile-meta-row .booking-fin-badge,
+.boso-admin-mobile .booking-mobile-dense-meta .booking-guest-chip,
+.boso-admin-mobile .booking-mobile-dense-meta .booking-fin-badge {
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  min-width: 0 !important;
+  height: 18px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-expanded {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  padding: 2px 4px !important;
+  height: 100% !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-expanded-one-night {
+  justify-content: center !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-expanded .booking-guest-name {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Dense chessboard — 44px rows */
 .boso-admin-mobile .timeline-wrapper--mobile-dense {
   --timeline-room-height: 44px;
 }
@@ -2474,7 +2610,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-block:not(.booking-block--drag-float) {
   top: 2px !important;
   height: calc(100% - 4px) !important;
-  padding: 2px 6px !important;
+  padding: 2px 5px !important;
   border-radius: 8px !important;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
 }
@@ -2487,24 +2623,6 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   justify-content: center !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  justify-content: center !important;
-  min-width: 0 !important;
-}
-
-.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-guest-name {
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  line-height: 1.15 !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense-meta-only {
   display: flex !important;
   flex-direction: row !important;
@@ -2512,20 +2630,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   justify-content: flex-start !important;
   width: 100% !important;
   height: 100% !important;
-  padding: 0 2px !important;
-}
-
-.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense-meta-only .booking-mobile-dense-meta {
-  width: 100% !important;
-  justify-content: space-between !important;
-  gap: 6px !important;
+  padding: 0 1px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-guest-chip--text {
-  padding: 1px 5px !important;
+  padding: 0 6px !important;
   font-size: 10px !important;
   font-weight: 800 !important;
-  background: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.28) !important;
   border-radius: 6px !important;
 }
 
@@ -2536,15 +2648,22 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-guest-chip,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-fin-badge {
   font-size: 9px !important;
-  padding: 1px 5px !important;
+  padding: 0 6px !important;
   border-radius: 999px !important;
-  line-height: 1.2 !important;
-  flex-shrink: 0 !important;
+  line-height: 1 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-guest-chip-icon {
   width: 9px !important;
   height: 9px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .time-extension {
+  opacity: 0.55;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .time-extension svg {
+  display: none !important;
 }
 
 .boso-admin-mobile #adminCheckIn,
@@ -2598,7 +2717,8 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 
 .boso-admin-mobile .timeline-toolbar {
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .boso-admin-mobile .timeline-nav-row {

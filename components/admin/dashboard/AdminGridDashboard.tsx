@@ -28,9 +28,15 @@ export function AdminGridDashboard({
   onNewBooking,
   adminUndo,
 }: AdminGridDashboardProps) {
+  const isMobile = layout === "mobile";
+
   return (
-    <div id="view-grid" className="admin-grid-dashboard" style={style}>
-      <div className="admin-grid-timeline-host flex flex-col min-w-0 h-fit">
+    <div
+      id="view-grid"
+      className={`admin-grid-dashboard${isMobile ? " admin-grid-dashboard--mobile-fill" : ""}`}
+      style={style}
+    >
+      <div className={`admin-grid-timeline-host${isMobile ? "" : " flex flex-col min-w-0 h-fit"}`}>
         <DesktopTimelineView
           layout={layout}
           useViewRootId={false}
@@ -38,6 +44,7 @@ export function AdminGridDashboard({
             display: "flex",
             flexDirection: "column",
             width: "100%",
+            ...(isMobile ? { flex: "1 1 0%", minHeight: 0 } : {}),
           }}
           roomsList={roomsList}
           bookings={bookings}
