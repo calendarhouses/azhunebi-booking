@@ -127,7 +127,7 @@ function ServiceRow({
         </p>
       </div>
       {isCounter ? (
-        <div style={{ ...COUNTER_WRAP, width: 140, height: 40 }}>
+        <div className="booking-service-counter" style={{ ...COUNTER_WRAP, height: 40 }}>
           <button
             type="button"
             onClick={() => onSetQty(Math.max(0, quantity - 1))}

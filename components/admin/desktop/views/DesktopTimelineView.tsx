@@ -294,10 +294,12 @@ export function DesktopTimelineView({
   const compactGrid = !isMobile && isCompactMode;
   const mobileDense = isMobile && isCompactMode;
   const denseRows = compactGrid || mobileDense;
-  /** Mobile CSS locks rooms at 60px (dense 42) — keep JS in sync for drag hit-testing. */
+  /** Keep dates sticky + sync room column with grid (fixes white void + pull-under-dates). */
+  const stickyChrome = isMobile || compactGrid;
+  /** Mobile CSS locks rooms at 60px (dense 44) — keep JS in sync for drag hit-testing. */
   const rowHeight = isMobile
     ? mobileDense
-      ? 42
+      ? 44
       : 60
     : getTimelineRowHeight(compactGrid);
   const [mode, setMode] = useState<TimelineMode>("month");
@@ -579,7 +581,7 @@ export function DesktopTimelineView({
       syncFocusHeadTrack(scrollLeft);
     }
     scheduleRecompute();
-  }, [mode, infiniteAnchor, startDate, daysCount, cellWidth, compactGrid, scheduleRecompute, syncFocusHeadTrack]);
+  }, [mode, infiniteAnchor, startDate, daysCount, cellWidth, stickyChrome, scheduleRecompute, syncFocusHeadTrack]);
 
   const handleGridContainerScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
@@ -588,7 +590,7 @@ export function DesktopTimelineView({
     if (!grid) return;
 
     scrollSyncRef.current = true;
-    if (compactGrid) {
+    if (stickyChrome) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
     if (sidebar && sidebar.scrollTop !== grid.scrollTop) {
@@ -598,7 +600,7 @@ export function DesktopTimelineView({
     if (!isBookingDraggingRef.current) {
       scheduleRecompute();
     }
-  }, [compactGrid, scheduleRecompute, syncFocusHeadTrack]);
+  }, [stickyChrome, scheduleRecompute, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
@@ -615,14 +617,14 @@ export function DesktopTimelineView({
 
   const handleGridWheel = useCallback(
     (event: WheelEvent<HTMLDivElement>) => {
-      if (!compactGrid) return;
+      if (!stickyChrome) return;
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
       const sidebar = sidebarBodyScrollRef.current;
       if (!sidebar) return;
       event.preventDefault();
       sidebar.scrollTop += event.deltaY;
     },
-    [compactGrid]
+    [stickyChrome]
   );
 
   const clearDragUiState = useCallback(() => {
@@ -669,11 +671,11 @@ export function DesktopTimelineView({
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
     return {
       horizontal: scrollRef.current,
-      vertical: compactGrid ? scrollRef.current : null,
-      verticalSync: compactGrid ? sidebarBodyScrollRef.current : null,
-      verticalPage: compactGrid ? null : verticalPageRef.current,
+      vertical: stickyChrome ? scrollRef.current : null,
+      verticalSync: stickyChrome ? sidebarBodyScrollRef.current : null,
+      verticalPage: stickyChrome ? null : verticalPageRef.current,
     };
-  }, [compactGrid]);
+  }, [stickyChrome]);
 
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
@@ -1036,12 +1038,15 @@ export function DesktopTimelineView({
     </svg>
   );
 
-  const bookingBlockLayout = compactGrid
+  const bookingBlockLayout = denseRows
     ? getTimelineBookingBlockLayout(rowHeight, true)
-    : TIMELINE_BOOKING_BLOCK_LAYOUT;
-  const bookingBlockStyle = compactGrid
-    ? { top: bookingBlockLayout.top, height: bookingBlockLayout.height }
-    : bookingBlockLayout;
+    : isMobile
+      ? getTimelineBookingBlockLayout(rowHeight, false)
+      : TIMELINE_BOOKING_BLOCK_LAYOUT;
+  const bookingBlockStyle =
+    denseRows || isMobile
+      ? { top: bookingBlockLayout.top, height: bookingBlockLayout.height }
+      : bookingBlockLayout;
 
   const rootStyle: CSSProperties | undefined = isMobile
     ? { display: "flex", flexDirection: "column", ...style }
@@ -1315,7 +1320,9 @@ export function DesktopTimelineView({
   const wrapperClassName = [
     "timeline-wrapper",
     isBookingDragging ? "timeline-wrapper--booking-drag" : "",
-    compactGrid ? "timeline-wrapper--compact timeline-wrapper--focus-layout" : "",
+    stickyChrome ? "timeline-wrapper--focus-layout" : "",
+    compactGrid ? "timeline-wrapper--compact" : "",
+    isMobile ? "timeline-wrapper--mobile-chrome" : "",
     mobileDense ? "timeline-wrapper--mobile-dense" : "",
   ]
     .filter(Boolean)
@@ -1437,7 +1444,7 @@ export function DesktopTimelineView({
     </div>
   );
 
-  const timelineToolbar = compactGrid ? (
+  const timelineToolbar = compactGrid && !isMobile ? (
     <div className="price-grid-toolbar timeline-toolbar--focus">
       <div className="price-grid-toolbar__nav">
         {timelineMonthNav}
@@ -1482,7 +1489,7 @@ export function DesktopTimelineView({
   return (
     <div
       id={useViewRootId ? "view-grid" : undefined}
-      className={compactGrid ? "timeline-view-root--focus" : undefined}
+      className={stickyChrome ? "timeline-view-root--focus" : undefined}
       style={rootStyle}
     >
       {timelineToolbar}
@@ -1496,7 +1503,7 @@ export function DesktopTimelineView({
           } as CSSProperties
         }
       >
-        {compactGrid ? (
+        {stickyChrome ? (
           <>
             <div className="timeline-focus-head">
               <div className="timeline-sidebar timeline-sidebar--focus-head">

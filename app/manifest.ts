@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Панель Управління — АЖ У НЕБІ",
     short_name: "Адмінка",
     description: "Мобільна панель управління бронюваннями",
-    start_url: "/admin/mobile",
+    start_url: "/admin/mobile?mobile=1",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

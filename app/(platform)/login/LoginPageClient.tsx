@@ -7,7 +7,9 @@ import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
 import styles from "./login.module.css";
 
 function setAuthCookie(token: string) {
-  document.cookie = `${GAS_AUTH_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${GAS_AUTH_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax${secure}`;
 }
 
 function defaultAdminPath() {

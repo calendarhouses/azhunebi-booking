@@ -182,7 +182,30 @@ export async function gasPost<T>(
 
 export function getStoredAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(GAS_AUTH_TOKEN_KEY);
+  const fromLs = localStorage.getItem(GAS_AUTH_TOKEN_KEY);
+  if (fromLs) return fromLs;
+
+  // PWA / standalone: cookie may exist while localStorage was empty (or partitioned).
+  // Hydrate so client session matches middleware auth.
+  const fromCookie = readAuthCookieToken();
+  if (fromCookie) {
+    localStorage.setItem(GAS_AUTH_TOKEN_KEY, fromCookie);
+    return fromCookie;
+  }
+  return null;
+}
+
+function readAuthCookieToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${GAS_AUTH_TOKEN_KEY.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`)
+  );
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
 }
 
 export function setStoredAuthToken(token: string | null): void {
@@ -191,6 +214,8 @@ export function setStoredAuthToken(token: string | null): void {
     localStorage.setItem(GAS_AUTH_TOKEN_KEY, token);
   } else {
     localStorage.removeItem(GAS_AUTH_TOKEN_KEY);
+    // Keep middleware + client in sync when session dies.
+    document.cookie = `${GAS_AUTH_TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
   }
 }
 

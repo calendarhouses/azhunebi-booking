@@ -34,12 +34,12 @@ export function AdminAuthGate({ children }: { children: ReactNode }) {
             textAlign: "center",
           }}
         >
-          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Немає доступу</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "#111827" }}>Немає доступу</h1>
           <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
             {error || "Не вдалося визначити ваш комплекс."}
           </p>
           <a
-            href="/login"
+            href="/login?next=%2Fadmin%2Fmobile%3Fmobile%3D1"
             style={{
               display: "inline-block",
               padding: "12px 24px",

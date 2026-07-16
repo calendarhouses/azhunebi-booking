@@ -114,16 +114,8 @@ export function BookingQuickEditDrawer({
             </button>
             <button
               type="button"
-              className="btn-secondary"
-              style={{ flex: 1, margin: 0, height: 46 }}
-              onClick={() => setDraft(String(defaultValue))}
-            >
-              Скинути
-            </button>
-            <button
-              type="button"
               className="btn-primary"
-              style={{ flex: 1.4, margin: 0, height: 46 }}
+              style={{ flex: 1.2, margin: 0, height: 46 }}
               onClick={() => {
                 let next = Math.max(0, Math.round(Number(draft) || 0));
                 if (maxAmount !== undefined && Number.isFinite(maxAmount)) {

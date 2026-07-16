@@ -181,18 +181,43 @@ export function TimelineBookingCardContent({
 
   if (compact) {
     return (
-      <div className="booking-inner-content booking-inner-content--compact">
+      <div
+        className={[
+          "booking-inner-content",
+          "booking-inner-content--compact",
+          mobile ? "booking-inner-content--mobile-dense" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <div className="booking-guest-name">{block.guestName}</div>
-        {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
-        <span
-          className="booking-fin-badge"
-          style={{
-            background: block.finBadge.bg,
-            color: block.finBadge.color,
-          }}
-        >
-          {block.finText}
-        </span>
+        {mobile ? (
+          <div className="booking-mobile-dense-meta">
+            {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
+            <span
+              className="booking-fin-badge"
+              style={{
+                background: block.finBadge.bg,
+                color: block.finBadge.color,
+              }}
+            >
+              {block.finText}
+            </span>
+          </div>
+        ) : (
+          <>
+            {showGuestChip && block.guestChip ? <GuestChip value={block.guestChip} compact /> : null}
+            <span
+              className="booking-fin-badge"
+              style={{
+                background: block.finBadge.bg,
+                color: block.finBadge.color,
+              }}
+            >
+              {block.finText}
+            </span>
+          </>
+        )}
       </div>
     );
   }
