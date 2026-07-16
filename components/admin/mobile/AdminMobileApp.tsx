@@ -124,88 +124,99 @@ export function AdminMobileApp() {
 
   return (
     <MobileUiProvider>
-    <AdminDocumentTitleSync siteTitle={documentSiteTitle} enabled={admin.appVisible} />
-    <div className="boso-admin-mobile">
-      <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
-        <MobileTopBar
-          title={admin.pageMeta.title}
-          showMainAction={admin.showMainAction}
-          onCreateBooking={() => drawer.openNewBookingDrawer()}
-          publicBookUrl={publicBookUrl}
-        />
+      <AdminDocumentTitleSync siteTitle={documentSiteTitle} enabled={admin.appVisible} />
+      <div className="boso-admin-mobile">
+        <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
+          <MobileTopBar
+            title={admin.pageMeta.title}
+            showMainAction={admin.showMainAction}
+            onCreateBooking={() => drawer.openNewBookingDrawer()}
+            publicBookUrl={publicBookUrl}
+          />
 
-        <div className="main-content">
-          {admin.loadError ? (
-            <div className="admin-load-error-banner" style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: "#FFF" }}>
-              {admin.loadError}{" "}
-              <button type="button" className="btn-secondary tap-btn" style={{ marginTop: 8 }} onClick={() => void admin.reload()}>
-                Повторити
-              </button>
-            </div>
-          ) : null}
+          <div className="main-content">
+            {admin.loadError ? (
+              <div
+                className="admin-load-error-banner"
+                style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: "#FFF" }}
+              >
+                {admin.loadError}{" "}
+                <button
+                  type="button"
+                  className="btn-secondary tap-btn"
+                  style={{ marginTop: 8 }}
+                  onClick={() => void admin.reload()}
+                >
+                  Повторити
+                </button>
+              </div>
+            ) : null}
 
-          <AdminViewPane view="list" active={admin.activeView}>
-            <DesktopBookingsListView
-              layout="mobile"
-              bookings={admin.bookings}
-              roomsList={admin.settings.roomsList}
-              onOpenBooking={drawer.openDetailsByRow}
-              guestFilter={guestFilter}
-              onClearGuestFilter={() => setGuestFilter(null)}
-            />
-          </AdminViewPane>
-          {admin.activeView === "grid" ? (
-            <AdminGridDashboard
-              layout="mobile"
-              roomsList={admin.settings.roomsList}
-              bookings={admin.bookings}
-              onOpenBooking={drawer.openDetailsByRow}
-              onCreateBooking={(room, checkIn, checkOut) =>
-                drawer.openNewBookingDrawer(room, checkIn, checkOut)
-              }
-              adminUndo={adminUndo}
-            />
-          ) : null}
-          <AdminViewPane view="guests" active={admin.activeView}>
-            <DesktopGuestsView
-              layout="mobile"
-              bookings={admin.bookings}
-              onShowGuestBookings={(phone, name) => {
-                setGuestFilter({ phone, name });
-                admin.switchView("list");
-              }}
-            />
-          </AdminViewPane>
-          <AdminViewPane view="reports" active={admin.activeView}>
-            <DesktopReportsView
-              layout="mobile"
-              bookings={admin.bookings}
-              transactions={admin.settings.transactions || []}
-              roomsList={admin.settings.roomsList}
-              customPrices={admin.settings.customPrices}
-              settings={admin.settings}
-              onSettingsChange={admin.setSettings}
-              onOpenBooking={drawer.openDetailsByRow}
-              isActive
-            />
-          </AdminViewPane>
-          {admin.activeView === "settings" ? (
-            <DesktopSettingsView
-              layout="mobile"
-              settings={admin.settings}
-              tenantName={membership?.tenantName}
-              onSettingsChange={admin.setSettings}
-              activeTab={admin.settingsTab}
-              onSettingsTab={admin.switchSettingsTab}
-              modals={modals}
-              priceTimelineBaseDateRef={priceTimelineBaseDateRef}
-              restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}
-              adminUndo={adminUndo}
-            />
-          ) : null}
+            <AdminViewPane view="list" active={admin.activeView}>
+              <DesktopBookingsListView
+                layout="mobile"
+                bookings={admin.bookings}
+                roomsList={admin.settings.roomsList}
+                onOpenBooking={drawer.openDetailsByRow}
+                guestFilter={guestFilter}
+                onClearGuestFilter={() => setGuestFilter(null)}
+              />
+            </AdminViewPane>
+            {admin.activeView === "grid" ? (
+              <AdminGridDashboard
+                layout="mobile"
+                roomsList={admin.settings.roomsList}
+                bookings={admin.bookings}
+                onOpenBooking={drawer.openDetailsByRow}
+                onCreateBooking={(room, checkIn, checkOut) =>
+                  drawer.openNewBookingDrawer(room, checkIn, checkOut)
+                }
+                adminUndo={adminUndo}
+              />
+            ) : null}
+            <AdminViewPane view="guests" active={admin.activeView}>
+              <DesktopGuestsView
+                layout="mobile"
+                bookings={admin.bookings}
+                onShowGuestBookings={(phone, name) => {
+                  setGuestFilter({ phone, name });
+                  admin.switchView("list");
+                }}
+              />
+            </AdminViewPane>
+            <AdminViewPane view="reports" active={admin.activeView}>
+              <DesktopReportsView
+                layout="mobile"
+                bookings={admin.bookings}
+                transactions={admin.settings.transactions || []}
+                roomsList={admin.settings.roomsList}
+                customPrices={admin.settings.customPrices}
+                settings={admin.settings}
+                onSettingsChange={admin.setSettings}
+                onOpenBooking={drawer.openDetailsByRow}
+                isActive
+              />
+            </AdminViewPane>
+            {admin.activeView === "settings" ? (
+              <DesktopSettingsView
+                layout="mobile"
+                settings={admin.settings}
+                tenantName={membership?.tenantName}
+                onSettingsChange={admin.setSettings}
+                activeTab={admin.settingsTab}
+                onSettingsTab={admin.switchSettingsTab}
+                modals={modals}
+                priceTimelineBaseDateRef={priceTimelineBaseDateRef}
+                restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}
+                adminUndo={adminUndo}
+              />
+            ) : null}
+          </div>
 
+          <MobileBottomNav activeView={admin.activeView} onNavigate={admin.switchView} />
         </div>
 
+        {/* Outside #admin-app flex so overlays never steal shell height / hide bottom nav */}
         <div className="admin-mobile-portals">
           <DesktopBookingDrawer
             roomsList={admin.settings.roomsList}
@@ -217,10 +228,7 @@ export function AdminMobileApp() {
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />
         </div>
-
-        <MobileBottomNav activeView={admin.activeView} onNavigate={admin.switchView} />
       </div>
-    </div>
     </MobileUiProvider>
   );
 }

@@ -1076,7 +1076,12 @@ export function DesktopTimelineView({
   );
 
   const timelineRoomRows = activeRooms.map((room) => (
-    <TimelineRoomRow key={room.id} room={room} compact={compactGrid} />
+    <TimelineRoomRow
+      key={room.id}
+      room={room}
+      compact={compactGrid}
+      showDesc={!isMobile && !compactGrid}
+    />
   ));
 
   const visibleBlockRange = useMemo(() => {

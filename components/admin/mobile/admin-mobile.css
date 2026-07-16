@@ -1656,3 +1656,290 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .boso-admin-mobile .modal-box .m-sheet-handle {
     display: block;
 }
+
+/* ============================================================
+   MOBILE SHELL HARD OVERRIDE (after admin-desktop.css)
+   Desktop CSS is loaded for shared views; these rules win for phone.
+   ============================================================ */
+
+.boso-admin-mobile {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  position: relative;
+}
+
+.boso-admin-mobile #admin-app,
+.boso-admin-mobile #admin-app.is-visible {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  align-items: stretch !important;
+}
+
+.boso-admin-mobile .main-content {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 12px 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+}
+
+.boso-admin-mobile .bottom-nav {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  height: calc(72px + var(--safe-bottom)) !important;
+  padding: 8px 4px calc(10px + var(--safe-bottom)) 4px !important;
+  z-index: 80 !important;
+  background: var(--nav-bg) !important;
+  box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.1) !important;
+}
+
+.boso-admin-mobile .top-bar {
+  flex-shrink: 0 !important;
+  z-index: 80 !important;
+}
+
+.boso-admin-mobile .admin-mobile-portals {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2000;
+}
+
+.boso-admin-mobile .admin-mobile-portals > * {
+  pointer-events: auto;
+}
+
+/* Chessboard: readable rooms + visible day grid */
+.boso-admin-mobile .timeline-wrapper {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  flex: 0 0 auto !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .timeline-sidebar {
+  width: 88px !important;
+  min-width: 88px !important;
+  max-width: 88px !important;
+  background: #F9FAFB !important;
+}
+
+.boso-admin-mobile .timeline-sidebar-header {
+  height: 80px !important;
+  min-height: 80px !important;
+  padding: 4px !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.boso-admin-mobile .timeline-sidebar-header__actions {
+  display: none !important;
+}
+
+.boso-admin-mobile .timeline-room {
+  height: 60px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  padding: 4px 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile .timeline-room__label {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.boso-admin-mobile .timeline-room__icon {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  margin: 0 !important;
+  color: #374151 !important;
+  flex-shrink: 0 !important;
+}
+
+.boso-admin-mobile .timeline-room__name {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  transform: none !important;
+  color: #111827 !important;
+}
+
+.boso-admin-mobile .timeline-room__desc {
+  display: none !important;
+}
+
+.boso-admin-mobile .timeline-grid-container {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  background: #fff !important;
+}
+
+.boso-admin-mobile .timeline-row-bg {
+  height: 60px !important;
+  min-height: 60px !important;
+  border-bottom: 1px solid #E5E7EB !important;
+}
+
+.boso-admin-mobile .timeline-cell {
+  width: var(--timeline-cell-width, 60px) !important;
+  min-width: var(--timeline-cell-width, 60px) !important;
+  border-right: 1px solid #F3F4F6 !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile .timeline-date {
+  width: var(--timeline-cell-width, 60px) !important;
+  min-width: var(--timeline-cell-width, 60px) !important;
+  border-right: 1px solid #F3F4F6 !important;
+}
+
+.boso-admin-mobile .timeline-dates {
+  height: 56px !important;
+  min-height: 56px !important;
+  background: #fff !important;
+  border-bottom: 1px solid #E5E7EB !important;
+}
+
+.boso-admin-mobile .timeline-months {
+  height: 24px !important;
+  min-height: 24px !important;
+  background: #F9FAFB !important;
+}
+
+.boso-admin-mobile #view-grid .booking-block {
+  top: 7px !important;
+  height: calc(100% - 14px) !important;
+}
+
+.boso-admin-mobile .booking-inner-content {
+  padding: 4px 6px !important;
+  gap: 2px !important;
+}
+
+.boso-admin-mobile .booking-guest-name {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+}
+
+.boso-admin-mobile .booking-guest-chip {
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+}
+
+.boso-admin-mobile .booking-fin-badge {
+  font-size: 9px !important;
+  padding: 1px 5px !important;
+}
+
+/* Booking drawer = bottom sheet on phone (desktop CSS slides from right) */
+.boso-admin-mobile .drawer-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 3000 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: stretch !important;
+}
+
+.boso-admin-mobile .drawer {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 92dvh !important;
+  border-radius: 22px 22px 0 0 !important;
+  transform: translateY(110%) !important;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .drawer-overlay.active .drawer {
+  transform: translateY(0) !important;
+}
+
+.boso-admin-mobile .drawer-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px !important;
+}
+
+.boso-admin-mobile .drawer-footer,
+.boso-admin-mobile .drawer-footer--mobile {
+  flex-shrink: 0 !important;
+  padding: 12px 16px calc(12px + var(--safe-bottom)) !important;
+  background: #fff !important;
+  border-top: 1px solid #E5E7EB !important;
+}
+
+.boso-admin-mobile .modal-overlay {
+  z-index: 3100 !important;
+}
+
+.boso-admin-mobile .admin-side-drawer-overlay {
+  z-index: 3200 !important;
+}
+
+/* Settings / constructors: full-width sheets on phone */
+.boso-admin-mobile .admin-side-drawer {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 22px 22px 0 0 !important;
+}
+
