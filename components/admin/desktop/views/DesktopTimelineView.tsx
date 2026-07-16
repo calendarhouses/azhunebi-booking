@@ -320,50 +320,6 @@ export function DesktopTimelineView({
     return () => ro?.disconnect();
   }, [mobileBoard, mobileDense, activeRooms.length]);
 
-  /** Kill iOS rubber-band: only axis scroll inside cells, never pull the whole board. */
-  useEffect(() => {
-    if (!mobileBoard) return;
-    const scroll = scrollRef.current;
-    if (!scroll) return;
-
-    let startX = 0;
-    let startY = 0;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      const dx = e.touches[0].clientX - startX;
-      const dy = e.touches[0].clientY - startY;
-      const maxX = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
-      const maxY = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-      const atLeft = scroll.scrollLeft <= 0;
-      const atRight = scroll.scrollLeft >= maxX - 0.5;
-      const atTop = scroll.scrollTop <= 0;
-      const atBottom = scroll.scrollTop >= maxY - 0.5;
-
-      const pullLeft = atLeft && dx > 0;
-      const pullRight = atRight && dx < 0;
-      const pullTop = atTop && dy > 0;
-      const pullBottom = atBottom && dy < 0;
-
-      if (pullLeft || pullRight || pullTop || pullBottom) {
-        e.preventDefault();
-      }
-    };
-
-    scroll.addEventListener("touchstart", onTouchStart, { passive: true });
-    scroll.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => {
-      scroll.removeEventListener("touchstart", onTouchStart);
-      scroll.removeEventListener("touchmove", onTouchMove);
-    };
-  }, [mobileBoard, mode, daysCount, activeRooms.length, rowHeight]);
-
   useEffect(() => {
     if (!isMobile) return;
     document.body.classList.toggle("boso-grid-dense", mobileDense);
@@ -373,68 +329,6 @@ export function DesktopTimelineView({
       document.body.classList.remove("boso-grid-view");
     };
   }, [isMobile, mobileDense]);
-
-  /** Rooms column: forward pan to the cells scroller (one scroll surface). */
-  useEffect(() => {
-    if (!mobileBoard) return;
-    const clip = roomsClipRef.current;
-    const scroll = scrollRef.current;
-    if (!clip || !scroll) return;
-
-    let lastY = 0;
-    let lastX = 0;
-    let active = false;
-
-    const onStart = (e: TouchEvent) => {
-      if (!e.touches[0]) return;
-      active = true;
-      lastY = e.touches[0].clientY;
-      lastX = e.touches[0].clientX;
-    };
-    const onMove = (e: TouchEvent) => {
-      if (!active || !e.touches[0]) return;
-      e.preventDefault();
-      const y = e.touches[0].clientY;
-      const x = e.touches[0].clientX;
-      scroll.scrollTop += lastY - y;
-      scroll.scrollLeft += lastX - x;
-      lastY = y;
-      lastX = x;
-    };
-    const onEnd = () => {
-      active = false;
-    };
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      scroll.scrollTop += e.deltaY;
-      scroll.scrollLeft += e.deltaX;
-    };
-
-    clip.addEventListener("touchstart", onStart, { passive: true });
-    clip.addEventListener("touchmove", onMove, { passive: false });
-    clip.addEventListener("touchend", onEnd, { passive: true });
-    clip.addEventListener("touchcancel", onEnd, { passive: true });
-    clip.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      clip.removeEventListener("touchstart", onStart);
-      clip.removeEventListener("touchmove", onMove);
-      clip.removeEventListener("touchend", onEnd);
-      clip.removeEventListener("touchcancel", onEnd);
-      clip.removeEventListener("wheel", onWheel);
-    };
-  }, [mobileBoard, mode, daysCount, rowHeight]);
-
-  /** Dates header: never rubber-band / pull the page. */
-  useEffect(() => {
-    if (!mobileBoard) return;
-    const head = document.querySelector(
-      ".timeline-wrapper--mobile-board .timeline-mobile-head"
-    ) as HTMLElement | null;
-    if (!head) return;
-    const block = (e: TouchEvent) => e.preventDefault();
-    head.addEventListener("touchmove", block, { passive: false });
-    return () => head.removeEventListener("touchmove", block);
-  }, [mobileBoard]);
 
   /** Mobile CSS locks rooms at 60px (dense fits all houses) — keep JS in sync for drag. */
   const rowHeight = isMobile
@@ -502,6 +396,112 @@ export function DesktopTimelineView({
     }
     return infiniteRange.daysCount;
   }, [mode, startDate, infiniteRange.daysCount]);
+
+  /** Kill iOS rubber-band: only axis scroll inside cells, never pull the whole board. */
+  useEffect(() => {
+    if (!mobileBoard) return;
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+
+    let startX = 0;
+    let startY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      const maxX = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+      const maxY = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+      const atLeft = scroll.scrollLeft <= 0;
+      const atRight = scroll.scrollLeft >= maxX - 0.5;
+      const atTop = scroll.scrollTop <= 0;
+      const atBottom = scroll.scrollTop >= maxY - 0.5;
+
+      const pullLeft = atLeft && dx > 0;
+      const pullRight = atRight && dx < 0;
+      const pullTop = atTop && dy > 0;
+      const pullBottom = atBottom && dy < 0;
+
+      if (pullLeft || pullRight || pullTop || pullBottom) {
+        e.preventDefault();
+      }
+    };
+
+    scroll.addEventListener("touchstart", onTouchStart, { passive: true });
+    scroll.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      scroll.removeEventListener("touchstart", onTouchStart);
+      scroll.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [mobileBoard, mode, daysCount, activeRooms.length, rowHeight]);
+
+  /** Rooms column: forward pan to the cells scroller (one scroll surface). */
+  useEffect(() => {
+    if (!mobileBoard) return;
+    const clip = roomsClipRef.current;
+    const scroll = scrollRef.current;
+    if (!clip || !scroll) return;
+
+    let lastY = 0;
+    let lastX = 0;
+    let active = false;
+
+    const onStart = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      active = true;
+      lastY = e.touches[0].clientY;
+      lastX = e.touches[0].clientX;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!active || !e.touches[0]) return;
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      const x = e.touches[0].clientX;
+      scroll.scrollTop += lastY - y;
+      scroll.scrollLeft += lastX - x;
+      lastY = y;
+      lastX = x;
+    };
+    const onEnd = () => {
+      active = false;
+    };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      scroll.scrollTop += e.deltaY;
+      scroll.scrollLeft += e.deltaX;
+    };
+
+    clip.addEventListener("touchstart", onStart, { passive: true });
+    clip.addEventListener("touchmove", onMove, { passive: false });
+    clip.addEventListener("touchend", onEnd, { passive: true });
+    clip.addEventListener("touchcancel", onEnd, { passive: true });
+    clip.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      clip.removeEventListener("touchstart", onStart);
+      clip.removeEventListener("touchmove", onMove);
+      clip.removeEventListener("touchend", onEnd);
+      clip.removeEventListener("touchcancel", onEnd);
+      clip.removeEventListener("wheel", onWheel);
+    };
+  }, [mobileBoard, mode, daysCount, rowHeight]);
+
+  /** Dates header: never rubber-band / pull the page. */
+  useEffect(() => {
+    if (!mobileBoard) return;
+    const head = document.querySelector(
+      ".timeline-wrapper--mobile-board .timeline-mobile-head"
+    ) as HTMLElement | null;
+    if (!head) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    head.addEventListener("touchmove", block, { passive: false });
+    return () => head.removeEventListener("touchmove", block);
+  }, [mobileBoard]);
 
   const fittedCellWidth = useTimelineCellWidth(scrollRef, daysCount, !isMobile && mode === "month");
   const cellWidth = mode === "continuous" ? TIMELINE_CELL_BASE : fittedCellWidth;
