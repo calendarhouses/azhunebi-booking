@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   expireBookingPayment,
   listPaymentLifecycle,
+  markPaidBookingTelegramSent,
   type GasBookingRecord,
 } from "@/lib/gas-api";
 import { getMonoInvoiceStatus } from "@/lib/monopay/client";
@@ -11,6 +12,7 @@ import {
   sendBookingLifecycleSms,
   type BookingLifecycleSmsType,
 } from "@/lib/sms/bookingLifecycleSms";
+import { notifyPaidBooking } from "@/lib/telegram/paidBookingNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,9 +104,30 @@ export async function POST(request: Request) {
     if (result.ok) smsSent += 1;
     else smsFailed += 1;
   }
+  let telegramSent = 0;
+  let telegramFailed = 0;
+  for (const booking of refreshed.pendingTelegram || []) {
+    const sent = await notifyPaidBooking(booking);
+    if (sent && booking.id) {
+      const marked = await markPaidBookingTelegramSent(booking.id);
+      if (marked.ok) telegramSent += 1;
+      else telegramFailed += 1;
+    } else {
+      telegramFailed += 1;
+    }
+  }
 
   return NextResponse.json(
-    { ok: true, checked: lifecycle.due?.length || 0, paid, expired, smsSent, smsFailed },
+    {
+      ok: true,
+      checked: lifecycle.due?.length || 0,
+      paid,
+      expired,
+      smsSent,
+      smsFailed,
+      telegramSent,
+      telegramFailed,
+    },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

@@ -521,9 +521,12 @@ export type GasBookingRecord = {
   cottage?: string;
   checkIn?: string;
   checkOut?: string;
+  guests?: number;
+  pets?: string;
   prepayAmount?: number;
   paidAmount?: number;
   totalPrice?: number;
+  prepayMethod?: string;
   status?: string;
   comment?: string;
   source?: string;
@@ -534,6 +537,7 @@ export type GasBookingRecord = {
   paymentLinkSmsSentAt?: string;
   successSmsSentAt?: string;
   expirySmsSentAt?: string;
+  paidTelegramSentAt?: string;
 };
 
 function reviewWebhookSecret(): string {
@@ -583,6 +587,7 @@ export async function listPaymentLifecycle(): Promise<{
   ok: boolean;
   due?: GasBookingRecord[];
   pendingSms?: GasBookingRecord[];
+  pendingTelegram?: GasBookingRecord[];
   reason?: string;
 }> {
   return gasPost({
@@ -612,6 +617,16 @@ export async function markBookingSmsSent(
     action: "markBookingSmsSent",
     orderId,
     smsType,
+    webhookSecret: paymentLifecycleSecret(),
+  });
+}
+
+export async function markPaidBookingTelegramSent(
+  orderId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  return gasPost({
+    action: "markPaidBookingTelegramSent",
+    orderId,
     webhookSecret: paymentLifecycleSecret(),
   });
 }

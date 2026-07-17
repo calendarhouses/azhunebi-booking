@@ -99,9 +99,6 @@ export function PublicMobileSite() {
         </div>
       </div>
 
-      <footer className="site-footer">
-        © {new Date().getFullYear()} {runtime?.tenantName || ""}
-      </footer>
       <div id="toast" />
     </>
   );

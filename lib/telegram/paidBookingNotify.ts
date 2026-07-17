@@ -1,0 +1,98 @@
+import "server-only";
+
+import type { GasBookingRecord } from "@/lib/gas-api";
+import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
+import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
+import { isTelegramConfigured } from "./config";
+import { sendTelegramMessage } from "./sendMessage";
+
+const UK_MONTHS = [
+  "січня", "лютого", "березня", "квітня", "травня", "червня",
+  "липня", "серпня", "вересня", "жовтня", "листопада", "грудня",
+];
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function formatDate(value?: string): string {
+  if (!value) return "—";
+  const date = new Date(value.includes("T") ? value : `${value}T12:00:00`);
+  return Number.isNaN(date.getTime())
+    ? escapeHtml(value)
+    : `${date.getDate()} ${UK_MONTHS[date.getMonth()]}`;
+}
+
+function countNights(checkIn?: string, checkOut?: string): number {
+  if (!checkIn || !checkOut) return 0;
+  const start = new Date(checkIn.includes("T") ? checkIn : `${checkIn}T12:00:00`);
+  const end = new Date(checkOut.includes("T") ? checkOut : `${checkOut}T12:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000));
+}
+
+function nightWord(value: number): string {
+  const n = Math.abs(value) % 100;
+  const last = n % 10;
+  if (n >= 11 && n <= 14) return "ночей";
+  if (last === 1) return "ніч";
+  if (last >= 2 && last <= 4) return "ночі";
+  return "ночей";
+}
+
+function money(value?: number): string {
+  return `${Math.round(Number(value) || 0).toLocaleString("uk-UA")} ₴`;
+}
+
+function guestComment(raw?: string): string {
+  const comment = String(raw || "");
+  const marker = "Коментар гостя:";
+  const index = comment.indexOf(marker);
+  return index >= 0 ? comment.slice(index + marker.length).trim() : "";
+}
+
+export function buildPaidBookingTelegramText(booking: GasBookingRecord): string {
+  const phone = normalizeGuestPhone(booking.phone);
+  const nights = countNights(booking.checkIn, booking.checkOut);
+  const paid = Number(booking.paidAmount) || 0;
+  const total = Number(booking.totalPrice) || 0;
+  const balance = Math.max(0, total - paid);
+  const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(booking.comment || "");
+  const comment = guestComment(booking.comment);
+  const lines = [
+    "✅ <b>Нове оплачене бронювання</b> | Сайт",
+    "",
+    `🏡 <b>${escapeHtml(booking.cottage || "—")}</b>`,
+    `📅 ${formatDate(booking.checkIn)} — ${formatDate(booking.checkOut)} · ${nights} ${nightWord(nights)}`,
+    `👤 ${escapeHtml(booking.name || "Гість")}`,
+    `📞 ${phone ? `+${phone}` : "—"}`,
+    `👥 Гості: <b>${Number(booking.guests) || 0}</b>`,
+  ];
+  if (booking.pets === "Так") lines.push("🐾 З тваринами");
+  if (earlyTime) lines.push(`🕒 Ранній заїзд: ${escapeHtml(earlyTime)}`);
+  if (lateTime) lines.push(`🕒 Пізній виїзд: ${escapeHtml(lateTime)}`);
+  if (comment) lines.push(`💬 ${escapeHtml(comment)}`);
+  lines.push(
+    "",
+    `💰 Загальна вартість: <b>${money(total)}</b>`,
+    `💳 Передоплата: <b>${money(paid)}</b>`,
+    `🧾 Залишок: <b>${money(balance)}</b>`,
+    `🔖 ${escapeHtml(booking.id || "")}`
+  );
+  return lines.join("\n");
+}
+
+export async function notifyPaidBooking(booking: GasBookingRecord): Promise<boolean> {
+  if (!isTelegramConfigured()) {
+    console.warn("[TG] Skipping paid booking notify — Telegram is not configured");
+    return false;
+  }
+  const response = await sendTelegramMessage(buildPaidBookingTelegramText(booking));
+  if (response.ok) return true;
+  const body = await response.text().catch(() => "");
+  console.error("[TG] Paid booking notify failed", response.status, body);
+  return false;
+}

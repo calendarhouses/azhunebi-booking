@@ -83,9 +83,6 @@ export function PublicDesktopSite() {
         </div>
       </div>
 
-      <footer className="site-footer">
-        © {new Date().getFullYear()} {runtime?.tenantName || ""} · Котеджний комплекс
-      </footer>
       <div id="toast" />
     </>
   );

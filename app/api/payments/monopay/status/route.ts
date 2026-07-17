@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         cottage: result.booking.cottage,
         checkIn: result.booking.checkIn,
         checkOut: result.booking.checkOut,
+        guests: Number(result.booking.guests) || 0,
         totalPrice: result.booking.totalPrice,
         prepayment: paidAmount,
         paidAmount,
