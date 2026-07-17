@@ -92,20 +92,35 @@ export function FinanceMobileTable({ r }: FinanceMobileTableProps) {
             </div>
             {!row.isSystem && row.id != null ? (
               <div className="fin-mob-actions">
-                <button type="button" className="btn-icon-only tap-btn" onClick={() => r.toggleEditFinRow(row.id!)}>
-                  ✎
+                <button
+                  type="button"
+                  className="btn-icon-only tap-btn"
+                  aria-label="Редагувати операцію"
+                  title="Редагувати"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    r.toggleEditFinRow(row.id!);
+                  }}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 3.487 3.651 3.651M5.25 18.75l3.75-.75L19.986 7.014a1.875 1.875 0 0 0-2.652-2.652L6.348 15.348l-1.098 3.402Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 5.25 18.75 9" />
+                  </svg>
                 </button>
                 <button
                   type="button"
                   className="btn-icon-only danger tap-btn"
-                  onClick={() => r.deleteTransaction(row.id!)}
+                  aria-label="Видалити операцію"
+                  title="Видалити"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    r.deleteTransaction(row.id!);
+                  }}
                 >
-                  🗑
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7.5h12m-10.5 0 .75 12h7.5l.75-12M9.75 7.5V5.25h4.5V7.5m-4.5 3v6m4.5-6v6" />
+                  </svg>
                 </button>
-              </div>
-            ) : row.isSystem ? (
-              <div className="fin-mob-actions">
-                <span style={{ color: "#9CA3AF", fontSize: 12, fontWeight: 700 }}>Auto</span>
               </div>
             ) : null}
           </div>,

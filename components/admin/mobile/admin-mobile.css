@@ -1034,7 +1034,20 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     cursor: pointer;
 }
 .reports-toolbar-row .custom-select-wrapper { min-width: 0; height: 100%; }
-.reports-toolbar-row .custom-select-trigger { height: 64px; min-height: 64px; }
+.reports-toolbar-row .custom-select-trigger {
+    height: 64px;
+    min-height: 64px;
+    overflow: hidden;
+}
+.reports-toolbar-row #reportPeriodText,
+.reports-toolbar-row #reportPeriodDates {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .reports-toolbar-row .btn-report-tg {
     width: auto;
     height: 64px;
@@ -1279,6 +1292,15 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .fin-mob-desc { font-size: 12px; color: #6B7280; margin-top: 2px;}
 .fin-mob-amt { font-size: 16px; font-weight: 800; letter-spacing: -0.5px;}
 .fin-mob-actions { display: flex; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid #F3F4F6;}
+.fin-mob-actions .btn-icon-only {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.fin-mob-actions .btn-icon-only svg {
+    display: block;
+}
 
 /* Забороняємо системний скрол та виділення під час свайпу по клітинках */
 .timeline-wrapper {
@@ -1676,6 +1698,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     color: #047857;
     font-weight: 700;
     font-size: 13px;
+    gap: 6px;
 }
 .boso-mobile-card__details {
     flex: 1;
@@ -3175,6 +3198,17 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 .boso-admin-mobile .r-tab {
   flex: 0 0 auto;
   min-height: 40px;
+}
+
+.boso-admin-mobile #view-reports .reports-tabs {
+  display: flex;
+  width: 100%;
+  overflow: visible;
+}
+
+.boso-admin-mobile #view-reports .reports-tabs .r-tab {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .boso-admin-mobile #view-reports .metrics-grid,
