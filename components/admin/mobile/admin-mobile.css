@@ -2776,6 +2776,145 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   display: none !important;
 }
 
+/* Premium responsive booking cards: 1 / 2 / 3+ nights */
+.boso-admin-mobile .booking-block:not(.booking-block--drag-float) {
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 4px 12px rgba(28, 25, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+}
+
+.boso-admin-mobile .booking-block:not(.booking-block--drag-float)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(118deg, rgba(255,255,255,.20), transparent 38%, rgba(255,255,255,.06));
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-premium {
+  position: relative !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  gap: 3px !important;
+  overflow: hidden !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-premium-standard {
+  padding: 2px 4px !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-premium-dense {
+  padding: 0 1px !important;
+  gap: 2px !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-premium .booking-guest-name {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.01em !important;
+  color: rgba(28, 25, 23, 0.94) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.2);
+}
+
+.boso-admin-mobile
+  .booking-inner-content--mobile-premium-dense
+  .booking-guest-name {
+  font-size: 10px !important;
+}
+
+.boso-admin-mobile .booking-inner-content--mobile-premium .booking-mobile-meta-row {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  gap: 4px !important;
+}
+
+.boso-admin-mobile
+  .booking-inner-content--mobile-premium.booking-inner-content--meta-only
+  .booking-mobile-meta-row {
+  justify-content: center !important;
+}
+
+.boso-admin-mobile
+  .booking-inner-content--mobile-premium
+  .booking-mobile-meta-row
+  .booking-fin-badge {
+  flex: 1 1 auto !important;
+  max-width: calc(100% - 24px) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  padding-inline: 6px !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+.boso-admin-mobile
+  .booking-inner-content--mobile-premium
+  .booking-mobile-meta-row
+  .booking-guest-chip {
+  flex: 0 0 auto !important;
+  min-width: 18px !important;
+  padding-inline: 5px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.26) !important;
+  backdrop-filter: blur(4px);
+}
+
+.boso-admin-mobile
+  .booking-inner-content--stay-1
+  .booking-mobile-meta-row {
+  gap: 3px !important;
+}
+
+.boso-admin-mobile
+  .booking-inner-content--stay-1
+  .booking-fin-badge--one-night-icon {
+  flex: 0 0 19px !important;
+  width: 19px !important;
+  min-width: 19px !important;
+  height: 19px !important;
+  padding: 0 !important;
+  border-radius: 7px !important;
+}
+
+.boso-admin-mobile
+  .timeline-wrapper--mobile-dense
+  .booking-inner-content--mobile-premium {
+  padding: 0 !important;
+}
+
+.boso-admin-mobile
+  .timeline-wrapper--mobile-dense
+  .booking-inner-content--mobile-premium
+  .booking-fin-badge,
+.boso-admin-mobile
+  .timeline-wrapper--mobile-dense
+  .booking-inner-content--mobile-premium
+  .booking-guest-chip {
+  height: 17px !important;
+  font-size: 9px !important;
+  border-radius: 6px !important;
+}
+
 
 /* Nav arrows: sit INSIDE the 40px month card (not 44px tap targets) */
 .boso-admin-mobile .timeline-nav-row .timeline-nav .btn-icon,

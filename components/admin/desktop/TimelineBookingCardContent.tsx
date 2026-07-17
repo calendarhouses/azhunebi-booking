@@ -28,6 +28,7 @@ export const TIMELINE_BOOKING_BLOCK_LAYOUT = {
 
 export type TimelineBookingCardBlock = {
   nights: number;
+  width: number;
   contentWidth: number;
   guestName: string;
   guestChip: string | null;
@@ -94,7 +95,11 @@ function OneNightFinBadge({
 }) {
   if (kind === "neutral") {
     return (
-      <span className="booking-fin-badge booking-fin-badge--one-night-icon booking-fin-badge--one-night-neutral">
+      <span
+        className="booking-fin-badge booking-fin-badge--one-night-icon booking-fin-badge--one-night-neutral"
+        aria-label={getTimelineOneNightFinAriaLabel(kind)}
+        title={getTimelineOneNightFinAriaLabel(kind)}
+      >
         —
       </span>
     );
@@ -204,60 +209,42 @@ export function TimelineBookingCardContent({
   const guestTextOnly = block.contentWidth < 72;
   const name = block.guestName?.trim() || "";
 
-  /**
-   * Dense (розгорнута): < 3 ночей — без імені, лише сума + гості.
-   * Dense ≥ 3 ночей — ім’я + meta.
-   */
-  if (mobile && compact) {
-    if (block.nights < 3) {
-      return (
-        <div className="booking-inner-content booking-inner-content--mobile-dense booking-inner-content--mobile-dense-meta-only">
-          <MobileMetaRow
-            block={block}
-            showGuestChip={showGuestChip}
-            oneNightFinKind={oneNightFinKind}
-            textOnly={guestTextOnly || isOneNight || block.contentWidth < 96}
-          />
-        </div>
-      );
-    }
+  if (mobile) {
+    const effectiveWidth = Math.max(0, block.width - (compact ? 12 : 20));
+    const showName =
+      !isOneNight &&
+      Boolean(name) &&
+      effectiveWidth >= (block.nights === 2 ? 78 : 82);
+    const textOnlyGuests = isOneNight || effectiveWidth < 100;
+    const amount = block.finText.replace(/\s*(грн|₴)\s*$/i, "").trim();
+    const mobileFinText =
+      block.finText === "—" ? "—" : `${amount}${effectiveWidth >= 68 ? " ₴" : ""}`;
+    const stayClass =
+      block.nights === 1
+        ? "booking-inner-content--stay-1"
+        : block.nights === 2
+          ? "booking-inner-content--stay-2"
+          : "booking-inner-content--stay-3plus";
     return (
-      <div className="booking-inner-content booking-inner-content--mobile-dense">
-        {name ? <div className="booking-guest-name">{name}</div> : null}
+      <div
+        className={[
+          "booking-inner-content",
+          "booking-inner-content--mobile-premium",
+          compact
+            ? "booking-inner-content--mobile-premium-dense"
+            : "booking-inner-content--mobile-premium-standard",
+          stayClass,
+          showName ? "" : "booking-inner-content--meta-only",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {showName ? <div className="booking-guest-name">{name}</div> : null}
         <MobileMetaRow
-          block={block}
+          block={{ ...block, finText: mobileFinText }}
           showGuestChip={showGuestChip}
-          oneNightFinKind={null}
-          textOnly={guestTextOnly}
-        />
-      </div>
-    );
-  }
-
-  /**
-   * Standard (звичайна): 1 ніч — без імені; 2+ ночей — ім’я + сума + гості.
-   */
-  if (mobile && !compact) {
-    if (isOneNight) {
-      return (
-        <div className="booking-inner-content booking-inner-content--mobile booking-inner-content--mobile-expanded booking-inner-content--mobile-expanded-one-night">
-          <MobileMetaRow
-            block={block}
-            showGuestChip={showGuestChip}
-            oneNightFinKind={oneNightFinKind}
-            textOnly
-          />
-        </div>
-      );
-    }
-    return (
-      <div className="booking-inner-content booking-inner-content--mobile booking-inner-content--mobile-expanded">
-        {name ? <div className="booking-guest-name">{name}</div> : null}
-        <MobileMetaRow
-          block={block}
-          showGuestChip={showGuestChip}
-          oneNightFinKind={null}
-          textOnly={guestTextOnly}
+          oneNightFinKind={isOneNight ? oneNightFinKind : null}
+          textOnly={textOnlyGuests}
         />
       </div>
     );
