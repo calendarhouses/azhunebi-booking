@@ -1,6 +1,9 @@
 import { normalizeDateToIso, parseSafeDate } from "@/components/admin/desktop/adminDates";
 import type { BookingPayment, BookingRecord } from "@/components/admin/desktop/types";
-import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
+import {
+  isAwaitingPaymentStatus,
+  isPendingReviewStatus,
+} from "@/lib/public-booking/bookingReview";
 
 export type { BookingPayment };
 
@@ -37,11 +40,15 @@ export function buildLegacyPayments(b: BookingRecord): BookingPayment[] {
   const prepay = Math.round(Number(b.prepayAmount) || 0);
   const surcharge = Math.round(Number(b.surchargeAmount) || 0);
   const paid = Math.round(Number(b.paidAmount) || 0);
+  const isUnpaidSiteBooking =
+    String(b.source) === "Сайт" &&
+    (isAwaitingPaymentStatus(b.status) || isPendingReviewStatus(b.status));
   const createdRaw = String(b.createdAt || b.checkIn || "");
   const created = normalizeDateToIso(createdRaw) || String(b.checkIn || "");
   const payments: BookingPayment[] = [];
 
-  if (prepay > 0) {
+  // For a new site booking prepayAmount is the amount requested, not money received.
+  if (prepay > 0 && !isUnpaidSiteBooking) {
     payments.push({
       id: "legacy-p",
       date: created,

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { fetchBookingByDisplayId } from "@/lib/gas-api";
+import {
+  getMonoTestAmountUah,
+  resolveMonoChargeAmountUah,
+} from "@/lib/monopay/config";
 import { verifyMonoWebhookSignature } from "@/lib/monopay/signature";
 import type { MonoWebhookPayload } from "@/lib/monopay/types";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
@@ -68,8 +72,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
+  const expectedPrepayUah = Math.round(
+    Number(bookingResult.booking.prepayAmount) || 0
+  );
+  const testAmountUah = getMonoTestAmountUah();
   const expectedKopiykas =
-    Math.round(Number(bookingResult.booking.prepayAmount) || 0) * 100;
+    Math.round(resolveMonoChargeAmountUah(expectedPrepayUah) * 100);
   if (expectedKopiykas <= 0 || amountKopiykas !== expectedKopiykas) {
     console.error("[MonoPay Webhook] Amount mismatch", {
       reference,
@@ -81,8 +89,9 @@ export async function POST(request: Request) {
   }
 
   const result = await confirmBookingPayment(reference, amountKopiykas / 100, {
-    provider: "MonoPay",
+    provider: testAmountUah != null ? "MonoPay TEST" : "MonoPay",
     transactionId: invoiceId,
+    testMode: testAmountUah != null,
   });
   if (!result.ok) {
     const statusCode = result.reason === "amount_mismatch" ? 422 : 503;

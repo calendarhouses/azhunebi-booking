@@ -472,7 +472,7 @@ export async function createBooking(
 export async function confirmBookingPayment(
   orderReference: string,
   amountPaid: number,
-  meta?: { provider?: string; transactionId?: string }
+  meta?: { provider?: string; transactionId?: string; testMode?: boolean }
 ): Promise<{
   ok: boolean;
   updated?: boolean;
@@ -488,6 +488,7 @@ export async function confirmBookingPayment(
       amountPaid,
       paymentProvider: meta?.provider,
       transactionId: meta?.transactionId,
+      paymentTestMode: meta?.testMode === true,
       webhookSecret: reviewWebhookSecret(),
     });
   } catch (err) {

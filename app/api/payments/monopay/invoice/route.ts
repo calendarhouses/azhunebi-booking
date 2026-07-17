@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { fetchBookingByDisplayId } from "@/lib/gas-api";
 import { createMonoInvoice, MonoApiError } from "@/lib/monopay/client";
-import { getPublicOrigin } from "@/lib/monopay/config";
+import {
+  getMonoTestAmountUah,
+  getPublicOrigin,
+  resolveMonoChargeAmountUah,
+} from "@/lib/monopay/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 
 export const runtime = "nodejs";
@@ -43,12 +47,16 @@ export async function POST(request: Request) {
 
   const publicOrigin = getPublicOrigin();
   const encodedOrderId = encodeURIComponent(orderId);
+  const testAmountUah = getMonoTestAmountUah();
+  const chargeAmountUah = resolveMonoChargeAmountUah(amountUah);
 
   try {
     const invoice = await createMonoInvoice({
       reference: orderId,
-      amountUah,
-      destination: `Передплата за ${booking.cottage || "бронювання"}`,
+      amountUah: chargeAmountUah,
+      destination: `${testAmountUah ? "Тестова оплата за" : "Передплата за"} ${
+        booking.cottage || "бронювання"
+      }`,
       redirectUrl: `${publicOrigin}/pay/${encodedOrderId}?payment=return`,
       webHookUrl: `${publicOrigin}/api/webhooks/monopay`,
     });
@@ -58,7 +66,8 @@ export async function POST(request: Request) {
         ok: true,
         invoiceId: invoice.invoiceId,
         pageUrl: invoice.pageUrl,
-        amount: amountUah,
+        amount: chargeAmountUah,
+        testMode: testAmountUah != null,
         reference: orderId,
       },
       { headers: { "Cache-Control": "no-store" } }

@@ -27,3 +27,15 @@ export function getPublicOrigin(): string {
     return DEFAULT_PUBLIC_ORIGIN;
   }
 }
+
+export function getMonoTestAmountUah(): number | null {
+  const raw = process.env.MONO_TEST_AMOUNT_UAH?.trim();
+  if (!raw) return null;
+  const amount = Number(raw);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return Math.round(amount * 100) / 100;
+}
+
+export function resolveMonoChargeAmountUah(expectedAmountUah: number): number {
+  return getMonoTestAmountUah() ?? expectedAmountUah;
+}

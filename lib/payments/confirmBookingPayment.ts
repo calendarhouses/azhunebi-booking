@@ -14,7 +14,7 @@ export type ConfirmBookingPaymentResult =
 export async function confirmBookingPayment(
   orderReference: string,
   amountPaid: number,
-  meta?: { provider?: string; transactionId?: string }
+  meta?: { provider?: string; transactionId?: string; testMode?: boolean }
 ): Promise<ConfirmBookingPaymentResult> {
   const displayId = orderReference.trim();
   if (!displayId) return { ok: false, reason: "not_found" };
