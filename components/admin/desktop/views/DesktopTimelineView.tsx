@@ -1280,12 +1280,24 @@ export function DesktopTimelineView({
                   width: block.width,
                   position: "absolute",
                   paddingLeft:
-                    isMobile && hasEarlyExtension
-                      ? mobileExtensionInset + 3
+                    isMobile
+                      ? hasEarlyExtension
+                        ? mobileExtensionInset + 3
+                        : block.nights === 1
+                          ? 3
+                          : denseRows
+                            ? 5
+                            : 6
                       : block.padLeft,
                   paddingRight:
-                    isMobile && hasLateExtension
-                      ? mobileExtensionInset + 3
+                    isMobile
+                      ? hasLateExtension
+                        ? mobileExtensionInset + 3
+                        : block.nights === 1
+                          ? 3
+                          : denseRows
+                            ? 5
+                            : 6
                       : block.padRight,
                   cursor: onMoveBooking ? "grab" : "pointer",
                   touchAction: onMoveBooking ? "none" : undefined,
@@ -1400,14 +1412,24 @@ export function DesktopTimelineView({
             width: draggingBlockRef.current.width,
             height: getTimelineBookingBlockLayout(rowHeight, denseRows).height,
             paddingLeft:
-              isMobile &&
-              draggingBlockRef.current.extensions.some((ext) => ext.type === "early")
-                ? (denseRows ? 16 : 20) + 3
+              isMobile
+                ? draggingBlockRef.current.extensions.some((ext) => ext.type === "early")
+                  ? (denseRows ? 16 : 20) + 3
+                  : draggingBlockRef.current.nights === 1
+                    ? 3
+                    : denseRows
+                      ? 5
+                      : 6
                 : draggingBlockRef.current.padLeft,
             paddingRight:
-              isMobile &&
-              draggingBlockRef.current.extensions.some((ext) => ext.type === "late")
-                ? (denseRows ? 16 : 20) + 3
+              isMobile
+                ? draggingBlockRef.current.extensions.some((ext) => ext.type === "late")
+                  ? (denseRows ? 16 : 20) + 3
+                  : draggingBlockRef.current.nights === 1
+                    ? 3
+                    : denseRows
+                      ? 5
+                      : 6
                 : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,

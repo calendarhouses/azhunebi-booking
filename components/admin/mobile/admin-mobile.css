@@ -2707,7 +2707,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-block:not(.booking-block--drag-float) {
   top: 2px !important;
   height: calc(100% - 4px) !important;
-  padding: 2px 5px !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
   border-radius: 8px !important;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
 }
@@ -2793,6 +2794,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 /* Premium responsive booking cards: 1 / 2 / 3+ nights */
 .boso-admin-mobile .booking-block:not(.booking-block--drag-float) {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
   border: 1px solid rgba(255, 255, 255, 0.34) !important;
   border-radius: 12px !important;
   box-shadow:
@@ -2843,7 +2846,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   white-space: nowrap !important;
   font-size: 11px !important;
   font-weight: 850 !important;
-  line-height: 1.08 !important;
+  line-height: 1.24 !important;
   letter-spacing: -0.01em !important;
   color: rgba(28, 25, 23, 0.94) !important;
   text-shadow: 0 1px 0 rgba(255,255,255,.2);
@@ -2855,6 +2858,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   .booking-inner-content--mobile-premium-dense
   .booking-guest-name {
   font-size: 10px !important;
+  line-height: 1.2 !important;
 }
 
 .boso-admin-mobile .booking-inner-content--mobile-premium .booking-mobile-meta-row {
@@ -2911,6 +2915,13 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   height: 19px !important;
   padding: 0 !important;
   border-radius: 7px !important;
+}
+
+.boso-admin-mobile
+  .timeline-wrapper--mobile-dense
+  .booking-block:not(.booking-block--drag-float) {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
 }
 
 .boso-admin-mobile
