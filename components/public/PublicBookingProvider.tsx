@@ -35,6 +35,7 @@ import {
 } from "@/lib/public-booking/bookedRanges";
 import {
   createMonoPayment,
+  ensurePaymentLinkSms,
   fetchPublicInitData,
   submitPublicBooking,
   type SubmitBookingPayload,
@@ -924,9 +925,15 @@ export function PublicBookingProvider({
 
         if (paymentAmount > 0) {
           try {
+            // Do not delay MonoPay while TurboSMS processes the message.
+            void ensurePaymentLinkSms(orderId).catch((error) => {
+              console.warn("[Booking] Payment link SMS will be retried", {
+                orderId,
+                error,
+              });
+            });
             const invoice = await createMonoPayment(orderId);
             sessionData.prepayment = invoice.amount;
-            sessionData.paidAmount = invoice.amount;
             sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
             window.location.assign(invoice.pageUrl);
           } catch {

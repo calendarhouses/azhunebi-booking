@@ -1078,6 +1078,7 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .status-btn.active { background: #FFF; border-color: var(--accent); box-shadow: 0 2px 8px rgba(85,107,47,0.15); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #D1D5DB; margin-right: 6px; display: inline-block;}
 .status-btn.active[data-status="Нова бронь"] { color: var(--accent); } .status-btn.active[data-status="Нова бронь"] .status-dot { background: var(--accent); }
+.status-btn.active[data-status="Очікує оплату"] { color: #B45309; } .status-btn.active[data-status="Очікує оплату"] .status-dot { background: #F59E0B; }
 .status-btn.active[data-status="Підтверджено"] { color: var(--success); } .status-btn.active[data-status="Підтверджено"] .status-dot { background: var(--success); }
 .status-btn.active[data-status="Виїхав"] { color: var(--warning); } .status-btn.active[data-status="Виїхав"] .status-dot { background: var(--warning); }
 .status-btn.active[data-status="Скасовано"] { color: var(--danger); } .status-btn.active[data-status="Скасовано"] .status-dot { background: var(--danger); }
@@ -2326,6 +2327,22 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   border: 1px solid #E7E5E4 !important;
   background: #FAFAF9 !important;
   overflow: hidden !important;
+}
+
+.boso-admin-mobile .booking-service-counter > button {
+  position: static !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  padding: 0 !important;
+}
+
+.boso-admin-mobile .booking-service-counter > span {
+  display: flex !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .boso-admin-mobile .form-section {

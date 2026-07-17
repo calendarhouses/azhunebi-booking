@@ -104,7 +104,7 @@ export function DesktopBookingDrawer({
             description="Обери, на якому етапі зараз це бронювання — можна змінити в будь-який момент."
           />
           <div className="status-toggle">
-            {(["Нова бронь", "Підтверджено", "Скасовано"] as const).map((status) => (
+            {(["Нова бронь", "Очікує оплату", "Підтверджено", "Скасовано"] as const).map((status) => (
               <div
                 key={status}
                 className={`status-btn${form.status === status ? " active" : ""}`}

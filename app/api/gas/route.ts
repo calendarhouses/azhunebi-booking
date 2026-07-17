@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 
 export const runtime = "nodejs";
@@ -167,7 +167,8 @@ export async function POST(request: Request) {
       !isPendingReview &&
       result?.orderId
     ) {
-      try {
+      after(async () => {
+        try {
         const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }] =
           await Promise.all([
             import("@/lib/gas-api"),
@@ -177,9 +178,10 @@ export async function POST(request: Request) {
         if (bookingResult.ok && bookingResult.booking) {
           await sendBookingLifecycleSms(bookingResult.booking, "payment_link");
         }
-      } catch (err) {
-        console.error("[GAS proxy] payment link SMS:", err);
-      }
+        } catch (err) {
+          console.error("[GAS proxy] payment link SMS:", err);
+        }
+      });
     }
 
     return NextResponse.json(result, { status: upstream.status });

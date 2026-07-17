@@ -67,7 +67,9 @@ export interface BookingPriceCalculatorProps {
   onOverlapChange?: (isOverlap: boolean) => void;
   onScheduleLabelsChange?: (labels: SchedulePriceLabels) => void;
   onPricingSnapshotChange?: (snapshot: BookingPricingSnapshot | null) => void;
-  onStatusFromPayment?: (status: "Нова бронь" | "Підтверджено") => void;
+  onStatusFromPayment?: (
+    status: "Нова бронь" | "Очікує оплату" | "Підтверджено"
+  ) => void;
   initialPrepay?: number;
   initialSurcharge?: number;
   initialPrepayMethod?: string;
@@ -500,7 +502,12 @@ export function BookingPriceCalculator({
   useEffect(() => {
     if (bookingStatus === "Скасовано") return;
     const paid = prepay + surcharge;
-    const next = paid > 0 ? "Підтверджено" : "Нова бронь";
+    const next =
+      paid > 0
+        ? "Підтверджено"
+        : bookingStatus === "Очікує оплату"
+          ? "Очікує оплату"
+          : "Нова бронь";
     if (paymentStatusRef.current === next) return;
     paymentStatusRef.current = next;
     onStatusFromPayment?.(next);
@@ -946,7 +953,11 @@ export function BookingPriceCalculator({
                   <span id="prepayBtnText">{Math.round(displayTotal / 2)}</span>
                 </button>
               </div>
-              <PayMethods type="prepay" active={prepayMethod} onSelect={onPrepayMethodChange} />
+              <PayMethods
+                type="prepay"
+                active={prepay > 0 ? prepayMethod : ""}
+                onSelect={onPrepayMethodChange}
+              />
               <input type="hidden" id="adminPrepayMethod" value={prepayMethod} readOnly />
             </div>
             <div className="pay-row-block">
@@ -968,7 +979,11 @@ export function BookingPriceCalculator({
                   Решта
                 </button>
               </div>
-              <PayMethods type="surcharge" active={surchargeMethod} onSelect={onSurchargeMethodChange} />
+              <PayMethods
+                type="surcharge"
+                active={surcharge > 0 ? surchargeMethod : ""}
+                onSelect={onSurchargeMethodChange}
+              />
               <input type="hidden" id="adminSurchargeMethod" value={surchargeMethod} readOnly />
             </div>
           </div>

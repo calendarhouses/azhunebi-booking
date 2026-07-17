@@ -97,7 +97,7 @@ function addPeriodPaymentStats(
   });
 
   if (periodPays.length === 0) {
-    const pAmt = Number(b.prepayAmount) || Number(b.paidAmount) || 0;
+    const pAmt = Number(b.paidAmount) || 0;
     const pMethod = String(b.prepayMethod || "ФОП");
     if (pAmt > 0) {
       counters.totalIncome += Math.round(pAmt);

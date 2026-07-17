@@ -76,7 +76,7 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
       return;
     }
     if (!isBookingCheckInInPeriod(String(b.checkIn), startDate, endDate)) return;
-    const pAmt = Math.round(Number(b.prepayAmount) || Number(b.paidAmount) || 0);
+    const pAmt = Math.round(Number(b.paidAmount) || 0);
     const sAmt = Math.round(Number(b.surchargeAmount) || 0);
     if (pAmt > 0) {
       cashInflow += pAmt;
@@ -103,7 +103,7 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
     });
 
     if (periodPays.length === 0) {
-      const pAmt = Number(b.prepayAmount) || Number(b.paidAmount) || 0;
+      const pAmt = Number(b.paidAmount) || 0;
       if (pAmt > 0) bookingIncome += Math.round(pAmt);
       const sAmt = Number(b.surchargeAmount) || 0;
       if (sAmt > 0) bookingIncome += Math.round(sAmt);
@@ -115,7 +115,7 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
     );
     if (periodPays.length === 0) {
       periodPaidSum =
-        Math.round(Number(b.prepayAmount) || Number(b.paidAmount) || 0) +
+        Math.round(Number(b.paidAmount) || 0) +
         Math.round(Number(b.surchargeAmount) || 0);
     }
 

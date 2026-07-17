@@ -29,7 +29,10 @@ import {
   listServicesForRoom,
   migrateLegacyServiceSelection,
 } from "./settings/additionalServicesLogic";
-import { getBookingPayments } from "@/lib/admin/bookingPayments";
+import {
+  getBookingPayments,
+  syncJournalTotals,
+} from "@/lib/admin/bookingPayments";
 import {
   defaultSpecialTariffState,
   enabledSpecialTariffIds,
@@ -304,6 +307,7 @@ export function useBookingDrawer({
       setShowDeleteBtn(false);
       setInitialPayment({ prepay: 0, surcharge: 0, prepayMethod: "ФОП", surchargeMethod: "Готівка" });
       window._bookingOpenPayments = { prepay: 0, surcharge: 0 };
+      window._bookingExpectedPrepay = 0;
 
       const activeRooms = roomsList.filter((r) => r.active);
       const defaultRoom = prefillRoom || activeRooms[0]?.name || "";
@@ -384,20 +388,26 @@ export function useBookingDrawer({
           ? parsed.selectedServices
           : legacyServices;
 
-      let savedPrepay = Number(booking.prepayAmount) || 0;
-      let savedSurcharge = Number(booking.surchargeAmount) || 0;
-      if (savedPrepay === 0 && savedSurcharge === 0 && Number(booking.paidAmount) > 0) {
-        savedPrepay = Number(booking.paidAmount);
-      }
+      const savedPayments = getBookingPayments(booking);
+      const savedPaymentTotals = syncJournalTotals(savedPayments);
+      const savedPrepay = savedPaymentTotals.prepay;
+      const savedSurcharge = savedPaymentTotals.surcharge;
+      const displayedStatus =
+        booking.source === "Сайт" &&
+        booking.status === "Підтверджено" &&
+        savedPaymentTotals.paidAmount === 0
+          ? "Очікує оплату"
+          : booking.status || "Нова бронь";
 
       setInitialPayment({
         prepay: savedPrepay,
         surcharge: savedSurcharge,
-        prepayMethod: (booking.prepayMethod as string) || "ФОП",
-        surchargeMethod: (booking.surchargeMethod as string) || "Готівка",
+        prepayMethod: savedPaymentTotals.prepayMethod,
+        surchargeMethod: savedPaymentTotals.surchargeMethod,
       });
       window._bookingOpenPayments = { prepay: savedPrepay, surcharge: savedSurcharge };
-      window._bookingPayments = getBookingPayments(booking);
+      window._bookingExpectedPrepay = Number(booking.prepayAmount) || 0;
+      window._bookingPayments = savedPayments;
       window._bookingPaymentMeta = {
         createdAt: String(booking.createdAt || booking.checkIn || "").substring(0, 10),
         checkOut: normalizeDateToIso(booking.checkOut || ""),
@@ -429,7 +439,7 @@ export function useBookingDrawer({
         selectedServices,
         specialTariffs: parsed.specialTariffs,
         promoCode: parsed.promoCode,
-        status: booking.status || "Нова бронь",
+        status: displayedStatus,
         earlyCardActive: !!parsed.earlyTime,
         lateCardActive: !!parsed.lateTime,
       });
@@ -573,7 +583,7 @@ export function useBookingDrawer({
   );
 
   const handleStatusFromPayment = useCallback(
-    (status: "Нова бронь" | "Підтверджено") => {
+    (status: "Нова бронь" | "Очікує оплату" | "Підтверджено") => {
       if (form.status === "Скасовано") return;
       if (form.status !== status) {
         setBookingStatus(status);
@@ -741,6 +751,7 @@ export function useBookingDrawer({
 declare global {
   interface Window {
     _bookingOpenPayments?: { prepay: number; surcharge: number };
+    _bookingExpectedPrepay?: number;
     _bookingPayments?: import("./types").BookingPayment[];
     _bookingPaymentMeta?: { createdAt?: string; checkOut?: string };
     openNewBookingDrawer?: (

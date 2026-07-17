@@ -3807,6 +3807,7 @@
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #D1D5DB; }
         .status-btn.active { background: #FFFFFF; color: var(--text-main); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .status-btn.active[data-status="Нова бронь"] .status-dot { background: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+        .status-btn.active[data-status="Очікує оплату"] .status-dot { background: #F59E0B; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
         .status-btn.active[data-status="Підтверджено"] .status-dot { background: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
         .status-btn.active[data-status="Виїхав"] .status-dot { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
         .status-btn.active[data-status="Скасовано"] .status-dot { background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }

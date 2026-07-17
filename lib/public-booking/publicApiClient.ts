@@ -65,3 +65,13 @@ export async function createMonoPayment(orderId: string): Promise<{
   }
   return { pageUrl: data.pageUrl, amount: Number(data.amount) || 0 };
 }
+
+export async function ensurePaymentLinkSms(orderId: string): Promise<boolean> {
+  const response = await fetch("/api/bookings/payment-link-sms", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId }),
+    keepalive: true,
+  });
+  return response.ok;
+}

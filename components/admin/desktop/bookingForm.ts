@@ -87,6 +87,7 @@ export function collectBookingFromForm(
       note?: string;
     }>;
     _bookingPaymentMeta?: { createdAt?: string; checkOut?: string };
+    _bookingExpectedPrepay?: number;
   };
   const paymentsForSave = buildPaymentsForSave({
     journalPayments: w._bookingPayments || [],
@@ -101,6 +102,16 @@ export function collectBookingFromForm(
       w._bookingPaymentMeta?.checkOut || formDates?.checkOut || getFormString("adminCheckOut")
     ),
   });
+  const actualPrepay = sumPaymentsByBucket(paymentsForSave, "prepay");
+  const actualPaid = paymentsForSave.reduce(
+    (sum, payment) => sum + (Number(payment.amount) || 0),
+    0
+  );
+  const source = getFormString("adminSource");
+  const preserveExpectedPrepay =
+    source === "Сайт" &&
+    status === "Очікує оплату" &&
+    actualPaid === 0;
 
   const bookingData: Record<string, unknown> = {
     tenant_id: getAdminTenantId(),
@@ -121,14 +132,16 @@ export function collectBookingFromForm(
     phone: getFormString("adminPhone"),
     guests: getFormString("adminGuests"),
     pets: getFormString("adminPets"),
-    source: getFormString("adminSource"),
+    source,
     status,
     totalPrice: getFormVal("adminTotalPrice"),
-    prepayAmount: sumPaymentsByBucket(paymentsForSave, "prepay"),
+    prepayAmount: preserveExpectedPrepay
+      ? Number(w._bookingExpectedPrepay) || 0
+      : actualPrepay,
     prepayMethod,
     surchargeAmount: sumPaymentsByBucket(paymentsForSave, "surcharge"),
     surchargeMethod,
-    paidAmount: paymentsForSave.reduce((s, p) => s + (Number(p.amount) || 0), 0),
+    paidAmount: actualPaid,
     payments: paymentsForSave,
     comment: buildSystemComment(getFormString("adminComment"), {
       children: parseInt(getFormString("adminChildren"), 10) || 0,

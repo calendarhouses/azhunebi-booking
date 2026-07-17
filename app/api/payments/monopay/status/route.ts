@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   }
 
   const status = String(result.booking.status || "");
+  const paidAmount = Number(result.booking.paidAmount) || 0;
   return NextResponse.json(
     {
       ok: true,
@@ -33,8 +34,8 @@ export async function GET(request: Request) {
         checkIn: result.booking.checkIn,
         checkOut: result.booking.checkOut,
         totalPrice: result.booking.totalPrice,
-        prepayment: result.booking.paidAmount || result.booking.prepayAmount,
-        paidAmount: result.booking.paidAmount || result.booking.prepayAmount,
+        prepayment: paidAmount,
+        paidAmount,
         flow: "instant" as const,
       },
     },
