@@ -151,7 +151,12 @@ export async function postAdminBooking(
 ): Promise<{ success?: boolean; error?: string; requiredMin?: number; orderId?: string }> {
   const token = await getAccessToken();
   const data = await createBooking(
-    { ...payload, tenant_id: payload.tenant_id ?? getAdminTenantId() },
+    {
+      ...payload,
+      action: "createBooking",
+      tenant_id: payload.tenant_id ?? getAdminTenantId(),
+      adminOverrideRestrictions: true,
+    },
     token
   );
   if (data.error === "UNAUTHORIZED") {
