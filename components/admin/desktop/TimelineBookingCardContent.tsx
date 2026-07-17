@@ -29,6 +29,7 @@ export const TIMELINE_BOOKING_BLOCK_LAYOUT = {
 export type TimelineBookingCardBlock = {
   nights: number;
   width: number;
+  extensions: { type: "early" | "late"; left: number; width: number }[];
   contentWidth: number;
   guestName: string;
   guestChip: string | null;
@@ -210,7 +211,11 @@ export function TimelineBookingCardContent({
   const name = block.guestName?.trim() || "";
 
   if (mobile) {
-    const effectiveWidth = Math.max(0, block.width - (compact ? 12 : 20));
+    const flexibleInset = block.extensions.length * (compact ? 16 : 20);
+    const effectiveWidth = Math.max(
+      0,
+      block.width - (compact ? 12 : 20) - flexibleInset
+    );
     const showName =
       !isOneNight &&
       Boolean(name) &&

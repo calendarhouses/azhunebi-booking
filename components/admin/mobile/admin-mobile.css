@@ -2576,6 +2576,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .booking-block {
   overflow: hidden !important;
   z-index: 2;
+  box-sizing: border-box !important;
+  isolation: isolate;
+  contain: paint;
 }
 
 .boso-admin-mobile .booking-inner-content {
@@ -2588,8 +2591,20 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .time-extension--mobile,
 .boso-admin-mobile .time-extension {
-  z-index: 0 !important;
-  pointer-events: none !important;
+  z-index: 4 !important;
+}
+
+.boso-admin-mobile .time-extension--mobile {
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  cursor: pointer;
+  background-color: rgba(71, 58, 35, 0.13) !important;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255,255,255,.08) 0 3px,
+    rgba(92,74,43,.18) 3px 5px
+  ) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
 }
 
 .boso-admin-mobile .time-extension svg {
@@ -2832,6 +2847,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   letter-spacing: -0.01em !important;
   color: rgba(28, 25, 23, 0.94) !important;
   text-shadow: 0 1px 0 rgba(255,255,255,.2);
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile

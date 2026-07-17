@@ -1265,6 +1265,9 @@ export function DesktopTimelineView({
             const isDraggingCard =
               draggingBookingKey != null &&
               bookingMoveKey(block.booking) === draggingBookingKey;
+            const mobileExtensionInset = denseRows ? 16 : 20;
+            const hasEarlyExtension = block.extensions.some((ext) => ext.type === "early");
+            const hasLateExtension = block.extensions.some((ext) => ext.type === "late");
 
             if (isDraggingCard || !isBlockVisible(block)) return null;
 
@@ -1277,12 +1280,12 @@ export function DesktopTimelineView({
                   width: block.width,
                   position: "absolute",
                   paddingLeft:
-                    isMobile && block.extensions.length > 0
-                      ? Math.min(block.padLeft, denseRows ? 6 : 10)
+                    isMobile && hasEarlyExtension
+                      ? mobileExtensionInset + 3
                       : block.padLeft,
                   paddingRight:
-                    isMobile && block.extensions.length > 0
-                      ? Math.min(block.padRight, denseRows ? 6 : 10)
+                    isMobile && hasLateExtension
+                      ? mobileExtensionInset + 3
                       : block.padRight,
                   cursor: onMoveBooking ? "grab" : "pointer",
                   touchAction: onMoveBooking ? "none" : undefined,
@@ -1327,9 +1330,13 @@ export function DesktopTimelineView({
                     key={idx}
                     className={`time-extension ${ext.type}${isMobile ? " time-extension--mobile" : ""}`}
                     style={{
-                      width: ext.width,
-                      left: ext.left - block.left,
-                      right: "auto",
+                      width: isMobile ? mobileExtensionInset : ext.width,
+                      left: isMobile
+                        ? ext.type === "early"
+                          ? 0
+                          : "auto"
+                        : ext.left - block.left,
+                      right: isMobile && ext.type === "late" ? 0 : "auto",
                       position: "absolute",
                       height: "100%",
                     }}
@@ -1354,37 +1361,20 @@ export function DesktopTimelineView({
                             }
                           }
                     }
-                    onTouchStart={
+                    onPointerDown={
                       isMobile
                         ? (e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            handleBookingTouchStart(
-                              e,
-                              e.currentTarget,
-                              block.booking.row,
-                              ext.type
-                            );
                           }
                         : undefined
                     }
-                    onTouchMove={
+                    onClick={
                       isMobile
                         ? (e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            handleBookingTouchMove(e.currentTarget);
-                          }
-                        : undefined
-                    }
-                    onTouchEnd={
-                      isMobile
-                        ? (e) => {
-                            e.stopPropagation();
-                            handleBookingTouchEnd(
-                              e,
-                              e.currentTarget,
-                              block.booking.row,
-                              () => onOpenBooking(null, block.booking.id || block.booking.row)
-                            );
+                            bosoHover(e.currentTarget, block.booking.row, ext.type);
                           }
                         : undefined
                     }
@@ -1410,12 +1400,14 @@ export function DesktopTimelineView({
             width: draggingBlockRef.current.width,
             height: getTimelineBookingBlockLayout(rowHeight, denseRows).height,
             paddingLeft:
-              isMobile && draggingBlockRef.current.extensions.length > 0
-                ? Math.min(draggingBlockRef.current.padLeft, denseRows ? 6 : 10)
+              isMobile &&
+              draggingBlockRef.current.extensions.some((ext) => ext.type === "early")
+                ? (denseRows ? 16 : 20) + 3
                 : draggingBlockRef.current.padLeft,
             paddingRight:
-              isMobile && draggingBlockRef.current.extensions.length > 0
-                ? Math.min(draggingBlockRef.current.padRight, denseRows ? 6 : 10)
+              isMobile &&
+              draggingBlockRef.current.extensions.some((ext) => ext.type === "late")
+                ? (denseRows ? 16 : 20) + 3
                 : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,
@@ -1426,9 +1418,13 @@ export function DesktopTimelineView({
               key={idx}
               className={`time-extension ${ext.type}${isMobile ? " time-extension--mobile" : ""}`}
               style={{
-                width: ext.width,
-                left: ext.left - draggingBlockRef.current!.left,
-                right: "auto",
+                width: isMobile ? (denseRows ? 16 : 20) : ext.width,
+                left: isMobile
+                  ? ext.type === "early"
+                    ? 0
+                    : "auto"
+                  : ext.left - draggingBlockRef.current!.left,
+                right: isMobile && ext.type === "late" ? 0 : "auto",
                 position: "absolute",
                 height: "100%",
               }}

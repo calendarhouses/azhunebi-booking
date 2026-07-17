@@ -115,10 +115,10 @@ export function bosoHover(
       '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     if (type === "early") {
       const { earlyTime } = parseEarlyLateTimesFromComment(rawComment);
-      timeText = earlyTime ? `Заїзд з ${earlyTime}` : "Ранній заїзд";
+      timeText = earlyTime ? `Заїзд о ${earlyTime}` : "Ранній заїзд";
     } else {
       const { lateTime } = parseEarlyLateTimesFromComment(rawComment);
-      timeText = lateTime ? `Виїзд до ${lateTime}` : "Акційний виїзд (до 14:00)";
+      timeText = lateTime ? `Виїзд о ${lateTime}` : "Пізній виїзд";
     }
     tt.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;padding:4px;font-weight:700;color:#111827;font-size:13px;">${iconClock}${timeText}</div>`;
     tt.style.width = "auto";
