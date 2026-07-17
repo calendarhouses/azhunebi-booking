@@ -20,7 +20,9 @@ export async function confirmBookingPayment(
     return { ok: false, reason: "not_found" };
   }
 
-  const result = await gasConfirmBookingPayment(displayId, amountPaid);
+  const result = await gasConfirmBookingPayment(displayId, amountPaid, {
+    provider: "WayForPay",
+  });
 
   if (!result.ok) {
     if (result.reason === "not_found") {

@@ -34,8 +34,8 @@ import {
   getNextFreeDateLabel,
 } from "@/lib/public-booking/bookedRanges";
 import {
+  createMonoPayment,
   fetchPublicInitData,
-  redirectToWayForPay,
   submitPublicBooking,
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
@@ -256,16 +256,15 @@ export function PublicBookingProvider({
   }, [data]);
 
   useEffect(() => {
-    const paymentSuccess = searchParams.get("payment") === "success";
     const submittedPending = searchParams.get("submitted") === "pending";
-    if (!paymentSuccess && !submittedPending) return;
+    if (!submittedPending) return;
 
     setActiveScreen("success");
     const raw = sessionStorage.getItem("lastBooking");
     if (raw) {
       try {
         const b = JSON.parse(raw) as import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData;
-        const flow = b.flow || (submittedPending ? "pending_review" : "instant");
+        const flow = b.flow || "pending_review";
         setSuccessFlow(flow);
         setSuccessReceiptHtml(
           flow === "pending_review" ? buildPublicPendingReceiptHtml(b) : buildPublicReceiptHtml(b)
@@ -800,7 +799,12 @@ export function PublicBookingProvider({
 
         const flow: PublicBookingFlow =
           json.flow === "pending_review" || manualReview ? "pending_review" : "instant";
-        const orderId = json.orderId || json.paymentData?.orderReference || `B-${Date.now()}`;
+        const orderId = String(json.orderId || "").trim();
+        if (!orderId) {
+          showPublicToast("❌ Бронювання створено без номера. Зверніться до адміністратора.");
+          return;
+        }
+        const paymentAmount = Math.round(Number(json.prepayment) || calc.prepayment || 0);
 
         const sessionData = {
           orderId,
@@ -812,7 +816,7 @@ export function PublicBookingProvider({
           childCount,
           pets: "Ні",
           totalPrice: calc.totalPrice,
-          prepayment: json.paymentData?.amount ?? calc.prepayment,
+          prepayment: paymentAmount,
           earlyTime,
           lateTime,
           selectedServices,
@@ -832,8 +836,11 @@ export function PublicBookingProvider({
           prepaymentLabel: calc.prepaymentLabel,
           nights: calc.nights,
           serviceLines: calc.serviceLines,
-          paidAmount: json.paymentData?.amount ?? 0,
-          status: flow === "pending_review" ? BOOKING_STATUS_PENDING_REVIEW : "Підтверджено",
+          paidAmount: 0,
+          status:
+            flow === "pending_review"
+              ? BOOKING_STATUS_PENDING_REVIEW
+              : "Очікує оплату",
           source: "Сайт",
         };
         sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
@@ -851,12 +858,16 @@ export function PublicBookingProvider({
           return;
         }
 
-        if (json.paymentData && json.paymentData.amount > 0) {
-          redirectToWayForPay(
-            json.paymentData,
-            { firstName, lastName, phone: payload.phone },
-            `${window.location.origin}${window.location.pathname}?payment=success`
-          );
+        if (paymentAmount > 0) {
+          try {
+            const invoice = await createMonoPayment(orderId);
+            window.location.assign(invoice.pageUrl);
+          } catch {
+            showPublicToast(
+              "Бронювання створено, але MonoPay не відкрився. Спробуйте оплатити ще раз."
+            );
+            window.location.assign(`/pay/${encodeURIComponent(orderId)}`);
+          }
           return;
         }
 

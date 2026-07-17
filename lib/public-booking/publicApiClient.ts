@@ -1,6 +1,5 @@
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import { createBooking, fetchInitData } from "@/lib/gas-api";
-import type { PaymentData } from "./types";
 
 export async function fetchPublicInitData(
   tenantId: string
@@ -36,8 +35,8 @@ export type SubmitBookingResult = {
   requiredMin?: number;
   nights?: number;
   orderId?: string;
+  prepayment?: number;
   flow?: "instant" | "pending_review";
-  paymentData?: PaymentData;
 };
 
 export async function submitPublicBooking(
@@ -46,41 +45,23 @@ export async function submitPublicBooking(
   return createBooking(payload) as Promise<SubmitBookingResult>;
 }
 
-export function redirectToWayForPay(
-  paymentData: PaymentData,
-  client: { firstName: string; lastName: string; phone: string },
-  returnUrl: string
-) {
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = "https://secure.wayforpay.com/pay";
-  form.style.display = "none";
-
-  const params: Record<string, string | number> = {
-    merchantAccount: paymentData.merchantAccount,
-    merchantDomainName: paymentData.merchantDomainName,
-    merchantSignature: paymentData.signature,
-    orderReference: paymentData.orderReference,
-    orderDate: paymentData.orderDate,
-    amount: paymentData.amount,
-    currency: paymentData.currency,
-    productName: paymentData.productName,
-    productCount: 1,
-    clientFirstName: client.firstName,
-    clientLastName: client.lastName,
-    clientPhone: client.phone,
-    language: "UA",
-    returnUrl,
+export async function createMonoPayment(orderId: string): Promise<{
+  pageUrl: string;
+  amount: number;
+}> {
+  const response = await fetch("/api/payments/monopay/invoice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId }),
+  });
+  const data = (await response.json()) as {
+    ok?: boolean;
+    pageUrl?: string;
+    amount?: number;
+    message?: string;
   };
-
-  for (const [key, value] of Object.entries(params)) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = key;
-    input.value = String(value);
-    form.appendChild(input);
+  if (!response.ok || !data.ok || !data.pageUrl) {
+    throw new Error(data.message || "Не вдалося створити рахунок MonoPay");
   }
-
-  document.body.appendChild(form);
-  form.submit();
+  return { pageUrl: data.pageUrl, amount: Number(data.amount) || 0 };
 }

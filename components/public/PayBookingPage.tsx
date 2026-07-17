@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import { redirectToWayForPay } from "@/lib/public-booking/publicApiClient";
-import type { PaymentData } from "@/lib/public-booking/types";
+import { useCallback, useState } from "react";
+import { createMonoPayment } from "@/lib/public-booking/publicApiClient";
 
 type PayBookingPageProps = {
   orderId: string;
@@ -10,9 +9,6 @@ type PayBookingPageProps = {
   checkInLabel: string;
   checkOutLabel: string;
   prepayAmount: number;
-  guestName: string;
-  guestPhone: string;
-  paymentData: PaymentData;
 };
 
 export function PayBookingPage({
@@ -21,21 +17,22 @@ export function PayBookingPage({
   checkInLabel,
   checkOutLabel,
   prepayAmount,
-  guestName,
-  guestPhone,
-  paymentData,
 }: PayBookingPageProps) {
-  const handlePay = useCallback(() => {
-    const parts = guestName.trim().split(/\s+/);
-    const firstName = parts[0] || "Гість";
-    const lastName = parts.slice(1).join(" ") || "—";
-    const returnUrl = `${window.location.origin}/pay/${encodeURIComponent(orderId)}?paid=1`;
-    redirectToWayForPay(
-      paymentData,
-      { firstName, lastName, phone: guestPhone },
-      returnUrl
-    );
-  }, [guestName, guestPhone, orderId, paymentData]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePay = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const invoice = await createMonoPayment(orderId);
+      window.location.assign(invoice.pageUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не вдалося відкрити MonoPay");
+      setSubmitting(false);
+    }
+  }, [orderId, submitting]);
 
   return (
     <main
@@ -84,6 +81,7 @@ export function PayBookingPage({
         <button
           type="button"
           onClick={handlePay}
+          disabled={submitting}
           style={{
             width: "100%",
             border: 0,
@@ -93,11 +91,15 @@ export function PayBookingPage({
             fontWeight: 600,
             background: "#059669",
             color: "#fff",
-            cursor: "pointer",
+            cursor: submitting ? "wait" : "pointer",
+            opacity: submitting ? 0.7 : 1,
           }}
         >
-          Оплатити карткою
+          {submitting ? "Відкриваємо MonoPay…" : "Оплатити через MonoPay"}
         </button>
+        {error ? (
+          <p style={{ margin: "12px 0 0", color: "#b91c1c", fontSize: 14 }}>{error}</p>
+        ) : null}
       </div>
     </main>
   );

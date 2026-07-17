@@ -18,11 +18,7 @@ import {
   resolveRoomIdForCottage,
   type RoomLike,
 } from "@/lib/admin/roomBookingMatch";
-import {
-  buildPurchaseSignatureString,
-  computeWayForPayHmacMd5Hex,
-} from "@/lib/wayforpay/signature";
-import { getBookingStatusByDisplayId } from "@/lib/wayforpay/confirmBookingPayment";
+import { getBookingStatusByDisplayId } from "@/lib/payments/confirmBookingPayment";
 import {
   calculatePrepaymentAmount,
   readPrepaymentPolicy,
@@ -31,11 +27,6 @@ import {
   notifyPendingBookingReview,
 } from "@/lib/telegram/bookingReviewNotify";
 import { BOOKING_STATUS_PENDING_REVIEW } from "@/lib/public-booking/bookingReview";
-import {
-  getWayForPayMerchantAccount,
-  getWayForPayMerchantDomain,
-  getWayForPaySecretKey,
-} from "@/lib/wayforpay/config";
 
 export const runtime = "nodejs";
 
@@ -410,29 +401,11 @@ export async function POST(request: Request) {
       }
     }
     if (data.source === "Сайт" && result?.orderId && (result.prepayment ?? 0) > 0) {
-      const orderDate = Math.round(Date.now() / 1000);
-      const productName = `Передплата за ${data.cottage}`;
-      const wfpData = generateWFPSignature(
-        result.orderId,
-        orderDate,
-        result.prepayment!,
-        productName
-      );
       return jsonResponse({
         success: true,
         orderId: result.orderId,
+        prepayment: result.prepayment,
         flow: "instant",
-        paymentData: {
-          merchantAccount: wfpData.merchantAccount,
-          merchantDomainName: wfpData.merchantDomainName,
-          orderReference: result.orderId,
-          orderDate,
-          amount: result.prepayment,
-          currency: "UAH",
-          productName,
-          productCount: 1,
-          signature: wfpData.signature,
-        },
       });
     }
     return jsonResponse({ success: true });
@@ -1101,33 +1074,6 @@ async function calculateBookingMath(
     extraGuestFee,
     petFee,
   };
-}
-
-function generateWFPSignature(
-  orderRef: string,
-  orderDate: number,
-  amount: number,
-  productName: string
-) {
-  const merchantAccount = getWayForPayMerchantAccount();
-  const domainName = getWayForPayMerchantDomain();
-  const secretKey = getWayForPaySecretKey() || FAKE;
-  const currency = "UAH";
-  const productCount = "1";
-  const amountStr = amount.toString();
-  const stringToSign = buildPurchaseSignatureString({
-    merchantAccount,
-    merchantDomainName: domainName,
-    orderReference: orderRef,
-    orderDate,
-    amount,
-    currency,
-    productName,
-    productCount,
-    productPrice: amountStr,
-  });
-  const signature = computeWayForPayHmacMd5Hex(stringToSign, secretKey);
-  return { merchantAccount, merchantDomainName: domainName, signature };
 }
 
 function generateIcalFeed(roomName: string) {
