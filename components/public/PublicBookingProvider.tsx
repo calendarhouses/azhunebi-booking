@@ -261,8 +261,6 @@ export function PublicBookingProvider({
     const submittedPending = searchParams.get("submitted") === "pending";
 
     if (paymentReturn && returnedOrderId) {
-      // Hide technical Mono redirect parameters immediately.
-      window.history.replaceState(null, "", "/");
       let cancelled = false;
       let attempt = 0;
 
@@ -282,17 +280,23 @@ export function PublicBookingProvider({
 
           if (response.ok && result.paid) {
             const raw = sessionStorage.getItem("lastBooking");
-            const booking = raw
+            const storedBooking = raw
               ? (JSON.parse(
                   raw
                 ) as import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData)
-              : result.booking;
+              : null;
+            const booking =
+              storedBooking?.orderId === returnedOrderId
+                ? storedBooking
+                : result.booking;
             if (!booking) return;
 
             booking.flow = "instant";
             setSuccessFlow("instant");
             setSuccessReceiptHtml(buildPublicReceiptHtml(booking));
             setActiveScreen("success");
+            // Clean the address only after the payment check has completed.
+            window.setTimeout(() => window.history.replaceState(null, "", "/"), 0);
             return;
           }
 

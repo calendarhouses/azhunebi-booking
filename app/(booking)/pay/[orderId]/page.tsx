@@ -36,6 +36,9 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   if (!result.ok || !result.booking) notFound();
 
   const booking = result.booking;
+  if (booking.status === "Підтверджено") {
+    redirect(`/?payment=return&orderId=${encodeURIComponent(id)}`);
+  }
   if (!isAwaitingPaymentStatus(booking.status)) notFound();
 
   const prepayAmount = Math.round(Number(booking.prepayAmount) || 0);

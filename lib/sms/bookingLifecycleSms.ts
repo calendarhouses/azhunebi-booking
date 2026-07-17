@@ -13,55 +13,24 @@ import { sendTurboSms, type TurboSmsSendResult } from "./turbosms";
 
 export type BookingLifecycleSmsType = "payment_link" | "success" | "expiry";
 
-const UK_MONTHS = [
-  "січня", "лютого", "березня", "квітня", "травня", "червня",
-  "липня", "серпня", "вересня", "жовтня", "листопада", "грудня",
-];
-
-function formatDate(value?: string): string {
-  if (!value) return "—";
-  const date = new Date(value.includes("T") ? value : `${value}T12:00:00`);
-  return Number.isNaN(date.getTime())
-    ? value
-    : `${date.getDate()} ${UK_MONTHS[date.getMonth()]}`;
-}
-
-function formatDeadline(value?: string): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleTimeString("uk-UA", {
-    timeZone: "Europe/Kyiv",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export function buildBookingLifecycleSmsText(
   booking: GasBookingRecord,
   type: BookingLifecycleSmsType
 ): string {
-  const firstName = String(booking.name || "Гість").trim().split(/\s+/)[0] || "Гість";
-  const cottage = booking.cottage || "будиночок";
-  const dates = `${formatDate(booking.checkIn)} — ${formatDate(booking.checkOut)}`;
   const orderId = String(booking.id || "").trim();
 
   if (type === "success") {
-    return `Дякуємо, ${firstName}! Передоплату отримано. Бронювання ${cottage} на ${dates} підтверджено. Номер бронювання: ${orderId}. Чекаємо на вас в АЖ У НЕБІ!`;
+    return "Передоплату отримано. Бронювання підтверджено. АЖ У НЕБІ";
   }
 
   if (type === "expiry") {
-    return `На жаль, ${firstName}, ми не отримали передоплату за ${cottage} протягом 3 годин. Резерв скасовано, а дати знову доступні. Спробуйте забронювати ще раз: https://azhunebi.com`;
+    return "Резерв скасовано: передоплату не отримано. azhunebi.com";
   }
 
-  const prepay = Math.round(Number(booking.prepayAmount) || 0);
-  const deadline = formatDeadline(booking.paymentExpiresAt);
   const payUrl = orderId
     ? `${getPublicOrigin()}/pay/${encodeURIComponent(orderId)}`
     : getPublicOrigin();
-  return `Вітаємо, ${firstName}! Ми зарезервували ${cottage} на ${dates} на 3 години${
-    deadline ? `, до ${deadline}` : ""
-  }. Передоплата: ${prepay.toLocaleString("uk-UA")} грн. Оплатити: ${payUrl}`;
+  return `Оплата резерву (3 год): ${payUrl}`;
 }
 
 export async function sendBookingLifecycleSms(
