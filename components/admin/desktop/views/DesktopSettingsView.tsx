@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { DesktopPriceGrid } from "../settings/DesktopPriceGrid";
 import {
   DesktopRestrictionsGrid,
@@ -31,7 +31,15 @@ function tabContentClass(active: SettingsTabName, tab: SettingsTabName, extra?: 
     .join(" ");
 }
 
-const MOBILE_SETTINGS_TABS = SIDEBAR_SETTINGS_ITEMS.map(({ tab, label }) => ({ tab, label }));
+const MOBILE_SETTINGS_TABS = SIDEBAR_SETTINGS_ITEMS.map(({ tab, label, icon }) => ({ tab, label, icon }));
+const MOBILE_SETTINGS_DESCRIPTIONS: Record<SettingsTabName, string> = {
+  branding: "Контакти, логотип і правила передплати",
+  rooms: "Котеджі, місткість, ціни та зручності",
+  prices: "Тарифи для дат і окремих будинків",
+  services: "Гнучкий графік і пропозиції для гостей",
+  discounts: "Акції, промокоди та спеціальні умови",
+  restrictions: "Мінімальні ночі та закриті дати",
+};
 
 export interface DesktopSettingsViewProps {
   style?: CSSProperties;
@@ -90,6 +98,26 @@ export function DesktopSettingsView({
 
   const tableProps = { settings, modals, layout };
   const showTab = (tab: SettingsTabName) => !isMobile || activeTab === tab;
+  const activeMobileTab = MOBILE_SETTINGS_TABS.find(({ tab }) => tab === activeTab);
+
+  const handleMobileTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const lastIndex = MOBILE_SETTINGS_TABS.length - 1;
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? lastIndex
+          : event.key === "ArrowRight"
+            ? (index + 1) % MOBILE_SETTINGS_TABS.length
+            : (index - 1 + MOBILE_SETTINGS_TABS.length) % MOBILE_SETTINGS_TABS.length;
+    const nextTab = MOBILE_SETTINGS_TABS[nextIndex].tab;
+    onSettingsTab?.(nextTab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`mobile-settings-tab-${nextTab}`)?.focus();
+    });
+  };
 
   const settingsContentClass = isMobile
     ? undefined
@@ -105,35 +133,34 @@ export function DesktopSettingsView({
   return (
     <div id="view-settings" className="admin-settings-view" style={style}>
       {isMobile ? (
-        <>
-          <button
-            type="button"
-            className="btn-secondary mobile-logout-btn tap-btn"
-            onClick={() => {
-              if (onLogout) {
-                onLogout();
-                return;
-              }
-              (window as Window & { BosoAuth?: { logout?: () => void } }).BosoAuth?.logout?.();
-            }}
-          >
-            Вийти з акаунту
-          </button>
+        <div className="mobile-settings-shell">
+          <header className="mobile-settings-heading">
+            <span className="mobile-settings-heading__eyebrow">Налаштування</span>
+            <h2>{activeMobileTab?.label ?? "Налаштування"}</h2>
+            <p>{MOBILE_SETTINGS_DESCRIPTIONS[activeTab]}</p>
+          </header>
           <div className="mobile-settings-tabs" role="tablist" aria-label="Налаштування">
-            {MOBILE_SETTINGS_TABS.map(({ tab, label }) => (
+            {MOBILE_SETTINGS_TABS.map(({ tab, label, icon }, index) => (
               <button
                 key={tab}
+                id={`mobile-settings-tab-${tab}`}
                 type="button"
                 className={`m-tab tap-btn${activeTab === tab ? " active" : ""}`}
                 role="tab"
                 aria-selected={activeTab === tab}
+                aria-controls={`set-${tab}`}
+                tabIndex={activeTab === tab ? 0 : -1}
                 onClick={() => onSettingsTab?.(tab)}
+                onKeyDown={(event) => handleMobileTabKeyDown(event, index)}
               >
-                {label}
+                <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden>
+                  {icon}
+                </svg>
+                <span>{label}</span>
               </button>
             ))}
           </div>
-        </>
+        </div>
       ) : null}
 
       <div className={settingsContentClass}>
@@ -141,6 +168,8 @@ export function DesktopSettingsView({
         <div
           id="set-branding"
           className={tabContentClass(activeTab, "branding")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-branding" : undefined}
           style={isMobile ? undefined : tabDisplay(activeTab, "branding")}
         >
           <BrandingSettingsPanel
@@ -156,6 +185,8 @@ export function DesktopSettingsView({
         <div
           id="set-rooms"
           className={tabContentClass(activeTab, "rooms", "settings-tab-content--rooms")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-rooms" : undefined}
           style={isMobile ? undefined : tabDisplay(activeTab, "rooms")}
         >
           {isMobile ? (
@@ -187,6 +218,8 @@ export function DesktopSettingsView({
         <div
           id="set-prices"
           className={tabContentClass(activeTab, "prices")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-prices" : undefined}
           style={isMobile ? undefined : tabDisplay(activeTab, "prices")}
         >
           <DesktopPriceGrid
@@ -204,6 +237,8 @@ export function DesktopSettingsView({
         <div
           id="set-services"
           className={tabContentClass(activeTab, "services")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-services" : undefined}
           style={isMobile ? undefined : tabDisplay(activeTab, "services")}
         >
           <AdditionalServicesSettingsPage settings={settings} modals={modals} />
@@ -214,6 +249,8 @@ export function DesktopSettingsView({
         <div
           id="set-discounts"
           className={tabContentClass(activeTab, "discounts", "settings-tab-content--discounts")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-discounts" : undefined}
           style={isMobile ? undefined : tabDisplay(activeTab, "discounts")}
         >
           <DiscountTemplateGallery settings={settings} modals={modals} />
@@ -224,6 +261,8 @@ export function DesktopSettingsView({
         <div
           id="set-restrictions"
           className={tabContentClass(activeTab, "restrictions")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-restrictions" : undefined}
           style={isMobile ? undefined : tabDisplay(activeTab, "restrictions")}
         >
           <DesktopRestrictionsGrid
@@ -238,6 +277,23 @@ export function DesktopSettingsView({
         </div>
         ) : null}
       </div>
+      {isMobile ? (
+        <div className="mobile-settings-account">
+          <button
+            type="button"
+            className="btn-secondary mobile-logout-btn tap-btn"
+            onClick={() => {
+              if (onLogout) {
+                onLogout();
+                return;
+              }
+              (window as Window & { BosoAuth?: { logout?: () => void } }).BosoAuth?.logout?.();
+            }}
+          >
+            Вийти з акаунту
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

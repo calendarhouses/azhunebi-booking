@@ -36,15 +36,27 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
   const feeSummary = useMemo(() => formatFeeSummary(form), [form]);
   const percentDisplay = percentOfDayToDisplay(form.percentOfDay);
 
+  const toggleOpen = () => {
+    if (!open) {
+      setForm({
+        ...DEFAULT_FLEXIBLE_SCHEDULE,
+        ...(settings.flexibleScheduleSettings || {}),
+      });
+    }
+    setOpen((value) => !value);
+  };
+
   const save = useCallback(async () => {
     setSaving(true);
     try {
       await modals.persistSettings(
         { ...settings, flexibleScheduleSettings: form },
-        { keys: ["flexibleScheduleSettings"], background: true }
+        { keys: ["flexibleScheduleSettings"] }
       );
       showToast("Гнучкий графік збережено");
       setOpen(false);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Не вдалося зберегти графік");
     } finally {
       setSaving(false);
     }
@@ -56,7 +68,8 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
         type="button"
         className="svc-accordion__trigger"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        aria-controls="flexible-schedule-settings-panel"
+        onClick={toggleOpen}
       >
         <div className="svc-accordion__trigger-main">
           <span className="svc-accordion__icon" aria-hidden>
@@ -73,7 +86,12 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
         <ChevronDown size={18} className="svc-accordion__chevron" aria-hidden />
       </button>
 
-      <div className="svc-accordion__collapse" aria-hidden={!open}>
+      <div
+        id="flexible-schedule-settings-panel"
+        className="svc-accordion__collapse"
+        aria-hidden={!open}
+        inert={!open}
+      >
         <div className="svc-accordion__panel">
           <p className="svc-accordion__intro">
             Ранній заїзд і пізній виїзд на сайті. Гість бачить стандартний час і може подати запит.

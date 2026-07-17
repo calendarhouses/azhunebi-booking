@@ -1471,7 +1471,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .boso-admin-mobile #set-restrictions .timeline-wrapper {
     height: auto !important;
     min-height: 0 !important;
-    max-height: calc(100dvh - 280px);
+    max-height: none;
     flex: 0 0 auto;
     align-items: flex-start;
     align-self: flex-start;
@@ -1487,7 +1487,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .boso-admin-mobile #set-restrictions .timeline-grid-container {
     flex: 0 1 auto;
     align-self: flex-start;
-    max-height: calc(100dvh - 280px);
+    max-height: none;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -1566,24 +1566,24 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     margin-bottom: 16px;
 }
 /* Картки котеджів — перевизначення глобальних td, щоб не розтягувало рядки */
-.boso-admin-mobile #view-settings #settingsRoomsTableBody tr,
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody tr {
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row,
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 16px;
     margin-bottom: 12px;
 }
-.boso-admin-mobile #view-settings #settingsRoomsTableBody td,
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody td {
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td,
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row > td {
     display: flex;
     width: 100%;
     padding: 0;
     border: none !important;
     align-items: center;
 }
-.boso-admin-mobile #view-settings #settingsRoomsTableBody td:first-child,
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody td:first-child {
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td:first-child,
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row > td:first-child {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
@@ -1592,20 +1592,20 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     padding-bottom: 10px !important;
     margin-bottom: 4px !important;
 }
-.boso-admin-mobile #view-settings #settingsRoomsTableBody td:nth-child(2) {
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td:nth-child(2) {
     display: block;
     font-size: 13px;
     color: #6B7280;
     line-height: 1.4;
 }
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody td:nth-child(2) {
+.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:nth-child(2) {
     display: block;
     font-size: 12px;
     color: #6B7280;
     line-height: 1.4;
 }
-.boso-admin-mobile #view-settings #settingsRoomsTableBody td:last-child,
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody td:last-child {
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td:last-child,
+.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:last-child {
     justify-content: flex-end;
     gap: 8px;
     padding-top: 10px !important;
@@ -3229,8 +3229,8 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   gap: 12px;
 }
 
-.boso-admin-mobile #set-rooms .settings-rooms-table tbody tr,
-.boso-admin-mobile #set-discounts table tbody tr {
+.boso-admin-mobile #set-rooms .settings-rooms-row,
+.boso-admin-mobile #set-discounts .settings-discounts-row {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3242,11 +3242,999 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   box-shadow: var(--mobile-shadow);
 }
 
-.boso-admin-mobile .branding-settings-panel .btn-primary,
-.boso-admin-mobile #view-settings .btn-primary.tap-btn {
+.boso-admin-mobile #view-settings .settings-save-action--sticky {
   position: sticky;
   bottom: 8px;
   z-index: 5;
+}
+
+/* Premium mobile Settings system */
+.boso-admin-mobile #view-settings {
+  --settings-accent: #556b2f;
+  --settings-accent-dark: #445625;
+  --settings-accent-soft: #eef3e8;
+  --settings-surface: #ffffff;
+  --settings-surface-muted: #f7f8f5;
+  --settings-border: #e5e8e0;
+  --settings-text: #1c2118;
+  --settings-muted: #697064;
+  --settings-danger: #c2413b;
+  --settings-radius-control: 12px;
+  --settings-radius-card: 16px;
+  --settings-radius-large: 20px;
+  --settings-focus: 0 0 0 3px rgba(85, 107, 47, 0.18);
+  gap: 0;
+  padding-bottom: calc(18px + var(--safe-bottom));
+  color: var(--settings-text);
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-shell {
+  margin: -4px -2px 18px;
+  padding: 18px 2px 0;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-heading {
+  padding: 0 4px 15px;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-heading__eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--settings-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-heading h2 {
+  margin: 0;
+  color: var(--settings-text);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-heading p {
+  margin: 7px 0 0;
+  color: var(--settings-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 4px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-tabs .m-tab {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--settings-border);
+  border-radius: 999px;
+  background: var(--settings-surface);
+  color: var(--settings-muted);
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-tabs .m-tab.active {
+  border-color: var(--settings-accent);
+  background: var(--settings-accent);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(68, 86, 37, 0.18);
+}
+
+.boso-admin-mobile #view-settings .settings-tab-content {
+  width: 100%;
+  min-width: 0;
+  animation: settingsMobileReveal 180ms ease-out;
+}
+
+.boso-admin-mobile #view-settings :is(button, a, input, select, textarea, [role="button"]):focus-visible {
+  outline: none;
+  box-shadow: var(--settings-focus);
+}
+
+.boso-admin-mobile #view-settings :is(input, select, textarea) {
+  min-height: 46px;
+  border-color: var(--settings-border);
+  border-radius: var(--settings-radius-control);
+  background: var(--settings-surface);
+  color: var(--settings-text);
+  font-size: 15px;
+}
+
+.boso-admin-mobile #view-settings :is(input, select, textarea)::placeholder {
+  color: #9ba196;
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-account {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--settings-border);
+}
+
+.boso-admin-mobile #view-settings .mobile-settings-account .mobile-logout-btn {
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
+  border-color: #ead7d4;
+  background: #fff8f7;
+  color: var(--settings-danger);
+  font-weight: 750;
+}
+
+/* Settings: public profile */
+.boso-admin-mobile #view-settings .branding-settings-panel {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-header {
+  margin: 0 2px 12px;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-heading__desc {
+  margin: 0;
+  color: var(--settings-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-section {
+  display: block;
+  padding: 18px 16px;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-large);
+  background: var(--settings-surface);
+}
+
+.boso-admin-mobile #view-settings .branding-settings-section__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 17px;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-section__heading strong {
+  color: var(--settings-text);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-section__heading span {
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.boso-admin-mobile #view-settings .branding-settings-section__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.boso-admin-mobile #view-settings .branding-field {
+  gap: 7px;
+}
+
+.boso-admin-mobile #view-settings .branding-field > span,
+.boso-admin-mobile #view-settings .svc-field__label {
+  color: #535a4e;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+
+.boso-admin-mobile #view-settings .branding-prepayment-accordion {
+  overflow: hidden;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-large);
+  background: var(--settings-surface);
+}
+
+.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__trigger {
+  min-height: 78px;
+  padding: 15px 16px;
+  background: transparent;
+}
+
+.boso-admin-mobile #view-settings .branding-prepayment-collapse__content {
+  padding: 0 16px 16px;
+}
+
+.boso-admin-mobile #view-settings .branding-prepayment-modes {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.boso-admin-mobile #view-settings .branding-prepayment-modes .svc-pricing-card {
+  min-height: 60px;
+  border-radius: 13px;
+}
+
+.boso-admin-mobile #view-settings .branding-logo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-large);
+  background: var(--settings-surface);
+}
+
+.boso-admin-mobile #view-settings .branding-logo-row__main,
+.boso-admin-mobile #view-settings .branding-logo-row__action {
+  width: 100%;
+}
+
+.boso-admin-mobile #view-settings .branding-logo-upload {
+  width: 100%;
+  min-height: 126px;
+  border-radius: 15px;
+  background: var(--settings-surface-muted);
+}
+
+.boso-admin-mobile #view-settings .branding-logo-row__action .btn-primary {
+  position: static;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 13px;
+}
+
+/* Settings: rooms */
+.boso-admin-mobile #view-settings #set-rooms > .btn-primary {
+  position: static;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(68, 86, 37, 0.16);
+}
+
+.boso-admin-mobile #view-settings .settings-rooms-table,
+.boso-admin-mobile #view-settings .settings-rooms-table tbody {
+  display: block;
+  width: 100%;
+}
+
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 10px;
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-card);
+  background: var(--settings-surface);
+  box-shadow: 0 3px 10px rgba(28, 33, 24, 0.045);
+}
+
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td {
+  display: flex;
+  width: auto;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td:first-child {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #eff1ec !important;
+}
+
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td:nth-child(2) {
+  display: flex;
+  align-items: center;
+}
+
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row > td:last-child {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row .btn-action {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #dce3d4;
+  border-radius: 11px;
+  background: var(--settings-accent-soft);
+  color: var(--settings-accent-dark);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+/* Settings: price and restriction timelines */
+.boso-admin-mobile #view-settings :is(.price-grid-view, .restrictions-grid-view) {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar, .restrictions-grid-toolbar) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-card);
+  background: var(--settings-surface);
+}
+
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar__nav, .restrictions-grid-toolbar__nav),
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar__actions, .restrictions-grid-toolbar__actions) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  width: 100%;
+}
+
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar__nav, .restrictions-grid-toolbar__nav) .timeline-nav {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--settings-border);
+  border-radius: 12px;
+  background: var(--settings-surface-muted);
+}
+
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar__nav, .restrictions-grid-toolbar__nav) .btn-secondary,
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar__actions, .restrictions-grid-toolbar__actions) button {
+  position: static;
+  min-height: 44px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.boso-admin-mobile #view-settings :is(.price-grid-toolbar__actions, .restrictions-grid-toolbar__actions) {
+  grid-template-columns: 0.8fr 1.2fr;
+}
+
+.boso-admin-mobile #view-settings :is(.price-grid-premium, .restrictions-grid-premium) {
+  overflow: hidden;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-card);
+  background: var(--settings-surface);
+}
+
+.boso-admin-mobile #view-settings :is(#priceTimelineWrapper, #restrictionTimelineWrapper) {
+  margin: 0 !important;
+  border: 0;
+  border-radius: 0;
+}
+
+.boso-admin-mobile #view-settings :is(#priceTimelineWrapper, #restrictionTimelineWrapper) .timeline-grid-container {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.boso-admin-mobile #view-settings :is(#priceTimelineWrapper, #restrictionTimelineWrapper) .timeline-room {
+  background: #fbfcfa;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.boso-admin-mobile #view-settings :is(#priceTimelineWrapper, #restrictionTimelineWrapper) .timeline-cell {
+  min-height: 44px;
+}
+
+/* Settings: flexible schedule and guest services */
+.boso-admin-mobile #view-settings .svc-page {
+  gap: 14px;
+  width: 100%;
+  padding-bottom: 0;
+}
+
+.boso-admin-mobile #view-settings .svc-page__intro {
+  margin: 0 2px 2px;
+  color: var(--settings-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion,
+.boso-admin-mobile #view-settings .svc-catalog {
+  overflow: hidden;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-large);
+  background: var(--settings-surface);
+  box-shadow: none;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__trigger {
+  min-height: 78px;
+  padding: 15px 16px;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--settings-accent-soft);
+  color: var(--settings-accent);
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__label {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__hint {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--settings-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__panel {
+  padding: 0 16px 16px;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__section {
+  padding: 15px 0;
+}
+
+.boso-admin-mobile #view-settings .svc-form-grid--2 {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.boso-admin-mobile #view-settings .svc-segmented {
+  width: 100%;
+  min-height: 46px;
+  padding: 4px;
+  border-radius: 13px;
+  background: #eef0eb;
+}
+
+.boso-admin-mobile #view-settings .svc-segmented__btn {
+  min-height: 38px;
+  border-radius: 10px;
+  white-space: normal;
+}
+
+.boso-admin-mobile #view-settings .svc-option-card {
+  min-height: 66px;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.boso-admin-mobile #view-settings .svc-switch {
+  width: 46px;
+  min-width: 46px;
+  height: 28px;
+}
+
+.boso-admin-mobile #view-settings .svc-switch > span {
+  width: 22px;
+  height: 22px;
+}
+
+.boso-admin-mobile #view-settings .svc-switch.is-on > span {
+  transform: translateX(18px);
+}
+
+.boso-admin-mobile #view-settings .svc-accordion__footer .btn-primary {
+  position: static;
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+.boso-admin-mobile #view-settings .svc-catalog {
+  padding: 16px;
+}
+
+.boso-admin-mobile #view-settings .svc-catalog__toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 13px;
+}
+
+.boso-admin-mobile #view-settings .svc-catalog__title {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.boso-admin-mobile #view-settings .svc-catalog__caption {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.boso-admin-mobile #view-settings .svc-catalog__add {
+  position: static;
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
+  border-radius: 12px;
+}
+
+.boso-admin-mobile #view-settings .svc-templates {
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid #eff1ec;
+}
+
+.boso-admin-mobile #view-settings .svc-templates__row {
+  display: flex;
+  gap: 8px;
+  margin: 8px -2px 0;
+  padding: 2px 2px 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.boso-admin-mobile #view-settings .svc-template-chip {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border-radius: 999px;
+}
+
+.boso-admin-mobile #view-settings .svc-grid {
+  grid-template-columns: 1fr;
+  gap: 11px;
+  margin-top: 16px;
+}
+
+.boso-admin-mobile #view-settings .svc-card {
+  padding: 15px;
+  border-color: var(--settings-border);
+  border-radius: 15px;
+  box-shadow: none;
+}
+
+.boso-admin-mobile #view-settings .svc-card__name {
+  font-size: 15px;
+}
+
+.boso-admin-mobile #view-settings .svc-card__actions {
+  gap: 8px;
+  margin-top: 13px;
+  padding-top: 12px;
+}
+
+.boso-admin-mobile #view-settings .svc-card__edit,
+.boso-admin-mobile #view-settings .svc-card__delete {
+  min-height: 42px;
+  border-radius: 11px;
+}
+
+.boso-admin-mobile #view-settings .svc-card__edit {
+  flex: 1;
+  justify-content: center;
+}
+
+.boso-admin-mobile #view-settings .svc-card__delete {
+  width: 42px;
+  min-width: 42px;
+}
+
+.boso-admin-mobile #view-settings .svc-empty {
+  margin-top: 16px;
+  padding: 25px 16px;
+  border-radius: 15px;
+  background: var(--settings-surface-muted);
+}
+
+/* Settings: discounts */
+.boso-admin-mobile #view-settings #set-discounts > p {
+  margin: 0 2px 14px !important;
+  color: var(--settings-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.boso-admin-mobile #view-settings .discount-mobile-add {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.boso-admin-mobile #view-settings .discount-mobile-add button {
+  position: static;
+  width: 100%;
+  min-height: 46px;
+  justify-content: center;
+  border-radius: 13px;
+}
+
+.boso-admin-mobile #view-settings .discount-template-cards-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  margin-bottom: 18px;
+}
+
+.boso-admin-mobile #view-settings .discount-template-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 3px 12px;
+  width: 100%;
+  min-height: 92px;
+  padding: 14px;
+  border-color: var(--settings-border);
+  border-radius: 15px;
+  box-shadow: none;
+}
+
+.boso-admin-mobile #view-settings .discount-template-card > div {
+  grid-row: 1 / 3;
+  align-self: center;
+  margin: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .discount-template-card h3 {
+  align-self: end;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.boso-admin-mobile #view-settings .discount-template-card p {
+  align-self: start;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.boso-admin-mobile #view-settings #discount-active-section-heading {
+  margin: 20px 2px 10px !important;
+  color: #777f72;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+
+.boso-admin-mobile #view-settings .discount-filter-tabs {
+  margin: 0 0 12px;
+  padding: 3px;
+  border-radius: 14px;
+  background: #eef0eb;
+}
+
+.boso-admin-mobile #view-settings .discount-filter-tabs__track {
+  gap: 5px;
+}
+
+.boso-admin-mobile #view-settings .discount-filter-tabs button {
+  min-height: 40px;
+  border-radius: 11px;
+  white-space: nowrap;
+}
+
+.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 15px;
+  border: 1px solid var(--settings-border);
+  border-radius: var(--settings-radius-card);
+  background: var(--settings-surface);
+  box-shadow: none;
+}
+
+.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td {
+  display: flex;
+  width: auto;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:first-child {
+  grid-column: 1 / -1;
+  padding-bottom: 11px !important;
+  border-bottom: 1px solid #eff1ec !important;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type,
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__status {
+  align-items: center;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions .btn-icon-only {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+}
+
+.boso-admin-mobile #view-settings .settings-discount-expand-row,
+.boso-admin-mobile #view-settings .settings-discount-expand-cell {
+  display: block;
+  width: 100%;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .discount-settings-panel {
+  padding: 12px 0 18px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.boso-admin-mobile #view-settings .discount-settings-panel > div {
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card {
+  min-height: 0 !important;
+  padding: 16px !important;
+  border-color: var(--settings-border) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card input {
+  max-width: 100%;
+}
+
+.boso-admin-mobile #view-settings .discount-settings-panel__footer {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 8px !important;
+  padding-top: 12px !important;
+}
+
+.boso-admin-mobile #view-settings .discount-settings-panel__footer button {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: 12px;
+}
+
+/* Room editor sheet */
+.boso-admin-mobile .room-settings-drawer {
+  max-height: min(94dvh, 880px) !important;
+  border-radius: 24px 24px 0 0 !important;
+  background: #fbfcfa !important;
+}
+
+.boso-admin-mobile .room-settings-drawer__header {
+  padding: 4px 18px 14px !important;
+  border-color: #e6e9e2 !important;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.boso-admin-mobile .room-settings-drawer__header h2 {
+  font-size: 20px !important;
+  letter-spacing: -0.025em !important;
+}
+
+.boso-admin-mobile .room-settings-drawer__header > div > button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e5e8e0;
+  border-radius: 13px;
+  background: #f7f8f5;
+}
+
+.boso-admin-mobile .room-settings-drawer__tabs {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px !important;
+  padding: 4px;
+  border-radius: 14px;
+  background: #eef0eb;
+}
+
+.boso-admin-mobile .room-settings-drawer__tabs > button {
+  min-height: 42px;
+  justify-content: center;
+  border-radius: 11px !important;
+}
+
+.boso-admin-mobile .room-settings-drawer__body {
+  padding: 16px !important;
+}
+
+.boso-admin-mobile .room-settings-drawer__body section {
+  border-color: #e5e8e0 !important;
+  border-radius: 17px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+.boso-admin-mobile .room-settings-drawer__body input {
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+.boso-admin-mobile .room-settings-drawer__footer {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px !important;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  border-color: #e5e8e0 !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+}
+
+.boso-admin-mobile .room-settings-drawer__footer > div:last-child {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.boso-admin-mobile .room-settings-drawer__footer button {
+  min-height: 44px;
+  padding-inline: 13px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* Price, rule and service constructor sheets rendered through body portals */
+body.boso-admin-mobile-active .admin-side-drawer {
+  border-radius: 24px 24px 0 0 !important;
+  background: #fbfcfa !important;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__header {
+  padding: 4px 18px 15px !important;
+  border-color: #e5e8e0 !important;
+  background: rgba(255, 255, 255, 0.97);
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__eyebrow {
+  color: #556b2f;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__header h2 {
+  font-size: 21px;
+  letter-spacing: -0.03em;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__subtitle {
+  margin-top: 4px;
+  color: #697064;
+  font-size: 12px;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__close {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e5e8e0;
+  border-radius: 13px;
+  background: #f7f8f5;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__body {
+  gap: 12px;
+  padding: 15px 16px 20px !important;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .svc-drawer-block {
+  padding: 16px;
+  border: 1px solid #e5e8e0;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: none;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .price-constructor-price-block {
+  min-height: 112px;
+  padding: 20px !important;
+  border-color: #cfd8c4 !important;
+  border-radius: 15px !important;
+  background: #f3f6ef !important;
+  box-shadow: none !important;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .price-constructor-price-block input {
+  min-height: 58px;
+  font-size: 42px !important;
+  line-height: 1;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .price-constructor-chip-grid {
+  gap: 8px !important;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .price-constructor-chip {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .svc-form-grid--2,
+body.boso-admin-mobile-active .admin-side-drawer .svc-pricing-grid,
+body.boso-admin-mobile-active .admin-side-drawer .svc-rooms-grid {
+  grid-template-columns: 1fr;
+  gap: 9px;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .svc-field--span-2 {
+  grid-column: auto;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer :is(.svc-option-card, .svc-pricing-card, .svc-room-chip) {
+  min-height: 48px;
+  border-radius: 12px;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer .svc-drawer-preview {
+  padding: 15px;
+  border: 1px solid #cfd8c4;
+  border-radius: 15px;
+  background: #f3f6ef;
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__footer {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 8px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  border-color: #e5e8e0;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+body.boso-admin-mobile-active .admin-side-drawer__footer button {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+@keyframes settingsMobileReveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boso-admin-mobile #view-settings *,
+  .boso-admin-mobile #view-settings *::before,
+  .boso-admin-mobile #view-settings *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .boso-admin-mobile .guest-filter-banner {

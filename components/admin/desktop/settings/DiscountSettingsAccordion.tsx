@@ -465,7 +465,7 @@ export function DiscountSettingsAccordion({
   return (
     <div
       id={`discount-settings-${discountKey}`}
-      className="bg-stone-50/50 p-6 border-t border-stone-100"
+      className="discount-settings-panel bg-stone-50/50 p-6 border-t border-stone-100"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 items-stretch discount-bento-top-grid">
         {/* Card 1: розмір знижки */}
@@ -588,7 +588,7 @@ export function DiscountSettingsAccordion({
         </div>
       </div>
 
-      <footer className="flex items-center justify-end gap-3 pt-2 border-t border-stone-100">
+      <footer className="discount-settings-panel__footer flex items-center justify-end gap-3 pt-2 border-t border-stone-100">
         <button
           type="button"
           className="discount-bento-cancel-btn"
@@ -598,7 +598,7 @@ export function DiscountSettingsAccordion({
         </button>
         <button
           type="button"
-          className="bg-[#5c6b4b] hover:bg-[#4a563c] text-white px-6 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-60"
+          className="discount-settings-panel__save bg-[#5c6b4b] hover:bg-[#4a563c] text-white px-6 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-60"
           disabled={saving}
           onClick={() => void handleSave()}
         >

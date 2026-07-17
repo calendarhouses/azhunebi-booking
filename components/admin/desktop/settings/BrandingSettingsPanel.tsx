@@ -264,51 +264,59 @@ export function BrandingSettingsPanel({
       </div>
 
       <div className="branding-settings-grid">
-        <label className="branding-field">
-          <span>Назва на сайті</span>
-          <input
-            type="text"
-            value={form.site_title || ""}
-            placeholder="ХАТА"
-            onChange={(e) => patch("site_title", e.target.value)}
-          />
-        </label>
+        <section className="branding-settings-section branding-field--full">
+          <div className="branding-settings-section__heading">
+            <strong>Основна інформація</strong>
+            <span>Ці дані побачать гості на сайті бронювання</span>
+          </div>
+          <div className="branding-settings-section__grid">
+            <label className="branding-field">
+              <span>Назва на сайті</span>
+              <input
+                type="text"
+                value={form.site_title || ""}
+                placeholder="ХАТА"
+                onChange={(e) => patch("site_title", e.target.value)}
+              />
+            </label>
 
-        <label className="branding-field">
-          <span>Telegram (посилання)</span>
-          <input
-            type="url"
-            value={form.telegram_url || ""}
-            placeholder="https://t.me/..."
-            onChange={(e) => patch("telegram_url", e.target.value)}
-          />
-        </label>
-        <label className="branding-field">
-          <span>Телефон для гостей</span>
-          <GuestPhoneField
-            value={String(form.contact_phone || "")}
-            disabled={saving}
-            onChange={(value) => patch("contact_phone", value)}
-          />
-        </label>
-        <label className="branding-field">
-          <span>Email</span>
-          <input
-            type="email"
-            value={String(form.contact_email || "")}
-            placeholder="info@example.com"
-            onChange={(e) => patch("contact_email", e.target.value)}
-          />
-        </label>
-        <label className="branding-field branding-field--full">
-          <span>Посилання на карту (Google Maps)</span>
-          <input
-            type="url"
-            value={form.maps_external_url || ""}
-            placeholder="https://maps.google.com/..."
-            onChange={(e) => patch("maps_external_url", e.target.value)}
-          />
-        </label>
+            <label className="branding-field">
+              <span>Telegram (посилання)</span>
+              <input
+                type="url"
+                value={form.telegram_url || ""}
+                placeholder="https://t.me/..."
+                onChange={(e) => patch("telegram_url", e.target.value)}
+              />
+            </label>
+            <label className="branding-field">
+              <span>Телефон для гостей</span>
+              <GuestPhoneField
+                value={String(form.contact_phone || "")}
+                disabled={saving}
+                onChange={(value) => patch("contact_phone", value)}
+              />
+            </label>
+            <label className="branding-field">
+              <span>Email</span>
+              <input
+                type="email"
+                value={String(form.contact_email || "")}
+                placeholder="info@example.com"
+                onChange={(e) => patch("contact_email", e.target.value)}
+              />
+            </label>
+            <label className="branding-field branding-field--full">
+              <span>Посилання на карту (Google Maps)</span>
+              <input
+                type="url"
+                value={form.maps_external_url || ""}
+                placeholder="https://maps.google.com/..."
+                onChange={(e) => patch("maps_external_url", e.target.value)}
+              />
+            </label>
+          </div>
+        </section>
 
         <section
           className={`svc-accordion branding-prepayment-accordion branding-field--full${prepaymentOpen ? " is-open" : ""}`}
@@ -317,6 +325,7 @@ export function BrandingSettingsPanel({
             type="button"
             className="svc-accordion__trigger"
             aria-expanded={prepaymentOpen}
+            aria-controls="branding-prepayment-panel"
             onClick={() => setPrepaymentOpen((v) => !v)}
           >
             <div className="svc-accordion__trigger-main">
@@ -332,8 +341,10 @@ export function BrandingSettingsPanel({
           </button>
 
           <div
+            id="branding-prepayment-panel"
             className="branding-prepayment-collapse svc-accordion__collapse"
             aria-hidden={!prepaymentOpen}
+            inert={!prepaymentOpen}
           >
             <div className="branding-prepayment-collapse__panel">
               <div className="branding-prepayment-collapse__content svc-accordion__panel">

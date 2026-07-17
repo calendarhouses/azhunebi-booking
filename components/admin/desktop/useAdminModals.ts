@@ -149,7 +149,8 @@ export function useAdminModals({
   const [discountAccordionScrollSeq, setDiscountAccordionScrollSeq] = useState(0);
   const [discountTemplatesOpen, setDiscountTemplatesOpen] = useState(false);
   const roomDrawerLoadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const quickEditSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roomQuickEditSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const discountQuickEditSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsRef = useRef(settings);
   const persistTailRef = useRef(Promise.resolve());
   settingsRef.current = settings;
@@ -264,17 +265,17 @@ export function useAdminModals({
       };
 
       if (options?.debounceMs != null && options.debounceMs > 0) {
-        if (quickEditSaveTimerRef.current) clearTimeout(quickEditSaveTimerRef.current);
-        quickEditSaveTimerRef.current = setTimeout(() => {
-          quickEditSaveTimerRef.current = null;
+        if (roomQuickEditSaveTimerRef.current) clearTimeout(roomQuickEditSaveTimerRef.current);
+        roomQuickEditSaveTimerRef.current = setTimeout(() => {
+          roomQuickEditSaveTimerRef.current = null;
           scheduleSave();
         }, options.debounceMs);
         return;
       }
 
-      if (quickEditSaveTimerRef.current) {
-        clearTimeout(quickEditSaveTimerRef.current);
-        quickEditSaveTimerRef.current = null;
+      if (roomQuickEditSaveTimerRef.current) {
+        clearTimeout(roomQuickEditSaveTimerRef.current);
+        roomQuickEditSaveTimerRef.current = null;
       }
       scheduleSave();
     },
@@ -555,7 +556,6 @@ export function useAdminModals({
         const nextList = [...withoutDraft, saved];
         await persistSettings({ ...snapshot, discountsList: nextList }, {
           keys: ["discountsList"],
-          background: true,
         });
         settingsRef.current = { ...snapshot, discountsList: nextList };
         setSettings({ ...snapshot, discountsList: nextList });
@@ -572,7 +572,6 @@ export function useAdminModals({
       }
       await persistSettings({ ...snapshot, discountsList: discounts }, {
         keys: ["discountsList"],
-        background: true,
       });
       settingsRef.current = { ...snapshot, discountsList: discounts };
       setSettings({ ...snapshot, discountsList: discounts });
@@ -593,11 +592,11 @@ export function useAdminModals({
         return next;
       });
 
-      if (quickEditSaveTimerRef.current) {
-        clearTimeout(quickEditSaveTimerRef.current);
+      if (discountQuickEditSaveTimerRef.current) {
+        clearTimeout(discountQuickEditSaveTimerRef.current);
       }
-      quickEditSaveTimerRef.current = setTimeout(() => {
-        quickEditSaveTimerRef.current = null;
+      discountQuickEditSaveTimerRef.current = setTimeout(() => {
+        discountQuickEditSaveTimerRef.current = null;
         void flushQuickEditSave(settingsRef.current, ["discountsList"]);
       }, 280);
     },
@@ -606,6 +605,7 @@ export function useAdminModals({
 
   const toggleDiscountActive = useCallback(
     (discountId: number) => {
+      if (isDiscountDraftId(discountId)) return;
       setSettings((prev) => {
         const discounts = (prev.discountsList || []).map((d) => {
           if (d.id !== discountId) return d;
@@ -618,16 +618,31 @@ export function useAdminModals({
         return next;
       });
 
-      if (quickEditSaveTimerRef.current) {
-        clearTimeout(quickEditSaveTimerRef.current);
+      if (discountQuickEditSaveTimerRef.current) {
+        clearTimeout(discountQuickEditSaveTimerRef.current);
       }
-      quickEditSaveTimerRef.current = setTimeout(() => {
-        quickEditSaveTimerRef.current = null;
+      discountQuickEditSaveTimerRef.current = setTimeout(() => {
+        discountQuickEditSaveTimerRef.current = null;
         void flushQuickEditSave(settingsRef.current, ["discountsList"]);
       }, 280);
     },
     [bookings, flushQuickEditSave, setSettings]
   );
+
+  useEffect(() => {
+    return () => {
+      if (roomQuickEditSaveTimerRef.current) {
+        clearTimeout(roomQuickEditSaveTimerRef.current);
+        roomQuickEditSaveTimerRef.current = null;
+        void flushQuickEditSave(settingsRef.current, ["roomsList"]);
+      }
+      if (discountQuickEditSaveTimerRef.current) {
+        clearTimeout(discountQuickEditSaveTimerRef.current);
+        discountQuickEditSaveTimerRef.current = null;
+        void flushQuickEditSave(settingsRef.current, ["discountsList"]);
+      }
+    };
+  }, [flushQuickEditSave]);
 
   const setRoomPhotos = useCallback(
     async (roomId: number, photos: string[]) => {

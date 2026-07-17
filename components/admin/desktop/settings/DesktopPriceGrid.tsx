@@ -345,7 +345,7 @@ export function DesktopPriceGrid({
       const roomPrices = customPrices[String(room.id)];
       dayMeta.forEach((day, i) => {
         let price = day.isWeekend ? room.priceWeekend : room.priceWeekday;
-        if (roomPrices?.[day.dateStr]) price = roomPrices[day.dateStr];
+        if (roomPrices?.[day.dateStr] != null) price = roomPrices[day.dateStr];
         const priceStr = String(price);
         widths[i] = Math.max(
           widths[i],
@@ -598,7 +598,7 @@ export function DesktopPriceGrid({
       if (room && day) {
         price = day.isWeekend ? room.priceWeekend : room.priceWeekday;
         const rp = customPrices[roomId];
-        if (rp?.[dateStr]) price = rp[dateStr];
+        if (rp?.[dateStr] != null) price = rp[dateStr];
       }
       scrollPreserveRef.current = scrollRef.current?.scrollLeft ?? 0;
       setDragHighlight(null);
@@ -734,9 +734,9 @@ export function DesktopPriceGrid({
         <div key={room.id} className="timeline-row-bg price-grid-row">
           {dayMeta.map((day, i) => {
             const roomPrices = customPrices[String(room.id)];
-            const isCustom = Boolean(roomPrices?.[day.dateStr]);
+            const isCustom = roomPrices?.[day.dateStr] != null;
             let price = day.isWeekend ? room.priceWeekend : room.priceWeekday;
-            if (roomPrices?.[day.dateStr]) {
+            if (roomPrices?.[day.dateStr] != null) {
               price = roomPrices[day.dateStr];
             }
             const editing =

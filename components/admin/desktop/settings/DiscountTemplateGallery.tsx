@@ -9,6 +9,7 @@ import type { AdminSettingsPayload, DiscountKind } from "../types";
 import { matchesDiscountFilter, matchesDiscountSection, type DiscountListFilter } from "./discountConfig";
 import { DiscountAllGroupedTable, DiscountFilteredTable } from "./DiscountListTables";
 import { DiscountTemplatesCollapse } from "./DiscountTemplatesCollapse";
+import { DiscountTemplatesToggleButton } from "./DiscountTemplatesToggleButton";
 import {
   DISCOUNT_ACTIVE_SECTION_HEADING_ID,
   getMainContentScrollContainer,
@@ -254,6 +255,12 @@ export function DiscountTemplateGallery({ settings, modals }: DiscountTemplateGa
       <p className="text-sm text-stone-500 mb-8">
         Налаштуй інструменти продажів, щоб залучати більше гостей та уникати простоїв.
       </p>
+
+      {!isEmpty ? (
+        <div className="discount-mobile-add">
+          <DiscountTemplatesToggleButton modals={modals} />
+        </div>
+      ) : null}
 
       {isEmpty ? (
         <div className="mb-12">

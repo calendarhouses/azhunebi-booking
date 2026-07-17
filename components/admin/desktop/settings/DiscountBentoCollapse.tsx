@@ -18,6 +18,7 @@ export function DiscountBentoCollapse({
     <div
       className={`discount-bento-collapse${open ? " is-open" : ""}${className ? ` ${className}` : ""}`}
       aria-hidden={!open}
+      inert={!open}
     >
       <div className="discount-bento-collapse__panel">
         <div className="discount-bento-collapse__content">{children}</div>

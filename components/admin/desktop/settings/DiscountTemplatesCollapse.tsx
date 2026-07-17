@@ -12,6 +12,7 @@ export function DiscountTemplatesCollapse({ open, children }: DiscountTemplatesC
     <div
       className={`discount-templates-collapse${open ? " is-open" : ""}`}
       aria-hidden={!open}
+      inert={!open}
     >
       <div className="discount-templates-collapse__panel">
         <div className="discount-templates-collapse__content">{children}</div>

@@ -36,7 +36,10 @@ export function AdditionalServicesSettings({ settings, modals }: Props) {
   const [form, setForm] = useState<ServiceFormState>(defaultServiceFormState());
   const [saving, setSaving] = useState(false);
 
-  const services = settings.customServicesList || [];
+  const services = useMemo(
+    () => settings.customServicesList || [],
+    [settings.customServicesList]
+  );
   const roomsList = settings.roomsList || [];
 
   const sortedServices = useMemo(
@@ -79,10 +82,12 @@ export function AdditionalServicesSettings({ settings, modals }: Props) {
     try {
       await modals.persistSettings(
         { ...settings, ...patch },
-        { keys: ["customServicesList"], background: true }
+        { keys: ["customServicesList"] }
       );
       setDrawerOpen(false);
       showToast(editId != null ? "Послугу оновлено" : "Послугу додано");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Не вдалося зберегти послугу");
     } finally {
       setSaving(false);
     }
@@ -94,21 +99,30 @@ export function AdditionalServicesSettings({ settings, modals }: Props) {
         ...settings,
         customServicesList: (settings.customServicesList || []).filter((s) => s.id !== serviceId),
       };
-      await modals.persistSettings(next, { keys: ["customServicesList"], background: true });
-      showToast("Послугу видалено");
+      try {
+        await modals.persistSettings(next, { keys: ["customServicesList"] });
+        showToast("Послугу видалено");
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Не вдалося видалити послугу");
+      }
     },
     [modals, settings]
   );
 
   const toggleActive = useCallback(
     async (service: CustomServiceConfig) => {
+      const isActive = service.active !== false;
       const list = (settings.customServicesList || []).map((item) =>
-        item.id === service.id ? { ...item, active: !item.active } : item
+        item.id === service.id ? { ...item, active: !isActive } : item
       );
-      await modals.persistSettings(
-        { ...settings, customServicesList: list },
-        { keys: ["customServicesList"], background: true }
-      );
+      try {
+        await modals.persistSettings(
+          { ...settings, customServicesList: list },
+          { keys: ["customServicesList"] }
+        );
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : "Не вдалося змінити статус послуги");
+      }
     },
     [modals, settings]
   );
@@ -162,10 +176,11 @@ export function AdditionalServicesSettings({ settings, modals }: Props) {
           <div className="svc-grid">
             {sortedServices.map((service) => {
               const PriceIcon = pricingIcon(service);
+              const isActive = service.active !== false;
               return (
                 <article
                   key={service.id}
-                  className={`svc-card${service.active ? "" : " is-off"}`}
+                  className={`svc-card${isActive ? "" : " is-off"}`}
                 >
                   <div className="svc-card__top">
                     <div className="svc-card__info">
@@ -174,10 +189,10 @@ export function AdditionalServicesSettings({ settings, modals }: Props) {
                     </div>
                     <button
                       type="button"
-                      className={`svc-switch${service.active ? " is-on" : ""}`}
+                      className={`svc-switch${isActive ? " is-on" : ""}`}
                       onClick={() => void toggleActive(service)}
-                      aria-pressed={service.active}
-                      aria-label={service.active ? "Вимкнути послугу" : "Увімкнути послугу"}
+                      aria-pressed={isActive}
+                      aria-label={isActive ? "Вимкнути послугу" : "Увімкнути послугу"}
                     >
                       <span />
                     </button>

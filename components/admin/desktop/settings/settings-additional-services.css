@@ -1,5 +1,15 @@
 /* Додаткові послуги — premium page (патерн знижок / branding) */
 
+/* Structural branding grouping; mobile promotes this wrapper to a visible card. */
+.branding-settings-section,
+.branding-settings-section__grid {
+  display: contents;
+}
+
+.branding-settings-section__heading {
+  display: none;
+}
+
 .svc-page {
   --svc-accent: #5c6b4b;
   --svc-accent-soft: #f4f6f0;

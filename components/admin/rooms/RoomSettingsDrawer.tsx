@@ -204,20 +204,20 @@ export function RoomSettingsDrawer({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[3200] transition-opacity duration-300",
+        "room-settings-drawer-layer fixed inset-0 z-[3200] transition-opacity duration-300",
         open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       )}
       aria-hidden={!open}
     >
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[4px]"
+        className="room-settings-drawer-backdrop absolute inset-0 bg-slate-900/40 backdrop-blur-[4px]"
         onClick={onClose}
         aria-label="Закрити панель"
       />
       <aside
         className={cn(
-          "flex flex-col bg-white antialiased",
+          "room-settings-drawer flex flex-col bg-white antialiased",
           isMobile
             ? cn(
                 "absolute bottom-0 left-0 right-0 max-h-[92dvh] w-full rounded-t-[22px]",
@@ -240,7 +240,7 @@ export function RoomSettingsDrawer({
         {isMobile ? <div className="m-sheet-handle mt-3 shrink-0" aria-hidden /> : null}
         <header
           className={cn(
-            "shrink-0 border-b border-slate-200",
+            "room-settings-drawer__header shrink-0 border-b border-slate-200",
             isMobile ? "px-5 pb-4 pt-1" : "p-6"
           )}
         >
@@ -266,7 +266,7 @@ export function RoomSettingsDrawer({
               <CloseIcon />
             </button>
           </div>
-          <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Розділи котеджу">
+          <div className="room-settings-drawer__tabs mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Розділи котеджу">
             {(["main", "amenities"] as RoomDrawerTab[]).map((t) => (
               <button
                 key={t}
@@ -282,7 +282,7 @@ export function RoomSettingsDrawer({
           </div>
         </header>
 
-        <div className={cn("flex-1 overflow-y-auto", isMobile ? "px-5 py-4" : "p-6")}>
+        <div className={cn("room-settings-drawer__body flex-1 overflow-y-auto", isMobile ? "px-5 py-4" : "p-6")}>
           {loading ? (
             <div className="animate-pulse space-y-6">
               <div className="h-28 rounded-xl bg-slate-100" />
@@ -500,7 +500,7 @@ export function RoomSettingsDrawer({
 
         <footer
           className={cn(
-            "flex shrink-0 items-center justify-between gap-4 border-t border-slate-200 bg-slate-50",
+            "room-settings-drawer__footer flex shrink-0 items-center justify-between gap-4 border-t border-slate-200 bg-slate-50",
             isMobile ? "px-5 py-3" : "px-6 py-4"
           )}
         >

@@ -1,5 +1,9 @@
 /* Знижки — inline accordion (патерн «Твоє житло») */
 
+.discount-mobile-add {
+  display: none;
+}
+
 .discount-template-cards-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

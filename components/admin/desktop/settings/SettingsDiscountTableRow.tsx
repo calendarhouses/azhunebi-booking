@@ -70,6 +70,14 @@ export function SettingsDiscountTableRow({
       id={`discount-row-${discount.id}`}
       className={`settings-discounts-row cursor-pointer${isExpanded ? " is-expanded" : ""}${isDraft ? " settings-discounts-row--draft" : ""}`}
       onClick={handleRowClick}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        handleRowClick();
+      }}
+      role="button"
+      tabIndex={0}
+      aria-expanded={isExpanded}
     >
       <td>
         <div className="settings-discounts-row__name-wrap">
@@ -106,6 +114,8 @@ export function SettingsDiscountTableRow({
         <button
           type="button"
           className="discount-status-toggle"
+          disabled={isDraft}
+          title={isDraft ? "Спочатку збережи нову знижку" : undefined}
           onClick={() => modals.toggleDiscountActive(discount.id)}
         >
           <DiscountStatusBadge active={active} />
