@@ -9,9 +9,11 @@ export type RoomLike = {
 export type BookingLike = {
   cottage?: string;
   roomId?: number | string | null;
+  assignmentState?: "assigned" | "holding";
 };
 
 export function getBookingRoomId(booking: BookingLike): string | null {
+  if (booking.assignmentState === "holding") return null;
   const id = booking.roomId;
   if (id == null || id === "") return null;
   return String(id);
@@ -88,6 +90,7 @@ function cottageMatchesRoomLabels(cottage: string, room: RoomLike): boolean {
 
 /** Знайти житло для броні (roomId має пріоритет над текстовою назвою). */
 export function findRoomForBooking(booking: BookingLike, rooms: RoomLike[]): RoomLike | null {
+  if (booking.assignmentState === "holding") return null;
   const bookingRoomId = getBookingRoomId(booking);
   if (bookingRoomId) {
     const byId = rooms.find((r) => String(r.id) === bookingRoomId);
@@ -105,6 +108,7 @@ export function findRoomForBooking(booking: BookingLike, rooms: RoomLike[]): Roo
 }
 
 export function bookingBelongsToRoom(booking: BookingLike, room: RoomLike): boolean {
+  if (booking.assignmentState === "holding") return false;
   const bookingRoomId = getBookingRoomId(booking);
   if (bookingRoomId && String(room.id) === bookingRoomId) return true;
   return cottageMatchesRoomLabels(String(booking.cottage || ""), room);

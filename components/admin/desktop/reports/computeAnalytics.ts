@@ -199,7 +199,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
     globalRoomMoney[r.name] = 0;
     globalRoomNights[r.name] = 0;
   });
-  ["Адмінка", "Instagram", "Telegram Бот", "Сайт", "Hutshub"].forEach((s) => {
+  ["Адмінка", "Instagram", "Telegram", "Viber", "Booking", "TikTok", "Сайт", "Hutshub"].forEach((s) => {
     sourceCounts[s] = 0;
   });
 
@@ -348,7 +348,13 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
         globalRoomMoney[roomName] = (globalRoomMoney[roomName] || 0) + price;
         globalRoomNights[roomName] = (globalRoomNights[roomName] || 0) + nights;
       }
-      const src = String(b.source || "Адмінка");
+      const rawSource = String(b.source || "Адмінка");
+      const src =
+        rawSource === "Телефон"
+          ? "Адмінка"
+          : rawSource === "Telegram Бот"
+            ? "Telegram"
+            : rawSource;
       sourceCounts[src] = (sourceCounts[src] || 0) + 1;
       const rawDateKey = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, "0")}-${String(bDate.getDate()).padStart(2, "0")}`;
       revenueTimeline[rawDateKey] = (revenueTimeline[rawDateKey] || 0) + price;

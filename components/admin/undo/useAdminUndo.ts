@@ -16,6 +16,7 @@ import {
   applyBookingMove,
   bookingMoveKey,
   buildBookingMovePayload,
+  HOLDING_ROOM,
 } from "@/components/admin/desktop/timelineBookingMove";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "@/components/admin/desktop/types";
 
@@ -398,8 +399,17 @@ export function useAdminUndo({
   );
 
   const handleMoveBooking = useCallback(
-    (booking: BookingRecord, room: RoomConfig, checkIn: string, checkOut: string) => {
-      const previousRoom = resolveRoomForBooking(booking, depsRef.current.roomsList);
+    (
+      booking: BookingRecord,
+      room: RoomConfig,
+      checkIn: string,
+      checkOut: string,
+      overrides?: Partial<BookingRecord>
+    ) => {
+      const previousRoom =
+        booking.assignmentState === "holding"
+          ? HOLDING_ROOM
+          : resolveRoomForBooking(booking, depsRef.current.roomsList);
       if (!previousRoom) return;
 
       const key = bookingMoveKey(booking);
@@ -415,7 +425,10 @@ export function useAdminUndo({
         previousRoom,
       });
 
-      const updated = applyBookingMove(booking, room, checkIn, checkOut);
+      const updated = {
+        ...applyBookingMove(booking, room, checkIn, checkOut),
+        ...overrides,
+      };
       flushSync(() => {
         setBookings((prev) => {
           const next = prev.map((b) => (bookingMoveKey(b) === key ? updated : b));

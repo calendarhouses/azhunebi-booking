@@ -11,6 +11,7 @@ import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
 import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 import { findBookingInList, resolveBookingOrderId } from "./bookingUtils";
+import { ADMIN_SELECTABLE_SOURCES } from "./adminUiHelpers";
 import {
   BookingReviewActions,
   BOOKING_STATUS_AWAITING_PAYMENT,
@@ -167,7 +168,7 @@ export function DesktopBookingDrawer({
                       </svg>
                     </div>
                     <div className="custom-select-options">
-                      {["Адмінка", "Instagram", "Telegram", "Телефон"].map((src) => (
+                      {ADMIN_SELECTABLE_SOURCES.map((src) => (
                         <div
                           key={src}
                           className="custom-option"

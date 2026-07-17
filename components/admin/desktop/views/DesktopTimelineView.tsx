@@ -21,6 +21,8 @@ import {
 } from "../bookingUtils";
 import {
   shiftDateKey,
+  HOLDING_ROOM,
+  isHoldingRoom,
   BOOKING_MOVE_THRESHOLD,
   bookingMoveKey,
   resolveActiveRoomIndex,
@@ -298,6 +300,7 @@ export function DesktopTimelineView({
   const stickyChrome = compactGrid;
   const mobileBoard = isMobile;
   const activeRooms = useMemo(() => roomsList.filter((r) => r.active), [roomsList]);
+  const timelineRooms = useMemo(() => [...activeRooms, HOLDING_ROOM], [activeRooms]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -424,11 +427,15 @@ export function DesktopTimelineView({
     const byRoomId = new Map<number, BookingRecord[]>();
     const orphanByCottage = new Map<string, BookingRecord[]>();
 
-    for (const room of activeRooms) {
+    for (const room of timelineRooms) {
       byRoomId.set(Number(room.id), []);
     }
 
     for (const b of activeBookings) {
+      if (b.assignmentState === "holding") {
+        byRoomId.get(Number(HOLDING_ROOM.id))?.push(b);
+        continue;
+      }
       const room = findRoomForBooking(b, activeRooms);
       if (room) {
         const list = byRoomId.get(Number(room.id));
@@ -463,9 +470,21 @@ export function DesktopTimelineView({
         isOrphan: true,
       });
     }
+    rows.push({
+      room: HOLDING_ROOM,
+      blocks: buildBookingBlocks(
+        HOLDING_ROOM,
+        byRoomId.get(Number(HOLDING_ROOM.id)) || [],
+        startDate,
+        daysCount,
+        cellWidth
+      ),
+      isOrphan: false,
+    });
 
     return rows;
-  }, [activeRooms, activeBookings, startDate, daysCount, cellWidth]);
+  }, [activeRooms, timelineRooms, activeBookings, startDate, daysCount, cellWidth]);
+  const dragRooms = useMemo(() => gridByRoom.map(({ room }) => room), [gridByRoom]);
 
   const monthLabel = startDate.toLocaleString("uk-UA", { month: "long", year: "numeric" });
 
@@ -692,7 +711,7 @@ export function DesktopTimelineView({
         session.targetRoomIndex = resolveTargetRoomIndex(
           y,
           rowsEl.getBoundingClientRect().top,
-          activeRooms.length,
+          dragRooms.length,
           rowHeight
         );
       }
@@ -704,7 +723,7 @@ export function DesktopTimelineView({
       el.style.width = `${block.width}px`;
       el.style.height = `${layout.height}px`;
     },
-    [activeRooms.length, cellWidth, rowHeight, denseRows]
+    [dragRooms.length, cellWidth, rowHeight, denseRows]
   );
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
@@ -777,7 +796,7 @@ export function DesktopTimelineView({
       clearMoveListeners();
       moveSessionRef.current = null;
 
-      const targetRoom = activeRooms[session.targetRoomIndex];
+      const targetRoom = dragRooms[session.targetRoomIndex];
       const roomChanged = session.targetRoomIndex !== session.activeRoomIndex;
       const hasMove =
         session.moved &&
@@ -790,14 +809,22 @@ export function DesktopTimelineView({
         const newCheckIn = shiftDateKey(session.booking.checkIn, session.deltaDays);
         const newCheckOut = shiftDateKey(session.booking.checkOut, session.deltaDays);
         const roomBookings = activeBookings.filter((b) => {
+          if (String(targetRoom.id) === String(HOLDING_ROOM.id)) {
+            return b.assignmentState === "holding";
+          }
           const room = findRoomForBooking(b, activeRooms);
           return room?.id === targetRoom.id;
         });
-        const constraints = buildRoomTimelineConstraints(
-          roomBookings,
-          bookingMoveKey(session.booking)
-        );
-        const snapped = snapMovedBookingDates(newCheckIn, newCheckOut, constraints);
+        const snapped = isHoldingRoom(targetRoom)
+          ? { checkIn: newCheckIn, checkOut: newCheckOut }
+          : snapMovedBookingDates(
+              newCheckIn,
+              newCheckOut,
+              buildRoomTimelineConstraints(
+                roomBookings,
+                bookingMoveKey(session.booking)
+              )
+            );
         if (snapped) {
           onMoveBooking(session.booking, targetRoom, snapped.checkIn, snapped.checkOut);
         }
@@ -807,7 +834,7 @@ export function DesktopTimelineView({
       clearDragUiState();
       scheduleRecompute();
     },
-    [activeBookings, activeRooms, clearDragUiState, clearMoveListeners, onMoveBooking, scheduleRecompute, stopDragAutoScroll]
+    [activeBookings, activeRooms, dragRooms, clearDragUiState, clearMoveListeners, onMoveBooking, scheduleRecompute, stopDragAutoScroll]
   );
 
   const clearLongPress = useCallback(() => {
@@ -825,7 +852,7 @@ export function DesktopTimelineView({
       if (e.button !== 0 && e.pointerType === "mouse") return;
       if (String(block.booking.status).toLowerCase().includes("скас")) return;
 
-      const activeRoomIndex = resolveActiveRoomIndex(block.booking, activeRooms);
+      const activeRoomIndex = resolveActiveRoomIndex(block.booking, dragRooms);
       if (activeRoomIndex < 0) return;
 
       e.preventDefault();
@@ -949,7 +976,7 @@ export function DesktopTimelineView({
       };
     },
     [
-      activeRooms,
+      dragRooms,
       clearDragUiState,
       clearLongPress,
       clearMoveListeners,
@@ -1186,10 +1213,11 @@ export function DesktopTimelineView({
     </div>
   );
 
-  const timelineRoomRows = activeRooms.map((room) => (
+  const timelineRoomRows = gridByRoom.map(({ room }) => (
     <TimelineRoomRow
       key={room.id}
       room={room}
+      className={isHoldingRoom(room) ? "timeline-room--holding" : ""}
       compact={denseRows}
       showDesc={!isMobile && !compactGrid}
       style={{ height: rowHeight, minHeight: rowHeight, maxHeight: rowHeight }}

@@ -88,6 +88,7 @@ export function collectBookingFromForm(
     }>;
     _bookingPaymentMeta?: { createdAt?: string; checkOut?: string };
     _bookingExpectedPrepay?: number;
+    _bookingAssignmentState?: "assigned" | "holding";
   };
   const paymentsForSave = buildPaymentsForSave({
     journalPayments: w._bookingPayments || [],
@@ -133,6 +134,7 @@ export function collectBookingFromForm(
     guests: getFormString("adminGuests"),
     pets: getFormString("adminPets"),
     source,
+    assignmentState: w._bookingAssignmentState || "assigned",
     status,
     totalPrice: getFormVal("adminTotalPrice"),
     prepayAmount: preserveExpectedPrepay
@@ -323,6 +325,8 @@ export function buildBookingRecordFromSave(
     checkOut: String(bookingData.checkOut || ""),
     cottage: String(bookingData.cottage || ""),
     roomId: bookingData.roomId as number | string | undefined,
+    assignmentState:
+      bookingData.assignmentState === "holding" ? "holding" : "assigned",
     status: String(bookingData.status || "Нова бронь"),
     name: String(bookingData.name || ""),
     phone: String(bookingData.phone || ""),

@@ -24,6 +24,7 @@ export function getBookedRanges(
   if (!room) return [];
   return bookings
     .filter((b) => {
+      if (b.assignmentState === "holding") return false;
       if (!bookingMatchesCottage(b, room)) return false;
       return !String(b.status).toLowerCase().includes("скас");
     })

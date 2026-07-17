@@ -1,3 +1,63 @@
+.timeline-room--holding,
+.timeline-row-bg--holding {
+  background: #fafaf5 !important;
+  border-top: 2px dashed #a3a37a !important;
+}
+.timeline-room--holding .timeline-room__name {
+  color: #6b6b3d;
+  font-weight: 800;
+}
+.booking-move-price-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(28, 25, 23, 0.22);
+}
+.booking-move-price-popover {
+  width: min(360px, 100%);
+  padding: 18px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(28, 25, 23, 0.2);
+}
+.booking-move-price-values {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 14px 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.booking-move-price-values span { color: #a8a29e; }
+.booking-move-price-actions { display: flex; gap: 8px; }
+.booking-move-price-actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+}
+.booking-move-price-actions button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+@media (max-width: 700px) {
+  .booking-move-price-overlay {
+    align-items: flex-end;
+    padding: 12px;
+  }
+  .booking-move-price-popover {
+    border-radius: 20px;
+    padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+}
 /* Shared UI used by desktop + mobile admin (no sidebar/shell) */
 
         .branding-settings-grid {

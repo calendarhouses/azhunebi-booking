@@ -235,6 +235,8 @@ export function useBookingDrawer({
 
   const syncCottageUi = useCallback(
     (roomName: string) => {
+      const holding = roomName === "Нерозподілені";
+      window._bookingAssignmentState = holding ? "holding" : "assigned";
       const room = roomsList.find((r) => r.name === roomName);
       setForm((prev) => {
         const { adults, children: rawChildren } = clampOccupantsForRoom(
@@ -248,7 +250,7 @@ export function useBookingDrawer({
           ...prev,
           cottage: roomName,
           cottageLabel: roomName ? formatRoomDisplayLabel(roomName, room?.desc) : "Оберіть котедж",
-          roomId: room?.id ?? null,
+          roomId: holding ? null : room?.id ?? null,
           guests: adults,
           children,
         };
@@ -267,7 +269,7 @@ export function useBookingDrawer({
             ? active
             : roomsList;
       renderCottageOptions(
-        list.map((r) => ({ name: r.name, desc: r.desc })),
+        [...list.map((r) => ({ name: r.name, desc: r.desc })), { name: "Нерозподілені", desc: "Без будинку" }],
         (name, display) => {
           selectOption("cottageWrapper", "adminCottage", name, null, display);
           syncCottageUi(name);
@@ -308,9 +310,12 @@ export function useBookingDrawer({
       setInitialPayment({ prepay: 0, surcharge: 0, prepayMethod: "ФОП", surchargeMethod: "Готівка" });
       window._bookingOpenPayments = { prepay: 0, surcharge: 0 };
       window._bookingExpectedPrepay = 0;
+      window._bookingAssignmentState =
+        prefillRoom === "Нерозподілені" ? "holding" : "assigned";
 
       const activeRooms = roomsList.filter((r) => r.active);
       const defaultRoom = prefillRoom || activeRooms[0]?.name || "";
+      const isHolding = defaultRoom === "Нерозподілені";
       const defaultRoomConfig =
         activeRooms.find((r) => r.name === defaultRoom) ?? activeRooms[0] ?? null;
 
@@ -330,7 +335,7 @@ export function useBookingDrawer({
         cottageLabel: defaultRoom
           ? formatRoomDisplayLabel(defaultRoom, defaultRoomConfig?.desc)
           : "Оберіть котедж",
-        roomId: defaultRoomConfig?.id ?? null,
+        roomId: isHolding ? null : defaultRoomConfig?.id ?? null,
         checkIn,
         checkOut,
         specialTariffs: defaultSpecialTariffState(specialTariffToggles),
@@ -377,7 +382,10 @@ export function useBookingDrawer({
 
       const parsed = parseBookingComment(booking.comment || "", specialTariffToggles);
       const matchedRoom = findRoomForBooking(booking, roomsList);
-      const savedRoom = matchedRoom?.name || String(booking.cottage || "");
+      const savedRoom =
+        booking.assignmentState === "holding"
+          ? "Нерозподілені"
+          : matchedRoom?.name || String(booking.cottage || "");
       const room = matchedRoom ?? roomsList.find((r) => r.name === savedRoom);
       const legacyServices = migrateLegacyServiceSelection(
         settings.customServicesList || [],
@@ -407,6 +415,8 @@ export function useBookingDrawer({
       });
       window._bookingOpenPayments = { prepay: savedPrepay, surcharge: savedSurcharge };
       window._bookingExpectedPrepay = Number(booking.prepayAmount) || 0;
+      window._bookingAssignmentState =
+        booking.assignmentState === "holding" ? "holding" : "assigned";
       window._bookingPayments = savedPayments;
       window._bookingPaymentMeta = {
         createdAt: String(booking.createdAt || booking.checkIn || "").substring(0, 10),
@@ -752,6 +762,7 @@ declare global {
   interface Window {
     _bookingOpenPayments?: { prepay: number; surcharge: number };
     _bookingExpectedPrepay?: number;
+    _bookingAssignmentState?: "assigned" | "holding";
     _bookingPayments?: import("./types").BookingPayment[];
     _bookingPaymentMeta?: { createdAt?: string; checkOut?: string };
     openNewBookingDrawer?: (

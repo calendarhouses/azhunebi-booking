@@ -13,7 +13,10 @@ function getChart(): ChartConstructor | null {
   return Chart || null;
 }
 
-const BOSO_COLORS = ["#556B2F", "#D2B48C", "#2C2C2C", "#8FBC8F", "#BC8F8F", "#A9A9A9"];
+const BOSO_COLORS = [
+  "#556B2F", "#D2B48C", "#2C2C2C", "#8FBC8F", "#BC8F8F",
+  "#A9A9A9", "#7C3AED", "#0EA5E9", "#F59E0B", "#EC4899",
+];
 
 let roomsChartInstance: ChartInstance | null = null;
 let sourceChartInstance: ChartInstance | null = null;

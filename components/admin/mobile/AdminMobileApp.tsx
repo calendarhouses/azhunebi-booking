@@ -173,6 +173,7 @@ export function AdminMobileApp() {
                 layout="mobile"
                 roomsList={admin.settings.roomsList}
                 bookings={admin.bookings}
+                settings={admin.settings}
                 onOpenBooking={drawer.openDetailsByRow}
                 onCreateBooking={(room, checkIn, checkOut) =>
                   drawer.openNewBookingDrawer(room, checkIn, checkOut)

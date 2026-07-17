@@ -106,7 +106,7 @@ export const TimelineGridRow = memo(function TimelineGridRow({
 }: TimelineGridRowProps) {
   return (
     <div
-      className={`timeline-row-bg${isVirtualTimeline ? " timeline-row-bg--virtual" : ""}`}
+      className={`timeline-row-bg${isVirtualTimeline ? " timeline-row-bg--virtual" : ""}${roomName === "Нерозподілені" ? " timeline-row-bg--holding" : ""}`}
       id={`grid-row-${rowIndex}`}
       style={{
         position: "relative",

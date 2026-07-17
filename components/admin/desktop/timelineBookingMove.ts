@@ -9,6 +9,22 @@ export function getTimelineRowHeight(focusLayout: boolean): number {
   return focusLayout ? TIMELINE_ROW_HEIGHT_COMPACT : TIMELINE_ROW_HEIGHT;
 }
 export const BOOKING_MOVE_THRESHOLD = 5;
+export const HOLDING_ROOM_ID = -999999;
+export const HOLDING_ROOM: RoomConfig = {
+  id: HOLDING_ROOM_ID,
+  name: "Нерозподілені",
+  short: "Нерозподілені",
+  desc: "Без призначеного будинку",
+  active: true,
+  capacity: 99,
+  maxCapacity: 99,
+  priceWeekday: 0,
+  priceWeekend: 0,
+};
+
+export function isHoldingRoom(room: RoomConfig): boolean {
+  return room.id === HOLDING_ROOM_ID;
+}
 
 export type BookingMoveSession = {
   booking: BookingRecord;
@@ -37,6 +53,9 @@ export function shiftDateKey(dateKey: string, deltaDays: number): string {
 }
 
 export function resolveActiveRoomIndex(booking: BookingRecord, activeRooms: RoomConfig[]): number {
+  if (booking.assignmentState === "holding") {
+    return activeRooms.findIndex(isHoldingRoom);
+  }
   const room = findRoomForBooking(booking, activeRooms);
   if (!room) return -1;
   return activeRooms.findIndex((r) => r.id === room.id);
@@ -63,8 +82,9 @@ export function buildBookingMovePayload(
     ...booking,
     checkIn,
     checkOut,
-    cottage: room.name,
-    roomId: room.id,
+    cottage: isHoldingRoom(room) ? "" : room.name,
+    roomId: isHoldingRoom(room) ? "" : room.id,
+    assignmentState: isHoldingRoom(room) ? "holding" : "assigned",
     row: booking.row,
     id: booking.id != null && String(booking.id).trim() !== "" ? String(booking.id).trim() : booking.id,
     name: booking.name,
@@ -81,7 +101,8 @@ export function applyBookingMove(
     ...booking,
     checkIn,
     checkOut,
-    cottage: room.name,
-    roomId: room.id,
+    cottage: isHoldingRoom(room) ? "" : room.name,
+    roomId: isHoldingRoom(room) ? "" : room.id,
+    assignmentState: isHoldingRoom(room) ? "holding" : "assigned",
   };
 }

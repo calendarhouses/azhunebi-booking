@@ -5,6 +5,7 @@ import { Clock3, Home, PawPrint, Percent, Tag, Users } from "lucide-react";
 import { BookingQuickEditDrawer } from "../mobile/BookingQuickEditDrawer";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 import { useMobileUi } from "../mobile/MobileUiContext";
+import { HOLDING_ROOM } from "./timelineBookingMove";
 import { nightWord } from "./adminPlural";
 import { showToast } from "./adminGlobals";
 import type {
@@ -151,7 +152,10 @@ export function BookingPriceCalculator({
   const [editedDiscountIds, setEditedDiscountIds] = useState<Set<string>>(() => new Set());
 
   const room = useMemo(
-    () => (settings.roomsList || []).find((r) => r.name === form.cottage),
+    () =>
+      form.cottage === "Нерозподілені"
+        ? HOLDING_ROOM
+        : (settings.roomsList || []).find((r) => r.name === form.cottage),
     [settings.roomsList, form.cottage]
   );
 
@@ -176,6 +180,12 @@ export function BookingPriceCalculator({
     }
     return bookings.find((b) => String(b.row) === String(editingRow)) ?? null;
   }, [bookings, editingRow, editingBookingId]);
+
+  useEffect(() => {
+    if (form.cottage === "Нерозподілені" && savedBooking) {
+      setTotalOverride(Number(savedBooking.totalPrice) || 0);
+    }
+  }, [form.cottage, savedBooking]);
 
   const activeSpecialTariffIds = useMemo(
     () => pickEnabledSpecialTariffIds(form.specialTariffs || {}),

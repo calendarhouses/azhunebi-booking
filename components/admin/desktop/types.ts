@@ -164,6 +164,7 @@ export interface BookingRecord {
   id: string;
   /** Стабільний id житла з tenant_settings.roomsList — не змінюється при перейменуванні */
   roomId?: number | string;
+  assignmentState?: "assigned" | "holding";
   checkIn: string;
   checkOut: string;
   cottage: string;

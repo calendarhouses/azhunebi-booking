@@ -309,7 +309,10 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         toastImpl("Оберіть дату заїзду та виїзду");
         return;
       }
-      if (!String(bookingData.cottage || "").trim()) {
+      if (
+        bookingData.assignmentState !== "holding" &&
+        !String(bookingData.cottage || "").trim()
+      ) {
         toastImpl("Оберіть котедж або додайте його в Налаштування → Котеджі");
         return;
       }

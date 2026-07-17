@@ -4,7 +4,9 @@ export const ADMIN_SELECTABLE_SOURCES = [
   "Адмінка",
   "Instagram",
   "Telegram",
-  "Телефон",
+  "Viber",
+  "Booking",
+  "TikTok",
 ] as const;
 
 export function toggleCustomSelect(wrapperId: string): void {
@@ -64,6 +66,7 @@ export function setBookingSourceDefault(): void {
 export function setBookingSourceFromSaved(savedSource: string): void {
   let src = savedSource || "Адмінка";
   if (src === "Telegram Бот") src = "Telegram";
+  if (src === "Телефон") src = "Адмінка";
   const wrapper = document.getElementById("sourceWrapper");
 
   if (src === "Сайт") {
