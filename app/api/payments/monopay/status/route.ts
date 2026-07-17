@@ -27,6 +27,16 @@ export async function GET(request: Request) {
       ok: true,
       paid: status === "Підтверджено",
       awaiting: isAwaitingPaymentStatus(status),
+      booking: {
+        orderId,
+        cottage: result.booking.cottage,
+        checkIn: result.booking.checkIn,
+        checkOut: result.booking.checkOut,
+        totalPrice: result.booking.totalPrice,
+        prepayment: result.booking.paidAmount || result.booking.prepayAmount,
+        paidAmount: result.booking.paidAmount || result.booking.prepayAmount,
+        flow: "instant" as const,
+      },
     },
     { headers: { "Cache-Control": "no-store" } }
   );

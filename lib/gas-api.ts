@@ -522,6 +522,7 @@ type GasBookingRecord = {
   checkIn?: string;
   checkOut?: string;
   prepayAmount?: number;
+  paidAmount?: number;
   totalPrice?: number;
   status?: string;
   comment?: string;

@@ -46,7 +46,6 @@ export async function POST(request: Request) {
   }
 
   const publicOrigin = getPublicOrigin();
-  const encodedOrderId = encodeURIComponent(orderId);
   const testAmountUah = getMonoTestAmountUah();
   const chargeAmountUah = resolveMonoChargeAmountUah(amountUah);
 
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
       destination: `${testAmountUah ? "Тестова оплата за" : "Передплата за"} ${
         booking.cottage || "бронювання"
       }`,
-      redirectUrl: `${publicOrigin}/pay/${encodedOrderId}?payment=return`,
+      redirectUrl: `${publicOrigin}/?payment=return&orderId=${encodeURIComponent(orderId)}`,
       webHookUrl: `${publicOrigin}/api/webhooks/monopay`,
     });
 

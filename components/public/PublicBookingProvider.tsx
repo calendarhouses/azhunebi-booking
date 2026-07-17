@@ -256,7 +256,67 @@ export function PublicBookingProvider({
   }, [data]);
 
   useEffect(() => {
+    const paymentReturn = searchParams.get("payment") === "return";
+    const returnedOrderId = searchParams.get("orderId")?.trim() || "";
     const submittedPending = searchParams.get("submitted") === "pending";
+
+    if (paymentReturn && returnedOrderId) {
+      // Hide technical Mono redirect parameters immediately.
+      window.history.replaceState(null, "", "/");
+      let cancelled = false;
+      let attempt = 0;
+
+      const confirmPayment = async () => {
+        attempt += 1;
+        try {
+          const response = await fetch(
+            `/api/payments/monopay/status?orderId=${encodeURIComponent(returnedOrderId)}`,
+            { cache: "no-store" }
+          );
+          const result = (await response.json()) as {
+            paid?: boolean;
+            awaiting?: boolean;
+            booking?: import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData;
+          };
+          if (cancelled) return;
+
+          if (response.ok && result.paid) {
+            const raw = sessionStorage.getItem("lastBooking");
+            const booking = raw
+              ? (JSON.parse(
+                  raw
+                ) as import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData)
+              : result.booking;
+            if (!booking) return;
+
+            booking.flow = "instant";
+            setSuccessFlow("instant");
+            setSuccessReceiptHtml(buildPublicReceiptHtml(booking));
+            setActiveScreen("success");
+            return;
+          }
+
+          if (response.ok && result.awaiting === false) {
+            showPublicToast("Оплату не підтверджено. Спробуйте ще раз.");
+            return;
+          }
+        } catch {
+          // Webhook may still be in transit; retry below.
+        }
+
+        if (!cancelled && attempt < 15) {
+          window.setTimeout(confirmPayment, 1_500);
+        } else if (!cancelled) {
+          showPublicToast("Оплата ще обробляється. Перевірте бронювання за кілька хвилин.");
+        }
+      };
+
+      void confirmPayment();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!submittedPending) return;
 
     setActiveScreen("success");
@@ -861,6 +921,9 @@ export function PublicBookingProvider({
         if (paymentAmount > 0) {
           try {
             const invoice = await createMonoPayment(orderId);
+            sessionData.prepayment = invoice.amount;
+            sessionData.paidAmount = invoice.amount;
+            sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
             window.location.assign(invoice.pageUrl);
           } catch {
             showPublicToast(

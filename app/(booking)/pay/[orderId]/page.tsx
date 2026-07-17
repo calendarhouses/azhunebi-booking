@@ -1,5 +1,4 @@
-import { notFound } from "next/navigation";
-import { MonoPaymentReturn } from "@/components/public/MonoPaymentReturn";
+import { notFound, redirect } from "next/navigation";
 import { PayBookingPage } from "@/components/public/PayBookingPage";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { fetchBookingByDisplayId } from "@/lib/gas-api";
@@ -30,7 +29,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   if (!id) notFound();
 
   if (payment === "return") {
-    return <MonoPaymentReturn orderId={id} />;
+    redirect(`/?payment=return&orderId=${encodeURIComponent(id)}`);
   }
 
   const result = await fetchBookingByDisplayId(id);
