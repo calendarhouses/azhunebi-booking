@@ -57,7 +57,7 @@ export function resolveActiveRoomIndex(booking: BookingRecord, activeRooms: Room
     return activeRooms.findIndex(isHoldingRoom);
   }
   const room = findRoomForBooking(booking, activeRooms);
-  if (!room) return -1;
+  if (!room) return activeRooms.findIndex(isHoldingRoom);
   return activeRooms.findIndex((r) => r.id === room.id);
 }
 

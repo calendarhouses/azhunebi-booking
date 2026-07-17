@@ -10,7 +10,6 @@ import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms"
 import { TimelineGridRow } from "../TimelineGridCells";
 import {
   bookingHasEarlyLate,
-  createOrphanTimelineRoom,
   displayClientName,
   findRoomForBooking,
   formatDateKey,
@@ -425,7 +424,6 @@ export function DesktopTimelineView({
 
   const gridByRoom = useMemo(() => {
     const byRoomId = new Map<number, BookingRecord[]>();
-    const orphanByCottage = new Map<string, BookingRecord[]>();
 
     for (const room of timelineRooms) {
       byRoomId.set(Number(room.id), []);
@@ -443,10 +441,9 @@ export function DesktopTimelineView({
         continue;
       }
 
-      const cottageKey = String(b.cottage || "Без котеджу").trim() || "Без котеджу";
-      const orphanList = orphanByCottage.get(cottageKey) ?? [];
-      orphanList.push(b);
-      orphanByCottage.set(cottageKey, orphanList);
+      // A booking whose room was deleted becomes unassigned instead of
+      // resurrecting the removed room as an extra timeline row.
+      byRoomId.get(Number(HOLDING_ROOM.id))?.push(b);
     }
 
     const rows = activeRooms.map((room) => ({
@@ -461,15 +458,6 @@ export function DesktopTimelineView({
       isOrphan: false,
     }));
 
-    let orphanIndex = 0;
-    for (const [cottageName, orphanBookings] of orphanByCottage) {
-      const orphanRoom = createOrphanTimelineRoom(cottageName, orphanIndex++);
-      rows.push({
-        room: orphanRoom,
-        blocks: buildBookingBlocks(orphanRoom, orphanBookings, startDate, daysCount, cellWidth),
-        isOrphan: true,
-      });
-    }
     rows.push({
       room: HOLDING_ROOM,
       blocks: buildBookingBlocks(
