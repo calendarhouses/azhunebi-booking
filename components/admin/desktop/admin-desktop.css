@@ -4628,3 +4628,45 @@ input[type="number"] {
             border-color: #6B8E4E;
             box-shadow: 0 0 0 3px rgba(107, 142, 78, 0.14);
         }
+
+.booking-move-price-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(28, 25, 23, 0.22);
+}
+.booking-move-price-popover {
+  width: min(360px, 100%);
+  padding: 18px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(28, 25, 23, 0.2);
+}
+.booking-move-price-values {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 14px 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.booking-move-price-values span { color: #a8a29e; }
+.booking-move-price-actions { display: flex; gap: 8px; }
+.booking-move-price-actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+}
+.booking-move-price-actions button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}

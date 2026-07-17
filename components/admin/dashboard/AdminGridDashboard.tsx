@@ -3,7 +3,11 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { DesktopTimelineView } from "@/components/admin/desktop/views/DesktopTimelineView";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "@/components/admin/desktop/types";
-import { bookingMoveKey, isHoldingRoom } from "@/components/admin/desktop/timelineBookingMove";
+import {
+  applyBookingMove,
+  bookingMoveKey,
+  isHoldingRoom,
+} from "@/components/admin/desktop/timelineBookingMove";
 import { quoteMovedBooking } from "@/components/admin/desktop/bookingMovePricing";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 
@@ -85,6 +89,18 @@ export function AdminGridDashboard({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   });
+  const displayBookings = pendingMove
+    ? (bookings || []).map((booking) =>
+        bookingMoveKey(booking) === bookingMoveKey(pendingMove.booking)
+          ? applyBookingMove(
+              booking,
+              pendingMove.room,
+              pendingMove.checkIn,
+              pendingMove.checkOut
+            )
+          : booking
+      )
+    : bookings;
 
   return (
     <div
@@ -103,7 +119,7 @@ export function AdminGridDashboard({
             ...(isMobile ? { flex: "1 1 0%", minHeight: 0 } : {}),
           }}
           roomsList={roomsList}
-          bookings={bookings}
+          bookings={displayBookings}
           onOpenBooking={onOpenBooking}
           onCreateBooking={onCreateBooking}
           onNewBooking={onNewBooking}
