@@ -4,6 +4,11 @@ export type MonoInvoiceCreateResponse = {
   appUrl?: string;
 };
 
+export type MonoInvoiceStatusResponse = MonoWebhookPayload & {
+  invoiceId: string;
+  status: string;
+};
+
 export type MonoWebhookPayload = {
   invoiceId?: string;
   status?: string;

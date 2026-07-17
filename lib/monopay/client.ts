@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getMonoApiOrigin, requireMonoAcquiringToken } from "./config";
-import type { MonoInvoiceCreateResponse } from "./types";
+import type { MonoInvoiceCreateResponse, MonoInvoiceStatusResponse } from "./types";
 
 type MonoErrorBody = {
   errCode?: string;
@@ -52,6 +52,7 @@ export async function createMonoInvoice(params: {
   destination: string;
   redirectUrl: string;
   webHookUrl: string;
+  validitySeconds: number;
 }): Promise<MonoInvoiceCreateResponse> {
   const amount = Math.round(params.amountUah * 100);
   if (!Number.isSafeInteger(amount) || amount <= 0) {
@@ -73,7 +74,7 @@ export async function createMonoInvoice(params: {
       },
       redirectUrl: params.redirectUrl,
       webHookUrl: params.webHookUrl,
-      validity: 24 * 60 * 60,
+      validity: Math.max(60, Math.min(24 * 60 * 60, Math.floor(params.validitySeconds))),
       paymentType: "debit",
     }),
     cache: "no-store",
@@ -85,6 +86,19 @@ export async function createMonoInvoice(params: {
     throw new MonoApiError("Mono acquiring returned an invalid invoice", 502);
   }
   return data;
+}
+
+export async function getMonoInvoiceStatus(
+  invoiceId: string
+): Promise<MonoInvoiceStatusResponse> {
+  const url = new URL(`${getMonoApiOrigin()}/api/merchant/invoice/status`);
+  url.searchParams.set("invoiceId", invoiceId);
+  const response = await fetch(url, {
+    headers: { "X-Token": requireMonoAcquiringToken() },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  return readMonoResponse<MonoInvoiceStatusResponse>(response);
 }
 
 let cachedPublicKeyBase64: string | null = null;

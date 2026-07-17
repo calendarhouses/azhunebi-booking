@@ -514,7 +514,7 @@ export async function getBookingStatusByDisplayId(
   }
 }
 
-type GasBookingRecord = {
+export type GasBookingRecord = {
   id?: string;
   name?: string;
   phone?: string;
@@ -526,6 +526,14 @@ type GasBookingRecord = {
   totalPrice?: number;
   status?: string;
   comment?: string;
+  source?: string;
+  paymentExpiresAt?: string;
+  expiredAt?: string;
+  monoInvoiceId?: string;
+  monoPageUrl?: string;
+  paymentLinkSmsSentAt?: string;
+  successSmsSentAt?: string;
+  expirySmsSentAt?: string;
 };
 
 function reviewWebhookSecret(): string {
@@ -553,6 +561,59 @@ export async function fetchBookingByDisplayId(orderId: string): Promise<{
       reason: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+function paymentLifecycleSecret(): string {
+  return reviewWebhookSecret();
+}
+
+export async function storeMonoInvoice(params: {
+  orderId: string;
+  invoiceId: string;
+  pageUrl: string;
+}): Promise<{ ok: boolean; stored?: boolean; booking?: GasBookingRecord; reason?: string }> {
+  return gasPost({
+    action: "storeMonoInvoice",
+    ...params,
+    webhookSecret: paymentLifecycleSecret(),
+  });
+}
+
+export async function listPaymentLifecycle(): Promise<{
+  ok: boolean;
+  due?: GasBookingRecord[];
+  pendingSms?: GasBookingRecord[];
+  reason?: string;
+}> {
+  return gasPost({
+    action: "listPaymentLifecycle",
+    webhookSecret: paymentLifecycleSecret(),
+  });
+}
+
+export async function expireBookingPayment(orderId: string): Promise<{
+  ok: boolean;
+  expired?: boolean;
+  booking?: GasBookingRecord;
+  reason?: string;
+}> {
+  return gasPost({
+    action: "expireBookingPayment",
+    orderId,
+    webhookSecret: paymentLifecycleSecret(),
+  });
+}
+
+export async function markBookingSmsSent(
+  orderId: string,
+  smsType: "payment_link" | "success" | "expiry"
+): Promise<{ ok: boolean; reason?: string }> {
+  return gasPost({
+    action: "markBookingSmsSent",
+    orderId,
+    smsType,
+    webhookSecret: paymentLifecycleSecret(),
+  });
 }
 
 export async function reviewBookingDecision(params: {

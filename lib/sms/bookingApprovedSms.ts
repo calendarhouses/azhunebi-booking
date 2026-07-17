@@ -25,7 +25,7 @@ export function buildGuestApprovedSmsText(booking: GuestMessengerBooking): strin
   const payUrl = orderId ? buildGuestPaymentUrl(orderId) : "";
 
   const lines = [
-    `Вітаємо, ${firstName}! Бронь підтверджено.`,
+    `Вітаємо, ${firstName}! Заявку схвалено, дати зарезервовано для оплати на 3 години.`,
     `${booking.cottage || "Котедж"}, ${dates}.`,
   ];
 
@@ -53,6 +53,6 @@ export async function sendBookingApprovedSms(
   return sendTurboSms({
     phone,
     text,
-    sequenceId: orderId ? `approve-${orderId}` : undefined,
+    sequenceId: orderId ? `payment_link-${orderId}` : undefined,
   });
 }

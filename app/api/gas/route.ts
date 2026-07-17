@@ -159,6 +159,29 @@ export async function POST(request: Request) {
       });
     }
 
+    if (
+      upstream.ok &&
+      result?.success !== false &&
+      !result?.error &&
+      payload?.source === "Сайт" &&
+      !isPendingReview &&
+      result?.orderId
+    ) {
+      try {
+        const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }] =
+          await Promise.all([
+            import("@/lib/gas-api"),
+            import("@/lib/sms/bookingLifecycleSms"),
+          ]);
+        const bookingResult = await fetchBookingByDisplayId(String(result.orderId));
+        if (bookingResult.ok && bookingResult.booking) {
+          await sendBookingLifecycleSms(bookingResult.booking, "payment_link");
+        }
+      } catch (err) {
+        console.error("[GAS proxy] payment link SMS:", err);
+      }
+    }
+
     return NextResponse.json(result, { status: upstream.status });
   } catch (err) {
     return NextResponse.json(

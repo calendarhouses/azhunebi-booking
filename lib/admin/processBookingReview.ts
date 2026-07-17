@@ -2,9 +2,9 @@ import type { GuestMessengerBooking } from "@/lib/admin/guestMessengerLinks";
 import { fetchBookingByDisplayId, reviewBookingDecision } from "@/lib/gas-api";
 import {
   formatSmsStatusLine,
-  notifyGuestBookingApproved,
   notifyGuestBookingRejected,
 } from "@/lib/sms/notifyGuestBookingApproved";
+import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 
 export type BookingReviewDecision = "approve" | "reject";
 
@@ -96,7 +96,13 @@ export async function processBookingReview(params: {
   try {
     const notifyResult =
       params.decision === "approve"
-        ? await notifyGuestBookingApproved(guestBooking)
+        ? {
+            sms: await sendBookingLifecycleSms(
+              { ...bookingRaw, id: orderId },
+              "payment_link"
+            ),
+            smsSkipped: false,
+          }
         : await notifyGuestBookingRejected(guestBooking);
     return {
       ok: true,

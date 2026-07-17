@@ -7,6 +7,7 @@ import {
 import { verifyMonoWebhookSignature } from "@/lib/monopay/signature";
 import type { MonoWebhookPayload } from "@/lib/monopay/types";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
+import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 
 export const runtime = "nodejs";
 
@@ -106,6 +107,16 @@ export async function POST(request: Request) {
     invoiceId,
     updated: result.updated,
   });
+  const confirmedBooking = await fetchBookingByDisplayId(reference);
+  if (confirmedBooking.ok && confirmedBooking.booking) {
+    const sms = await sendBookingLifecycleSms(confirmedBooking.booking, "success");
+    if (!sms.ok) {
+      console.error("[MonoPay Webhook] Success SMS failed", {
+        reference,
+        error: sms.error || sms.responseStatus,
+      });
+    }
+  }
   return NextResponse.json({ ok: true });
 }
 
