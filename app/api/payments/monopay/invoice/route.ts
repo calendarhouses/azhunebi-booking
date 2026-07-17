@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const invoice = await createMonoInvoice({
       reference: orderId,
       amountUah,
-      destination: `Передплата за ${booking.cottage || "бронювання"}, № ${orderId}`,
+      destination: `Передплата за ${booking.cottage || "бронювання"}`,
       redirectUrl: `${publicOrigin}/pay/${encodedOrderId}?payment=return`,
       webHookUrl: `${publicOrigin}/api/webhooks/monopay`,
     });
