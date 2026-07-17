@@ -311,10 +311,10 @@ export function DesktopTimelineView({
     };
   }, [isMobile, mobileDense]);
 
-  /** Fixed dense row height — never shrink to “fit N houses” (looks like strips). */
+  /** Fixed dense row height — enough for premium two-line mobile cards. */
   const rowHeight = isMobile
     ? mobileDense
-      ? 44
+      ? 52
       : 60
     : getTimelineRowHeight(compactGrid);
   const [mode, setMode] = useState<TimelineMode>("month");
@@ -1391,7 +1391,7 @@ export function DesktopTimelineView({
                         : undefined
                     }
                   >
-                    {isMobile ? null : iconClock}
+                    {iconClock}
                   </div>
                 ))}
                 <TimelineBookingCardContent block={block} mobile={isMobile} compact={denseRows} />
@@ -1451,7 +1451,7 @@ export function DesktopTimelineView({
                 height: "100%",
               }}
             >
-              {isMobile ? null : iconClock}
+              {iconClock}
             </div>
           ))}
           <TimelineBookingCardContent
