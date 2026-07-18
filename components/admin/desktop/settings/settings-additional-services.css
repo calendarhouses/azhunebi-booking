@@ -252,6 +252,22 @@
   position: relative;
 }
 
+.svc-time-select .svc-field__select {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 40px 0 14px;
+  line-height: 48px;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: left;
+  color: var(--svc-stone-900);
+  background-color: var(--svc-stone-50);
+}
+
 .svc-field__suffix-wrap {
   position: relative;
 }
@@ -364,13 +380,19 @@
 }
 
 .svc-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
   width: 44px;
+  min-width: 44px;
   height: 26px;
   flex-shrink: 0;
   border: none;
   border-radius: 999px;
   background: var(--svc-stone-200);
   padding: 3px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -382,20 +404,24 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+  transform: none;
   transition: transform 0.2s var(--svc-ease);
 }
 
 .svc-switch.is-on {
   background: #6b8e4e;
+  justify-content: flex-end;
 }
 
 .svc-switch.is-on span {
-  transform: translateX(18px);
+  transform: none;
 }
 
 .svc-switch--sm {
   width: 38px;
+  min-width: 38px;
   height: 22px;
+  padding: 3px;
   pointer-events: none;
 }
 
@@ -405,7 +431,7 @@
 }
 
 .svc-switch--sm.is-on span {
-  transform: translateX(16px);
+  transform: none;
 }
 
 /* Catalog */
@@ -536,7 +562,7 @@
 .svc-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding: 16px;
   border: 1px solid var(--svc-stone-200);
   border-radius: 16px;
@@ -584,17 +610,20 @@
 .svc-card__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 2px 0;
 }
 
 .svc-tag {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 9px;
+  padding: 6px 11px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.2;
   background: var(--svc-stone-100);
   color: var(--svc-stone-700);
   border: 1px solid var(--svc-stone-200);
