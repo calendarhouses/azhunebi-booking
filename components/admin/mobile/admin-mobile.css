@@ -4488,6 +4488,16 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   padding: 0 16px 16px;
 }
 
+.boso-admin-mobile #view-settings .svc-accordion:not(.is-open) .svc-accordion__collapse {
+  overflow: hidden !important;
+  visibility: hidden !important;
+}
+
+.boso-admin-mobile #view-settings .svc-accordion:not(.is-open) .svc-accordion__panel {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 .boso-admin-mobile #view-settings .svc-accordion__section {
   padding: 15px 0;
 }
@@ -4565,19 +4575,27 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   height: 48px !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  padding-left: 14px !important;
+  padding-right: 40px !important;
   line-height: 48px !important;
   font-size: 16px !important;
   font-weight: 700 !important;
   font-variant-numeric: tabular-nums;
   border-radius: 14px !important;
   background: #f7f8f5 !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.boso-admin-mobile #view-settings .svc-field__suffix-wrap .svc-field__input[type="number"] {
+  /* iOS number fields otherwise hug the left edge */
+  padding-left: 14px !important;
 }
 
 .boso-admin-mobile #view-settings .svc-time-select .svc-field__select {
-  padding-left: 14px !important;
   padding-right: 40px !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
 }
 
 .boso-admin-mobile #view-settings .svc-accordion__footer .btn-primary {

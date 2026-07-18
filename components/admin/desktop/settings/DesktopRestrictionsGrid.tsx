@@ -10,6 +10,7 @@ import {
   type RefObject,
   type WheelEvent,
 } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { formatDateKey } from "../bookingUtils";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import {
@@ -95,7 +96,13 @@ function RuleGridCell({
     .filter(Boolean)
     .join(" ");
 
-  const cellStyle = { width, minWidth: width, height: "100%", alignSelf: "stretch" as const };
+  const cellStyle: CSSProperties = {
+    width,
+    minWidth: width,
+    height: "100%",
+    alignSelf: "stretch",
+    touchAction: "pan-x pan-y",
+  };
 
   return (
     <div
@@ -155,8 +162,11 @@ export function DesktopRestrictionsGrid({
   const isMobile = layout === "mobile";
   const [, bump] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const mobileDense = isMobile && isFocusMode;
+  /** Sticky head + body scroll is desktop-only; mobile keeps dates inside the same scroller. */
   const compactGrid = !isMobile && isFocusMode;
   const { setAuxiliaryFocusActive } = useGridFocusModeOptional();
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const headTrackRef = useRef<HTMLDivElement>(null);
   const sidebarBodyScrollRef = useRef<HTMLDivElement>(null);
@@ -272,6 +282,11 @@ export function DesktopRestrictionsGrid({
   );
 
   const columnWidths = useMemo(() => {
+    // Mobile: fixed day columns — avoids measured widths drifting past the dates header.
+    if (isMobile) {
+      return Array.from({ length: daysCount }, () => PRICE_CELL_MIN);
+    }
+
     const widths = Array.from({ length: daysCount }, () => PRICE_CELL_MIN);
 
     for (const room of activeRooms) {
@@ -282,7 +297,7 @@ export function DesktopRestrictionsGrid({
     }
 
     return widths;
-  }, [activeRooms, dayMeta, daysCount, settings]);
+  }, [isMobile, activeRooms, dayMeta, daysCount, settings]);
 
   columnWidthsRef.current = columnWidths;
 
@@ -290,6 +305,19 @@ export function DesktopRestrictionsGrid({
     () => columnWidths.reduce((sum, w) => sum + w, 0),
     [columnWidths]
   );
+
+  const handleMobileRestrictionScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Only pull back if we overscrolled past the real board (phantom empty columns).
+    const maxLeft = Math.max(0, gridTotalWidth + 88 - el.clientWidth);
+    if (el.scrollLeft > maxLeft + 1) el.scrollLeft = maxLeft;
+  }, [gridTotalWidth]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    handleMobileRestrictionScroll();
+  }, [isMobile, gridTotalWidth, activeRooms.length, mobileDense, handleMobileRestrictionScroll]);
 
   const shift = (months: number) => {
     baseDateRef.current.setMonth(baseDateRef.current.getMonth() + months);
@@ -325,8 +353,9 @@ export function DesktopRestrictionsGrid({
   }, [shift, resetToToday]);
 
   useEffect(() => {
-    if (isMobile) return;
-    settingsMainRef.current = document.querySelector(".main-content.main-content--settings");
+    settingsMainRef.current = document.querySelector(
+      isMobile ? ".main-content" : ".main-content.main-content--settings"
+    );
   }, [isMobile]);
 
   useEffect(() => {
@@ -373,18 +402,23 @@ export function DesktopRestrictionsGrid({
   }, [startDate, daysCount, compactGrid, syncFocusHeadTrack]);
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (compactGrid) {
+    if (isMobile || compactGrid) {
       return {
         horizontal: scrollRef.current,
         vertical: scrollRef.current,
-        verticalSync: sidebarBodyScrollRef.current,
+        verticalSync: compactGrid ? sidebarBodyScrollRef.current : null,
       };
     }
     return {
       horizontal: scrollRef.current,
       verticalPage: settingsMainRef.current,
     };
-  }, [compactGrid]);
+  }, [compactGrid, isMobile]);
+
+  const dragScrollOptions = useCallback(
+    () => ({ viewportEdges: isMobile }),
+    [isMobile]
+  );
 
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
@@ -401,8 +435,9 @@ export function DesktopRestrictionsGrid({
     }
 
     const targets = getDragScrollTargets();
+    const opts = dragScrollOptions();
     const { x, y } = lastPointerRef.current;
-    const nearEdge = isNearDragScrollEdge(x, y, targets);
+    const nearEdge = isNearDragScrollEdge(x, y, targets, opts);
     const moved =
       x !== lastDragFramePointerRef.current.x || y !== lastDragFramePointerRef.current.y;
 
@@ -413,14 +448,14 @@ export function DesktopRestrictionsGrid({
     lastDragFramePointerRef.current = { x, y };
 
     scrollSyncRef.current = true;
-    const scrolled = applyDragEdgeScroll(x, y, targets);
+    const scrolled = applyDragEdgeScroll(x, y, targets, opts);
     if (scrolled && compactGrid) {
       syncFocusHeadTrack(scrollRef.current?.scrollLeft ?? 0);
     }
     scrollSyncRef.current = false;
 
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragAutoScrollFrame);
-  }, [compactGrid, getDragScrollTargets, syncFocusHeadTrack]);
+  }, [compactGrid, getDragScrollTargets, dragScrollOptions, syncFocusHeadTrack]);
 
   const ensureDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) return;
@@ -554,7 +589,7 @@ export function DesktopRestrictionsGrid({
 
   const monthRow = (
     <div className="timeline-months" id="restrictionMonths">
-      <div className="timeline-month-cell" style={{ width: gridTotalWidth }}>
+      <div className="timeline-month-cell" style={{ width: isMobile ? "100%" : gridTotalWidth }}>
         {monthLabel}
       </div>
     </div>
@@ -626,115 +661,323 @@ export function DesktopRestrictionsGrid({
     .filter(Boolean)
     .join(" ");
 
-  const premiumStyle: CSSProperties | undefined = compactGrid
-    ? undefined
-    : {
-        ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
-        ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
-        ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
-        ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
-      };
+  const premiumStyle: CSSProperties | undefined = {
+    ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+    ...(isMobile
+      ? {
+          flex: "0 0 auto",
+          minWidth: 0,
+          width: "100%",
+          maxWidth: "100%",
+          display: "flex",
+          flexDirection: "column" as const,
+          overflow: "hidden",
+        }
+      : {}),
+    ...(compactGrid
+      ? {}
+      : mobileDense
+        ? {
+            ["--price-grid-month-h" as string]: "22px",
+            ["--price-grid-dates-h" as string]: "32px",
+            ["--price-grid-header-h" as string]: "54px",
+            ["--price-grid-row-h" as string]: "34px",
+            ["--timeline-room-height" as string]: "34px",
+            ["--timeline-row-height" as string]: "34px",
+            ["--timeline-sidebar-header-height" as string]: "54px",
+            ["--timeline-months-height" as string]: "22px",
+            ["--timeline-dates-height" as string]: "32px",
+          }
+        : {
+            ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
+            ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
+            ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
+            ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
+          }),
+  };
 
   return (
-    <div className={`price-grid-view${compactGrid ? " price-grid-view--focus" : ""}`}>
-      <div className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}`}>
-        <div className="price-grid-toolbar__nav">
-          <div className="timeline-nav">
-            <button type="button" className={`btn-icon${isMobile ? " tap-btn" : ""}`} onClick={() => shift(-1)}>
-              <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="timeline-month-label" id="restrictionMonthLabel">
-              {monthLabel}
-            </span>
-            <button type="button" className={`btn-icon${isMobile ? " tap-btn" : ""}`} onClick={() => shift(1)}>
-              <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-          <button
-            type="button"
-            className={`btn-secondary${isMobile ? " tap-btn" : ""}`}
-            onClick={resetToToday}
-          >
-            Поточний місяць
-          </button>
-        </div>
+    <div
+      ref={rootRef}
+      className={[
+        "price-grid-view",
+        compactGrid ? "price-grid-view--focus" : "",
+        mobileDense ? "price-grid-view--mobile-dense" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={
+        isMobile
+          ? {
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              flex: "0 0 auto",
+            }
+          : undefined
+      }
+    >
+      <div
+        className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}${mobileDense ? " timeline-toolbar--dense-focus" : ""}`}
+      >
+        {isMobile ? (
+          <>
+            <div className="price-grid-toolbar__nav-row" aria-hidden={mobileDense || undefined}>
+              <div className="timeline-nav">
+                <button
+                  type="button"
+                  className="btn-icon price-month-nav-btn"
+                  onClick={() => shift(-1)}
+                  aria-label="Попередній місяць"
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, padding: 0 }}
+                >
+                  <svg width={12} height={12} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="timeline-month-label" id="restrictionMonthLabel">
+                  {monthLabel}
+                </span>
+                <button
+                  type="button"
+                  className="btn-icon price-month-nav-btn"
+                  onClick={() => shift(1)}
+                  aria-label="Наступний місяць"
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, padding: 0 }}
+                >
+                  <svg width={12} height={12} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <button type="button" className="btn-secondary tap-btn" onClick={resetToToday}>
+                Поточний місяць
+              </button>
+            </div>
+            <div className="price-grid-toolbar__actions-row timeline-toolbar-actions">
+              <button
+                type="button"
+                className="btn-outline-danger tap-btn"
+                onClick={() => modals.clearRulesAlert()}
+              >
+                Очистити
+              </button>
+              <button
+                type="button"
+                className="btn-primary tap-btn"
+                onClick={() => modals.openRuleConstructor()}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Конструктор
+              </button>
+              <button
+                type="button"
+                className={`timeline-focus-toggle timeline-focus-toggle--toolbar tap-btn${mobileDense ? " is-active" : ""}`}
+                onClick={toggleFocusMode}
+                aria-pressed={mobileDense}
+                aria-label={mobileDense ? "Звичайний розмір шахматки" : "Розгорнути шахматку"}
+                title={mobileDense ? "Звичайний розмір" : "Розгорнути шахматку"}
+              >
+                {mobileDense ? (
+                  <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+                ) : (
+                  <Maximize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="price-grid-toolbar__nav">
+              <div className="timeline-nav">
+                <button type="button" className="btn-icon" onClick={() => shift(-1)}>
+                  <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="timeline-month-label" id="restrictionMonthLabel">
+                  {monthLabel}
+                </span>
+                <button type="button" className="btn-icon" onClick={() => shift(1)}>
+                  <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <button type="button" className="btn-secondary" onClick={resetToToday}>
+                Поточний місяць
+              </button>
+            </div>
 
-        <div className="price-grid-toolbar__actions">
-          <button
-            type="button"
-            className={`btn-outline-danger${isMobile ? " tap-btn" : ""}`}
-            onClick={() => modals.clearRulesAlert()}
-          >
-            {isMobile ? "Очистити" : "Видалити правила"}
-          </button>
-          <button
-            type="button"
-            className={`btn-primary${isMobile ? " tap-btn" : ""}`}
-            onClick={() => modals.openRuleConstructor()}
-          >
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Конструктор
-          </button>
-        </div>
+            <div className="price-grid-toolbar__actions">
+              <button
+                type="button"
+                className="btn-outline-danger"
+                onClick={() => modals.clearRulesAlert()}
+              >
+                Видалити правила
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => modals.openRuleConstructor()}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Конструктор
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div
-        className={`price-grid-premium${compactGrid ? " price-grid-premium--focus" : ""}`}
+        className={`price-grid-premium${compactGrid ? " price-grid-premium--focus" : ""}${isMobile ? " price-grid-premium--mobile" : ""}${mobileDense ? " price-grid-premium--mobile-dense" : ""}`}
         style={premiumStyle}
       >
-        <div className={wrapperClassName} id="restrictionTimelineWrapper" style={{ marginTop: 0 }}>
-          {compactGrid ? (
-            <>
-              <div className="timeline-focus-head">
-                <div className="timeline-sidebar timeline-sidebar--focus-head">
-                  {sidebarHeader}
-                </div>
-                <div className="timeline-grid-head">
-                  <div className="timeline-head-track" ref={headTrackRef}>
+        {isMobile ? (
+          <div
+            className={[
+              "timeline-wrapper",
+              "price-grid-timeline",
+              "timeline-wrapper--mobile-board",
+              "price-grid-timeline--mobile-board",
+              mobileDense ? "timeline-wrapper--mobile-dense price-grid-timeline--mobile-dense" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            id="restrictionTimelineWrapper"
+            style={
+              {
+                marginTop: 0,
+                width: "100%",
+                maxWidth: "100%",
+                minWidth: 0,
+                flex: "0 0 auto",
+                ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
+                ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+              } as CSSProperties
+            }
+          >
+            <div
+              className="timeline-mobile-scroll timeline-scroll-surface"
+              id="restrictionScroll"
+              ref={scrollRef}
+              onScroll={handleMobileRestrictionScroll}
+              style={{
+                width: "100%",
+                maxWidth: "100%",
+                minWidth: 0,
+                flex: "0 0 auto",
+                overflowX: "auto",
+                overflowY: "hidden",
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-x pan-y",
+                overscrollBehaviorX: "none",
+              }}
+            >
+              <div
+                className="timeline-mobile-board"
+                style={{
+                  width: gridTotalWidth + 88,
+                  minWidth: gridTotalWidth + 88,
+                  maxWidth: gridTotalWidth + 88,
+                  minHeight: 0,
+                  overflow: "hidden",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div className="timeline-mobile-head">
+                  <div className="timeline-mobile-corner">{sidebarHeader}</div>
+                  <div
+                    className="timeline-mobile-dates"
+                    style={{
+                      width: gridTotalWidth,
+                      minWidth: gridTotalWidth,
+                      maxWidth: gridTotalWidth,
+                    }}
+                  >
                     {monthRow}
                     {datesRow}
                   </div>
                 </div>
-              </div>
-              <div className="timeline-focus-body">
                 <div
-                  className="timeline-sidebar timeline-sidebar--focus-body"
-                  ref={sidebarBodyScrollRef}
-                  onScroll={handleSidebarBodyScroll}
+                  className="timeline-mobile-body"
+                  style={{
+                    width: gridTotalWidth + 88,
+                    minWidth: gridTotalWidth + 88,
+                    maxWidth: gridTotalWidth + 88,
+                  }}
                 >
+                  <div className="timeline-mobile-rooms">{roomRows}</div>
+                  <div
+                    className="timeline-mobile-cells"
+                    style={{
+                      width: gridTotalWidth,
+                      minWidth: gridTotalWidth,
+                      maxWidth: gridTotalWidth,
+                    }}
+                  >
+                    {gridRows}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={wrapperClassName} id="restrictionTimelineWrapper" style={{ marginTop: 0 }}>
+            {compactGrid ? (
+              <>
+                <div className="timeline-focus-head">
+                  <div className="timeline-sidebar timeline-sidebar--focus-head">
+                    {sidebarHeader}
+                  </div>
+                  <div className="timeline-grid-head">
+                    <div className="timeline-head-track" ref={headTrackRef}>
+                      {monthRow}
+                      {datesRow}
+                    </div>
+                  </div>
+                </div>
+                <div className="timeline-focus-body">
+                  <div
+                    className="timeline-sidebar timeline-sidebar--focus-body"
+                    ref={sidebarBodyScrollRef}
+                    onScroll={handleSidebarBodyScroll}
+                  >
+                    {roomRows}
+                  </div>
+                  <div
+                    className="timeline-grid-container timeline-scroll-surface"
+                    ref={scrollRef}
+                    id="restrictionScroll"
+                    onScroll={handleGridContainerScroll}
+                    onWheel={handleGridWheel}
+                  >
+                    {gridRows}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="timeline-sidebar price-grid-sidebar">
+                  {sidebarHeader}
                   {roomRows}
                 </div>
-                <div
-                  className="timeline-grid-container timeline-scroll-surface"
-                  ref={scrollRef}
-                  id="restrictionScroll"
-                  onScroll={handleGridContainerScroll}
-                  onWheel={handleGridWheel}
-                >
+                <div className="timeline-grid-container" ref={scrollRef} id="restrictionScroll">
+                  {monthRow}
+                  {datesRow}
                   {gridRows}
                 </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="timeline-sidebar price-grid-sidebar">
-                {sidebarHeader}
-                {roomRows}
-              </div>
-              <div className="timeline-grid-container" ref={scrollRef} id="restrictionScroll">
-                {monthRow}
-                {datesRow}
-                {gridRows}
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

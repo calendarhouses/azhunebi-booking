@@ -126,11 +126,16 @@
 .svc-accordion__collapse {
   display: grid;
   grid-template-rows: 0fr;
+  overflow: hidden;
   transition: grid-template-rows var(--svc-collapse-duration) var(--svc-ease);
 }
 
 .svc-accordion.is-open .svc-accordion__collapse {
   grid-template-rows: 1fr;
+}
+
+.svc-accordion:not(.is-open) .svc-accordion__collapse {
+  visibility: hidden;
 }
 
 .svc-accordion__panel {
@@ -140,6 +145,11 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.svc-accordion:not(.is-open) .svc-accordion__panel {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .svc-accordion.is-open .svc-accordion__panel {
@@ -273,6 +283,7 @@
 }
 
 .svc-field__suffix-wrap .svc-field__input {
+  padding-left: 14px;
   padding-right: 36px;
 }
 
