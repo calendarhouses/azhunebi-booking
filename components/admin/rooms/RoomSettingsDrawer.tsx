@@ -266,7 +266,14 @@ export function RoomSettingsDrawer({
               <CloseIcon />
             </button>
           </div>
-          <div className="room-settings-drawer__tabs mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Розділи котеджу">
+          <div
+            className={cn(
+              "room-settings-drawer__tabs mt-5",
+              isMobile ? "" : "flex flex-wrap gap-2"
+            )}
+            role="tablist"
+            aria-label="Розділи котеджу"
+          >
             {(["main", "amenities"] as RoomDrawerTab[]).map((t) => (
               <button
                 key={t}
@@ -274,7 +281,11 @@ export function RoomSettingsDrawer({
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => setTab(t)}
-                className={tab === t ? tabActiveClass : tabIdleClass}
+                className={cn(
+                  "room-settings-drawer__tab",
+                  tab === t && "is-active",
+                  !isMobile && (tab === t ? tabActiveClass : tabIdleClass)
+                )}
               >
                 {TAB_LABELS[t]}
               </button>

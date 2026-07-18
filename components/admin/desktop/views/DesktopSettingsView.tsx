@@ -177,6 +177,8 @@ export function DesktopSettingsView({
             onLogoPreviewChange={onLogoPreviewChange}
             onSettingsChange={onSettingsChange ?? (() => {})}
             isActive={activeTab === "branding"}
+            showAccountLogout={isMobile}
+            onLogout={onLogout}
           />
         </div>
         ) : null}
@@ -277,23 +279,6 @@ export function DesktopSettingsView({
         </div>
         ) : null}
       </div>
-      {isMobile ? (
-        <div className="mobile-settings-account">
-          <button
-            type="button"
-            className="btn-secondary mobile-logout-btn tap-btn"
-            onClick={() => {
-              if (onLogout) {
-                onLogout();
-                return;
-              }
-              (window as Window & { BosoAuth?: { logout?: () => void } }).BosoAuth?.logout?.();
-            }}
-          >
-            Вийти з акаунту
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -155,7 +155,7 @@ export function SettingsRoomTableRow({
   if (isMobile) {
     return (
       <tr
-        className="settings-rooms-row cursor-pointer"
+        className="settings-rooms-row settings-rooms-row--mobile cursor-pointer"
         role="button"
         tabIndex={0}
         onClick={() => modals.openRoomDrawer(room.id)}
@@ -163,16 +163,16 @@ export function SettingsRoomTableRow({
           openRoomFromRow(() => modals.openRoomDrawer(room.id), quickEdit, e)
         }
       >
-        <td>
+        <td className="settings-rooms-row__head">
           <button
             ref={nameAnchorRef}
             type="button"
-            className={`${ROOM_CHIP_CLASS.name}${chipLocked ? ` ${ROOM_CHIP_LOCKED_CLASS}` : ""}`}
+            className={`settings-rooms-card__name${chipLocked ? ` ${ROOM_CHIP_LOCKED_CLASS}` : ""}`}
             onClick={(e) => toggleQuickEdit("name", e)}
             tabIndex={chipLocked ? -1 : undefined}
             aria-disabled={chipLocked || undefined}
           >
-            <span className={ROOM_CHIP_ICON_CLASS.name} aria-hidden>
+            <span className="settings-rooms-card__name-icon" aria-hidden>
               <RoomSidebarHouseIcon className="w-full h-full" />
             </span>
             <span
@@ -181,13 +181,11 @@ export function SettingsRoomTableRow({
               {roomNameDisplay(room.name)}
             </span>
           </button>
-          <span className="mt-2 inline-block">
-            <RoomAvailabilityBadge
-              ref={statusAnchorRef}
-              room={room}
-              onClick={(e) => toggleQuickEdit("status", e)}
-            />
-          </span>
+          <RoomAvailabilityBadge
+            ref={statusAnchorRef}
+            room={room}
+            onClick={(e) => toggleQuickEdit("status", e)}
+          />
           <RoomNameQuickEditPopover
             open={quickEdit === "name"}
             onClose={() => setQuickEdit(null)}
@@ -203,17 +201,17 @@ export function SettingsRoomTableRow({
             onSelect={handleStatusSelect}
           />
         </td>
-        <td>
+        <td className="settings-rooms-row__meta">
           <button
             ref={capacityAnchorRef}
             type="button"
-            className={`${ROOM_CHIP_CLASS.capacity}${chipLocked ? ` ${ROOM_CHIP_LOCKED_CLASS}` : ""}`}
+            className={`settings-rooms-card__capacity${chipLocked ? ` ${ROOM_CHIP_LOCKED_CLASS}` : ""}`}
             onClick={(e) => toggleQuickEdit("capacity", e)}
             tabIndex={chipLocked ? -1 : undefined}
             aria-disabled={chipLocked || undefined}
           >
-            <span className={ROOM_CHIP_ICON_CLASS.capacity} aria-hidden>
-              <Users size={14} strokeWidth={2} />
+            <span className="settings-rooms-card__capacity-icon" aria-hidden>
+              <Users size={15} strokeWidth={2} />
             </span>
             {formatCapacityLabel(room)}
           </button>
@@ -225,13 +223,13 @@ export function SettingsRoomTableRow({
             onChange={(patch) => patchRoom(patch, { debounceMs: 400 })}
           />
         </td>
-        <td onClick={(e) => e.stopPropagation()}>
+        <td className="settings-rooms-row__action" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="btn-action tap-btn"
+            className="settings-rooms-card__edit tap-btn"
             onClick={() => modals.openRoomDrawer(room.id)}
           >
-            Редагувати котедж
+            Редагувати
           </button>
         </td>
       </tr>

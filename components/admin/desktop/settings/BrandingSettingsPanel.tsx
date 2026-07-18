@@ -41,6 +41,9 @@ type BrandingSettingsPanelProps = {
   onLogoPreviewChange?: (nextUrl: string | null) => void;
   /** Оновлювати title вкладки під час редагування назви (desktop: лише активна вкладка). */
   isActive?: boolean;
+  /** Мобільні налаштування: кнопка виходу лише в «Моя сторінка». */
+  showAccountLogout?: boolean;
+  onLogout?: () => void;
 };
 
 function readBranding(settings: AdminSettingsPayload): PublicBranding {
@@ -52,6 +55,8 @@ export function BrandingSettingsPanel({
   onSettingsChange,
   onLogoPreviewChange,
   isActive = true,
+  showAccountLogout = false,
+  onLogout,
 }: BrandingSettingsPanelProps) {
   const [form, setForm] = useState(() => readBranding(settings));
   const [saving, setSaving] = useState(false);
@@ -461,6 +466,24 @@ export function BrandingSettingsPanel({
             </button>
           </div>
         </div>
+
+        {showAccountLogout ? (
+          <div className="mobile-settings-account">
+            <button
+              type="button"
+              className="btn-secondary mobile-logout-btn tap-btn"
+              onClick={() => {
+                if (onLogout) {
+                  onLogout();
+                  return;
+                }
+                (window as Window & { BosoAuth?: { logout?: () => void } }).BosoAuth?.logout?.();
+              }}
+            >
+              Вийти з акаунту
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
