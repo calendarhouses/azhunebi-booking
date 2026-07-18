@@ -11,7 +11,7 @@ import {
   type RefObject,
   type WheelEvent,
 } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Trash2, Undo2 } from "lucide-react";
 import { formatDateKey } from "../bookingUtils";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import {
@@ -968,10 +968,27 @@ export function DesktopRestrictionsGrid({
             <div className="price-grid-toolbar__actions-row timeline-toolbar-actions">
               <button
                 type="button"
-                className="btn-outline-danger tap-btn"
-                onClick={() => modals.clearRulesAlert()}
+                className={`timeline-undo-btn timeline-undo-btn--toolbar tap-btn${adminUndo.isUndoing ? " timeline-undo-btn--busy" : ""}`}
+                onClick={() => adminUndo.undoLastInScope("restrictions")}
+                disabled={!adminUndo.undoAvailable.restrictions || adminUndo.isUndoing}
+                aria-label="Скасувати останню дію"
+                aria-busy={adminUndo.isUndoing}
+                title={
+                  adminUndo.undoAvailable.restrictions
+                    ? "Скасувати останню дію"
+                    : "Немає дій для скасування"
+                }
               >
-                Очистити
+                <Undo2 className="timeline-undo-btn__icon" strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="btn-outline-danger btn-icon-only price-grid-toolbar__clear-btn tap-btn"
+                onClick={() => modals.clearRulesAlert()}
+                aria-label="Очистити правила"
+                title="Очистити"
+              >
+                <Trash2 size={18} strokeWidth={2} aria-hidden />
               </button>
               <button
                 type="button"

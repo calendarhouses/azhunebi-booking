@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Trash2, Undo2 } from "lucide-react";
 import { formatDateKey } from "../bookingUtils";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import {
@@ -1167,10 +1167,27 @@ export function DesktopPriceGrid({
             <div className="price-grid-toolbar__actions-row timeline-toolbar-actions">
               <button
                 type="button"
-                className="btn-outline-danger tap-btn"
-                onClick={() => modals.clearPricesAlert()}
+                className={`timeline-undo-btn timeline-undo-btn--toolbar tap-btn${adminUndo.isUndoing ? " timeline-undo-btn--busy" : ""}`}
+                onClick={() => adminUndo.undoLastInScope("prices")}
+                disabled={!adminUndo.undoAvailable.prices || adminUndo.isUndoing}
+                aria-label="Скасувати останню дію"
+                aria-busy={adminUndo.isUndoing}
+                title={
+                  adminUndo.undoAvailable.prices
+                    ? "Скасувати останню дію"
+                    : "Немає дій для скасування"
+                }
               >
-                Очистити
+                <Undo2 className="timeline-undo-btn__icon" strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="btn-outline-danger btn-icon-only price-grid-toolbar__clear-btn tap-btn"
+                onClick={() => modals.clearPricesAlert()}
+                aria-label="Очистити ціни"
+                title="Очистити"
+              >
+                <Trash2 size={18} strokeWidth={2} aria-hidden />
               </button>
               <button
                 type="button"

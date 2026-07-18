@@ -3999,9 +3999,31 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   width: 100%;
 }
 
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .btn-outline-danger,
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .timeline-undo-btn--toolbar,
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .price-grid-toolbar__clear-btn,
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .timeline-focus-toggle--toolbar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .price-grid-toolbar__clear-btn {
+  border: 1px solid #f0c7c2;
+  background: #fff;
+  color: #c2413b;
+  box-shadow: none;
+}
+
 .boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .btn-primary {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 44px;
   margin: 0;
