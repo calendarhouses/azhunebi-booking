@@ -769,13 +769,10 @@ body.ready .bottom-nav,
 
 /* ── Stay filter (mobile list) ── */
 .stay-filter-shell--mobile {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  position: relative;
+  z-index: 3;
   padding: 8px 16px 12px;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: transparent;
 }
 
 .stay-filter--mobile .stay-filter__bar {

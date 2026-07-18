@@ -15,15 +15,20 @@
 /* Список котеджів без hero-банера (desktop) */
 .public-book-root.boso-public-desktop #cabinsContainer.page-wrap {
   max-width: 1400px;
-  width: calc(100% - 40px);
+  width: 100%;
   margin: 0 auto 100px;
-  padding: 48px 0 0;
+  padding: 36px 20px 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 80px;
   position: relative;
   z-index: 2;
   background: var(--bg);
+}
+
+.public-book-root.boso-public-desktop {
+  overflow-x: hidden;
 }
 
 /* Компактні картки котеджів (desktop) — фіксована висота як у BOSO */

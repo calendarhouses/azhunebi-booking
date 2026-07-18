@@ -14,12 +14,16 @@
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior: smooth; }
+html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+}
 body {
     font-family: 'Inter', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* ── АВТОМАТИЧНА КІНЕМАТОГРАФІЧНА МАСКА ── */
@@ -118,12 +122,15 @@ body {
 
 /* ── КОНТЕЙНЕР КАРТОК (Full Width як банер) ── */
 #cabinsContainer {
-    max-width: 1400px; /* РОЗШИРИЛИ ДО РОЗМІРУ БАНЕРА */
-    width: calc(100% - 40px);
+    max-width: 1400px;
+    width: 100%;
     margin: 0 auto 100px;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column; 
-    gap: 80px; /* Збільшили відступ між картками для повітря */
+    gap: 80px;
 }
 
 /* ── ПРЕМІУМ КАРТКА (Анімація та Шаховий порядок) ── */
@@ -1434,44 +1441,30 @@ body {
 /* ── Stay filter (list) ── */
 .stay-filter-shell {
   max-width: 1400px;
-  width: calc(100% - 40px);
+  width: 100%;
   margin: 0 auto;
-  padding: 48px 0 0;
+  padding: 48px 20px 0;
+  box-sizing: border-box;
   position: relative;
   z-index: 3;
 }
 
 .stay-filter {
   position: relative;
+  max-width: 100%;
 }
 
 .stay-filter__heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 18px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.stay-filter__heading-title {
+  margin: 0 0 20px;
+  padding: 0;
+  border: none;
+  text-align: center;
   font-family: 'Playfair Display', serif;
   font-weight: 500;
-  font-size: 22px;
-  line-height: 1.2;
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.35;
   color: var(--text);
   letter-spacing: -0.01em;
-  margin: 0;
-}
-
-.stay-filter__heading-sub {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--muted);
-  text-align: right;
-  max-width: 320px;
 }
 
 .stay-filter__bar {
@@ -1618,6 +1611,7 @@ button.stay-filter__field[aria-expanded="true"] {
   top: calc(100% + 12px);
   left: 0;
   width: min(420px, 100%);
+  max-width: calc(100vw - 40px);
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -1625,6 +1619,7 @@ button.stay-filter__field[aria-expanded="true"] {
   z-index: 40;
   box-shadow: 0 24px 60px rgba(26, 26, 26, 0.12);
   animation: stayFilterIn 0.22s ease;
+  box-sizing: border-box;
 }
 
 @keyframes stayFilterIn {
@@ -1792,15 +1787,6 @@ button.stay-filter__field[aria-expanded="true"] {
 }
 
 @media (max-width: 900px) {
-  .stay-filter__heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-  .stay-filter__heading-sub {
-    text-align: left;
-    max-width: none;
-  }
   .stay-filter__bar {
     grid-template-columns: 1fr 1fr;
   }
