@@ -1718,8 +1718,13 @@ export function DesktopTimelineView({
         className="btn-icon timeline-nav-arrow"
         onClick={() => shiftTimeline(-1)}
         aria-label="Попередній період"
+        style={
+          isMobile
+            ? { width: 28, height: 28, minWidth: 28, minHeight: 28, padding: 0 }
+            : undefined
+        }
       >
-        <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width={isMobile ? 12 : 14} height={isMobile ? 12 : 14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
         </svg>
       </button>
@@ -1734,8 +1739,13 @@ export function DesktopTimelineView({
         className="btn-icon timeline-nav-arrow"
         onClick={() => shiftTimeline(1)}
         aria-label="Наступний період"
+        style={
+          isMobile
+            ? { width: 28, height: 28, minWidth: 28, minHeight: 28, padding: 0 }
+            : undefined
+        }
       >
-        <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width={isMobile ? 12 : 14} height={isMobile ? 12 : 14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
         </svg>
       </button>

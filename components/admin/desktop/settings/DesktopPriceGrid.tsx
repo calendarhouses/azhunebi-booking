@@ -338,11 +338,29 @@ export function DesktopPriceGrid({
   const handleMobilePriceScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // Hard-clamp: never allow scrolling past the last day column (+ sidebar).
-    const boardWidth = gridTotalWidth + 88;
-    const maxLeft = Math.max(0, boardWidth - el.clientWidth);
+    // Always clamp to the intended board width (not measured scrollWidth — that can be inflated).
+    const expectedBoardW = gridTotalWidth + 88;
+    const board = el.querySelector(".timeline-mobile-board") as HTMLElement | null;
+    if (board) {
+      const w = `${expectedBoardW}px`;
+      if (board.style.width !== w) {
+        board.style.width = w;
+        board.style.minWidth = w;
+        board.style.maxWidth = w;
+      }
+    }
+    const maxLeft = Math.max(0, expectedBoardW - el.clientWidth);
+    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
     if (el.scrollLeft > maxLeft) el.scrollLeft = maxLeft;
+    if (el.scrollTop > maxTop) el.scrollTop = maxTop;
   }, [gridTotalWidth]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    handleMobilePriceScroll();
+  }, [isMobile, gridTotalWidth, activeRooms.length, mobileDense, handleMobilePriceScroll]);
 
   const handleGridContainerScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
@@ -1067,6 +1085,16 @@ export function DesktopPriceGrid({
 
   const premiumStyle: CSSProperties | undefined = {
     ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+    ...(isMobile && mobileDense
+      ? {
+          flex: "1 1 0%",
+          minHeight: 0,
+          height: 0,
+          display: "flex",
+          flexDirection: "column" as const,
+          overflow: "hidden",
+        }
+      : {}),
     ...(compactGrid
       ? {}
       : mobileDense
@@ -1099,6 +1127,18 @@ export function DesktopPriceGrid({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={
+        isMobile && mobileDense
+          ? {
+              flex: "1 1 0%",
+              minHeight: 0,
+              height: 0,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }
+          : undefined
+      }
     >
       <div
         className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}${mobileDense ? " timeline-toolbar--dense-focus" : ""}`}
@@ -1107,16 +1147,28 @@ export function DesktopPriceGrid({
           <>
             <div className="price-grid-toolbar__nav-row" aria-hidden={mobileDense || undefined}>
               <div className="timeline-nav">
-                <button type="button" className="btn-icon tap-btn" onClick={() => shift(-1)} aria-label="Попередній місяць">
-                  <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button
+                  type="button"
+                  className="btn-icon price-month-nav-btn"
+                  onClick={() => shift(-1)}
+                  aria-label="Попередній місяць"
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, padding: 0 }}
+                >
+                  <svg width={12} height={12} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <span className="timeline-month-label" id="priceMonthLabel">
                   {monthLabel}
                 </span>
-                <button type="button" className="btn-icon tap-btn" onClick={() => shift(1)} aria-label="Наступний місяць">
-                  <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button
+                  type="button"
+                  className="btn-icon price-month-nav-btn"
+                  onClick={() => shift(1)}
+                  aria-label="Наступний місяць"
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, padding: 0 }}
+                >
+                  <svg width={12} height={12} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -1226,6 +1278,16 @@ export function DesktopPriceGrid({
                 marginTop: 0,
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+                ...(mobileDense
+                  ? {
+                      flex: "1 1 0%",
+                      minHeight: 0,
+                      height: 0,
+                      display: "flex",
+                      flexDirection: "column" as const,
+                      overflow: "hidden",
+                    }
+                  : {}),
               } as CSSProperties
             }
           >
@@ -1234,6 +1296,24 @@ export function DesktopPriceGrid({
               id="priceScroll"
               ref={scrollRef}
               onScroll={handleMobilePriceScroll}
+              style={
+                mobileDense
+                  ? {
+                      flex: "1 1 0%",
+                      minHeight: 0,
+                      height: 0,
+                      overflow: "auto",
+                      WebkitOverflowScrolling: "touch",
+                      touchAction: "pan-x pan-y",
+                      overscrollBehavior: "contain",
+                    }
+                  : {
+                      overflowX: "auto",
+                      overflowY: "visible",
+                      touchAction: "pan-x pan-y",
+                      overscrollBehaviorX: "none",
+                    }
+              }
             >
               <div
                 className="timeline-mobile-board"
@@ -1241,6 +1321,8 @@ export function DesktopPriceGrid({
                   width: gridTotalWidth + 88,
                   minWidth: gridTotalWidth + 88,
                   maxWidth: gridTotalWidth + 88,
+                  overflow: "hidden",
+                  boxSizing: "border-box",
                 }}
               >
                 <div className="timeline-mobile-head">
