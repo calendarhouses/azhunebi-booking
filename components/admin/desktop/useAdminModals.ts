@@ -380,12 +380,12 @@ export function useAdminModals({
     setRoomAccordionKey((prev) => (prev === roomId ? null : roomId));
   }, []);
 
-  const addRoomDraft = useCallback(() => {
+  const addRoomDraft = useCallback((): number => {
     const prev = settingsRef.current;
     const existing = (prev.roomsList || []).find((r) => isRoomDraftId(r.id));
     if (existing) {
       setRoomAccordionKey(existing.id);
-      return;
+      return existing.id;
     }
     const draft = createDraftRoomConfig();
     const next: AdminSettingsPayload = {
@@ -396,6 +396,7 @@ export function useAdminModals({
     setSettings(next);
     syncLegacyGlobals({ bookings, settings: next });
     setRoomAccordionKey(draft.id);
+    return draft.id;
   }, [bookings, setSettings]);
 
   const discardRoomDraft = useCallback(
@@ -789,6 +790,7 @@ export function useAdminModals({
           (r) => String(r.id) !== String(resolvedId)
         );
         closeRoomAccordion();
+        closeRoomDrawer();
       } else if (resolvedType === "discount") {
         markDiscountDeleted(Number(resolvedId));
         next.discountsList = (snapshot.discountsList || []).filter(
@@ -840,7 +842,7 @@ export function useAdminModals({
         showToast("Не вдалося видалити");
       }
     },
-    [bookings, closeCustomConfirm, closeDiscountAccordion, closeRoomAccordion, editType, editId, persistSettings, setSettings]
+    [bookings, closeCustomConfirm, closeDiscountAccordion, closeRoomAccordion, closeRoomDrawer, editType, editId, persistSettings, setSettings]
   );
 
   const confirmDeleteGenericItemRef = useRef(confirmDeleteGenericItem);

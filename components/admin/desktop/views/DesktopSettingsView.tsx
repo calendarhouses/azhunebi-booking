@@ -195,7 +195,10 @@ export function DesktopSettingsView({
             <button
               type="button"
               className="btn-primary tap-btn"
-              onClick={() => modals.openRoomDrawer(null)}
+              onClick={() => {
+                const draftId = modals.addRoomDraft();
+                modals.openRoomDrawer(draftId);
+              }}
             >
               + Додати житло
             </button>

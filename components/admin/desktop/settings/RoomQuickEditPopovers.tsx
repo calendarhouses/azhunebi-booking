@@ -208,15 +208,26 @@ export function RoomStatusQuickEditPopover({
 
 export const RoomAvailabilityBadge = forwardRef<
   HTMLButtonElement,
-  { room: RoomConfig; onClick?: (e: MouseEvent<HTMLButtonElement>) => void }
->(function RoomAvailabilityBadge({ room, onClick }, ref) {
+  {
+    room: RoomConfig;
+    onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
+    className?: string;
+  }
+>(function RoomAvailabilityBadge({ room, onClick, className }, ref) {
   const status = getRoomAvailabilityStatus(room);
-  const className = status === "enabled" ? ROOM_ENABLED_BADGE_CLASS : ROOM_DISABLED_BADGE_CLASS;
+  const baseClass = status === "enabled" ? ROOM_ENABLED_BADGE_CLASS : ROOM_DISABLED_BADGE_CLASS;
+  const statusClass =
+    status === "enabled" ? "settings-rooms-card__status--on" : "settings-rooms-card__status--off";
   const dotClass = status === "enabled" ? "bg-olive-600" : "bg-red-400";
   const label = ROOM_STATUS_LABELS[status];
 
   return (
-    <button ref={ref} type="button" onClick={onClick} className={className}>
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className={`${baseClass} ${statusClass}${className ? ` ${className}` : ""}`}
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${dotClass} shrink-0`} aria-hidden />
       {label}
     </button>

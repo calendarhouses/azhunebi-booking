@@ -31,6 +31,11 @@ export type RoomSettingsAccordionProps = {
   room: RoomConfig | null;
   settings: AdminSettingsPayload;
   modals: AdminModalsApi;
+  /** Мобільний шит: закрити після успішного збереження / видалення. */
+  onSaved?: () => void;
+  onDeleted?: () => void;
+  /** Відкрити крок одразу (мобільний шит). */
+  initialStepId?: RoomSettingsStepId | null;
 };
 
 function Spinner() {
@@ -47,11 +52,16 @@ export function RoomSettingsAccordion({
   room,
   settings,
   modals,
+  onSaved,
+  onDeleted,
+  initialStepId,
 }: RoomSettingsAccordionProps) {
   const resolvedRoom =
     room ?? (settings.roomsList || []).find((r) => r.id === roomKey) ?? null;
 
-  const [activeStepId, setActiveStepId] = useState<RoomSettingsStepId | null>(null);
+  const [activeStepId, setActiveStepId] = useState<RoomSettingsStepId | null>(
+    () => initialStepId ?? null
+  );
   const [saving, setSaving] = useState(false);
 
   const initialDraft = resolvedRoom ? isRoomDraftId(resolvedRoom.id) : isRoomDraftId(roomKey);
@@ -113,7 +123,7 @@ export function RoomSettingsAccordion({
     hydratedKeyRef.current = hydrationKey;
 
     const draft = isRoomDraftId(resolvedRoom.id);
-    setActiveStepId(draft ? "info" : null);
+    setActiveStepId(draft ? "info" : (initialStepId ?? null));
 
     const cap = draft ? (resolvedRoom.capacity ?? 0) : Math.max(1, resolvedRoom.capacity || 2);
     const max = draft ? (resolvedRoom.maxCapacity ?? cap) : (resolvedRoom.maxCapacity ?? cap);
@@ -127,7 +137,7 @@ export function RoomSettingsAccordion({
     setPriceWeekday(String(resolvedRoom.priceWeekday || ""));
     setPriceWeekend(String(resolvedRoom.priceWeekend || ""));
     setLocalPhotos(resolvedRoom.photos ?? []);
-  }, [hydrationKey, resolvedRoom, roomKey]);
+  }, [hydrationKey, initialStepId, resolvedRoom, roomKey]);
 
   useEffect(() => {
     if (!isDraft || effectiveRoomId == null) return;
@@ -276,6 +286,7 @@ export function RoomSettingsAccordion({
       }
 
       showToast(isDraft ? "Житло створено" : "Зміни збережено");
+      onSaved?.();
     } catch (error) {
       console.error("[room-settings] save:", error);
       showToast("Не вдалося зберегти");
@@ -299,6 +310,7 @@ export function RoomSettingsAccordion({
   const handleDeleteRoom = () => {
     if (isDraft) {
       modals.discardRoomDraft(effectiveRoomId);
+      onDeleted?.();
       return;
     }
     modals.deleteGenericItem("room", effectiveRoomId);

@@ -41,15 +41,11 @@ export function DesktopModals({ modals, settings }: DesktopModalsProps) {
       <RoomSettingsDrawer
         open={modals.roomDrawerOpen}
         title={roomDrawerTitle}
-        initialTab={modals.roomDrawerInitialTab}
         roomId={modals.roomDrawerId}
-        roomForm={modals.roomForm}
-        saving={modals.roomPhotosBusy}
+        settings={settings}
+        modals={modals}
         loading={modals.roomDrawerLoading}
         onClose={modals.closeRoomDrawer}
-        onSave={modals.saveRoomDrawer}
-        onDelete={modals.deleteRoomDrawer}
-        onRoomFormChange={(updater) => modals.setRoomForm((prev) => updater(prev))}
       />
       <div
         id="genericModal"
