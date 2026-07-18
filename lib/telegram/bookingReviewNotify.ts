@@ -1,7 +1,11 @@
 import { processBookingReview } from "@/lib/admin/processBookingReview";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
-import { parsePendingServiceIdsFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import {
+  parseChildrenFromComment,
+  parsePendingServiceIdsFromComment,
+} from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { isTelegramConfigured } from "./config";
 import {
   answerTelegramCallback,
@@ -108,12 +112,16 @@ export function buildPendingReviewCaption(data: PendingReviewNotifyInput): strin
   const prepay = Math.round(Number(data.prepayAmount) || 0);
   const reasons = buildReviewReasons(data.comment, data.checkIn, data.checkOut);
   const reasonLine = reasons.length ? reasons.join(", ") : "особливі умови";
+  const guestsLabel = formatGuestsLabel(
+    Number(data.guests) || 0,
+    parseChildrenFromComment(data.comment || "")
+  );
 
   return (
     `⏳ <b>Заявка на підтвердження</b> | ${data.source || "Сайт"}\n\n` +
     `🏡 <b>${data.cottage || "—"}</b>\n` +
     `👤 ${data.name || "Гість"} (${formatPhoneDisplay(data.phone)})\n` +
-    `📅 ${dates} · ${data.guests || 2} гостей\n` +
+    `📅 ${dates} · ${guestsLabel}\n` +
     `📋 Причина: <i>${reasonLine}</i>\n\n` +
     `💰 Вартість: <b>${formatMoneyUa(total)}</b>\n` +
     `💳 Передплата: <b>${formatMoneyUa(prepay)}</b>`

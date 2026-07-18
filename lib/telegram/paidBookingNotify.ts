@@ -3,6 +3,8 @@ import "server-only";
 import type { GasBookingRecord } from "@/lib/gas-api";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
+import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { isTelegramConfigured } from "./config";
 import { sendTelegramMessage } from "./sendMessage";
 
@@ -62,6 +64,10 @@ export function buildPaidBookingTelegramText(booking: GasBookingRecord): string 
   const balance = Math.max(0, total - paid);
   const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(booking.comment || "");
   const comment = guestComment(booking.comment);
+  const guestsLabel = formatGuestsLabel(
+    Number(booking.guests) || 0,
+    parseChildrenFromComment(booking.comment || "")
+  );
   const lines = [
     "✅ <b>Нове оплачене бронювання</b> | Сайт",
     "",
@@ -69,7 +75,7 @@ export function buildPaidBookingTelegramText(booking: GasBookingRecord): string 
     `📅 ${formatDate(booking.checkIn)} — ${formatDate(booking.checkOut)} · ${nights} ${nightWord(nights)}`,
     `👤 ${escapeHtml(booking.name || "Гість")}`,
     `📞 ${phone ? `+${phone}` : "—"}`,
-    `👥 Гості: <b>${Number(booking.guests) || 0}</b>`,
+    `👥 Гості: <b>${escapeHtml(guestsLabel)}</b>`,
   ];
   if (booking.pets === "Так") lines.push("🐾 З тваринами");
   if (earlyTime) lines.push(`🕒 Ранній заїзд: ${escapeHtml(earlyTime)}`);

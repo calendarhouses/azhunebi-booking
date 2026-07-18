@@ -14,6 +14,7 @@ import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "../CabinSlideImage";
 import { usePublicBooking } from "../PublicBookingProvider";
 import { BookingCheckoutSummary } from "./BookingCheckoutSummary";
+import { BookingFlexConflictAlert } from "../BookingFlexConflictAlert";
 import { BookingPromoCodeField } from "@/components/admin/desktop/BookingPromoCodeField";
 import { DesktopCalendar } from "./DesktopCalendar";
 import { PublicGuestsAndServicesBlock } from "../PublicGuestsAndServicesBlock";
@@ -62,6 +63,7 @@ export function DesktopBookingDrawer() {
     proceedDisabled,
     proceedLabel,
     price,
+    priceError,
     checkIn,
     checkOut,
     submitCheckout,
@@ -288,6 +290,7 @@ export function DesktopBookingDrawer() {
                     onSelect={(t) => selectTime("late", t)}
                   />
                 </ServiceCard>
+                <BookingFlexConflictAlert message={priceError} />
               </div>
             </div>
           </DrawerContent>

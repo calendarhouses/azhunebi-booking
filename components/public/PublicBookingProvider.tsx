@@ -40,7 +40,7 @@ import {
   submitPublicBooking,
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
-import { showPublicToast } from "@/lib/public-booking/publicToast";
+import { showPublicToast, stripHtmlTags } from "@/lib/public-booking/publicToast";
 import {
   buildChildrenCommentToken,
   buildServiceCommentTokens,
@@ -754,7 +754,12 @@ export function PublicBookingProvider({
       : 0;
     proceedLabel = min > 1 ? `Мінімум ${min} ${nightWord(min)}` : "Оберіть дату виїзду";
   } else if (checkIn && checkOut && priceResult.error) {
-    proceedLabel = priceResult.error;
+    // Keep CTA short — full message is shown in BookingFlexConflictAlert (HTML stripped here).
+    const plain = stripHtmlTags(priceResult.error);
+    proceedLabel =
+      plain.length > 42 || /ранн|пізн/i.test(plain)
+        ? "Оберіть інші умови"
+        : plain || "Дати зайняті";
   } else if (checkIn && checkOut) {
     proceedLabel = "Перейти до оформлення";
   }
