@@ -43,7 +43,7 @@ export function formatPhoneDisplay(phone?: string | null): string {
 }
 
 export function toDateKeyKyiv(value?: string | Date | null): string {
-  if (!value && value !== 0) return "";
+  if (value == null || value === "") return "";
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value.toLocaleDateString("en-CA", { timeZone: "Europe/Kyiv" });
   }
