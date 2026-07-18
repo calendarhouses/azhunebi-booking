@@ -335,33 +335,6 @@ export function DesktopPriceGrid({
     track.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
   }, []);
 
-  const handleMobilePriceScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    // Always clamp to the intended board width (not measured scrollWidth — that can be inflated).
-    const expectedBoardW = gridTotalWidth + 88;
-    const board = el.querySelector(".timeline-mobile-board") as HTMLElement | null;
-    if (board) {
-      const w = `${expectedBoardW}px`;
-      if (board.style.width !== w) {
-        board.style.width = w;
-        board.style.minWidth = w;
-        board.style.maxWidth = w;
-      }
-    }
-    const maxLeft = Math.max(0, expectedBoardW - el.clientWidth);
-    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
-    if (el.scrollLeft > maxLeft) el.scrollLeft = maxLeft;
-    if (el.scrollTop > maxTop) el.scrollTop = maxTop;
-  }, [gridTotalWidth]);
-
-  useEffect(() => {
-    if (!isMobile) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    handleMobilePriceScroll();
-  }, [isMobile, gridTotalWidth, activeRooms.length, mobileDense, handleMobilePriceScroll]);
-
   const handleGridContainerScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
     const grid = scrollRef.current;
@@ -460,6 +433,33 @@ export function DesktopPriceGrid({
     () => columnWidths.reduce((sum, w) => sum + w, 0),
     [columnWidths]
   );
+
+  const handleMobilePriceScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Always clamp to the intended board width (not measured scrollWidth — that can be inflated).
+    const expectedBoardW = gridTotalWidth + 88;
+    const board = el.querySelector(".timeline-mobile-board") as HTMLElement | null;
+    if (board) {
+      const w = `${expectedBoardW}px`;
+      if (board.style.width !== w) {
+        board.style.width = w;
+        board.style.minWidth = w;
+        board.style.maxWidth = w;
+      }
+    }
+    const maxLeft = Math.max(0, expectedBoardW - el.clientWidth);
+    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+    if (el.scrollLeft > maxLeft) el.scrollLeft = maxLeft;
+    if (el.scrollTop > maxTop) el.scrollTop = maxTop;
+  }, [gridTotalWidth]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    handleMobilePriceScroll();
+  }, [isMobile, gridTotalWidth, activeRooms.length, mobileDense, handleMobilePriceScroll]);
 
   const shift = (months: number) => {
     baseDateRef.current.setMonth(baseDateRef.current.getMonth() + months);
