@@ -591,6 +591,10 @@ export function DesktopTimelineView({
     isDraggingRef.current = false;
     setPointerSelectingRoom(null);
     releaseTouchScrollLock();
+    if (dragAutoScrollRafRef.current != null) {
+      cancelAnimationFrame(dragAutoScrollRafRef.current);
+      dragAutoScrollRafRef.current = null;
+    }
     const selection = gridSelectionRef.current;
     if (selection.dragRoom && selection.dragStart && selection.dragEnd) {
       const sorted = [selection.dragStart, selection.dragEnd].sort();
@@ -796,6 +800,15 @@ export function DesktopTimelineView({
     };
   }, [stickyChrome, mobileBoard]);
 
+  const dragScrollOptions = useCallback(
+    () => ({ viewportEdges: isMobile }),
+    [isMobile]
+  );
+
+  const updateTimelineSelectionRef = useRef<
+    (roomName: string, clientX: number, clientY: number) => void
+  >(() => {});
+
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
       cancelAnimationFrame(dragAutoScrollRafRef.current);
@@ -804,16 +817,22 @@ export function DesktopTimelineView({
   }, []);
 
   const runDragFrame = useCallback(() => {
-    const session = moveSessionRef.current;
+    const moveSession = moveSessionRef.current;
     const block = draggingBlockRef.current;
-    if (!session?.previewActive || !block) {
+    const selecting =
+      isDraggingRef.current &&
+      Boolean(selectionPointerSessionRef.current?.selecting) &&
+      !moveSession?.previewActive;
+
+    if (!((moveSession?.previewActive && block) || selecting)) {
       dragAutoScrollRafRef.current = null;
       return;
     }
 
     const targets = getDragScrollTargets();
+    const opts = dragScrollOptions();
     const { x, y } = lastPointerRef.current;
-    const nearEdge = isNearDragScrollEdge(x, y, targets);
+    const nearEdge = isNearDragScrollEdge(x, y, targets, opts);
     const moved =
       x !== lastDragFramePointerRef.current.x || y !== lastDragFramePointerRef.current.y;
 
@@ -824,20 +843,28 @@ export function DesktopTimelineView({
     lastDragFramePointerRef.current = { x, y };
 
     scrollSyncRef.current = true;
-    const scrolled = applyDragEdgeScroll(x, y, targets);
+    const scrolled = applyDragEdgeScroll(x, y, targets, opts);
     if (scrolled && stickyChrome && !mobileBoard) {
       const el = scrollRef.current;
       if (el) syncFocusHeadTrack(el.scrollLeft);
     }
     scrollSyncRef.current = false;
 
-    updateDragFloatPosition(session, block);
+    if (moveSession?.previewActive && block) {
+      updateDragFloatPosition(moveSession, block);
+    } else if (selecting) {
+      const session = selectionPointerSessionRef.current;
+      if (session?.selecting) {
+        updateTimelineSelectionRef.current(session.roomName, x, y);
+      }
+    }
 
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragFrame);
   }, [
     stickyChrome,
     mobileBoard,
     getDragScrollTargets,
+    dragScrollOptions,
     syncFocusHeadTrack,
     updateDragFloatPosition,
   ]);
@@ -1138,6 +1165,7 @@ export function DesktopTimelineView({
     },
     [constraintsByRoom]
   );
+  updateTimelineSelectionRef.current = updateTimelineSelection;
 
   const onTrackPointerDown = useCallback(
     (roomName: string, event: ReactPointerEvent<HTMLDivElement>) => {
@@ -1167,7 +1195,9 @@ export function DesktopTimelineView({
       };
 
       if (!isTouch) {
+        lastPointerRef.current = { x: event.clientX, y: event.clientY };
         startTimelineSelection(roomName, cell, event.clientX, true);
+        ensureDragFrame();
         return;
       }
 
@@ -1183,10 +1213,12 @@ export function DesktopTimelineView({
         } catch {
           /* Pointer capture is best-effort on older mobile browsers. */
         }
+        lastPointerRef.current = { x: session.startX, y: session.startY };
         startTimelineSelection(roomName, session.startCell, session.startX, false);
+        ensureDragFrame();
       }, TOUCH_SELECT_HOLD_MS);
     },
-    [startTimelineSelection, acquireTouchScrollLock]
+    [startTimelineSelection, acquireTouchScrollLock, ensureDragFrame]
   );
 
   const onCellMouseEnter = useCallback((_roomName: string, _dateString: string) => {
@@ -1254,6 +1286,8 @@ export function DesktopTimelineView({
 
       if (session.selecting && isDraggingRef.current) {
         event.preventDefault();
+        lastPointerRef.current = { x: event.clientX, y: event.clientY };
+        ensureDragFrame();
         updateTimelineSelection(roomName, event.clientX, event.clientY);
         return;
       }
@@ -1298,7 +1332,7 @@ export function DesktopTimelineView({
       }
       return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
     });
-  }, [constraintsByRoom, updateTimelineSelection, releaseTouchScrollLock]);
+  }, [constraintsByRoom, updateTimelineSelection, releaseTouchScrollLock, ensureDragFrame]);
 
   const onTrackPointerLeave = useCallback((roomName: string) => {
     setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));

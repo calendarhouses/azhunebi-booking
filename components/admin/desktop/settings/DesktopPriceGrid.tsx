@@ -460,9 +460,30 @@ export function DesktopPriceGrid({
   }, [shift, resetToToday]);
 
   useEffect(() => {
-    if (isMobile) return;
-    settingsMainRef.current = document.querySelector(".main-content.main-content--settings");
+    settingsMainRef.current = document.querySelector(
+      isMobile ? ".main-content" : ".main-content.main-content--settings"
+    );
   }, [isMobile]);
+
+  const getDragScrollTargets = useCallback((): DragScrollTargets => {
+    if (focusLayout || mobileDense) {
+      return {
+        horizontal: scrollRef.current,
+        vertical: scrollRef.current,
+        verticalSync:
+          sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null),
+      };
+    }
+    return {
+      horizontal: scrollRef.current,
+      verticalPage: settingsMainRef.current,
+    };
+  }, [focusLayout, mobileDense]);
+
+  const dragScrollOptions = useCallback(
+    () => ({ viewportEdges: isMobile }),
+    [isMobile]
+  );
 
   useEffect(() => {
     if (isMobile) return;
@@ -522,21 +543,6 @@ export function DesktopPriceGrid({
     scrollPreserveRef.current = null;
   }, [columnWidths, editCell]);
 
-  const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (focusLayout || mobileDense) {
-      return {
-        horizontal: scrollRef.current,
-        vertical: scrollRef.current,
-        verticalSync:
-          sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null),
-      };
-    }
-    return {
-      horizontal: scrollRef.current,
-      verticalPage: settingsMainRef.current,
-    };
-  }, [focusLayout, mobileDense]);
-
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
       cancelAnimationFrame(dragAutoScrollRafRef.current);
@@ -552,8 +558,9 @@ export function DesktopPriceGrid({
     }
 
     const targets = getDragScrollTargets();
+    const opts = dragScrollOptions();
     const { x, y } = lastPointerRef.current;
-    const nearEdge = isNearDragScrollEdge(x, y, targets);
+    const nearEdge = isNearDragScrollEdge(x, y, targets, opts);
     const moved =
       x !== lastDragFramePointerRef.current.x || y !== lastDragFramePointerRef.current.y;
 
@@ -564,14 +571,37 @@ export function DesktopPriceGrid({
     lastDragFramePointerRef.current = { x, y };
 
     scrollSyncRef.current = true;
-    const scrolled = applyDragEdgeScroll(x, y, targets);
+    const scrolled = applyDragEdgeScroll(x, y, targets, opts);
     if (scrolled && focusLayout) {
       syncFocusHeadTrack(scrollRef.current?.scrollLeft ?? 0);
     }
     scrollSyncRef.current = false;
 
+    if (scrolled) {
+      const hit = priceCellFromPoint(x, y);
+      if (hit && hit.roomId === drag.anchorRoomId) {
+        // keep selection within the anchor room row while edge-scrolling
+      }
+      if (hit) {
+        drag.focusRoomId = hit.roomId;
+        drag.focusDateStr = hit.dateStr;
+        if (hit.roomId !== drag.anchorRoomId || hit.dateStr !== drag.anchorDateStr) {
+          drag.moved = true;
+        }
+        setDragHighlight(
+          computeDragHighlight(drag.anchorRoomId, hit.roomId, drag.anchorDateStr, hit.dateStr)
+        );
+      }
+    }
+
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragAutoScrollFrame);
-  }, [focusLayout, getDragScrollTargets, syncFocusHeadTrack]);
+  }, [
+    focusLayout,
+    getDragScrollTargets,
+    dragScrollOptions,
+    syncFocusHeadTrack,
+    computeDragHighlight,
+  ]);
 
   const ensureDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) return;
@@ -1024,26 +1054,29 @@ export function DesktopPriceGrid({
     .filter(Boolean)
     .join(" ");
 
-  const premiumStyle: CSSProperties | undefined = compactGrid
-    ? undefined
-    : mobileDense
-      ? {
-          ["--price-grid-month-h" as string]: "28px",
-          ["--price-grid-dates-h" as string]: "36px",
-          ["--price-grid-header-h" as string]: "64px",
-          ["--price-grid-row-h" as string]: "34px",
-          ["--timeline-room-height" as string]: "34px",
-          ["--timeline-row-height" as string]: "34px",
-          ["--timeline-sidebar-header-height" as string]: "64px",
-          ["--timeline-months-height" as string]: "28px",
-          ["--timeline-dates-height" as string]: "36px",
-        }
-      : {
-          ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
-          ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
-          ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
-          ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
-        };
+  const premiumStyle: CSSProperties | undefined = {
+    ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+    ...(compactGrid
+      ? {}
+      : mobileDense
+        ? {
+            ["--price-grid-month-h" as string]: "28px",
+            ["--price-grid-dates-h" as string]: "36px",
+            ["--price-grid-header-h" as string]: "64px",
+            ["--price-grid-row-h" as string]: "34px",
+            ["--timeline-room-height" as string]: "34px",
+            ["--timeline-row-height" as string]: "34px",
+            ["--timeline-sidebar-header-height" as string]: "64px",
+            ["--timeline-months-height" as string]: "28px",
+            ["--timeline-dates-height" as string]: "36px",
+          }
+        : {
+            ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
+            ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
+            ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
+            ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
+          }),
+  };
 
   return (
     <div
@@ -1223,9 +1256,14 @@ export function DesktopPriceGrid({
                 id="priceScroll"
                 onScroll={mobileDense ? handleGridContainerScroll : undefined}
               >
-                {monthRow}
-                {datesRow}
-                {gridRows}
+                <div
+                  className="price-grid-track"
+                  style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
+                >
+                  {monthRow}
+                  {datesRow}
+                  {gridRows}
+                </div>
               </div>
             </>
           )}

@@ -4137,6 +4137,10 @@ body.boso-prices-dense {
 }
 
 body.boso-prices-dense .boso-admin-mobile .main-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
   overflow: hidden !important;
   overscroll-behavior: none;
 }
@@ -4147,7 +4151,11 @@ body.boso-prices-dense .boso-admin-mobile #view-settings {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 8px;
+  padding-bottom: 0;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .settings-tab-content {
+  padding-bottom: 0;
 }
 
 body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-shell {
@@ -4158,15 +4166,12 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-headin
   display: none;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-shell {
-  flex-shrink: 0;
-}
-
 body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
   min-height: 0;
+  padding-bottom: 0;
 }
 
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense {
@@ -4191,8 +4196,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   align-self: stretch !important;
   align-items: stretch !important;
   width: 100% !important;
-  /* Flex child height constraint so inner overflow:auto can scroll all rooms */
-  height: 0 !important;
+  height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
   overflow: hidden !important;
@@ -4222,6 +4226,24 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   overflow: auto !important;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
+}
+
+.boso-admin-mobile #view-settings #priceScroll .price-grid-track {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: max-content;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.boso-admin-mobile #view-settings #priceScroll .price-grid-track .timeline-months,
+.boso-admin-mobile #view-settings #priceScroll .price-grid-track .timeline-dates,
+.boso-admin-mobile #view-settings #priceScroll .price-grid-track .timeline-rows {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 /* Dates stay inside the same scroller as rows — sticky while panning vertically */
