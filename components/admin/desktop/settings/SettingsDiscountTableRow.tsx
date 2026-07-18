@@ -124,7 +124,7 @@ export function SettingsDiscountTableRow({
         </button>
       </td>
       <td className="settings-discounts-row__actions" onClick={(e) => e.stopPropagation()}>
-        <div className="flex gap-1">
+        <div className="flex gap-2.5">
           <button type="button" className="btn-icon-only" onClick={handleEdit} aria-label="Редагувати">
             {editIcon}
           </button>

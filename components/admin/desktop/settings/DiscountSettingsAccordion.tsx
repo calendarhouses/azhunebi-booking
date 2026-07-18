@@ -36,13 +36,13 @@ type DiscountSettingsAccordionProps = {
 const CARD_HEADING_CLASS =
   "flex items-center gap-2 whitespace-nowrap text-sm font-medium text-stone-800 shrink-0";
 
-const SEGMENT_GRID_CLASS = "grid grid-cols-2 gap-3 w-full";
+const SEGMENT_GRID_CLASS = "grid grid-cols-2 gap-4 w-full";
 
 const HOUSING_CHIP_IDLE =
-  "flex w-full items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-600 text-sm font-medium cursor-pointer transition-colors hover:bg-stone-50 hover:text-stone-800";
+  "flex w-full items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl border border-stone-200 bg-white text-stone-600 text-sm font-medium cursor-pointer transition-colors hover:bg-stone-50 hover:text-stone-800";
 
 const HOUSING_CHIP_ACTIVE =
-  "flex w-full items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[#5c6b4b] bg-[#5c6b4b]/5 text-[#5c6b4b] text-sm font-medium cursor-pointer transition-colors shadow-sm";
+  "flex w-full items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl border border-[#5c6b4b] bg-[#5c6b4b]/5 text-[#5c6b4b] text-sm font-medium cursor-pointer transition-colors shadow-sm";
 
 const HUGE_NUMBER_INPUT_CLASS =
   "text-5xl font-bold text-stone-900 bg-transparent text-center outline-none w-24 placeholder:text-stone-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
@@ -467,7 +467,7 @@ export function DiscountSettingsAccordion({
       id={`discount-settings-${discountKey}`}
       className="discount-settings-panel bg-stone-50/50 p-6 border-t border-stone-100"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 items-stretch discount-bento-top-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 mb-4 items-stretch discount-bento-top-grid">
         {/* Card 1: розмір знижки */}
         <div className={BENTO_CARD_CLASS}>
           <BentoCardHeading icon={Percent}>Яку знижку робимо?</BentoCardHeading>
@@ -480,7 +480,7 @@ export function DiscountSettingsAccordion({
                 onChange={(n) => patch({ value: n })}
               />
             </div>
-            <div className={`${SEGMENT_GRID_CLASS} mt-auto shrink-0 pt-4`}>
+            <div className={`${SEGMENT_GRID_CLASS} mt-auto shrink-0 pt-6`}>
               <button
                 type="button"
                 className={segmentButtonClass(form.valueType === "percent")}
@@ -512,11 +512,11 @@ export function DiscountSettingsAccordion({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 mb-6 items-start">
         {/* Card 3: період дії */}
         <div id={`discount-period-card-${discountKey}`} className={BENTO_BOTTOM_CARD_CLASS}>
           <BentoCardHeading icon={Calendar}>На який період?</BentoCardHeading>
-          <div className={`${SEGMENT_GRID_CLASS} mb-4`} role="group" aria-label="Період дії">
+          <div className={`${SEGMENT_GRID_CLASS} mb-5`} role="group" aria-label="Період дії">
             <button
               type="button"
               className={segmentButtonClass(!isPeriodRange)}
@@ -562,9 +562,9 @@ export function DiscountSettingsAccordion({
               <RoomSidebarHouseIcon className="text-stone-400 shrink-0 discount-bento-heading-icon" />
             }
           >
-            В якій хаті діє?
+            В якому будинку діє?
           </BentoCardHeading>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
               className={`col-span-2 ${isAllHousingSelected ? HOUSING_CHIP_ACTIVE : HOUSING_CHIP_IDLE}`}

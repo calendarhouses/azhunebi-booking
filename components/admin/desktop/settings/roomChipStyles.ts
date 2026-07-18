@@ -23,7 +23,7 @@ export const ROOM_NAME_POPOVER_INPUT_CLASS =
 
 export const ROOM_NAME_POPOVER_SAVE_CLASS = `${ROOM_NAME_CHIP_CLASS} ${ROOM_NAME_CHIP_TABLE_TEXT} self-end`;
 
-/** Конструктор цін — неактивний чіп (як «В якій хаті діє?» у знижках) */
+/** Конструктор цін — неактивний чіп (як «В якому будинку діє?» у знижках) */
 export const PRICE_CONSTRUCTOR_CHIP_IDLE_CLASS =
   "inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 hover:text-stone-800 cursor-pointer transition-colors text-sm font-medium";
 
