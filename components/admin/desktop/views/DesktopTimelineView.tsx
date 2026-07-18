@@ -362,6 +362,7 @@ export function DesktopTimelineView({
   const dragAnchorRef = useRef<string | null>(null);
   const selectionPointerSessionRef = useRef<TimelineSelectionPointerSession | null>(null);
   const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchScrollLockRef = useRef<((e: TouchEvent) => void) | null>(null);
   const isBookingDraggingRef = useRef(false);
   const bookingDragHoverRef = useRef<string | null>(null);
   const gridSelectionRef = useRef({ dragRoom: null as string | null, dragStart: null as string | null, dragEnd: null as string | null });
@@ -568,11 +569,28 @@ export function DesktopTimelineView({
     }
   }, []);
 
+  const releaseTouchScrollLock = useCallback(() => {
+    if (touchScrollLockRef.current) {
+      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      touchScrollLockRef.current = null;
+    }
+  }, []);
+
+  const acquireTouchScrollLock = useCallback(() => {
+    if (touchScrollLockRef.current) return;
+    const lock = (e: TouchEvent) => {
+      if (isDraggingRef.current) e.preventDefault();
+    };
+    touchScrollLockRef.current = lock;
+    document.addEventListener("touchmove", lock, { passive: false });
+  }, []);
+
   const finishDrag = useCallback(() => {
     if (moveSessionRef.current) return;
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     setPointerSelectingRoom(null);
+    releaseTouchScrollLock();
     const selection = gridSelectionRef.current;
     if (selection.dragRoom && selection.dragStart && selection.dragEnd) {
       const sorted = [selection.dragStart, selection.dragEnd].sort();
@@ -581,7 +599,7 @@ export function DesktopTimelineView({
       onCreateBooking(selection.dragRoom, checkInStr, checkOutStr);
     }
     setTimeout(clearSelection, 300);
-  }, [onCreateBooking, clearSelection]);
+  }, [onCreateBooking, clearSelection, releaseTouchScrollLock]);
 
   useEffect(() => () => {
     moveCleanupRef.current?.();
@@ -595,6 +613,10 @@ export function DesktopTimelineView({
     if (touchSelectHoldTimerRef.current) {
       clearTimeout(touchSelectHoldTimerRef.current);
       touchSelectHoldTimerRef.current = null;
+    }
+    if (touchScrollLockRef.current) {
+      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      touchScrollLockRef.current = null;
     }
     longPressTargetRef.current?.classList.remove("pressing");
     longPressTargetRef.current = null;
@@ -615,8 +637,14 @@ export function DesktopTimelineView({
       const wasSelecting = session.selecting;
       selectionPointerSessionRef.current = null;
       setPointerSelectingRoom(null);
+      releaseTouchScrollLock();
       if (wasSelecting) {
-        finishDrag();
+        // Commit only on real finger/mouse release — not on pointercancel.
+        if (event.type === "pointerup") {
+          finishDrag();
+        } else {
+          clearSelection();
+        }
       }
     };
     document.addEventListener("pointerup", onEnd);
@@ -625,7 +653,7 @@ export function DesktopTimelineView({
       document.removeEventListener("pointerup", onEnd);
       document.removeEventListener("pointercancel", onEnd);
     };
-  }, [finishDrag]);
+  }, [finishDrag, clearSelection, releaseTouchScrollLock]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -1149,6 +1177,7 @@ export function DesktopTimelineView({
         const session = selectionPointerSessionRef.current;
         if (!session || session.pointerId !== event.pointerId || session.selecting) return;
         session.selecting = true;
+        acquireTouchScrollLock();
         try {
           session.track.setPointerCapture(session.pointerId);
         } catch {
@@ -1157,7 +1186,7 @@ export function DesktopTimelineView({
         startTimelineSelection(roomName, session.startCell, session.startX, false);
       }, TOUCH_SELECT_HOLD_MS);
     },
-    [startTimelineSelection]
+    [startTimelineSelection, acquireTouchScrollLock]
   );
 
   const onCellMouseEnter = useCallback((_roomName: string, _dateString: string) => {
@@ -1218,6 +1247,7 @@ export function DesktopTimelineView({
             touchSelectHoldTimerRef.current = null;
           }
           selectionPointerSessionRef.current = null;
+          releaseTouchScrollLock();
         }
         return;
       }
@@ -1268,7 +1298,7 @@ export function DesktopTimelineView({
       }
       return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
     });
-  }, [constraintsByRoom, updateTimelineSelection]);
+  }, [constraintsByRoom, updateTimelineSelection, releaseTouchScrollLock]);
 
   const onTrackPointerLeave = useCallback((roomName: string) => {
     setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));

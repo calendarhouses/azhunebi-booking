@@ -2416,6 +2416,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 /* Override global touch-action: manipulation so pan scroll is reliable.
    Booking cards keep touch-action:none so drag still works. */
+.boso-admin-mobile .timeline-track-window--selecting {
+  touch-action: pan-x pan-y !important;
+}
+
 .boso-admin-mobile .timeline-mobile-scroll,
 .boso-admin-mobile .timeline-mobile-scroll * {
   touch-action: pan-x pan-y !important;
@@ -4182,78 +4186,30 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
 
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.timeline-wrapper {
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   flex: 1 1 0% !important;
   align-self: stretch !important;
   align-items: stretch !important;
   width: 100% !important;
-  height: auto !important;
+  /* Flex child height constraint so inner overflow:auto can scroll all rooms */
+  height: 0 !important;
   max-height: none !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
 
-/* Focus layout: sticky head + scrollable body (synced sidebar/grid) */
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-focus-head {
-  display: flex;
-  flex-shrink: 0;
-  align-items: stretch;
-  width: 100%;
-  height: calc(var(--timeline-months-height, 28px) + var(--timeline-dates-height, 36px));
-  min-height: calc(var(--timeline-months-height, 28px) + var(--timeline-dates-height, 36px));
-  max-height: calc(var(--timeline-months-height, 28px) + var(--timeline-dates-height, 36px));
-  overflow: hidden;
-  border-bottom: 1px solid #E5E7EB;
-}
-
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-focus-body {
-  display: flex;
-  flex: 1 1 0%;
-  min-height: 0;
-  width: 100%;
-  overflow: hidden;
-}
-
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar--focus-head {
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar {
+  align-self: stretch !important;
   width: 88px !important;
   min-width: 88px !important;
   max-width: 88px !important;
-  flex-shrink: 0;
-  height: 100%;
-  background: #F9FAFB !important;
-  border-right: 1px solid #E5E7EB;
-}
-
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar--focus-body {
-  width: 88px !important;
-  min-width: 88px !important;
-  max-width: 88px !important;
-  flex-shrink: 0;
-  min-height: 0 !important;
   height: auto !important;
   max-height: none !important;
+  min-height: 0 !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
-  background: #F9FAFB !important;
-  border-right: 1px solid #E5E7EB;
-}
-
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-grid-head {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0%;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-head-track {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: max-content;
-  min-width: 100%;
+  flex-shrink: 0;
 }
 
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-grid-container {
@@ -4268,18 +4224,32 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   touch-action: pan-x pan-y;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting #priceScroll.timeline-grid-container,
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting #priceScroll.timeline-grid-container * {
-  touch-action: none !important;
+/* Dates stay inside the same scroller as rows — sticky while panning vertically */
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll .timeline-months {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #fff;
 }
 
-/* Legacy sidebar layout (non-focus) kept for safety */
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar {
-  align-self: stretch !important;
-  height: auto !important;
-  max-height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll .timeline-dates {
+  position: sticky;
+  top: var(--price-grid-month-h, 28px);
+  z-index: 4;
+  background: #fff;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar .timeline-sidebar-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #F9FAFB;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--touch-selecting #priceScroll.timeline-grid-container,
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--touch-selecting #priceScroll.timeline-grid-container * {
+  /* Keep pan-* so iOS does not cancel the active pointer mid-selection. */
+  touch-action: pan-x pan-y !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar-header,
@@ -4290,10 +4260,10 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   max-height: var(--price-grid-month-h, 28px) !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-focus-head .timeline-sidebar-header {
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: 100% !important;
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar-header {
+  height: var(--price-grid-header-h, 64px) !important;
+  min-height: var(--price-grid-header-h, 64px) !important;
+  max-height: var(--price-grid-header-h, 64px) !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-dates,
@@ -4326,12 +4296,22 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   font-size: 10px !important;
 }
 
+.boso-admin-mobile #view-settings .price-grid-view .price-cell {
+  touch-action: pan-x pan-y;
+}
+
+/* Selecting mode must NOT flip touch-action mid-gesture (iOS cancels the pointer).
+   Scroll is blocked via non-passive touchmove preventDefault while selecting. */
+.boso-admin-mobile #view-settings .price-grid-view--touch-selecting .price-cell {
+  touch-action: pan-x pan-y;
+}
+
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-cell {
   touch-action: pan-x pan-y;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .price-cell {
-  touch-action: none;
+  touch-action: pan-x pan-y;
 }
 
 /* Settings: flexible schedule and guest services */

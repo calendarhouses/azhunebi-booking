@@ -27,6 +27,7 @@ import { buildGridSelectionPreset } from "./priceConstructorLogic";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 import type { AdminSettingsPayload } from "../types";
+import { BookingQuickEditDrawer } from "@/components/admin/mobile/BookingQuickEditDrawer";
 
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
@@ -79,7 +80,7 @@ function PriceGridCell({
   onCommit,
   onCancel,
   onDragPointerDown,
-  allowPan,
+  enableTouchPan,
 }: {
   roomId: string;
   dateStr: string;
@@ -95,8 +96,7 @@ function PriceGridCell({
   onCommit: (amount: number) => void;
   onCancel: () => void;
   onDragPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
-  /** When true, touch can pan/scroll the grid instead of capturing for selection. */
-  allowPan?: boolean;
+  enableTouchPan?: boolean;
 }) {
   const [draft, setDraft] = useState(String(price));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +143,8 @@ function PriceGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    touchAction: editing || allowPan ? "pan-x pan-y" : "none",
+    // On mobile, pan until selection arms; scroll lock then blocks via touchmove preventDefault.
+    touchAction: editing ? "auto" : enableTouchPan ? "pan-x pan-y" : "none",
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -237,12 +238,14 @@ export function DesktopPriceGrid({
   const [, bump] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const mobileDense = isMobile && isFocusMode;
-  /** Desktop focus + mobile dense both use sticky head + scrollable body. */
-  const focusLayout = isFocusMode;
+  /** Sticky head + body scroll is desktop-only; mobile keeps dates inside the same scroller. */
   const compactGrid = !isMobile && isFocusMode;
+  const focusLayout = compactGrid;
   const { setAuxiliaryFocusActive } = useGridFocusModeOptional();
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const headTrackRef = useRef<HTMLDivElement>(null);
+  const sidebarScrollRef = useRef<HTMLDivElement>(null);
   const sidebarBodyScrollRef = useRef<HTMLDivElement>(null);
   const scrollSyncRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
@@ -251,10 +254,14 @@ export function DesktopPriceGrid({
   const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsMainRef = useRef<HTMLElement | null>(null);
   const [editCell, setEditCell] = useState<EditCell>(null);
+  const [sheetEdit, setSheetEdit] = useState<{
+    roomId: string;
+    dateStr: string;
+    value: number;
+  } | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingCell, setSavingCell] = useState<string | null>(null);
   const [dragHighlight, setDragHighlight] = useState<DragHighlight | null>(null);
-  const [touchSelecting, setTouchSelecting] = useState(false);
   const dragRef = useRef<{
     active: boolean;
     pending: boolean;
@@ -331,22 +338,24 @@ export function DesktopPriceGrid({
   const handleGridContainerScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
     const grid = scrollRef.current;
-    const sidebar = sidebarBodyScrollRef.current;
     if (!grid) return;
 
     scrollSyncRef.current = true;
     if (focusLayout) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
+    const sidebar =
+      sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null);
     if (sidebar && sidebar.scrollTop !== grid.scrollTop) {
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, [focusLayout, syncFocusHeadTrack]);
+  }, [focusLayout, mobileDense, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
-    const sidebar = sidebarBodyScrollRef.current;
+    const sidebar =
+      sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null);
     const grid = scrollRef.current;
     if (!sidebar || !grid) return;
 
@@ -355,7 +364,7 @@ export function DesktopPriceGrid({
       grid.scrollTop = sidebar.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, []);
+  }, [mobileDense]);
 
   const handleGridWheel = useCallback(
     (event: WheelEvent<HTMLDivElement>) => {
@@ -514,18 +523,19 @@ export function DesktopPriceGrid({
   }, [columnWidths, editCell]);
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (focusLayout) {
+    if (focusLayout || mobileDense) {
       return {
         horizontal: scrollRef.current,
         vertical: scrollRef.current,
-        verticalSync: sidebarBodyScrollRef.current,
+        verticalSync:
+          sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null),
       };
     }
     return {
       horizontal: scrollRef.current,
       verticalPage: settingsMainRef.current,
     };
-  }, [focusLayout]);
+  }, [focusLayout, mobileDense]);
 
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
@@ -588,6 +598,24 @@ export function DesktopPriceGrid({
     setEditDraft(draft);
   }, []);
 
+  const touchScrollLockRef = useRef<((e: TouchEvent) => void) | null>(null);
+
+  const setTouchSelectingClass = useCallback((on: boolean) => {
+    rootRef.current?.classList.toggle("price-grid-view--touch-selecting", on);
+    if (on) {
+      if (!touchScrollLockRef.current) {
+        const lock = (e: TouchEvent) => {
+          if (dragRef.current.active) e.preventDefault();
+        };
+        touchScrollLockRef.current = lock;
+        document.addEventListener("touchmove", lock, { passive: false });
+      }
+    } else if (touchScrollLockRef.current) {
+      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      touchScrollLockRef.current = null;
+    }
+  }, []);
+
   const clearTouchSelectHold = useCallback(() => {
     if (touchSelectHoldTimerRef.current) {
       clearTimeout(touchSelectHoldTimerRef.current);
@@ -597,6 +625,7 @@ export function DesktopPriceGrid({
 
   const resetDragSession = useCallback(() => {
     clearTouchSelectHold();
+    setTouchSelectingClass(false);
     dragRef.current = {
       active: false,
       pending: false,
@@ -611,16 +640,28 @@ export function DesktopPriceGrid({
       startY: 0,
       captureEl: null,
     };
-    setTouchSelecting(false);
     stopDragAutoScroll();
-  }, [clearTouchSelectHold, stopDragAutoScroll]);
+  }, [clearTouchSelectHold, setTouchSelectingClass, stopDragAutoScroll]);
+
+  const abortDragSelection = useCallback(() => {
+    resetDragSession();
+    setDragHighlight(null);
+  }, [resetDragSession]);
 
   const armTouchSelection = useCallback(() => {
     const drag = dragRef.current;
     if (!drag.pending) return;
     drag.pending = false;
     drag.active = true;
-    setTouchSelecting(true);
+    // DOM class first (no React re-render) so touch-action flips without cancelling the pointer.
+    setTouchSelectingClass(true);
+    if (drag.captureEl) {
+      try {
+        drag.captureEl.setPointerCapture(drag.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
     setDragHighlight(
       computeDragHighlight(
         drag.anchorRoomId,
@@ -629,15 +670,8 @@ export function DesktopPriceGrid({
         drag.focusDateStr
       )
     );
-    if (drag.captureEl) {
-      try {
-        drag.captureEl.setPointerCapture(drag.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
     ensureDragAutoScroll();
-  }, [computeDragHighlight, ensureDragAutoScroll]);
+  }, [computeDragHighlight, ensureDragAutoScroll, setTouchSelectingClass]);
 
   const onCellPointerDown = useCallback(
     (roomId: string, dateStr: string, e: ReactPointerEvent<HTMLDivElement>) => {
@@ -683,7 +717,6 @@ export function DesktopPriceGrid({
         return;
       }
 
-      // Touch: wait for long-press before selecting so pan/scroll stays free.
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         armTouchSelection();
@@ -715,8 +748,8 @@ export function DesktopPriceGrid({
     [computeDragHighlight, ensureDragAutoScroll]
   );
 
-  const openInlineEdit = useCallback(
-    (roomId: string, dateStr: string, selectAll = false) => {
+  const resolveCellPrice = useCallback(
+    (roomId: string, dateStr: string) => {
       const room = activeRooms.find((r) => String(r.id) === roomId);
       const day = dayMeta.find((d) => d.dateStr === dateStr);
       let price = 0;
@@ -725,12 +758,28 @@ export function DesktopPriceGrid({
         const rp = customPrices[roomId];
         if (rp?.[dateStr] != null) price = rp[dateStr];
       }
-      scrollPreserveRef.current = scrollRef.current?.scrollLeft ?? 0;
+      return price;
+    },
+    [activeRooms, dayMeta, customPrices]
+  );
+
+  const openInlineEdit = useCallback(
+    (roomId: string, dateStr: string, selectAll = false) => {
+      const price = resolveCellPrice(roomId, dateStr);
       setDragHighlight(null);
+
+      if (isMobile) {
+        setEditCell(null);
+        setEditDraft("");
+        setSheetEdit({ roomId, dateStr, value: price });
+        return;
+      }
+
+      scrollPreserveRef.current = scrollRef.current?.scrollLeft ?? 0;
       setEditCell({ roomId, dateStr, selectAll });
       setEditDraft(String(price));
     },
-    [activeRooms, dayMeta, customPrices]
+    [isMobile, resolveCellPrice]
   );
 
   const finishDrag = useCallback(() => {
@@ -774,8 +823,7 @@ export function DesktopPriceGrid({
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
         if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
-          // Finger moved before long-press → treat as pan/scroll, not selection.
-          resetDragSession();
+          abortDragSelection();
         }
         return;
       }
@@ -812,7 +860,6 @@ export function DesktopPriceGrid({
       if (drag.pending) {
         const { anchorRoomId, anchorDateStr } = drag;
         resetDragSession();
-        // Short tap: open inline editor, never multi-select.
         if (anchorRoomId && anchorDateStr) {
           openInlineEdit(anchorRoomId, anchorDateStr, false);
         }
@@ -820,16 +867,26 @@ export function DesktopPriceGrid({
       }
 
       if (!drag.active) return;
+      // Only commit selection when the finger/mouse is released.
       finishDrag();
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
+      // Cancel = browser aborted the gesture; do not open constructor/editor.
+      if (drag.pending || drag.active) {
+        abortDragSelection();
+      }
     };
 
     document.addEventListener("pointermove", onPointerMove);
     document.addEventListener("pointerup", onPointerUp);
-    document.addEventListener("pointercancel", onPointerUp);
+    document.addEventListener("pointercancel", onPointerCancel);
     return () => {
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerup", onPointerUp);
-      document.removeEventListener("pointercancel", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerCancel);
       clearTouchSelectHold();
       stopDragAutoScroll();
     };
@@ -840,6 +897,7 @@ export function DesktopPriceGrid({
     stopDragAutoScroll,
     updateDragFocusFromPoint,
     resetDragSession,
+    abortDragSelection,
     openInlineEdit,
     clearTouchSelectHold,
   ]);
@@ -947,7 +1005,7 @@ export function DesktopPriceGrid({
                   setEditDraft("");
                 }}
                 onDragPointerDown={(e) => onCellPointerDown(String(room.id), day.dateStr, e)}
-                allowPan={isMobile && !touchSelecting}
+                enableTouchPan={isMobile}
               />
             );
           })}
@@ -989,11 +1047,11 @@ export function DesktopPriceGrid({
 
   return (
     <div
+      ref={rootRef}
       className={[
         "price-grid-view",
         focusLayout ? "price-grid-view--focus" : "",
         mobileDense ? "price-grid-view--mobile-dense" : "",
-        touchSelecting ? "price-grid-view--touch-selecting" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -1151,11 +1209,20 @@ export function DesktopPriceGrid({
             </>
           ) : (
             <>
-              <div className="timeline-sidebar price-grid-sidebar">
+              <div
+                className="timeline-sidebar price-grid-sidebar"
+                ref={mobileDense ? sidebarScrollRef : undefined}
+                onScroll={mobileDense ? handleSidebarBodyScroll : undefined}
+              >
                 {sidebarHeader}
                 {roomRows}
               </div>
-              <div className="timeline-grid-container" ref={scrollRef} id="priceScroll">
+              <div
+                className="timeline-grid-container"
+                ref={scrollRef}
+                id="priceScroll"
+                onScroll={mobileDense ? handleGridContainerScroll : undefined}
+              >
                 {monthRow}
                 {datesRow}
                 {gridRows}
@@ -1164,6 +1231,26 @@ export function DesktopPriceGrid({
           )}
         </div>
       </div>
+
+      {isMobile ? (
+        <BookingQuickEditDrawer
+          open={Boolean(sheetEdit)}
+          title={
+            sheetEdit
+              ? `Ціна · ${sheetEdit.dateStr.slice(8, 10)}.${sheetEdit.dateStr.slice(5, 7)}`
+              : "Ціна за ніч"
+          }
+          value={sheetEdit?.value ?? 0}
+          defaultValue={sheetEdit?.value ?? 0}
+          onClose={() => setSheetEdit(null)}
+          onSave={(amount) => {
+            if (!sheetEdit) return;
+            const { roomId, dateStr } = sheetEdit;
+            setSheetEdit(null);
+            void commitInlinePrice(roomId, dateStr, amount);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
