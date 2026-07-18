@@ -287,6 +287,9 @@ export async function POST(request: Request) {
   }
 
   if (action === "sendSuccessScreenshot") {
+    const tenantId = resolveTenantId(undefined, request.headers, data);
+    const authBlock = await verifyAdminRequest(request, tenantId);
+    if (authBlock instanceof NextResponse) return authBlock;
     const { notifyNewBookingCreated } = await import("@/lib/telegram/newBookingNotify");
     await notifyNewBookingCreated({
       name: String(data.name || ""),
@@ -300,10 +303,6 @@ export async function POST(request: Request) {
       comment: String(data.comment || ""),
       totalPrice: Number(data.totalPrice) || 0,
       paidAmount: Number(data.paidAmount) || 0,
-      screenshot: data.screenshot ? String(data.screenshot) : undefined,
-      screenshotCleaning: data.screenshotCleaning
-        ? String(data.screenshotCleaning)
-        : undefined,
     });
     return jsonResponse({ success: true });
   }

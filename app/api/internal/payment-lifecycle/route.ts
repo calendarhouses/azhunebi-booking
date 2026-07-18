@@ -16,12 +16,17 @@ import { notifyPaidBooking } from "@/lib/telegram/paidBookingNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 function isAuthorized(request: Request): boolean {
-  const secret = process.env.PAYMENT_LIFECYCLE_SECRET?.trim();
-  if (!secret) return false;
   const authorization = request.headers.get("authorization") || "";
-  return authorization === `Bearer ${secret}`;
+  const secrets = [
+    process.env.PAYMENT_LIFECYCLE_SECRET?.trim(),
+    process.env.CRON_SECRET?.trim(),
+    process.env.TELEGRAM_CRON_SECRET?.trim(),
+  ].filter(Boolean) as string[];
+  if (!secrets.length) return false;
+  return secrets.some((secret) => authorization === `Bearer ${secret}`);
 }
 
 function pendingSmsType(booking: GasBookingRecord): BookingLifecycleSmsType | null {

@@ -222,40 +222,12 @@ export function buildPayloadForServer(
 }
 
 export async function attachScreenshotsToPayload(
-  payload: Record<string, unknown>,
-  bookingData: Record<string, unknown>
+  _payload: Record<string, unknown>,
+  _bookingData: Record<string, unknown>
 ): Promise<void> {
-  const w = window as Window & {
-    capturePaymentCard?: (b: unknown, info: unknown) => Promise<string | null>;
-    capturePremiumCard?: (b: unknown) => Promise<string | null>;
-    captureCleaningCard?: (b: unknown) => Promise<string | null>;
-  };
-
-  if (payload.remainderPaymentAdded && typeof w.capturePaymentCard === "function") {
-    try {
-      const paymentCard = await w.capturePaymentCard(bookingData, {
-        amount: payload.remainderPaymentAmount,
-        method: getFormString("adminSurchargeMethod") || "Готівка",
-      });
-      if (paymentCard) payload.screenshotPayment = paymentCard;
-    } catch (e) {
-      console.error("Помилка генерації картки оплати:", e);
-    }
-    return;
-  }
-
-  if (typeof w.capturePremiumCard === "function" && typeof w.captureCleaningCard === "function") {
-    try {
-      const [base64Admin, base64Cleaning] = await Promise.all([
-        w.capturePremiumCard(bookingData),
-        w.captureCleaningCard(bookingData),
-      ]);
-      if (base64Admin) payload.screenshot = base64Admin;
-      if (base64Cleaning) payload.screenshotCleaning = base64Cleaning;
-    } catch (e) {
-      console.error("Помилка генерації карток:", e);
-    }
-  }
+  // Telegram notifications are text-only (except finance report screenshots).
+  // Skip html2canvas cards to avoid large GAS payloads / mobile CPU cost.
+  return;
 }
 
 export function handleSaveApiErrors(

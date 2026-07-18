@@ -70,7 +70,7 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
       };
     };
 
-    w.API_URL = "/api/core";
+    w.API_URL = "/api/gas";
     w.editingRowNumber = editingRowRef.current;
     w.selectedEarlyTime = earlyTimeRef.current;
     w.selectedLateTime = lateTimeRef.current;

@@ -34,8 +34,8 @@ export default function LoginPageClient() {
       ? nextParam
       : defaultAdminPath();
 
-  const [email, setEmail] = useState("test@gmail.com");
-  const [password, setPassword] = useState("test");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,7 +80,7 @@ export default function LoginPageClient() {
               className={styles.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="test@gmail.com"
+              placeholder="email@example.com"
               autoComplete="email"
               required
             />

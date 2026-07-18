@@ -41,6 +41,7 @@ import {
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
 import { showPublicToast, stripHtmlTags } from "@/lib/public-booking/publicToast";
+import { formatUaPhoneE164, normalizeUaNationalPhoneDigits } from "@/lib/public-booking/uaPhone";
 import {
   buildChildrenCommentToken,
   buildServiceCommentTokens,
@@ -280,12 +281,18 @@ export function PublicBookingProvider({
           if (cancelled) return;
 
           if (response.ok && result.paid) {
-            const raw = sessionStorage.getItem("lastBooking");
-            const storedBooking = raw
-              ? (JSON.parse(
-                  raw
-                ) as import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData)
-              : null;
+            let storedBooking: import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData | null =
+              null;
+            try {
+              const raw = sessionStorage.getItem("lastBooking");
+              storedBooking = raw
+                ? (JSON.parse(
+                    raw
+                  ) as import("@/lib/public-booking/publicReceipt").PublicBookingReceiptData)
+                : null;
+            } catch {
+              storedBooking = null;
+            }
             const booking =
               storedBooking?.orderId === returnedOrderId
                 ? storedBooking
@@ -791,7 +798,7 @@ export function PublicBookingProvider({
         showPublicToast("Введіть ваше ім'я");
         return;
       }
-      if (!phone.trim() || phone.replace(/\D/g, "").length < 9) {
+      if (!phone.trim() || normalizeUaNationalPhoneDigits(phone).length < 9) {
         showPublicToast("Введіть коректний номер телефону");
         return;
       }
@@ -841,7 +848,7 @@ export function PublicBookingProvider({
         cottage: selectedRoom.name,
         roomId: selectedRoom.id,
         name: `${firstName} ${lastName}`.trim(),
-        phone: "+380" + phone.replace(/\D/g, ""),
+        phone: formatUaPhoneE164(phone),
         guests: guestCount,
         pets: "Ні",
         source: "Сайт",
@@ -922,7 +929,11 @@ export function PublicBookingProvider({
               : "Очікує оплату",
           source: "Сайт",
         };
-        sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
+        try {
+          sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
+        } catch (storageErr) {
+          console.warn("[Booking] sessionStorage unavailable", storageErr);
+        }
 
         if (flow === "pending_review") {
           setSuccessFlow("pending_review");
@@ -948,7 +959,11 @@ export function PublicBookingProvider({
             });
             const invoice = await createMonoPayment(orderId);
             sessionData.prepayment = invoice.amount;
-            sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
+            try {
+              sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
+            } catch (storageErr) {
+              console.warn("[Booking] sessionStorage unavailable", storageErr);
+            }
             const pageUrl = String(invoice.pageUrl || "").trim();
             if (/^https:\/\//i.test(pageUrl)) {
               window.location.assign(pageUrl);

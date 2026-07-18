@@ -4,14 +4,20 @@
  * Заборонено: food URL / azhunebi-bot / будь-який чужий домен.
  *
  * Usage:
- *   TELEGRAM_BOT_TOKEN=... node scripts/set-telegram-webhook.mjs
- *   node scripts/set-telegram-webhook.mjs --url https://azhunebi-booking.vercel.app/api/webhooks/telegram
+ *   TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=... node scripts/set-telegram-webhook.mjs
+ *   node scripts/set-telegram-webhook.mjs --url https://azhunebi.com/api/webhooks/telegram
  */
 import process from "node:process";
 
 const BOOKING_WEBHOOK_PATH = "/api/webhooks/telegram";
-const DEFAULT_BOOKING_ORIGIN = "https://azhunebi-booking.vercel.app";
+const DEFAULT_BOOKING_ORIGIN = "https://azhunebi.com";
 const FORBIDDEN_HOST_PARTS = ["azhunebi-bot", "food", "menu"];
+const ALLOWED_HOSTS = new Set([
+  "azhunebi.com",
+  "www.azhunebi.com",
+  "azhunebi-booking.vercel.app",
+  "localhost",
+]);
 
 function parseArgs(argv) {
   const out = { url: null, infoOnly: false };
@@ -32,7 +38,7 @@ function assertBookingWebhookUrl(urlString) {
   } catch {
     throw new Error(`Invalid webhook URL: ${urlString}`);
   }
-  if (url.protocol !== "https:") {
+  if (url.protocol !== "https:" && url.hostname !== "localhost") {
     throw new Error("Webhook URL must be https");
   }
   const host = url.hostname.toLowerCase();
@@ -43,10 +49,12 @@ function assertBookingWebhookUrl(urlString) {
       );
     }
   }
-  if (!host.includes("azhunebi-booking") && host !== "localhost") {
-    // Allow only known booking host (or explicit localhost for rare local tunnels).
+  const allowed =
+    ALLOWED_HOSTS.has(host) ||
+    (host.endsWith(".vercel.app") && host.includes("azhunebi"));
+  if (!allowed) {
     throw new Error(
-      `Refusing webhook host "${host}". Expected host containing "azhunebi-booking".`
+      `Refusing webhook host "${host}". Allowed: azhunebi.com, *.vercel.app with azhunebi, localhost.`
     );
   }
   if (url.pathname.replace(/\/$/, "") !== BOOKING_WEBHOOK_PATH) {
@@ -97,15 +105,32 @@ async function main() {
     args.url || `${DEFAULT_BOOKING_ORIGIN}${BOOKING_WEBHOOK_PATH}`
   );
 
-  await tg(token, "setWebhook", {
+  const secretToken = (process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+  if (secretToken && !/^[A-Za-z0-9_-]{1,256}$/.test(secretToken)) {
+    throw new Error(
+      "TELEGRAM_WEBHOOK_SECRET must be 1–256 chars of A-Z a-z 0-9 _ -"
+    );
+  }
+
+  const payload = {
     url: target,
     allowed_updates: ["message", "callback_query"],
     drop_pending_updates: false,
-  });
+  };
+  if (secretToken) {
+    payload.secret_token = secretToken;
+  } else {
+    console.warn(
+      "TELEGRAM_WEBHOOK_SECRET not set — webhook will work but without secret_token hardening"
+    );
+  }
+
+  await tg(token, "setWebhook", payload);
 
   const after = await tg(token, "getWebhookInfo");
   console.log("Webhook set to:", after.url);
   console.log("allowed_updates:", after.allowed_updates || "(default)");
+  console.log("secret_token:", secretToken ? "configured" : "none");
 }
 
 main().catch((err) => {

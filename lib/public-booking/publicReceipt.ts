@@ -41,10 +41,18 @@ export type PublicBookingReceiptData = {
   orderId?: string;
 };
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function formatDateLabel(value?: string): string {
   if (!value) return "—";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
+  if (Number.isNaN(d.getTime())) return escapeHtml(value);
   return d.toLocaleDateString("uk-UA", { day: "numeric", month: "long" });
 }
 
@@ -63,7 +71,7 @@ function extractGuestComment(raw?: string): string {
 function metaRow(key: string, value: string): string {
   return `
     <div class="receipt-meta-row">
-      <span class="receipt-meta-row__key">${key}</span>
+      <span class="receipt-meta-row__key">${escapeHtml(key)}</span>
       <span class="receipt-meta-row__val">${value}</span>
     </div>
   `;
@@ -72,7 +80,7 @@ function metaRow(key: string, value: string): string {
 function itemRow(label: string, value: string, extraClass = ""): string {
   return `
     <div class="receipt-item${extraClass ? ` ${extraClass}` : ""}">
-      <span class="receipt-item__label">${label}</span>
+      <span class="receipt-item__label">${escapeHtml(label)}</span>
       <span class="receipt-item__value">${value}</span>
     </div>
   `;
@@ -106,7 +114,7 @@ export function buildPublicReceiptHtml(raw: PublicBookingReceiptData): string {
   const checkInLabel = formatDateLabel(raw.checkIn);
   const checkOutLabel = formatDateLabel(raw.checkOut);
   const nightsLabel = nights > 0 ? ` (${nights} ${nightWord(nights)})` : "";
-  const roomName = formatRoomDisplayName({ name: String(raw.cottage || "") });
+  const roomName = escapeHtml(formatRoomDisplayName({ name: String(raw.cottage || "") }));
 
   const orderLines: string[] = [];
   if (raw.basePrice && raw.basePrice > 0) {
@@ -155,9 +163,9 @@ export function buildPublicReceiptHtml(raw: PublicBookingReceiptData): string {
   }
 
   const wishes: string[] = [];
-  if (raw.earlyTime) wishes.push(itemRow("Ранній заїзд", `з ${raw.earlyTime}`));
-  if (raw.lateTime) wishes.push(itemRow("Пізній виїзд", `до ${raw.lateTime}`));
-  const guestComment = extractGuestComment(raw.comment);
+  if (raw.earlyTime) wishes.push(itemRow("Ранній заїзд", `з ${escapeHtml(raw.earlyTime)}`));
+  if (raw.lateTime) wishes.push(itemRow("Пізній виїзд", `до ${escapeHtml(raw.lateTime)}`));
+  const guestComment = escapeHtml(extractGuestComment(raw.comment));
   if (guestComment) wishes.push(itemRow("Коментар", guestComment, "receipt-item--note"));
 
   const finance = `
@@ -206,7 +214,7 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
   const checkInLabel = formatDateLabel(raw.checkIn);
   const checkOutLabel = formatDateLabel(raw.checkOut);
   const nightsLabel = nights > 0 ? ` (${nights} ${nightWord(nights)})` : "";
-  const roomName = formatRoomDisplayName({ name: String(raw.cottage || "") });
+  const roomName = escapeHtml(formatRoomDisplayName({ name: String(raw.cottage || "") }));
 
   const orderLines: string[] = [];
   if (raw.basePrice && raw.basePrice > 0) {
@@ -237,8 +245,8 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
   }
 
   const wishes: string[] = [];
-  if (raw.earlyTime) wishes.push(itemRow("Ранній заїзд", `з ${raw.earlyTime} · запит`));
-  if (raw.lateTime) wishes.push(itemRow("Пізній виїзд", `до ${raw.lateTime} · запит`));
+  if (raw.earlyTime) wishes.push(itemRow("Ранній заїзд", `з ${escapeHtml(raw.earlyTime)} · запит`));
+  if (raw.lateTime) wishes.push(itemRow("Пізній виїзд", `до ${escapeHtml(raw.lateTime)} · запит`));
 
   return `
     <div class="receipt-premium receipt-premium--pending">
@@ -251,7 +259,7 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
       <div class="receipt-premium__meta">
         ${metaRow("Дати", `${checkInLabel} — ${checkOutLabel}${nightsLabel}`)}
         ${metaRow("Гості", guestLabel)}
-        ${raw.phone ? metaRow("Телефон", raw.phone) : ""}
+        ${raw.phone ? metaRow("Телефон", escapeHtml(raw.phone)) : ""}
       </div>
 
       <div class="receipt-premium__split" aria-hidden="true"></div>

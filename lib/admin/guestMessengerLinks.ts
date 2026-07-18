@@ -36,19 +36,31 @@ export function normalizeGuestPhone(raw?: string): string {
 }
 
 export function getPublicSiteBaseUrl(): string {
+  // Prefer same canonical origin as Mono (server) when available.
   const fromEnv =
+    process.env.MONO_PUBLIC_ORIGIN?.trim() ||
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.MONO_PUBLIC_ORIGIN?.trim() ||
     "";
   if (fromEnv) {
     try {
-      return new URL(fromEnv).origin;
+      const url = new URL(fromEnv);
+      if (
+        process.env.NODE_ENV === "production" &&
+        (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+      ) {
+        return "https://azhunebi.com";
+      }
+      return url.origin;
     } catch {
       return fromEnv.replace(/\/$/, "");
     }
   }
-  if (typeof window !== "undefined") return window.location.origin;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "admin.azhunebi.com") return "https://azhunebi.com";
+    return window.location.origin;
+  }
   return "https://azhunebi.com";
 }
 

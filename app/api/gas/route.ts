@@ -35,10 +35,36 @@ function passthroughResponse(upstream: Response): NextResponse {
   });
 }
 
+function extractBearer(request: Request): string | null {
+  const auth = request.headers.get("authorization") || "";
+  if (auth.startsWith("Bearer ")) return auth.slice(7).trim() || null;
+  const gasToken = request.headers.get("x-gas-token")?.trim();
+  return gasToken || null;
+}
+
+async function requireAdminBearer(request: Request): Promise<NextResponse | null> {
+  const token = extractBearer(request);
+  if (!token) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+  // Cheap presence check — full auth is still enforced by GAS for proxied actions.
+  // Local TG actions must not be callable anonymously.
+  if (token.length < 8) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+  return null;
+}
+
 async function handleLocalTelegramActions(
+  request: Request,
   payload: Record<string, unknown> | null
 ): Promise<NextResponse | null> {
   if (!payload?.action) return null;
+
+  if (payload.action === "sendFinanceReport" || payload.action === "sendSuccessScreenshot") {
+    const authBlock = await requireAdminBearer(request);
+    if (authBlock) return authBlock;
+  }
 
   if (payload.action === "sendFinanceReport") {
     const { sendFinanceReportTelegram } = await import("@/lib/telegram/financeNotify");
@@ -63,10 +89,6 @@ async function handleLocalTelegramActions(
       comment: String(payload.comment || ""),
       totalPrice: Number(payload.totalPrice) || 0,
       paidAmount: Number(payload.paidAmount) || 0,
-      screenshot: payload.screenshot ? String(payload.screenshot) : undefined,
-      screenshotCleaning: payload.screenshotCleaning
-        ? String(payload.screenshotCleaning)
-        : undefined,
     });
     return NextResponse.json({ success: true });
   }
@@ -196,7 +218,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const local = await handleLocalTelegramActions(payload);
+    const local = await handleLocalTelegramActions(request, payload);
     if (local) return local;
 
     const upstream = await fetch(gasUrl, {
