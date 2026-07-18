@@ -15,10 +15,7 @@ import {
   toDateKeyKyiv,
   todayKeyKyiv,
 } from "./formatters";
-import { sendTelegramPhotoUrl } from "./sendMessage";
-
-const ARRIVAL_PHOTO = "https://imgpx.com/J3dXlnqB0Jea.png";
-const DEPARTURE_PHOTO = "https://imgpx.com/et8EBt4MryDH.png";
+import { sendTelegramMessage } from "./sendMessage";
 
 export type ArrivalDepartureBooking = {
   id?: string;
@@ -61,7 +58,10 @@ function buildDetails(booking: ArrivalDepartureBooking, kind: "arrival" | "depar
   return lines.join("\n");
 }
 
-function buildCaption(booking: ArrivalDepartureBooking, kind: "arrival" | "departure"): string {
+export function buildArrivalDepartureCaption(
+  booking: ArrivalDepartureBooking,
+  kind: "arrival" | "departure"
+): string {
   const total = Math.round(Number(booking.totalPrice) || 0);
   const paid = Math.round(Number(booking.paidAmount) || 0);
   const balance = total - paid;
@@ -111,21 +111,21 @@ export async function notifyTodayArrivalsAndDepartures(
     if (!isArrival && !isDeparture) continue;
 
     if (isArrival) {
-      const res = await sendTelegramPhotoUrl(
-        ARRIVAL_PHOTO,
-        buildCaption(booking, "arrival"),
+      const res = await sendTelegramMessage(
+        buildArrivalDepartureCaption(booking, "arrival"),
         keyboard,
-        target
+        target.chatId,
+        target.threadId
       );
       if (res.ok) arrivals += 1;
       else console.error("[TG] arrival notify failed", await res.text().catch(() => ""));
     }
     if (isDeparture) {
-      const res = await sendTelegramPhotoUrl(
-        DEPARTURE_PHOTO,
-        buildCaption(booking, "departure"),
+      const res = await sendTelegramMessage(
+        buildArrivalDepartureCaption(booking, "departure"),
         keyboard,
-        target
+        target.chatId,
+        target.threadId
       );
       if (res.ok) departures += 1;
       else console.error("[TG] departure notify failed", await res.text().catch(() => ""));

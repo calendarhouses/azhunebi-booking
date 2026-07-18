@@ -8,7 +8,7 @@ import {
   formatMoneyUa,
   formatPhoneDisplay,
 } from "./formatters";
-import { sendTelegramMessage, sendTelegramPhotoBase64 } from "./sendMessage";
+import { sendTelegramMessage } from "./sendMessage";
 
 export type NewBookingNotifyInput = {
   name?: string;
@@ -89,25 +89,11 @@ export async function notifyNewBookingCreated(
   const target = getBookingsTargets();
   const caption = buildNewBookingAdminCaption(data);
   const keyboard = chessboardKeyboard();
-
-  let res: Response;
-  if (data.screenshot) {
-    res = await sendTelegramPhotoBase64(data.screenshot, caption, keyboard, target);
-  } else {
-    res = await sendTelegramMessage(caption, keyboard, target.chatId, target.threadId);
-  }
+  const res = await sendTelegramMessage(caption, keyboard, target.chatId, target.threadId);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error("[TG] new booking notify failed", res.status, body);
     return false;
-  }
-
-  // Optional cleaning card → same БРОНЮВАННЯ thread (no separate cleaning group).
-  if (data.screenshotCleaning) {
-    const short = `🛎 <b>Нове бронювання | ${escapeHtml(data.cottage || "—")}</b>\n📅 ${formatDateUk(data.checkIn)} — ${formatDateUk(data.checkOut)}`;
-    await sendTelegramPhotoBase64(data.screenshotCleaning, short, null, target).catch(
-      () => undefined
-    );
   }
   return true;
 }

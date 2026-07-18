@@ -213,6 +213,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const force = url.searchParams.get("force");
   try {
+    if (force === "demo" || force === "preview" || force === "all") {
+      const { sendTelegramDemoAllThreads } = await import("@/lib/telegram/demoAllThreads");
+      const results = await sendTelegramDemoAllThreads();
+      return NextResponse.json({ ok: true, mode: "demo", results });
+    }
     const results = await runJobs(force);
     return NextResponse.json({ ok: true, results });
   } catch (err) {

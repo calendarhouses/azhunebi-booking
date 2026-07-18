@@ -10,16 +10,7 @@ import {
   toDateKeyKyiv,
   todayKeyKyiv,
 } from "./formatters";
-import { sendTelegramPhotoBase64, sendTelegramPhotoUrl } from "./sendMessage";
-
-const TG_PHOTOS = {
-  eveningKasa:
-    process.env.TELEGRAM_PHOTO_EVENING_KASA?.trim() ||
-    "https://imgpx.com/J3dXlnqB0Jea.png",
-  debtReminder:
-    process.env.TELEGRAM_PHOTO_DEBT?.trim() ||
-    "https://imgpx.com/et8EBt4MryDH.png",
-};
+import { sendTelegramMessage, sendTelegramPhotoBase64 } from "./sendMessage";
 
 export type FinancePeriodStats = {
   bookingsCount: number;
@@ -48,6 +39,7 @@ export function buildFinancePeriodCaption(
   );
 }
 
+/** Only finance reports keep an image (admin-generated screenshot). */
 export async function sendFinanceReportTelegram(payload: {
   screenshot: string;
   periodLabel?: string;
@@ -87,9 +79,12 @@ export async function sendFinancePeriodSummary(opts: {
   title: string;
   periodLabel: string;
   stats: FinancePeriodStats;
+  /** Demo / force send even with zero activity */
+  force?: boolean;
 }): Promise<boolean> {
   if (!isTelegramConfigured()) return false;
   if (
+    !opts.force &&
     opts.stats.bookingsCount <= 0 &&
     opts.stats.totalIncome <= 0 &&
     opts.stats.totalExpense <= 0
@@ -103,12 +98,7 @@ export async function sendFinancePeriodSummary(opts: {
     opts.stats
   );
   const target = getFinanceTargets();
-  const res = await sendTelegramPhotoUrl(
-    TG_PHOTOS.eveningKasa,
-    caption,
-    null,
-    target
-  );
+  const res = await sendTelegramMessage(caption, null, target.chatId, target.threadId);
   return res.ok;
 }
 
@@ -135,6 +125,22 @@ function collectMethodAmount(
   else bucket.fop += amount;
 }
 
+export function buildEveningCashCaption(opts: {
+  newBookingsCount: number;
+  payments: { cash: number; card: number; fop: number };
+}): string {
+  const paymentsSum = opts.payments.cash + opts.payments.card + opts.payments.fop;
+  return (
+    `🌙 <b>ВЕЧІРНЄ ЗВЕДЕННЯ</b>\n\n` +
+    `📝 Нових бронювань: <b>${opts.newBookingsCount}</b>\n` +
+    `💰 Надійшло оплат: <b>${formatMoneyUa(paymentsSum)}</b>\n` +
+    `💵 Готівка: <b>${formatMoneyUa(opts.payments.cash)}</b>\n` +
+    `💳 Картка: <b>${formatMoneyUa(opts.payments.card)}</b>\n` +
+    `🏦 ФОП: <b>${formatMoneyUa(opts.payments.fop)}</b>\n` +
+    `🗝 <i>Фінансовий день закрито</i>`
+  );
+}
+
 export async function sendEveningCashSummary(
   bookings: EveningCashBooking[]
 ): Promise<boolean> {
@@ -144,9 +150,6 @@ export async function sendEveningCashSummary(
   const payments = { cash: 0, card: 0, fop: 0 };
 
   for (const b of bookings) {
-    if (!isConfirmedBookingStatus(b.status) && !String(b.status || "").includes("Очікує")) {
-      // count today's created active-ish bookings
-    }
     const created = toDateKeyKyiv(b.createdAt);
     if (created !== today) continue;
     if (String(b.status || "").toLowerCase().includes("скас")) continue;
@@ -175,20 +178,12 @@ export async function sendEveningCashSummary(
   const paymentsSum = payments.cash + payments.card + payments.fop;
   if (newBookingsCount === 0 && paymentsSum === 0) return false;
 
-  const caption =
-    `🌙 <b>ВЕЧІРНЄ ЗВЕДЕННЯ</b>\n\n` +
-    `📝 Нових бронювань: <b>${newBookingsCount}</b>\n` +
-    `💰 Надійшло оплат: <b>${formatMoneyUa(paymentsSum)}</b>\n` +
-    `💵 Готівка: <b>${formatMoneyUa(payments.cash)}</b>\n` +
-    `💳 Картка: <b>${formatMoneyUa(payments.card)}</b>\n` +
-    `🏦 ФОП: <b>${formatMoneyUa(payments.fop)}</b>\n` +
-    `🗝 <i>Фінансовий день закрито</i>`;
-
-  const res = await sendTelegramPhotoUrl(
-    TG_PHOTOS.eveningKasa,
-    caption,
+  const target = getFinanceTargets();
+  const res = await sendTelegramMessage(
+    buildEveningCashCaption({ newBookingsCount, payments }),
     null,
-    getFinanceTargets()
+    target.chatId,
+    target.threadId
   );
   return res.ok;
 }
@@ -201,6 +196,14 @@ export type DebtBooking = {
   paidAmount?: number | string;
 };
 
+export function buildDebtCaption(cottage: string, debt: number): string {
+  return (
+    `⚠️ <b>Увага: Неоплачений залишок</b>\n\n` +
+    `🏠 Котедж: <b>${escapeHtml(cottage || "Котедж")}</b>\n` +
+    `💳 Доплата: <b>${formatMoneyUa(debt)}</b>`
+  );
+}
+
 export async function sendDebtReminders(bookings: DebtBooking[]): Promise<number> {
   if (!isTelegramConfigured()) return 0;
   const today = todayKeyKyiv();
@@ -212,11 +215,12 @@ export async function sendDebtReminders(bookings: DebtBooking[]): Promise<number
     if (toDateKeyKyiv(b.checkIn) !== today) continue;
     const debt = Math.round(Number(b.totalPrice) || 0) - Math.round(Number(b.paidAmount) || 0);
     if (debt <= 0) continue;
-    const caption =
-      `⚠️ <b>Увага: Неоплачений залишок</b>\n\n` +
-      `🏠 Котедж: <b>${escapeHtml(b.cottage || "Котедж")}</b>\n` +
-      `💳 Доплата: <b>${formatMoneyUa(debt)}</b>`;
-    const res = await sendTelegramPhotoUrl(TG_PHOTOS.debtReminder, caption, null, target);
+    const res = await sendTelegramMessage(
+      buildDebtCaption(String(b.cottage || "Котедж"), debt),
+      null,
+      target.chatId,
+      target.threadId
+    );
     if (res.ok) sent += 1;
   }
   return sent;

@@ -5,7 +5,7 @@ import {
   formatMoneyUa,
   formatPhoneDisplay,
 } from "./formatters";
-import { sendTelegramMessage, sendTelegramPhotoBase64 } from "./sendMessage";
+import { sendTelegramMessage } from "./sendMessage";
 
 export type PaymentReceivedNotifyInput = {
   name?: string;
@@ -21,8 +21,7 @@ export type PaymentReceivedNotifyInput = {
 };
 
 export function buildPaymentReceivedCaption(
-  data: PaymentReceivedNotifyInput,
-  opts?: { short?: boolean }
+  data: PaymentReceivedNotifyInput
 ): string {
   const total = Math.round(Number(data.totalPrice) || 0);
   const paid = Math.round(Number(data.paidAmount) || 0);
@@ -32,14 +31,6 @@ export function buildPaymentReceivedCaption(
     balance <= 0
       ? "✅ <b>Оплачено повністю</b>"
       : `⚠️ Залишок: <b>${formatMoneyUa(balance)}</b>`;
-
-  if (opts?.short) {
-    return [
-      balanceLine,
-      `🏡 <b>${escapeHtml(data.cottage || "Котедж")}</b>`,
-      `📅 ${formatDateUk(data.checkIn)} — ${formatDateUk(data.checkOut)}`,
-    ].join("\n");
-  }
 
   const phone = formatPhoneDisplay(data.phone);
   return [
@@ -66,23 +57,12 @@ export async function notifyPaymentReceived(
 
   const target = getFinanceTargets();
   const keyboard = chessboardKeyboard();
-
-  let res: Response;
-  if (data.screenshotPayment) {
-    res = await sendTelegramPhotoBase64(
-      data.screenshotPayment,
-      buildPaymentReceivedCaption(data, { short: true }),
-      keyboard,
-      target
-    );
-  } else {
-    res = await sendTelegramMessage(
-      buildPaymentReceivedCaption(data),
-      keyboard,
-      target.chatId,
-      target.threadId
-    );
-  }
+  const res = await sendTelegramMessage(
+    buildPaymentReceivedCaption(data),
+    keyboard,
+    target.chatId,
+    target.threadId
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error("[TG] payment notify failed", res.status, body);
