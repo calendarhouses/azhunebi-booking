@@ -349,10 +349,19 @@ export function PublicBookingProvider({
         document.body.style.overflow = "";
         document.documentElement.style.overflow = "";
       }
-    } else {
-      document.body.classList.remove("ready");
+      return;
     }
+    document.body.classList.remove("ready");
   }, [preloaderVisible, drawerOpen]);
+
+  // Re-assert ready after paint — PublicBookPage body-class effect must not leave CTAs dead.
+  useEffect(() => {
+    if (preloaderVisible) return;
+    const id = window.requestAnimationFrame(() => {
+      document.body.classList.add("ready");
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [preloaderVisible]);
 
   const settings = useMemo((): AdminSettingsPayload | null => {
     if (!runtime) return null;
@@ -935,7 +944,15 @@ export function PublicBookingProvider({
             const invoice = await createMonoPayment(orderId);
             sessionData.prepayment = invoice.amount;
             sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
-            window.location.assign(invoice.pageUrl);
+            const pageUrl = String(invoice.pageUrl || "").trim();
+            if (/^https:\/\//i.test(pageUrl)) {
+              window.location.assign(pageUrl);
+              return;
+            }
+            showPublicToast(
+              "Бронювання створено. Відкриваємо сторінку оплати…"
+            );
+            window.location.assign(`/pay/${encodeURIComponent(orderId)}`);
           } catch {
             showPublicToast(
               "Бронювання створено, але MonoPay не відкрився. Спробуйте оплатити ще раз."

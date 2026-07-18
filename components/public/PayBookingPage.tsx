@@ -27,7 +27,11 @@ export function PayBookingPage({
     setError(null);
     try {
       const invoice = await createMonoPayment(orderId);
-      window.location.assign(invoice.pageUrl);
+      const pageUrl = String(invoice.pageUrl || "").trim();
+      if (!/^https:\/\//i.test(pageUrl)) {
+        throw new Error("MonoPay повернув некоректне посилання на оплату");
+      }
+      window.location.assign(pageUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не вдалося відкрити MonoPay");
       setSubmitting(false);

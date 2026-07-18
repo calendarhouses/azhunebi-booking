@@ -673,6 +673,23 @@ body.public-booking-page.boso-public-mobile.ready {
 /* Animations */
 .fade-in { animation: fadeIn 0.4s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-/* 🚀 ХОВАЄМО ПАНЕЛІ ДО КІНЦЯ АНІМАЦІЇ */
-.sticky-cta, .bottom-nav { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
-body.ready .sticky-cta, body.ready .bottom-nav { opacity: 1; pointer-events: auto; }
+/* Sticky CTAs must work once the page is ready OR when the booking drawer is open.
+   (Do not rely only on body.ready — a race can strip that class after the preloader.) */
+.sticky-cta,
+.bottom-nav {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+body.ready .sticky-cta,
+body.ready .bottom-nav,
+.drawer-overlay.open .sticky-cta {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Soften overlay blur on mobile Safari — heavy backdrop-filter + map iframe can crash WebKit */
+.drawer-overlay {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}

@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PublicBranding } from "@/lib/public-booking/types";
 import { googleMapsUrlToEmbed, resolveGoogleMapsEmbedUrl } from "@/lib/googleMapsUrl";
 
 type Props = {
   branding: PublicBranding;
+  /** Defer iframe until section is near viewport (safer on mobile Safari). */
+  lazyMount?: boolean;
 };
 
-export function BrandingMapSection({ branding }: Props) {
+export function BrandingMapSection({ branding, lazyMount = false }: Props) {
   const storedEmbed = String(branding.maps_embed_url || "").trim();
   const storedExternal = String(branding.maps_external_url || "").trim();
 
   const [embedUrl, setEmbedUrl] = useState(storedEmbed);
   const [externalUrl, setExternalUrl] = useState(storedExternal);
+  const [shouldMountMap, setShouldMountMap] = useState(!lazyMount);
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,13 +54,33 @@ export function BrandingMapSection({ branding }: Props) {
     };
   }, [storedEmbed, storedExternal]);
 
+  useEffect(() => {
+    if (!lazyMount || shouldMountMap) return;
+    const node = sectionRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setShouldMountMap(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldMountMap(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "120px 0px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [lazyMount, shouldMountMap]);
+
   if (!embedUrl && !externalUrl) return null;
 
   return (
-    <>
+    <div ref={sectionRef}>
       <div className="divider" />
       <h3 className="section-title">Ви відпочиватимете тут</h3>
-      {embedUrl ? (
+      {shouldMountMap && embedUrl ? (
         <div className="map-wrapper">
           <iframe
             src={embedUrl}
@@ -75,6 +99,6 @@ export function BrandingMapSection({ branding }: Props) {
           ПРОКЛАСТИ МАРШРУТ
         </a>
       ) : null}
-    </>
+    </div>
   );
 }

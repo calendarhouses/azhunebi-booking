@@ -39,10 +39,17 @@ export function getPublicSiteBaseUrl(): string {
   const fromEnv =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.MONO_PUBLIC_ORIGIN?.trim() ||
     "";
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (fromEnv) {
+    try {
+      return new URL(fromEnv).origin;
+    } catch {
+      return fromEnv.replace(/\/$/, "");
+    }
+  }
   if (typeof window !== "undefined") return window.location.origin;
-  return "http://localhost:3000";
+  return "https://azhunebi.com";
 }
 
 export function buildGuestPaymentUrl(orderId: string, baseUrl?: string): string {

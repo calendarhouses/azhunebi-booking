@@ -89,7 +89,7 @@ export function MobileBookingDrawer() {
   }
 
   const roomAsPublic = room as PublicRoom;
-  const images = getRoomImages(roomAsPublic);
+  const images = getRoomImages(roomAsPublic, { card: true });
   const minPrice = getRoomMinPrice(roomAsPublic, runtime?.customPrices || {});
   const branding = runtime?.branding || {};
   const nextFree = runtime ? getNextFreeForRoom(roomAsPublic) : "—";
@@ -144,7 +144,7 @@ export function MobileBookingDrawer() {
               <div className="slider-track" id="track-detail" style={detailSliderTrackStyle}>
                 {images.map((url, i) => (
                   <div className="slide" key={i}>
-                    <CabinSlideImage src={url} alt={room.name} />
+                    <CabinSlideImage src={url} alt={room.name} loading={i === 0 ? "eager" : "lazy"} />
                   </div>
                 ))}
               </div>
@@ -162,7 +162,7 @@ export function MobileBookingDrawer() {
 
             <PublicRoomRulesSection room={roomAsPublic} />
 
-            <BrandingMapSection branding={branding} />
+            <BrandingMapSection branding={branding} lazyMount />
           </DrawerContent>
 
           <div className="sticky-cta">

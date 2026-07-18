@@ -27,7 +27,7 @@ type Props = {
 
 function PublicBookPageInner({ data, variant }: Props) {
   useEffect(() => {
-    document.body.classList.remove("boso-public-mobile", "boso-public-desktop", "ready");
+    document.body.classList.remove("boso-public-mobile", "boso-public-desktop");
     document.body.classList.add(
       variant === "mobile" ? "boso-public-mobile" : "boso-public-desktop"
     );
