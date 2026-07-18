@@ -4224,7 +4224,8 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
   box-sizing: border-box !important;
-  overflow: hidden !important;
+  /* sticky left rooms require this node NOT to clip; scrollport is .timeline-mobile-scroll */
+  overflow: visible !important;
   flex-shrink: 0 !important;
   min-height: 0 !important;
   height: auto !important;
@@ -4234,14 +4235,19 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-head {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
   box-sizing: border-box !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
+  width: max-content !important;
+  max-width: none !important;
+  overflow: visible !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-cells,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
+  position: relative !important;
+  z-index: 1 !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
   flex: 0 0 auto !important;
@@ -4249,9 +4255,28 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-corner {
-  /* keep sticky left for horizontal pan only */
   position: sticky !important;
   left: 0 !important;
+  z-index: 24 !important;
+  background: #f9fafb !important;
+  box-shadow: 4px 0 10px rgba(28, 33, 24, 0.06);
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms .timeline-room {
+  background: #f9fafb !important;
+}
+
+/* Dates scroll horizontally with cells — not pinned */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-head {
+  position: relative !important;
+  top: auto !important;
+  z-index: 2 !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-months,
@@ -4849,11 +4874,15 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row {
-  display: flex !important;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid !important;
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas:
+    "name name name"
+    "type status actions";
   column-gap: 12px;
   row-gap: 14px;
+  align-items: center;
+  justify-items: start;
   width: 100%;
   max-width: 100%;
   margin: 0 !important;
@@ -4862,6 +4891,8 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   border-radius: 18px !important;
   background: var(--settings-surface) !important;
   box-shadow: 0 6px 18px rgba(28, 33, 24, 0.05) !important;
+  /* override global `tr { flex-direction: column; align-items: center }` */
+  flex-direction: unset !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row.is-expanded {
@@ -4872,19 +4903,21 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td {
   display: flex !important;
-  width: auto;
+  width: auto !important;
+  max-width: 100%;
   min-width: 0;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  justify-content: flex-start;
+  justify-content: flex-start !important;
+  align-items: center !important;
   font-size: inherit !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td:first-child {
-  flex: 1 1 100%;
+  grid-area: name;
   width: 100% !important;
   padding-bottom: 14px !important;
   border-bottom: 1px solid #eff1ec !important;
@@ -4951,24 +4984,25 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type {
-  flex: 0 0 auto;
+  grid-area: type;
+  justify-self: start;
   align-items: center;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__status {
-  flex: 0 0 auto;
+  grid-area: status;
+  justify-self: start;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-start !important;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions {
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: flex-end;
+  grid-area: actions;
+  justify-self: end;
+  justify-content: flex-end !important;
   gap: 10px;
   width: auto !important;
-  min-width: 96px;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions > .flex {

@@ -1296,7 +1296,7 @@ export function DesktopPriceGrid({
                   minWidth: gridTotalWidth + 88,
                   maxWidth: gridTotalWidth + 88,
                   minHeight: 0,
-                  overflow: "hidden",
+                  overflow: "visible",
                   boxSizing: "border-box",
                 }}
               >
