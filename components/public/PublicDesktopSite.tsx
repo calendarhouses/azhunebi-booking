@@ -1,5 +1,9 @@
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 import { usePublicBooking } from "./PublicBookingProvider";
+import {
+  PublicAvailabilityFilter,
+  PublicCabinsEmptyState,
+} from "./PublicAvailabilityFilter";
 import { PublicPreloader } from "./PublicPreloader";
 import { DesktopBookingDrawer } from "./desktop/DesktopBookingDrawer";
 import { DesktopCabinCard } from "./desktop/DesktopCabinCard";
@@ -12,30 +16,41 @@ export function PublicDesktopSite() {
     setActiveScreen,
     openDrawer,
     getNextFreeForRoom,
+    filteredRooms,
+    listFilterActive,
     successReceiptHtml,
     successFlow,
   } = usePublicBooking();
 
   const logoUrl = (runtime?.branding.logo_url as string) || null;
   const siteTitle = (runtime?.branding.site_title as string) || runtime?.tenantName || null;
+  const rooms = filteredRooms;
+  const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
+  const showLoading = !runtime || runtime.rooms.length === 0;
 
   return (
     <>
       <PublicPreloader visible={preloaderVisible} logoUrl={logoUrl} alt={siteTitle} />
 
       <div id="screen-list" className={`screen ${activeScreen === "list" ? "active" : ""}`}>
+        <div className="stay-filter-shell">
+          <PublicAvailabilityFilter layout="desktop" />
+        </div>
+
         <div className="page-wrap" id="cabinsContainer">
-          {!runtime || runtime.rooms.length === 0 ? (
+          {showLoading ? (
             <div className="loading-state">
               <div className="loader" />
               Котеджів не знайдено
             </div>
+          ) : showEmpty ? (
+            <PublicCabinsEmptyState />
           ) : (
-            runtime.rooms.map((room) => (
+            rooms.map((room) => (
               <DesktopCabinCard
                 key={room.id}
                 room={room}
-                customPrices={runtime.customPrices}
+                customPrices={runtime!.customPrices}
                 nextFreeLabel={getNextFreeForRoom(room)}
                 onBook={() => openDrawer(room)}
               />

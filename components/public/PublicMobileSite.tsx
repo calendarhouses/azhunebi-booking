@@ -2,6 +2,10 @@
 
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 import { usePublicBooking } from "./PublicBookingProvider";
+import {
+  PublicAvailabilityFilter,
+  PublicCabinsEmptyState,
+} from "./PublicAvailabilityFilter";
 import { PublicPreloader } from "./PublicPreloader";
 import { CabinCardMobile } from "./CabinCardMobile";
 import { MobileBookingDrawer } from "./mobile/MobileBookingDrawer";
@@ -14,6 +18,8 @@ export function PublicMobileSite() {
     setActiveScreen,
     openDrawer,
     getNextFreeForRoom,
+    filteredRooms,
+    listFilterActive,
     successReceiptHtml,
     successFlow,
   } = usePublicBooking();
@@ -21,6 +27,9 @@ export function PublicMobileSite() {
   const logoUrl = (runtime?.branding.logo_url as string) || null;
   const siteTitle = (runtime?.branding.site_title as string) || runtime?.tenantName || null;
   const brandName = siteTitle || runtime?.tenantName || "Бронювання";
+  const rooms = filteredRooms;
+  const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
+  const showLoading = !runtime || runtime.rooms.length === 0;
 
   return (
     <>
@@ -40,18 +49,24 @@ export function PublicMobileSite() {
           </div>
         </header>
 
+        <div className="stay-filter-shell stay-filter-shell--mobile">
+          <PublicAvailabilityFilter layout="mobile" />
+        </div>
+
         <div className="page-wrap" id="cabinsContainer">
-          {!runtime || runtime.rooms.length === 0 ? (
+          {showLoading ? (
             <div className="loading-state">
               <div className="loader" />
               Котеджів не знайдено
             </div>
+          ) : showEmpty ? (
+            <PublicCabinsEmptyState />
           ) : (
-            runtime.rooms.map((room) => (
+            rooms.map((room) => (
               <CabinCardMobile
                 key={room.id}
                 room={room}
-                customPrices={runtime.customPrices}
+                customPrices={runtime!.customPrices}
                 nextFreeLabel={getNextFreeForRoom(room)}
                 onBook={() => openDrawer(room)}
               />

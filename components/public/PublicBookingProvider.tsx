@@ -29,6 +29,7 @@ import {
   readPrepaymentPolicy,
 } from "@/lib/public-booking/prepaymentPolicy";
 import {
+  filterRoomsForStay,
   formatDateKey,
   getBookedRanges,
   getNextFreeDateLabel,
@@ -105,10 +106,16 @@ type Ctx = {
   checkIn: Date | null;
   checkOut: Date | null;
   selectDate: (ds: string) => void;
+  /** Вибір дат у списковому фільтрі (без прив’язки до кімнати). */
+  selectStayDate: (ds: string) => void;
+  clearStayDates: () => void;
   guestCount: number;
   changeGuests: (delta: number) => void;
   childCount: number;
   changeChildren: (delta: number) => void;
+  filteredRooms: RoomConfig[];
+  listFilterActive: boolean;
+  listGuestMax: number;
   availableServices: CustomServiceConfig[];
   selectedServices: ServiceSelectionMap;
   setServiceQty: (serviceId: number, qty: number) => void;
@@ -400,11 +407,7 @@ export function PublicBookingProvider({
     [runtime]
   );
 
-  const resetBookingForm = useCallback(() => {
-    setCheckIn(null);
-    setCheckOut(null);
-    setGuestCount(2);
-    setChildCount(0);
+  const resetDrawerExtras = useCallback(() => {
     setSelectedServices({});
     setHasUbd(false);
     setEarlyTime(null);
@@ -412,9 +415,12 @@ export function PublicBookingProvider({
     setEarlyActive(false);
     setLateActive(false);
     setPromoCode("");
-    const d = new Date();
-    d.setDate(1);
-    setCalBase(d);
+  }, []);
+
+  const clearStayDates = useCallback(() => {
+    setCheckIn(null);
+    setCheckOut(null);
+    setCalKey((k) => k + 1);
   }, []);
 
   const openDrawer = useCallback(
@@ -422,12 +428,19 @@ export function PublicBookingProvider({
       setSelectedRoom(room);
       setDrawerStep("info");
       setDetailSlide(0);
-      resetBookingForm();
+      resetDrawerExtras();
+      const max = room.maxCapacity || room.capacity || 1;
+      const adults = Math.min(Math.max(guestCount, 1), max);
+      const kids = roomAllowsChildren(room)
+        ? Math.min(childCount, Math.max(0, max - adults))
+        : 0;
+      setGuestCount(adults);
+      setChildCount(kids);
       setDrawerScrollKey((key) => key + 1);
       setDrawerOpen(true);
       document.body.style.overflow = "hidden";
     },
-    [resetBookingForm]
+    [resetDrawerExtras, guestCount, childCount]
   );
 
   const closeDrawer = useCallback(() => {
@@ -548,15 +561,58 @@ export function PublicBookingProvider({
     [checkIn, checkOut, runtime, selectedRoom]
   );
 
+  const selectStayDate = useCallback(
+    (ds: string) => {
+      const d = new Date(ds);
+      d.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (d < today) return;
+
+      if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
+        setCheckIn(d);
+        setCheckOut(null);
+      } else {
+        setCheckOut(d);
+      }
+      setCalKey((k) => k + 1);
+    },
+    [checkIn, checkOut]
+  );
+
+  const listGuestMax = useMemo(() => {
+    if (!runtime?.rooms.length) return 12;
+    return Math.max(
+      1,
+      ...runtime.rooms.map((r) => r.maxCapacity || r.capacity || 1)
+    );
+  }, [runtime]);
+
+  const listFilterActive = Boolean(checkIn && checkOut);
+
+  const filteredRooms = useMemo(() => {
+    if (!runtime) return [];
+    return filterRoomsForStay(runtime.rooms, {
+      checkIn,
+      checkOut,
+      adults: guestCount,
+      children: childCount,
+      bookings: runtime.bookings,
+      closedDates: runtime.closedDates,
+      restrictions: runtime.restrictions,
+    });
+  }, [runtime, checkIn, checkOut, guestCount, childCount]);
+
   const changeGuests = useCallback(
     (delta: number) => {
-      if (!selectedRoom) return;
-      const max = selectedRoom.maxCapacity || selectedRoom.capacity;
+      const max = selectedRoom
+        ? selectedRoom.maxCapacity || selectedRoom.capacity
+        : listGuestMax;
       setGuestCount((g) => {
         const next = g + delta;
         if (next < 1) return g;
         if (next + childCount > max) {
-          if (delta > 0) {
+          if (delta > 0 && selectedRoom) {
             showPublicToast(`Максимум для цього котеджу: ${max} гостей (дорослі + діти)`);
           }
           return g;
@@ -564,18 +620,19 @@ export function PublicBookingProvider({
         return next;
       });
     },
-    [selectedRoom, childCount]
+    [selectedRoom, childCount, listGuestMax]
   );
 
   const changeChildren = useCallback(
     (delta: number) => {
-      if (!selectedRoom) return;
-      const max = selectedRoom.maxCapacity || selectedRoom.capacity;
+      const max = selectedRoom
+        ? selectedRoom.maxCapacity || selectedRoom.capacity
+        : listGuestMax;
       setChildCount((c) => {
         const next = c + delta;
         if (next < 0) return c;
         if (guestCount + next > max) {
-          if (delta > 0) {
+          if (delta > 0 && selectedRoom) {
             showPublicToast(`Максимум для цього котеджу: ${max} гостей (дорослі + діти)`);
           }
           return c;
@@ -583,7 +640,7 @@ export function PublicBookingProvider({
         return next;
       });
     },
-    [selectedRoom, guestCount]
+    [selectedRoom, guestCount, listGuestMax]
   );
 
   const setServiceQty = useCallback((serviceId: number, qty: number) => {
@@ -1032,10 +1089,15 @@ export function PublicBookingProvider({
     checkIn,
     checkOut,
     selectDate,
+    selectStayDate,
+    clearStayDates,
     guestCount,
     changeGuests,
     childCount,
     changeChildren,
+    filteredRooms,
+    listFilterActive,
+    listGuestMax,
     availableServices,
     selectedServices,
     setServiceQty,
