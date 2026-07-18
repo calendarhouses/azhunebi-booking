@@ -645,6 +645,7 @@
 .settings-discounts-row__name {
   display: flex;
   align-items: center;
+  gap: 8px;
   min-width: 0;
   flex: 1 1 auto;
   font-size: 14px;
@@ -660,22 +661,17 @@
 }
 
 .settings-discounts-row__title-sep {
-  display: inline-block;
-  width: 1px;
-  height: 14px;
-  margin: 0 10px;
   flex-shrink: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(214, 211, 209, 0) 0%,
-    #c9c5c0 18%,
-    #c9c5c0 82%,
-    rgba(214, 211, 209, 0) 100%
-  );
+  color: #a8a29e;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .settings-discounts-row__name-condition {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
   color: #78716c;

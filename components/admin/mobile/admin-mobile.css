@@ -1591,50 +1591,6 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 .boso-admin-mobile #view-settings #set-discounts > .btn-primary {
     margin-bottom: 16px;
 }
-/* Картки знижок — перевизначення глобальних td */
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    margin-bottom: 12px;
-}
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row > td {
-    display: flex;
-    width: 100%;
-    padding: 0;
-    border: none !important;
-    align-items: center;
-}
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row > td:first-child {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 15px;
-    border-bottom: 1px solid #F3F4F6 !important;
-    padding-bottom: 10px !important;
-    margin-bottom: 4px !important;
-}
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:nth-child(2) {
-    display: block;
-    font-size: 12px;
-    color: #6B7280;
-    line-height: 1.4;
-}
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:last-child {
-    justify-content: flex-end;
-    gap: 8px;
-    padding-top: 10px !important;
-    margin-top: 0;
-    border-top: 1px solid #F3F4F6 !important;
-    border-bottom: none !important;
-}
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .btn-action {
-    flex: 1;
-    justify-content: center;
-    padding: 10px 16px;
-    font-size: 14px;
-}
 .boso-admin-mobile .nav-item {
     outline: none;
 }
@@ -3262,18 +3218,6 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   gap: 12px;
 }
 
-.boso-admin-mobile #set-discounts .settings-discounts-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  margin-bottom: 12px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: var(--mobile-radius);
-  box-shadow: var(--mobile-shadow);
-}
-
 .boso-admin-mobile #view-settings .settings-save-action--sticky {
   position: sticky;
   bottom: 8px;
@@ -4203,7 +4147,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings #priceScroll.timeline-grid-container {
   overflow-x: auto;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 
 .boso-admin-mobile #view-settings #priceScroll .price-grid-track {
@@ -4247,7 +4191,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   padding-bottom: 0 !important;
 }
 
-/* Prices + rules boards: board owns X+Y scroll so sticky dates/rooms work (like main chessboard) */
+/* Prices + rules boards: content-sized; page (.main-content) owns vertical scroll */
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board {
   flex: 0 0 auto !important;
   height: auto !important;
@@ -4263,22 +4207,24 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 .boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll {
   flex: 0 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
-  min-height: 0 !important;
-  /* Bounded height → vertical scroll happens HERE → sticky head/rooms work */
-  height: auto !important;
-  max-height: calc(100dvh - 210px) !important;
-  overflow: auto !important;
+  /* overflow-y:hidden (not visible): with overflow-x:auto, "visible" computes to "auto" on iOS */
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-x pan-y !important;
-  overscroll-behavior: contain !important;
+  overscroll-behavior-x: none !important;
+  overscroll-behavior-y: auto !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
   box-sizing: border-box !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   flex-shrink: 0 !important;
   min-height: 0 !important;
   height: auto !important;
@@ -4286,44 +4232,26 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   justify-content: flex-start !important;
 }
 
-/* Sticky dates (top) + house names (left) — same as main booking board */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-head {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 15 !important;
   box-sizing: border-box !important;
   width: 100% !important;
   max-width: 100% !important;
-  overflow: visible !important;
-  background: #fff !important;
-}
-
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body {
-  box-sizing: border-box !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-}
-
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 20 !important;
-  background: #f9fafb !important;
-}
-
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-corner {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 21 !important;
-  background: #f9fafb !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-cells,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
-  overflow: visible !important;
+  overflow: hidden !important;
   box-sizing: border-box !important;
   flex: 0 0 auto !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-corner {
+  /* keep sticky left for horizontal pan only */
+  position: sticky !important;
+  left: 0 !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-months,
@@ -4877,57 +4805,264 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   font-weight: 700;
 }
 
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+/* Discounts list — same card table language as «Моє житло» */
+.boso-admin-mobile #view-settings .settings-discounts-table,
+.boso-admin-mobile #view-settings .settings-discounts-table > tbody,
+.boso-admin-mobile #view-settings .settings-discounts-table > thead {
+  display: flex !important;
+  flex-direction: column;
   gap: 12px;
-  margin: 0 0 12px;
-  padding: 16px;
-  border: 1px solid var(--settings-border);
-  border-radius: 18px;
-  background: var(--settings-surface);
-  box-shadow: 0 4px 14px rgba(28, 33, 24, 0.05);
+  width: 100%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row.is-expanded {
+.boso-admin-mobile #view-settings .settings-discounts-table > thead,
+.boso-admin-mobile #view-settings .settings-discounts-table-spacer,
+.boso-admin-mobile #view-settings .discount-kind-section-spacer,
+.boso-admin-mobile #view-settings .settings-discounts-table colgroup {
+  display: none !important;
+}
+
+/* Kill global mobile `tr` card chrome on non-row table rows */
+.boso-admin-mobile #view-settings .settings-discounts-table > tbody > tr {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  gap: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .discount-kind-section-heading,
+.boso-admin-mobile #view-settings .settings-discounts-table .discount-kind-section-heading > td {
+  display: block !important;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name name name"
+    "type status actions";
+  column-gap: 10px;
+  row-gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 !important;
+  padding: 16px !important;
+  border: 1px solid var(--settings-border) !important;
+  border-radius: 18px !important;
+  background: var(--settings-surface) !important;
+  box-shadow: 0 6px 18px rgba(28, 33, 24, 0.05) !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row.is-expanded {
   border-color: #d4dcc8;
-  box-shadow: 0 10px 28px rgba(92, 107, 75, 0.1);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 12px 30px rgba(92, 107, 75, 0.12);
 }
 
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td {
-  display: flex;
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td {
+  display: flex !important;
   width: auto;
   min-width: 0;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  justify-content: flex-start;
+  font-size: inherit !important;
 }
 
-.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:first-child {
-  grid-column: 1 / -1;
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td:first-child {
+  grid-area: name;
   padding-bottom: 12px !important;
   border-bottom: 1px solid #eff1ec !important;
+  margin-bottom: 0 !important;
 }
 
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type,
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__status {
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-wrap {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-inline {
+  width: 100%;
+  min-width: 0;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-primary,
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-condition {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__title-sep {
+  flex-shrink: 0;
+  color: #a8a29e;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-condition {
+  color: #697064;
+  font-weight: 600;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__meta {
+  margin-left: 0;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__value {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  background: #eef3e8;
+  color: #445625;
+  border: 1px solid #d4dcc8;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type {
+  grid-area: type;
   align-items: center;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__status {
+  grid-area: status;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions {
-  grid-column: 2;
-  grid-row: 2 / 4;
+  grid-area: actions;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  width: auto !important;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type .discount-type-badge,
+.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  border: 1px solid #e2e7db;
+  background: #f7f8f5;
+  color: #4f5748;
+  white-space: nowrap;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .discount-status-toggle {
+  display: inline-flex;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .discount-status-badge {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  box-shadow: none !important;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .discount-status-badge--on {
+  border: 1px solid #d7dfcc !important;
+  background: var(--settings-accent-soft) !important;
+  color: var(--settings-accent-dark) !important;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .discount-status-badge--off {
+  border: 1px solid #ead7d4 !important;
+  background: #fff5f4 !important;
+  color: #b42318 !important;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions .btn-icon-only {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   border: 1px solid var(--settings-border);
   background: #fbfcfa;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-rooms-expand.settings-discounts-expand,
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-expand,
+.boso-admin-mobile #view-settings .settings-discounts-table tr.settings-rooms-expand {
+  display: block !important;
+  flex-direction: unset !important;
+  width: 100%;
+  margin: -12px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  gap: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-expand > td,
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-rooms-expand > td {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 16px 16px !important;
+  border: 1px solid #d4dcc8 !important;
+  border-top: 0 !important;
+  border-radius: 0 0 18px 18px !important;
+  background: var(--settings-surface) !important;
+  box-shadow: 0 12px 30px rgba(92, 107, 75, 0.08);
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  font-size: inherit !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-expand:not(.is-open) > td,
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-rooms-expand:not(.is-open) > td {
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discount-expand-row,
@@ -4939,50 +5074,155 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel {
-  padding: 14px 0 8px !important;
+  padding: 14px 0 4px !important;
   border: 0 !important;
   background: transparent !important;
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel > div {
   grid-template-columns: 1fr !important;
-  gap: 12px !important;
-  margin-bottom: 12px !important;
+  gap: 14px !important;
+  margin-bottom: 14px !important;
 }
 
 .boso-admin-mobile #view-settings .discount-bento-card {
   min-height: 0 !important;
-  padding: 16px !important;
+  padding: 18px 16px !important;
   border: 1px solid var(--settings-border) !important;
-  border-radius: 16px !important;
-  background: #fbfcfa !important;
-  box-shadow: none !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  box-shadow: 0 4px 14px rgba(28, 33, 24, 0.04) !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card h3 {
+  margin-bottom: 16px !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.02em;
+  white-space: normal !important;
 }
 
 .boso-admin-mobile #view-settings .discount-bento-card input,
 .boso-admin-mobile #view-settings .discount-bento-card select,
 .boso-admin-mobile #view-settings .discount-bento-card textarea {
-  min-height: 46px;
-  border-radius: 12px !important;
-  background: #fff !important;
+  min-height: 48px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--settings-border) !important;
+  background: #f7f8f5 !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .boso-admin-mobile #view-settings .discount-bento-card input {
-  max-width: 100%;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card input[inputmode="numeric"] {
+  min-height: 72px !important;
+  font-size: 40px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em;
+  text-align: center;
+  background: #fff !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card .grid.grid-cols-2 {
+  gap: 12px !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card .grid.grid-cols-2 > button {
+  min-height: 48px;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  box-shadow: none;
+}
+
+/* Housing chips — more air than desktop py-2.5 */
+.boso-admin-mobile #view-settings .discount-bento-card .discount-housing-chip__icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card .col-span-2 {
+  min-height: 50px;
+  margin-bottom: 2px;
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel__footer {
   display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
+  grid-template-columns: 0.9fr 1.1fr;
   gap: 10px !important;
-  padding-top: 14px !important;
+  margin-top: 4px;
+  padding-top: 16px !important;
+  border-top: 1px solid #eff1ec !important;
 }
 
-.boso-admin-mobile #view-settings .discount-settings-panel__footer .btn-primary,
-.boso-admin-mobile #view-settings .discount-settings-panel__footer .btn-secondary {
-  min-height: 46px;
+.boso-admin-mobile #view-settings .discount-bento-cancel-btn,
+.boso-admin-mobile #view-settings .discount-settings-panel__save {
+  width: 100%;
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+}
+
+.boso-admin-mobile #view-settings .discount-kind-section__header,
+.boso-admin-mobile #view-settings .discount-kind-section__header--in-table {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 2px 4px;
+  padding: 0;
+}
+
+.boso-admin-mobile #view-settings .discount-kind-section__icon {
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
+}
+
+.boso-admin-mobile #view-settings .discount-kind-section__title,
+.boso-admin-mobile #view-settings .discount-kind-section h3 {
+  margin: 0;
+  color: var(--settings-text);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.boso-admin-mobile #view-settings .discount-kind-section__count {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef0eb;
+  color: #697064;
+  font-size: 12px;
   font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boso-admin-mobile #view-settings .discount-templates-collapse {
+  margin: 0;
+}
+
+.boso-admin-mobile #view-settings .discount-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .border-dashed {
@@ -4993,30 +5233,17 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   background: var(--settings-surface-muted) !important;
 }
 
-.boso-admin-mobile #view-settings .discount-kind-section__title,
-.boso-admin-mobile #view-settings .discount-kind-section h3 {
-  margin: 8px 2px 10px;
-  color: var(--settings-text);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.boso-admin-mobile #view-settings .discount-templates-collapse {
-  margin: 0;
-}
-
-.boso-admin-mobile #view-settings .discount-filter-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* Period calendar inside discount editor */
+.boso-admin-mobile #view-settings .discount-bento-card .price-range-calendar,
+.boso-admin-mobile #view-settings .discount-bento-card [class*="calendar"] {
+  border-radius: 14px;
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel__footer button {
   width: 100%;
-  min-height: 46px;
+  min-height: 48px;
   padding: 0 12px;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 /* Room editor sheet — same premium accordion as desktop */

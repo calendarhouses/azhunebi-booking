@@ -7,10 +7,10 @@ import type { DiscountConfig } from "../types";
 import { getDiscountConditionSuffix, getDiscountDisplayName, getDiscountKindMeta, getDiscountListRowTitleName, getDiscountValueLabel, resolveDiscountActive } from "./discountConfig";
 
 const DISCOUNT_ENABLED_BADGE_CLASS =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#EAF0E4] text-olive-800 border border-solid border-olive-400 hover:bg-[#DFE9D6] hover:border-olive-600 hover:text-olive-900 cursor-pointer transition-colors text-xs font-semibold";
+  "discount-status-badge discount-status-badge--on inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#EAF0E4] text-olive-800 border border-solid border-olive-400 hover:bg-[#DFE9D6] hover:border-olive-600 hover:text-olive-900 cursor-pointer transition-colors text-xs font-semibold";
 
 const DISCOUNT_DISABLED_BADGE_CLASS =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 text-stone-500 border border-solid border-stone-200 hover:bg-stone-200 hover:text-stone-600 cursor-pointer transition-colors text-xs font-semibold";
+  "discount-status-badge discount-status-badge--off inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 text-stone-500 border border-solid border-stone-200 hover:bg-stone-200 hover:text-stone-600 cursor-pointer transition-colors text-xs font-semibold";
 
 const editIcon = <Pencil size={14} strokeWidth={1.5} />;
 const deleteIcon = <Trash2 size={14} strokeWidth={1.5} />;
@@ -88,7 +88,9 @@ export function SettingsDiscountTableRow({
               <span className="settings-discounts-row__name-primary">{rowTitleName}</span>
               {conditionSuffix ? (
                 <>
-                  <span className="settings-discounts-row__title-sep" aria-hidden />
+                  <span className="settings-discounts-row__title-sep" aria-hidden>
+                    ·
+                  </span>
                   <span className="settings-discounts-row__name-condition">{conditionSuffix}</span>
                 </>
               ) : null}

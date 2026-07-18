@@ -1083,11 +1083,11 @@ export function DesktopRestrictionsGrid({
                 maxWidth: "100%",
                 minWidth: 0,
                 flex: "0 0 auto",
-                overflow: "auto",
-                maxHeight: "calc(100dvh - 210px)",
+                overflowX: "auto",
+                overflowY: "hidden",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
-                overscrollBehavior: "contain",
+                overscrollBehaviorX: "none",
               }}
             >
               <div
