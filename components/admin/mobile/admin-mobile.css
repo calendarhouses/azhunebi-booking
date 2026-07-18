@@ -1494,6 +1494,16 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     align-self: flex-start;
     width: 100%;
 }
+
+body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobile-board.timeline-wrapper {
+  flex: 1 1 0% !important;
+  align-self: stretch !important;
+  align-items: stretch !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
 .boso-admin-mobile #set-prices .timeline-sidebar,
 .boso-admin-mobile #set-restrictions .timeline-sidebar {
     align-self: flex-start;
@@ -4063,11 +4073,33 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   justify-content: space-between;
   gap: 4px;
   min-width: 0;
-  min-height: 44px;
-  padding: 0 8px;
+  min-height: 40px;
+  max-height: 44px;
+  padding: 4px 8px;
   border: 1px solid var(--settings-border);
   border-radius: 12px;
   background: var(--settings-surface-muted);
+  box-sizing: border-box;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .timeline-nav .btn-icon,
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .timeline-nav .timeline-nav-arrow {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  flex: 0 0 28px !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .timeline-nav .btn-icon svg {
+  width: 14px !important;
+  height: 14px !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-toolbar--mobile .timeline-month-label {
@@ -4256,74 +4288,114 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   padding-bottom: 0 !important;
 }
 
-/* Dense prices: reliable fill + internal scroll */
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.timeline-wrapper {
-  display: flex !important;
-  flex-direction: row !important;
-  flex: 1 1 auto !important;
-  align-self: stretch !important;
-  align-items: stretch !important;
-  width: 100% !important;
+/* Non-dense mobile prices: size to content (page scrolls); dense fills viewport */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board:not(.timeline-wrapper--mobile-dense) {
+  flex: 0 0 auto !important;
   height: auto !important;
-  max-height: calc(100dvh - 168px) !important;
-  min-height: 200px !important;
+  max-height: none !important;
+  min-height: 0 !important;
   overflow: hidden !important;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar {
-  align-self: stretch !important;
-  width: 88px !important;
-  min-width: 88px !important;
-  max-width: 88px !important;
-  height: 100% !important;
-  max-height: 100% !important;
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board:not(.timeline-wrapper--mobile-dense) > .timeline-mobile-scroll {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
   min-height: 0 !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
-  flex-shrink: 0;
-  z-index: 5;
-  background: #F9FAFB !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-grid-container {
+/* Dense prices: same single-scroller board as main chessboard */
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-grid-premium--mobile-dense {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.price-grid-timeline--mobile-board {
+  display: flex !important;
+  flex-direction: column !important;
   flex: 1 1 0% !important;
   align-self: stretch !important;
-  min-width: 0 !important;
-  width: auto !important;
-  height: 100% !important;
-  max-height: 100% !important;
+  width: 100% !important;
+  height: auto !important;
   min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper .timeline-mobile-scroll {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
   overflow: auto !important;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
 }
 
-/* Dates stay inside the same scroller as rows — sticky while panning vertically */
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll .timeline-months {
+/* Price board cells: exact grid width, no phantom columns after last day */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body {
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-cells,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-row-bg,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .price-grid-row {
+  width: var(--timeline-grid-width) !important;
+  min-width: 0 !important;
+  max-width: var(--timeline-grid-width) !important;
+  background-image: none !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-rows {
+  width: var(--timeline-grid-width) !important;
+  max-width: var(--timeline-grid-width) !important;
+  min-width: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .price-cell,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-date {
+  width: var(--timeline-cell-width, 72px) !important;
+  min-width: var(--timeline-cell-width, 72px) !important;
+  max-width: var(--timeline-cell-width, 72px) !important;
+  box-sizing: border-box !important;
+  flex: 0 0 var(--timeline-cell-width, 72px) !important;
+}
+
+/* Dates stay sticky inside the single mobile price scroller */
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-mobile-head {
   position: sticky;
   top: 0;
-  z-index: 4;
-  background: #fff;
+  z-index: 15;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll .timeline-dates {
-  position: sticky;
-  top: var(--price-grid-month-h, 28px);
-  z-index: 4;
-  background: #fff;
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-grid-timeline--mobile-board .timeline-mobile-head {
+  height: var(--price-grid-header-h, 64px) !important;
+  min-height: var(--price-grid-header-h, 64px) !important;
+  max-height: var(--price-grid-header-h, 64px) !important;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar .timeline-sidebar-header {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  background: #F9FAFB;
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-grid-timeline--mobile-board .timeline-mobile-corner .timeline-sidebar-header {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--touch-selecting #priceScroll.timeline-grid-container,
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--touch-selecting #priceScroll.timeline-grid-container * {
-  /* Keep pan-* so iOS does not cancel the active pointer mid-selection. */
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--touch-selecting .timeline-mobile-scroll,
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--touch-selecting .timeline-mobile-scroll * {
   touch-action: pan-x pan-y !important;
 }
 

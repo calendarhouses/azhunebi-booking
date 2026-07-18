@@ -335,6 +335,15 @@ export function DesktopPriceGrid({
     track.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
   }, []);
 
+  const handleMobilePriceScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Hard-clamp: never allow scrolling past the last day column (+ sidebar).
+    const boardWidth = gridTotalWidth + 88;
+    const maxLeft = Math.max(0, boardWidth - el.clientWidth);
+    if (el.scrollLeft > maxLeft) el.scrollLeft = maxLeft;
+  }, [gridTotalWidth]);
+
   const handleGridContainerScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
     const grid = scrollRef.current;
@@ -344,18 +353,16 @@ export function DesktopPriceGrid({
     if (focusLayout) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
-    const sidebar =
-      sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null);
+    const sidebar = sidebarBodyScrollRef.current;
     if (sidebar && sidebar.scrollTop !== grid.scrollTop) {
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, [focusLayout, mobileDense, syncFocusHeadTrack]);
+  }, [focusLayout, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
-    const sidebar =
-      sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null);
+    const sidebar = sidebarBodyScrollRef.current;
     const grid = scrollRef.current;
     if (!sidebar || !grid) return;
 
@@ -364,7 +371,7 @@ export function DesktopPriceGrid({
       grid.scrollTop = sidebar.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, [mobileDense]);
+  }, []);
 
   const handleGridWheel = useCallback(
     (event: WheelEvent<HTMLDivElement>) => {
@@ -398,6 +405,11 @@ export function DesktopPriceGrid({
   );
 
   const columnWidths = useMemo(() => {
+    // Mobile: fixed day columns — avoids measured widths drifting past the dates header.
+    if (isMobile) {
+      return Array.from({ length: daysCount }, () => PRICE_CELL_MIN);
+    }
+
     const widths = Array.from({ length: daysCount }, () => PRICE_CELL_MIN);
 
     for (const room of activeRooms) {
@@ -422,7 +434,7 @@ export function DesktopPriceGrid({
     }
 
     return widths;
-  }, [activeRooms, customPrices, dayMeta, daysCount, editCell, editDraft]);
+  }, [isMobile, activeRooms, customPrices, dayMeta, daysCount, editCell, editDraft]);
 
   columnWidthsRef.current = columnWidths;
 
@@ -466,19 +478,18 @@ export function DesktopPriceGrid({
   }, [isMobile]);
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (focusLayout || mobileDense) {
+    if (isMobile || focusLayout) {
       return {
         horizontal: scrollRef.current,
         vertical: scrollRef.current,
-        verticalSync:
-          sidebarBodyScrollRef.current ?? (mobileDense ? sidebarScrollRef.current : null),
+        verticalSync: focusLayout ? sidebarBodyScrollRef.current : null,
       };
     }
     return {
       horizontal: scrollRef.current,
       verticalPage: settingsMainRef.current,
     };
-  }, [focusLayout, mobileDense]);
+  }, [focusLayout, isMobile]);
 
   const dragScrollOptions = useCallback(
     () => ({ viewportEdges: isMobile }),
@@ -1195,83 +1206,142 @@ export function DesktopPriceGrid({
       </div>
 
       <div
-        className={`price-grid-premium${focusLayout ? " price-grid-premium--focus" : ""}${mobileDense ? " price-grid-premium--mobile-dense" : ""}`}
+        className={`price-grid-premium${focusLayout ? " price-grid-premium--focus" : ""}${isMobile ? " price-grid-premium--mobile" : ""}${mobileDense ? " price-grid-premium--mobile-dense" : ""}`}
         style={premiumStyle}
       >
-        <div
-          className={[
-            wrapperClassName,
-            mobileDense ? "timeline-wrapper--mobile-dense price-grid-timeline--mobile-dense" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          id="priceTimelineWrapper"
-          style={{ marginTop: 0 }}
-        >
-          {focusLayout ? (
-            <>
-              <div className="timeline-focus-head">
-                <div className="timeline-sidebar timeline-sidebar--focus-head">
-                  {sidebarHeader}
-                </div>
-                <div className="timeline-grid-head">
-                  <div className="timeline-head-track" ref={headTrackRef}>
+        {isMobile ? (
+          <div
+            className={[
+              "timeline-wrapper",
+              "price-grid-timeline",
+              "timeline-wrapper--mobile-board",
+              "price-grid-timeline--mobile-board",
+              mobileDense ? "timeline-wrapper--mobile-dense price-grid-timeline--mobile-dense" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            id="priceTimelineWrapper"
+            style={
+              {
+                marginTop: 0,
+                ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
+                ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+              } as CSSProperties
+            }
+          >
+            <div
+              className="timeline-mobile-scroll timeline-scroll-surface"
+              id="priceScroll"
+              ref={scrollRef}
+              onScroll={handleMobilePriceScroll}
+            >
+              <div
+                className="timeline-mobile-board"
+                style={{
+                  width: gridTotalWidth + 88,
+                  minWidth: gridTotalWidth + 88,
+                  maxWidth: gridTotalWidth + 88,
+                }}
+              >
+                <div className="timeline-mobile-head">
+                  <div className="timeline-mobile-corner">{sidebarHeader}</div>
+                  <div
+                    className="timeline-mobile-dates"
+                    style={{
+                      width: gridTotalWidth,
+                      minWidth: gridTotalWidth,
+                      maxWidth: gridTotalWidth,
+                    }}
+                  >
                     {monthRow}
                     {datesRow}
                   </div>
                 </div>
-              </div>
-              <div className="timeline-focus-body">
                 <div
-                  className="timeline-sidebar timeline-sidebar--focus-body"
-                  ref={sidebarBodyScrollRef}
-                  onScroll={handleSidebarBodyScroll}
-                >
-                  {roomRows}
-                </div>
-                <div
-                  className="timeline-grid-container timeline-scroll-surface"
-                  ref={scrollRef}
-                  id="priceScroll"
-                  onScroll={handleGridContainerScroll}
-                  onWheel={handleGridWheel}
-                >
-                  {gridRows}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div
-                className="timeline-sidebar price-grid-sidebar"
-                ref={mobileDense ? sidebarScrollRef : undefined}
-                onScroll={mobileDense ? handleSidebarBodyScroll : undefined}
-              >
-                {sidebarHeader}
-                {roomRows}
-              </div>
-              <div
-                className="timeline-grid-container"
-                ref={scrollRef}
-                id="priceScroll"
-                onScroll={mobileDense ? handleGridContainerScroll : undefined}
-              >
-                <div
-                  className="price-grid-track"
+                  className="timeline-mobile-body"
                   style={{
-                    width: gridTotalWidth,
-                    minWidth: gridTotalWidth,
-                    maxWidth: gridTotalWidth,
+                    width: gridTotalWidth + 88,
+                    minWidth: gridTotalWidth + 88,
+                    maxWidth: gridTotalWidth + 88,
                   }}
                 >
-                  {monthRow}
-                  {datesRow}
-                  {gridRows}
+                  <div className="timeline-mobile-rooms">{roomRows}</div>
+                  <div
+                    className="timeline-mobile-cells"
+                    style={{
+                      width: gridTotalWidth,
+                      minWidth: gridTotalWidth,
+                      maxWidth: gridTotalWidth,
+                    }}
+                  >
+                    {gridRows}
+                  </div>
                 </div>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={wrapperClassName}
+            id="priceTimelineWrapper"
+            style={{ marginTop: 0 }}
+          >
+            {focusLayout ? (
+              <>
+                <div className="timeline-focus-head">
+                  <div className="timeline-sidebar timeline-sidebar--focus-head">
+                    {sidebarHeader}
+                  </div>
+                  <div className="timeline-grid-head">
+                    <div className="timeline-head-track" ref={headTrackRef}>
+                      {monthRow}
+                      {datesRow}
+                    </div>
+                  </div>
+                </div>
+                <div className="timeline-focus-body">
+                  <div
+                    className="timeline-sidebar timeline-sidebar--focus-body"
+                    ref={sidebarBodyScrollRef}
+                    onScroll={handleSidebarBodyScroll}
+                  >
+                    {roomRows}
+                  </div>
+                  <div
+                    className="timeline-grid-container timeline-scroll-surface"
+                    ref={scrollRef}
+                    id="priceScroll"
+                    onScroll={handleGridContainerScroll}
+                    onWheel={handleGridWheel}
+                  >
+                    {gridRows}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="timeline-sidebar price-grid-sidebar">
+                  {sidebarHeader}
+                  {roomRows}
+                </div>
+                <div className="timeline-grid-container" ref={scrollRef} id="priceScroll">
+                  <div
+                    className="price-grid-track"
+                    style={{
+                      width: gridTotalWidth,
+                      minWidth: gridTotalWidth,
+                      maxWidth: gridTotalWidth,
+                    }}
+                  >
+                    {monthRow}
+                    {datesRow}
+                    {gridRows}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {isMobile ? (
