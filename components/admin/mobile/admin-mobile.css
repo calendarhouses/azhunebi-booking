@@ -4879,8 +4879,8 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   grid-template-areas:
     "name name name"
     "type status actions";
-  column-gap: 12px;
-  row-gap: 14px;
+  column-gap: 10px;
+  row-gap: 0;
   align-items: center;
   justify-items: start;
   width: 100%;
@@ -4922,6 +4922,35 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   padding-bottom: 14px !important;
   border-bottom: 1px solid #eff1ec !important;
   margin-bottom: 0 !important;
+}
+
+/* Space below the divider + gap between type / status chips */
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type,
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status,
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
+  margin-top: 14px !important;
+  padding-top: 2px !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type {
+  grid-area: type;
+  justify-self: start;
+  margin-right: 2px !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status {
+  grid-area: status;
+  justify-self: start;
+  justify-content: flex-start !important;
+  margin-left: 8px !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
+  grid-area: actions;
+  justify-self: end;
+  justify-content: flex-end !important;
+  gap: 10px;
+  width: auto !important;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-wrap {
@@ -4981,28 +5010,6 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   background: #eef3e8;
   color: #445625;
   border: 1px solid #d4dcc8;
-}
-
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__type {
-  grid-area: type;
-  justify-self: start;
-  align-items: center;
-}
-
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__status {
-  grid-area: status;
-  justify-self: start;
-  align-items: center;
-  justify-content: flex-start !important;
-}
-
-.boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions {
-  grid-area: actions;
-  justify-self: end;
-  justify-content: flex-end !important;
-  gap: 10px;
-  width: auto !important;
-  margin-left: 0;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions > .flex {
