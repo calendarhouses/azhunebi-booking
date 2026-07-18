@@ -52,7 +52,7 @@ export default function LoginPageClient() {
     setSubmitting(false);
 
     if (signInError || !session) {
-      setError(signInError || "Невірний email або пароль");
+      setError(signInError || "Невірний логін або пароль");
       return;
     }
 
@@ -74,14 +74,14 @@ export default function LoginPageClient() {
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.label}>
-            Email
+            Логін
             <input
-              type="email"
+              type="text"
               className={styles.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@example.com"
-              autoComplete="email"
+              placeholder="Логін"
+              autoComplete="username"
               required
             />
           </label>
