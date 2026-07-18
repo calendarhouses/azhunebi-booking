@@ -561,13 +561,12 @@ export function DesktopReportsView({
             {isMobile ? (
               <>
                 <h3 style={{ marginBottom: 12 }}>Популярність</h3>
-                <div className="mode-toggle" style={{ margin: "0 0 16px 0", padding: 4, width: "100%" }}>
+                <div className="mode-toggle reports-popularity-toggle" style={{ margin: "0 0 16px 0", padding: 4, width: "100%" }}>
                   {(["count", "money", "nights"] as const).map((mode) => (
                     <div
                       key={mode}
                       id={`chartMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`}
                       className={`mode-btn${r.roomsChartMode === mode ? " active" : ""}`}
-                      style={{ padding: "6px 4px", fontSize: 11 }}
                       onClick={() => r.toggleRoomsChart(mode)}
                     >
                       {mode === "count" ? "Броні" : mode === "money" ? "Дохід" : "Ночі"}

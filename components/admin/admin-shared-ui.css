@@ -233,10 +233,29 @@
             border-color: rgba(85, 107, 47, 0.45);
             box-shadow: 0 4px 14px rgba(85, 107, 47, 0.08);
         }
+        .branding-logo-upload__input {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            cursor: pointer;
+            border: 0;
+            border-radius: inherit;
+        }
+        .branding-logo-upload__input:disabled {
+            cursor: not-allowed;
+        }
         .branding-logo-upload__img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            object-position: center;
+            padding: 8px;
+            box-sizing: border-box;
         }
         .branding-logo-upload__placeholder {
             display: flex;

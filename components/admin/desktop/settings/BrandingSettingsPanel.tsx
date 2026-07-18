@@ -281,29 +281,11 @@ export function BrandingSettingsPanel({
             </label>
 
             <label className="branding-field">
-              <span>Telegram (посилання)</span>
-              <input
-                type="url"
-                value={form.telegram_url || ""}
-                placeholder="https://t.me/..."
-                onChange={(e) => patch("telegram_url", e.target.value)}
-              />
-            </label>
-            <label className="branding-field">
               <span>Телефон для гостей</span>
               <GuestPhoneField
                 value={String(form.contact_phone || "")}
                 disabled={saving}
                 onChange={(value) => patch("contact_phone", value)}
-              />
-            </label>
-            <label className="branding-field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={String(form.contact_email || "")}
-                placeholder="info@example.com"
-                onChange={(e) => patch("contact_email", e.target.value)}
               />
             </label>
             <label className="branding-field branding-field--full">
@@ -424,7 +406,7 @@ export function BrandingSettingsPanel({
         <div className="branding-logo-row branding-field--full">
           <div className="branding-logo-row__main branding-field branding-field--logo">
             <span>Логотип</span>
-            <label
+            <div
               className="branding-logo-upload"
               title="Завантажити логотип"
               style={
@@ -437,7 +419,8 @@ export function BrandingSettingsPanel({
                 ref={logoInputRef}
                 type="file"
                 accept="image/*"
-                style={{ display: "none" }}
+                className="branding-logo-upload__input"
+                aria-label="Завантажити логотип"
                 disabled={isLogoProcessing || saving}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -462,7 +445,7 @@ export function BrandingSettingsPanel({
               {isLogoProcessing ? (
                 <span className="branding-logo-upload__overlay">Обробка…</span>
               ) : null}
-            </label>
+            </div>
             <p className="branding-logo-upload__hint">
               PNG, JPG або WebP. Відображається в адмінці та на сайті бронювання.
             </p>
@@ -470,7 +453,7 @@ export function BrandingSettingsPanel({
           <div className="branding-logo-row__action">
             <button
               type="button"
-              className="btn-primary"
+              className="btn-primary settings-save-action--sticky"
               disabled={saving || isLogoProcessing}
               onClick={() => void handleSave()}
             >

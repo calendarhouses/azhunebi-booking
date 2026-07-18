@@ -89,32 +89,37 @@ function DetailCard({
     item.amount > 0 ? `${item.amount.toLocaleString("uk-UA")} грн` : "—";
 
   return (
-    <article className={cn(sectionBlockClass, "overflow-hidden p-0")}>
-      <div className="flex items-start justify-between gap-4 p-5">
-        <div className="flex min-w-0 items-center gap-3">
+    <article className={cn(sectionBlockClass, "analytics-detail-card overflow-hidden p-0")}>
+      <div className="analytics-detail-card__main flex items-start justify-between gap-4 p-5">
+        <div className="analytics-detail-card__guest flex min-w-0 items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold"
+            className="analytics-detail-card__avatar flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold"
             style={{ background: bgHex, color: colorHex }}
           >
             {getInitial(item.name)}
           </div>
-          <div className="min-w-0">
-            <div className="truncate text-[17px] font-semibold leading-snug text-slate-900">{item.name}</div>
-            <div className="mt-1 text-sm text-slate-500">
+          <div className="analytics-detail-card__meta min-w-0">
+            <div className="analytics-detail-card__name truncate text-[17px] font-semibold leading-snug text-slate-900">
+              {item.name}
+            </div>
+            <div className="analytics-detail-card__dates mt-1 text-sm text-slate-500">
               Дати: <span className="font-medium text-slate-600">{item.date}</span>
             </div>
           </div>
         </div>
         <div
-          className="shrink-0 rounded-lg px-3 py-2 text-right"
+          className="analytics-detail-card__amount shrink-0 rounded-lg px-3 py-2 text-right"
           style={{ background: bgHex }}
         >
-          <div className="text-[15px] font-extrabold leading-tight" style={{ color: colorHex }}>
+          <div
+            className="analytics-detail-card__value text-[15px] font-extrabold leading-tight"
+            style={{ color: colorHex }}
+          >
             {amountText}
           </div>
           {valLabel ? (
             <div
-              className="mt-0.5 text-[10px] font-bold uppercase tracking-wide opacity-80"
+              className="analytics-detail-card__label mt-0.5 text-[10px] font-bold uppercase tracking-wide opacity-80"
               style={{ color: colorHex }}
             >
               {valLabel}
@@ -122,11 +127,11 @@ function DetailCard({
           ) : null}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 border-t border-slate-100 bg-slate-50/80 px-5 py-3">
+      <div className="analytics-detail-card__actions flex flex-wrap gap-2 border-t border-slate-100 bg-slate-50/80 px-5 py-3">
         {item.isTrans && item.id != null ? (
           <button
             type="button"
-            className={cn(btnSecondaryClass, "min-w-[140px] flex-1")}
+            className={cn(btnSecondaryClass, "analytics-detail-card__btn min-w-[140px] flex-1")}
             onClick={() => onEditTransaction(item.id!)}
           >
             Редагувати запис
@@ -134,7 +139,7 @@ function DetailCard({
         ) : item.row != null ? (
           <button
             type="button"
-            className="analytics-soft-btn inline-flex h-10 min-w-[140px] flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-all duration-150 active:scale-[0.98]"
+            className="analytics-soft-btn analytics-detail-card__btn inline-flex h-10 min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-all duration-150 active:scale-[0.98]"
             style={
               {
                 "--card-accent": colorHex,
@@ -143,6 +148,21 @@ function DetailCard({
             }
             onClick={() => onOpenBooking(item.row!)}
           >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
             Відкрити бронь
           </button>
         ) : null}
@@ -151,7 +171,7 @@ function DetailCard({
             href={`https://t.me/+${item.phone}`}
             target="_blank"
             rel="noreferrer"
-            className="analytics-soft-btn analytics-telegram-btn inline-flex h-10 min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-all duration-150 active:scale-[0.98]"
+            className="analytics-soft-btn analytics-telegram-btn analytics-detail-card__btn inline-flex h-10 min-w-[140px] flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-all duration-150 active:scale-[0.98]"
           >
             <MessengerIcon kind="telegram" size={16} />
             Telegram
@@ -194,20 +214,20 @@ export function AnalyticsDetailsDrawer({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[3200] transition-opacity duration-300",
+        "analytics-details-layer fixed inset-0 z-[3200] transition-opacity duration-300",
         open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       )}
       aria-hidden={!open}
     >
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[4px]"
+        className="analytics-details-backdrop absolute inset-0 bg-slate-900/40 backdrop-blur-[4px]"
         onClick={onClose}
         aria-label="Закрити"
       />
       <aside
         className={cn(
-          "flex flex-col bg-white antialiased",
+          "analytics-details-drawer flex flex-col bg-white antialiased",
           isMobile
             ? cn(
                 "absolute bottom-0 left-0 right-0 max-h-[92dvh] w-full rounded-t-[22px]",
@@ -228,7 +248,12 @@ export function AnalyticsDetailsDrawer({
         aria-labelledby="analytics-details-title"
       >
         {isMobile ? <div className="m-sheet-handle mt-3 shrink-0" aria-hidden /> : null}
-        <header className={cn("shrink-0 border-b border-slate-200", isMobile ? "px-5 pb-4 pt-1" : "p-6")}>
+        <header
+          className={cn(
+            "analytics-details-drawer__header shrink-0 border-b border-slate-200",
+            isMobile ? "px-5 pb-4 pt-1" : "p-6"
+          )}
+        >
           <div className="flex items-center gap-3">
             <MetricHeaderIcon
               compact
@@ -247,7 +272,7 @@ export function AnalyticsDetailsDrawer({
             </h2>
             <button
               type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+              className="analytics-details-drawer__close flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
               onClick={onClose}
               aria-label="Закрити"
             >
@@ -258,7 +283,7 @@ export function AnalyticsDetailsDrawer({
 
         <div
           className={cn(
-            "flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/60 to-white",
+            "analytics-details-drawer__body flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/60 to-white",
             isMobile ? "p-4" : "p-6"
           )}
         >
@@ -271,7 +296,7 @@ export function AnalyticsDetailsDrawer({
               </p>
             </div>
           ) : (
-            <ul className="space-y-4">
+            <ul className="analytics-details-drawer__list space-y-4">
               {items.map((item, idx) => (
                 <li
                   key={`${item.name}-${item.rawDate}-${idx}`}
@@ -303,7 +328,7 @@ export function AnalyticsDetailsDrawer({
 
         <footer
           className={cn(
-            "shrink-0 border-t border-slate-200 bg-slate-50",
+            "analytics-details-drawer__footer shrink-0 border-t border-slate-200 bg-slate-50",
             isMobile ? "px-5 py-3" : "px-6 py-4"
           )}
         >
