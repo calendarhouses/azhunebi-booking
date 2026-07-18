@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Панель Управління",
   description: "Мобільна панель управління",
   applicationName: "Адмінка",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Адмінка",
