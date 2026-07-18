@@ -939,6 +939,10 @@
             height: 100%;
             min-height: 100%;
             box-sizing: border-box;
+            touch-action: pan-y;
+        }
+        .timeline-track-window--selecting {
+            touch-action: none;
         }
         .timeline-row-bg--virtual {
             display: block;

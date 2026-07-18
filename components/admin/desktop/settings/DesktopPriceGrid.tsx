@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type WheelEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { formatDateKey } from "../bookingUtils";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import {
@@ -29,6 +30,15 @@ import type { AdminSettingsPayload } from "../types";
 
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
+const TOUCH_DRAG_THRESHOLD_PX = 10;
+
+function priceCellFromPoint(x: number, y: number): { roomId: string; dateStr: string } | null {
+  if (typeof document === "undefined") return null;
+  const el = document.elementFromPoint(x, y);
+  const cell = el?.closest?.("[data-price-room][data-price-date]") as HTMLElement | null;
+  if (!cell?.dataset.priceRoom || !cell.dataset.priceDate) return null;
+  return { roomId: cell.dataset.priceRoom, dateStr: cell.dataset.priceDate };
+}
 
 type EditCell = { roomId: string; dateStr: string; selectAll?: boolean } | null;
 
@@ -53,6 +63,8 @@ function getCellSelectionClasses(
 }
 
 function PriceGridCell({
+  roomId,
+  dateStr,
   price,
   isWeekend,
   isCustom,
@@ -64,9 +76,10 @@ function PriceGridCell({
   onDraftChange,
   onCommit,
   onCancel,
-  onDragMouseDown,
-  onDragMouseEnter,
+  onDragPointerDown,
 }: {
+  roomId: string;
+  dateStr: string;
   price: number;
   isWeekend: boolean;
   isCustom: boolean;
@@ -78,8 +91,7 @@ function PriceGridCell({
   onDraftChange: (draft: string) => void;
   onCommit: (amount: number) => void;
   onCancel: () => void;
-  onDragMouseDown: (e: React.MouseEvent) => void;
-  onDragMouseEnter: () => void;
+  onDragPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
   const [draft, setDraft] = useState(String(price));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,7 +133,13 @@ function PriceGridCell({
     .filter(Boolean)
     .join(" ");
 
-  const cellStyle = { width, minWidth: width, height: "100%", alignSelf: "stretch" as const };
+  const cellStyle: CSSProperties = {
+    width,
+    minWidth: width,
+    height: "100%",
+    alignSelf: "stretch",
+    touchAction: editing ? "auto" : "none",
+  };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -130,7 +148,7 @@ function PriceGridCell({
 
   if (editing) {
     return (
-      <div className={cellClass} style={cellStyle}>
+      <div className={cellClass} style={cellStyle} data-price-room={roomId} data-price-date={dateStr}>
         <div className="price-cell-editor price-cell-editor--inline">
           <input
             ref={inputRef}
@@ -172,13 +190,10 @@ function PriceGridCell({
       tabIndex={0}
       className={cellClass}
       style={cellStyle}
+      data-price-room={roomId}
+      data-price-date={dateStr}
       onDoubleClick={handleDoubleClick}
-      onMouseDown={(e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        onDragMouseDown(e);
-      }}
-      onMouseEnter={onDragMouseEnter}
+      onPointerDown={onDragPointerDown}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -186,7 +201,7 @@ function PriceGridCell({
         }
       }}
     >
-      <div className="flex h-full w-full items-center justify-center whitespace-nowrap px-2">
+      <div className="pointer-events-none flex h-full w-full items-center justify-center whitespace-nowrap px-2">
         <span className={`text-sm font-semibold ${isCustom ? "text-stone-800" : "text-stone-700"}`}>
           {formatPriceAmount(price)}
         </span>
@@ -233,6 +248,7 @@ export function DesktopPriceGrid({
   const [dragHighlight, setDragHighlight] = useState<DragHighlight | null>(null);
   const dragRef = useRef({
     active: false,
+    pointerId: -1,
     anchorRoomId: "",
     anchorDateStr: "",
     focusRoomId: "",
@@ -272,6 +288,14 @@ export function DesktopPriceGrid({
   const toggleFocusMode = useCallback(() => {
     setIsFocusMode((prev) => !prev);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    document.body.classList.toggle("boso-prices-dense", mobileDense);
+    return () => {
+      document.body.classList.remove("boso-prices-dense");
+    };
+  }, [isMobile, mobileDense]);
 
   const syncFocusHeadTrack = useCallback((scrollLeft: number) => {
     const track = headTrackRef.current;
@@ -539,9 +563,10 @@ export function DesktopPriceGrid({
     setEditDraft(draft);
   }, []);
 
-  const onCellMouseDown = useCallback(
-    (roomId: string, dateStr: string, e: React.MouseEvent) => {
-      if (e.button !== 0) return;
+  const onCellPointerDown = useCallback(
+    (roomId: string, dateStr: string, e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0 && e.pointerType === "mouse") return;
+      if (e.pointerType === "mouse") e.preventDefault();
 
       if (
         editCell &&
@@ -556,6 +581,7 @@ export function DesktopPriceGrid({
 
       dragRef.current = {
         active: true,
+        pointerId: e.pointerId,
         anchorRoomId: roomId,
         anchorDateStr: dateStr,
         focusRoomId: roomId,
@@ -564,26 +590,33 @@ export function DesktopPriceGrid({
         startX: e.clientX,
         startY: e.clientY,
       };
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     },
     [editCell, editDraft, commitInlinePrice]
   );
 
-  const onCellMouseEnter = useCallback(
-    (roomId: string, dateStr: string) => {
+  const updateDragFocusFromPoint = useCallback(
+    (clientX: number, clientY: number) => {
       const drag = dragRef.current;
       if (!drag.active) return;
-      if (drag.focusRoomId === roomId && drag.focusDateStr === dateStr) return;
+      const hit = priceCellFromPoint(clientX, clientY);
+      if (!hit) return;
+      if (drag.focusRoomId === hit.roomId && drag.focusDateStr === hit.dateStr) return;
 
-      drag.focusRoomId = roomId;
-      drag.focusDateStr = dateStr;
-
-      if (roomId !== drag.anchorRoomId || dateStr !== drag.anchorDateStr) {
+      drag.focusRoomId = hit.roomId;
+      drag.focusDateStr = hit.dateStr;
+      if (hit.roomId !== drag.anchorRoomId || hit.dateStr !== drag.anchorDateStr) {
         drag.moved = true;
       }
-
       if (drag.moved) {
         setDragHighlight(
-          computeDragHighlight(drag.anchorRoomId, roomId, drag.anchorDateStr, dateStr)
+          computeDragHighlight(drag.anchorRoomId, hit.roomId, drag.anchorDateStr, hit.dateStr)
         );
         ensureDragAutoScroll();
       }
@@ -613,6 +646,7 @@ export function DesktopPriceGrid({
     const drag = dragRef.current;
     if (!drag.active) return;
     drag.active = false;
+    drag.pointerId = -1;
     stopDragAutoScroll();
 
     const highlight = computeDragHighlight(
@@ -639,15 +673,17 @@ export function DesktopPriceGrid({
   }, [activeRooms.length, computeDragHighlight, modals, openInlineEdit, stopDragAutoScroll]);
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+    const onPointerMove = (e: PointerEvent) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
       const drag = dragRef.current;
       if (!drag.active) return;
+      if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
 
       if (!drag.moved) {
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
-        if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) {
+        const threshold = e.pointerType === "touch" ? TOUCH_DRAG_THRESHOLD_PX : DRAG_THRESHOLD_PX;
+        if (Math.hypot(dx, dy) < threshold) {
           ensureDragAutoScroll();
           return;
         }
@@ -662,19 +698,33 @@ export function DesktopPriceGrid({
         );
       }
 
+      updateDragFocusFromPoint(e.clientX, e.clientY);
       ensureDragAutoScroll();
     };
 
-    const onMouseUp = () => finishDrag();
+    const onPointerUp = (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag.active) return;
+      if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
+      finishDrag();
+    };
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
     return () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
       stopDragAutoScroll();
     };
-  }, [finishDrag, computeDragHighlight, ensureDragAutoScroll, stopDragAutoScroll]);
+  }, [
+    finishDrag,
+    computeDragHighlight,
+    ensureDragAutoScroll,
+    stopDragAutoScroll,
+    updateDragFocusFromPoint,
+  ]);
 
   const sidebarHeader = (
     <TimelineSidebarHeader
@@ -751,6 +801,8 @@ export function DesktopPriceGrid({
             return (
               <PriceGridCell
                 key={day.dateStr}
+                roomId={String(room.id)}
+                dateStr={day.dateStr}
                 price={price}
                 isWeekend={day.isWeekend}
                 isCustom={isCustom}
@@ -776,8 +828,7 @@ export function DesktopPriceGrid({
                   setEditCell(null);
                   setEditDraft("");
                 }}
-                onDragMouseDown={(e) => onCellMouseDown(String(room.id), day.dateStr, e)}
-                onDragMouseEnter={() => onCellMouseEnter(String(room.id), day.dateStr)}
+                onDragPointerDown={(e) => onCellPointerDown(String(room.id), day.dateStr, e)}
               />
             );
           })}
@@ -823,10 +874,12 @@ export function DesktopPriceGrid({
         .filter(Boolean)
         .join(" ")}
     >
-      <div className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}`}>
+      <div
+        className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}${mobileDense ? " timeline-toolbar--dense-focus" : ""}`}
+      >
         {isMobile ? (
           <>
-            <div className="price-grid-toolbar__row">
+            <div className="price-grid-toolbar__nav-row" aria-hidden={mobileDense || undefined}>
               <div className="timeline-nav">
                 <button type="button" className="btn-icon tap-btn" onClick={() => shift(-1)} aria-label="Попередній місяць">
                   <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -846,7 +899,7 @@ export function DesktopPriceGrid({
                 Поточний місяць
               </button>
             </div>
-            <div className="price-grid-toolbar__row">
+            <div className="price-grid-toolbar__actions-row timeline-toolbar-actions">
               <button
                 type="button"
                 className="btn-outline-danger tap-btn"
@@ -864,23 +917,19 @@ export function DesktopPriceGrid({
                 </svg>
                 Конструктор
               </button>
-            </div>
-            <div className="price-grid-toolbar__row">
               <button
                 type="button"
-                className="btn-secondary tap-btn price-grid-toolbar__back"
-                disabled={!mobileDense}
-                onClick={() => setIsFocusMode(false)}
-              >
-                Назад
-              </button>
-              <button
-                type="button"
-                className={`btn-secondary tap-btn price-grid-toolbar__expand${mobileDense ? " is-active" : ""}`}
+                className={`timeline-focus-toggle timeline-focus-toggle--toolbar tap-btn${mobileDense ? " is-active" : ""}`}
+                onClick={toggleFocusMode}
                 aria-pressed={mobileDense}
-                onClick={() => setIsFocusMode(true)}
+                aria-label={mobileDense ? "Звичайний розмір шахматки" : "Розгорнути шахматку"}
+                title={mobileDense ? "Звичайний розмір" : "Розгорнути шахматку"}
               >
-                Розгорнута шахматка
+                {mobileDense ? (
+                  <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+                ) : (
+                  <Maximize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
+                )}
               </button>
             </div>
           </>

@@ -3980,21 +3980,56 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-card);
   background: var(--settings-surface);
+  transition: gap 0.32s ease, margin 0.32s ease;
 }
 
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__row {
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__nav-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
   align-items: stretch;
+  overflow: hidden;
+  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s ease, margin 0.32s ease, max-height 0.32s ease;
 }
 
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__row > * {
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile.timeline-toolbar--dense-focus {
+  gap: 0;
+  margin-bottom: 6px;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile.timeline-toolbar--dense-focus .price-grid-toolbar__nav-row {
+  grid-template-rows: 0fr;
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__nav-row > * {
   width: 100%;
   min-width: 0;
   min-height: 44px;
   box-sizing: border-box;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .btn-outline-danger,
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__actions-row .btn-primary {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .boso-admin-mobile #view-settings .price-grid-toolbar--mobile .timeline-nav {
@@ -4021,14 +4056,11 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   font-weight: 750;
 }
 
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .btn-secondary,
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .btn-primary,
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .btn-outline-danger {
+.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .btn-secondary {
   position: static;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   min-height: 44px;
   margin: 0;
   padding: 0 10px;
@@ -4036,16 +4068,6 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   font-size: 13px;
   font-weight: 750;
   white-space: nowrap;
-}
-
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__expand.is-active {
-  border-color: var(--settings-accent);
-  background: var(--settings-accent-soft);
-  color: var(--settings-accent-dark);
-}
-
-.boso-admin-mobile #view-settings .price-grid-toolbar--mobile .price-grid-toolbar__back:disabled {
-  opacity: 0.45;
 }
 
 .boso-admin-mobile #view-settings :is(.price-grid-toolbar__nav, .restrictions-grid-toolbar__nav),
@@ -4104,37 +4126,88 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   min-height: 44px;
 }
 
-/* Mobile dense price chessboard — ~12 rooms visible */
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-grid-premium--mobile-dense,
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.timeline-wrapper {
-  height: calc(
-    var(--price-grid-month-h, 28px) + var(--price-grid-dates-h, 36px) + (12 * var(--price-grid-row-h, 34px))
-  ) !important;
-  max-height: min(
-    68dvh,
-    calc(var(--price-grid-month-h, 28px) + var(--price-grid-dates-h, 36px) + (12 * var(--price-grid-row-h, 34px)))
-  ) !important;
-  align-self: stretch !important;
-  align-items: stretch !important;
+/* Dense prices board — same feel as main chessboard dense */
+body.boso-prices-dense {
+  overscroll-behavior: none;
+  overflow: hidden;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper {
+body.boso-prices-dense .boso-admin-mobile .main-content {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings {
+  min-height: 0;
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 8px;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-shell {
+  flex-shrink: 0;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-heading {
+  display: none;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-shell {
+  flex-shrink: 0;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-grid-premium--mobile-dense {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.timeline-wrapper {
+  display: flex !important;
+  flex: 1 1 0% !important;
+  align-self: stretch !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
   overflow: hidden !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-grid-container {
-  flex: 1 1 auto !important;
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar {
   align-self: stretch !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow: auto !important;
+  height: auto !important;
+  max-height: 100%;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar {
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-grid-container {
+  flex: 1 1 auto !important;
   align-self: stretch !important;
-  height: 100% !important;
-  overflow: hidden;
+  height: auto !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar-header,
@@ -4159,6 +4232,9 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   height: var(--timeline-room-height, 34px) !important;
   min-height: var(--timeline-room-height, 34px) !important;
   max-height: var(--timeline-room-height, 34px) !important;
+  transition: height 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    min-height 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-room {
@@ -4170,6 +4246,10 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-cell,
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-grid-cell {
   font-size: 10px !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-cell {
+  touch-action: none;
 }
 
 /* Settings: flexible schedule and guest services */

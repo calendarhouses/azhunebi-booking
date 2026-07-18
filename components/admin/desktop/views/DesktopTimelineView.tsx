@@ -2,7 +2,11 @@
 
 import { Infinity as InfinityIcon, Maximize2, Minimize2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, MouseEvent, WheelEvent as ReactWheelEvent } from "react";
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  WheelEvent as ReactWheelEvent,
+} from "react";
 import { parseSafeDate } from "../adminDates";
 import { bosoHover, bosoLeave } from "../adminTooltip";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
@@ -108,6 +112,17 @@ type BookingBlockData = {
   extensions: { type: "early" | "late"; left: number; width: number }[];
   padLeft: number;
   padRight: number;
+};
+
+type TimelineSelectionPointerSession = {
+  pointerId: number;
+  pointerType: string;
+  roomName: string;
+  startX: number;
+  startY: number;
+  startCell: HTMLElement;
+  track: HTMLDivElement;
+  selecting: boolean;
 };
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -328,6 +343,7 @@ export function DesktopTimelineView({
   const [dragRoom, setDragRoom] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<string | null>(null);
   const [dragEnd, setDragEnd] = useState<string | null>(null);
+  const [pointerSelectingRoom, setPointerSelectingRoom] = useState<string | null>(null);
   const [draggingBookingKey, setDraggingBookingKey] = useState<string | number | null>(null);
   const [isBookingDragging, setIsBookingDragging] = useState(false);
   const [bookingDragHoverKey, setBookingDragHoverKey] = useState<string | null>(null);
@@ -340,6 +356,7 @@ export function DesktopTimelineView({
   cellHoverPreviewRef.current = cellHoverPreview;
   const isDraggingRef = useRef(false);
   const dragAnchorRef = useRef<string | null>(null);
+  const selectionPointerSessionRef = useRef<TimelineSelectionPointerSession | null>(null);
   const isBookingDraggingRef = useRef(false);
   const bookingDragHoverRef = useRef<string | null>(null);
   const gridSelectionRef = useRef({ dragRoom: null as string | null, dragStart: null as string | null, dragEnd: null as string | null });
@@ -550,14 +567,16 @@ export function DesktopTimelineView({
     if (moveSessionRef.current) return;
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
-    if (dragRoom && dragStart && dragEnd) {
-      const sorted = [dragStart, dragEnd].sort();
+    setPointerSelectingRoom(null);
+    const selection = gridSelectionRef.current;
+    if (selection.dragRoom && selection.dragStart && selection.dragEnd) {
+      const sorted = [selection.dragStart, selection.dragEnd].sort();
       const checkInStr = sorted[0];
       const checkOutStr = shiftDateKey(sorted[sorted.length - 1], 1);
-      onCreateBooking(dragRoom, checkInStr, checkOutStr);
+      onCreateBooking(selection.dragRoom, checkInStr, checkOutStr);
     }
     setTimeout(clearSelection, 300);
-  }, [dragRoom, dragStart, dragEnd, onCreateBooking, clearSelection]);
+  }, [onCreateBooking, clearSelection]);
 
   useEffect(() => () => {
     moveCleanupRef.current?.();
@@ -577,9 +596,19 @@ export function DesktopTimelineView({
   }, []);
 
   useEffect(() => {
-    const onUp = () => finishDrag();
-    document.addEventListener("mouseup", onUp);
-    return () => document.removeEventListener("mouseup", onUp);
+    const onEnd = (event: PointerEvent) => {
+      const session = selectionPointerSessionRef.current;
+      if (!session || event.pointerId !== session.pointerId) return;
+      selectionPointerSessionRef.current = null;
+      setPointerSelectingRoom(null);
+      finishDrag();
+    };
+    document.addEventListener("pointerup", onEnd);
+    document.addEventListener("pointercancel", onEnd);
+    return () => {
+      document.removeEventListener("pointerup", onEnd);
+      document.removeEventListener("pointercancel", onEnd);
+    };
   }, [finishDrag]);
 
   useEffect(() => {
@@ -998,43 +1027,105 @@ export function DesktopTimelineView({
     return cls;
   }, []);
 
-  const onTrackMouseDown = useCallback((roomName: string, event: MouseEvent<HTMLDivElement>) => {
-    if (isBookingDraggingRef.current || moveSessionRef.current) return;
-    if (event.button !== 0) return;
+  const startTimelineSelection = useCallback(
+    (roomName: string, cell: HTMLElement, clientX: number, useHoverPreview: boolean) => {
+      const date = cell.dataset.date;
+      if (!date) return false;
 
-    const cell = (event.target as HTMLElement).closest(
-      ".timeline-cell[data-date]"
-    ) as HTMLElement | null;
-    if (!cell || cell.dataset.room !== roomName) return;
+      const constraints = constraintsByRoom.get(roomName);
+      const activePreview = useHoverPreview ? cellHoverPreviewRef.current : null;
+      const start =
+        activePreview?.room === roomName
+          ? activePreview.checkIn
+          : resolveSelectionStartFromPointer(
+              date,
+              clientX,
+              cell.getBoundingClientRect(),
+              constraints
+            );
 
-    const date = cell.dataset.date;
-    if (!date) return;
+      setCellHoverPreview(null);
+      isDraggingRef.current = true;
+      if (typeof window !== "undefined") {
+        (window as Window & { isGridDragging?: boolean }).isGridDragging = true;
+      }
+      dragAnchorRef.current = start;
+      gridSelectionRef.current = { dragRoom: roomName, dragStart: start, dragEnd: start };
+      setDragRoom(roomName);
+      setDragStart(start);
+      setDragEnd(start);
+      setPointerSelectingRoom(roomName);
+      return true;
+    },
+    [constraintsByRoom]
+  );
 
-    const constraints = constraintsByRoom.get(roomName);
-    const activePreview = cellHoverPreviewRef.current;
-    const start =
-      activePreview?.room === roomName
-        ? activePreview.checkIn
-        : resolveSelectionStartFromPointer(
-            date,
-            event.clientX,
-            cell.getBoundingClientRect(),
-            constraints
-          );
+  const updateTimelineSelection = useCallback(
+    (roomName: string, clientX: number, clientY: number) => {
+      const cell = document
+        .elementFromPoint(clientX, clientY)
+        ?.closest(".timeline-cell[data-date][data-room]") as HTMLElement | null;
+      if (!cell || cell.dataset.room !== roomName) return;
 
-    setCellHoverPreview(null);
-    isDraggingRef.current = true;
-    if (typeof window !== "undefined") {
-      (window as Window & { isGridDragging?: boolean }).isGridDragging = true;
-    }
-    setDragRoom(roomName);
-    dragAnchorRef.current = start;
-    setDragStart(start);
-    setDragEnd(start);
-  }, [constraintsByRoom]);
+      const date = cell.dataset.date;
+      const anchor = dragAnchorRef.current;
+      if (!date || !anchor) return;
+
+      const movingNight = resolveSelectionNightFromPointer(
+        date,
+        clientX,
+        cell.getBoundingClientRect()
+      );
+      const constraints = constraintsByRoom.get(roomName);
+      const next = constraints
+        ? clampSelectionWithAnchor(anchor, movingNight, constraints)
+        : {
+            start: anchor <= movingNight ? anchor : movingNight,
+            end: anchor <= movingNight ? movingNight : anchor,
+          };
+
+      gridSelectionRef.current = {
+        dragRoom: roomName,
+        dragStart: next.start,
+        dragEnd: next.end,
+      };
+      setDragStart(next.start);
+      setDragEnd(next.end);
+    },
+    [constraintsByRoom]
+  );
+
+  const onTrackPointerDown = useCallback(
+    (roomName: string, event: ReactPointerEvent<HTMLDivElement>) => {
+      if (isBookingDraggingRef.current || moveSessionRef.current) return;
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+
+      const cell = (event.target as HTMLElement).closest(
+        ".timeline-cell[data-date][data-room]"
+      ) as HTMLElement | null;
+      if (!cell || cell.dataset.room !== roomName || !cell.dataset.date) return;
+
+      const isTouch = event.pointerType === "touch";
+      selectionPointerSessionRef.current = {
+        pointerId: event.pointerId,
+        pointerType: event.pointerType,
+        roomName,
+        startX: event.clientX,
+        startY: event.clientY,
+        startCell: cell,
+        track: event.currentTarget,
+        selecting: !isTouch,
+      };
+
+      if (!isTouch) {
+        startTimelineSelection(roomName, cell, event.clientX, true);
+      }
+    },
+    [startTimelineSelection]
+  );
 
   const onCellMouseEnter = useCallback((_roomName: string, _dateString: string) => {
-    // Виділення оновлюється через onTrackMouseMove (half-cell), не через enter цілої клітинки.
+    // Виділення оновлюється через рух вказівника (half-cell), не через enter цілої клітинки.
   }, []);
 
   const visibleDateSet = useMemo(
@@ -1076,35 +1167,43 @@ export function DesktopTimelineView({
     [cellHoverPreview, visibleDateSet]
   );
 
-  const onTrackMouseMove = useCallback((roomName: string, event: MouseEvent<HTMLDivElement>) => {
+  const onTrackPointerMove = useCallback((roomName: string, event: ReactPointerEvent<HTMLDivElement>) => {
     if (isBookingDraggingRef.current || moveSessionRef.current) return;
 
-    const cell = (event.target as HTMLElement).closest(
-      ".timeline-cell[data-date]"
-    ) as HTMLElement | null;
+    const session = selectionPointerSessionRef.current;
+    if (session?.pointerId === event.pointerId && session.roomName === roomName) {
+      if (!session.selecting && session.pointerType === "touch") {
+        const dx = event.clientX - session.startX;
+        const dy = event.clientY - session.startY;
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+        if (Math.max(absX, absY) < 10) return;
+        if (absY >= absX) {
+          selectionPointerSessionRef.current = null;
+          return;
+        }
 
-    if (isDraggingRef.current && gridSelectionRef.current.dragRoom === roomName) {
-      if (!cell || cell.dataset.room !== roomName) return;
-      const date = cell.dataset.date;
-      const anchor = dragAnchorRef.current;
-      if (!date || !anchor) return;
+        session.selecting = true;
+        try {
+          session.track.setPointerCapture(event.pointerId);
+        } catch {
+          /* Pointer capture is best-effort on older mobile browsers. */
+        }
+        if (!startTimelineSelection(roomName, session.startCell, session.startX, false)) return;
+      }
 
-      const movingNight = resolveSelectionNightFromPointer(
-        date,
-        event.clientX,
-        cell.getBoundingClientRect()
-      );
-      const constraints = constraintsByRoom.get(roomName);
-      if (!constraints) {
-        setDragStart(anchor <= movingNight ? anchor : movingNight);
-        setDragEnd(anchor <= movingNight ? movingNight : anchor);
+      if (session.selecting && isDraggingRef.current) {
+        event.preventDefault();
+        updateTimelineSelection(roomName, event.clientX, event.clientY);
         return;
       }
-      const clamped = clampSelectionWithAnchor(anchor, movingNight, constraints);
-      setDragStart(clamped.start);
-      setDragEnd(clamped.end);
-      return;
     }
+
+    if (event.pointerType !== "mouse") return;
+
+    const cell = (event.target as HTMLElement).closest(
+      ".timeline-cell[data-date][data-room]"
+    ) as HTMLElement | null;
 
     if (!cell || cell.dataset.room !== roomName) {
       setCellHoverPreview(null);
@@ -1139,9 +1238,9 @@ export function DesktopTimelineView({
       }
       return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
     });
-  }, [constraintsByRoom]);
+  }, [constraintsByRoom, startTimelineSelection, updateTimelineSelection]);
 
-  const onTrackMouseLeave = useCallback((roomName: string) => {
+  const onTrackPointerLeave = useCallback((roomName: string) => {
     setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));
   }, []);
 
@@ -1252,10 +1351,11 @@ export function DesktopTimelineView({
           selectedClassForDate={selectedClassForDate}
           hoverClassForDate={hoverClassForDate}
           bookingDragHoverKey={bookingDragHoverKey}
-          onTrackMouseDown={onTrackMouseDown}
+          isPointerSelecting={pointerSelectingRoom === room.name}
+          onTrackPointerDown={onTrackPointerDown}
           onCellMouseEnter={onCellMouseEnter}
-          onTrackMouseMove={onTrackMouseMove}
-          onTrackMouseLeave={onTrackMouseLeave}
+          onTrackPointerMove={onTrackPointerMove}
+          onTrackPointerLeave={onTrackPointerLeave}
           roomName={room.name}
           blocksSignature={`${room.id}:${draggingBookingKey}:${denseRows ? "d" : "n"}:${rowHeight}:${blocks
             .map((b) => `${b.booking.row}:${b.guestChip}:${b.finText}:${b.nights}`)

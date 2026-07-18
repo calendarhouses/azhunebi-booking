@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { MouseEvent, ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 
 export type TimelineGridCellProps = {
   dateString: string;
@@ -57,9 +57,10 @@ export type TimelineGridRowProps = {
   hoverClassForDate: (roomName: string, dateString: string) => string;
   bookingDragHoverKey: string | null;
   onCellMouseEnter: (roomName: string, dateString: string) => void;
-  onTrackMouseDown: (roomName: string, event: MouseEvent<HTMLDivElement>) => void;
-  onTrackMouseMove: (roomName: string, event: MouseEvent<HTMLDivElement>) => void;
-  onTrackMouseLeave: (roomName: string) => void;
+  isPointerSelecting: boolean;
+  onTrackPointerDown: (roomName: string, event: PointerEvent<HTMLDivElement>) => void;
+  onTrackPointerMove: (roomName: string, event: PointerEvent<HTMLDivElement>) => void;
+  onTrackPointerLeave: (roomName: string) => void;
   roomName: string;
   blocksSignature: string;
   children: ReactNode;
@@ -81,9 +82,10 @@ function rowPropsEqual(prev: TimelineGridRowProps, next: TimelineGridRowProps): 
     prev.selectedClassForDate === next.selectedClassForDate &&
     prev.hoverClassForDate === next.hoverClassForDate &&
     prev.onCellMouseEnter === next.onCellMouseEnter &&
-    prev.onTrackMouseDown === next.onTrackMouseDown &&
-    prev.onTrackMouseMove === next.onTrackMouseMove &&
-    prev.onTrackMouseLeave === next.onTrackMouseLeave
+    prev.isPointerSelecting === next.isPointerSelecting &&
+    prev.onTrackPointerDown === next.onTrackPointerDown &&
+    prev.onTrackPointerMove === next.onTrackPointerMove &&
+    prev.onTrackPointerLeave === next.onTrackPointerLeave
   );
 }
 
@@ -98,9 +100,10 @@ export const TimelineGridRow = memo(function TimelineGridRow({
   hoverClassForDate,
   bookingDragHoverKey,
   onCellMouseEnter,
-  onTrackMouseDown,
-  onTrackMouseMove,
-  onTrackMouseLeave,
+  isPointerSelecting,
+  onTrackPointerDown,
+  onTrackPointerMove,
+  onTrackPointerLeave,
   roomName,
   children,
 }: TimelineGridRowProps) {
@@ -115,11 +118,11 @@ export const TimelineGridRow = memo(function TimelineGridRow({
       }}
     >
       <div
-        className="timeline-track-window"
+        className={`timeline-track-window${isPointerSelecting ? " timeline-track-window--selecting" : ""}`}
         style={isVirtualTimeline ? { marginLeft: virtualOffsetPx } : undefined}
-        onMouseDown={(event) => onTrackMouseDown(roomName, event)}
-        onMouseMove={(event) => onTrackMouseMove(roomName, event)}
-        onMouseLeave={() => onTrackMouseLeave(roomName)}
+        onPointerDown={(event) => onTrackPointerDown(roomName, event)}
+        onPointerMove={(event) => onTrackPointerMove(roomName, event)}
+        onPointerLeave={() => onTrackPointerLeave(roomName)}
       >
         {renderDays.map((day) => (
           <TimelineGridCell
