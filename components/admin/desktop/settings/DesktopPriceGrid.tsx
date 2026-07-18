@@ -31,6 +31,8 @@ import type { AdminSettingsPayload } from "../types";
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
 const TOUCH_DRAG_THRESHOLD_PX = 10;
+/** Touch must hold this long on a cell before multi-select starts (keeps pan/scroll free). */
+const TOUCH_SELECT_HOLD_MS = 500;
 
 function priceCellFromPoint(x: number, y: number): { roomId: string; dateStr: string } | null {
   if (typeof document === "undefined") return null;
@@ -77,6 +79,7 @@ function PriceGridCell({
   onCommit,
   onCancel,
   onDragPointerDown,
+  allowPan,
 }: {
   roomId: string;
   dateStr: string;
@@ -92,6 +95,8 @@ function PriceGridCell({
   onCommit: (amount: number) => void;
   onCancel: () => void;
   onDragPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  /** When true, touch can pan/scroll the grid instead of capturing for selection. */
+  allowPan?: boolean;
 }) {
   const [draft, setDraft] = useState(String(price));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +143,7 @@ function PriceGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    touchAction: editing ? "auto" : "none",
+    touchAction: editing || allowPan ? "pan-x pan-y" : "none",
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -232,6 +237,8 @@ export function DesktopPriceGrid({
   const [, bump] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const mobileDense = isMobile && isFocusMode;
+  /** Desktop focus + mobile dense both use sticky head + scrollable body. */
+  const focusLayout = isFocusMode;
   const compactGrid = !isMobile && isFocusMode;
   const { setAuxiliaryFocusActive } = useGridFocusModeOptional();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -241,14 +248,31 @@ export function DesktopPriceGrid({
   const lastPointerRef = useRef({ x: 0, y: 0 });
   const lastDragFramePointerRef = useRef({ x: 0, y: 0 });
   const dragAutoScrollRafRef = useRef<number | null>(null);
+  const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsMainRef = useRef<HTMLElement | null>(null);
   const [editCell, setEditCell] = useState<EditCell>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingCell, setSavingCell] = useState<string | null>(null);
   const [dragHighlight, setDragHighlight] = useState<DragHighlight | null>(null);
-  const dragRef = useRef({
+  const [touchSelecting, setTouchSelecting] = useState(false);
+  const dragRef = useRef<{
+    active: boolean;
+    pending: boolean;
+    pointerId: number;
+    pointerType: string;
+    anchorRoomId: string;
+    anchorDateStr: string;
+    focusRoomId: string;
+    focusDateStr: string;
+    moved: boolean;
+    startX: number;
+    startY: number;
+    captureEl: HTMLElement | null;
+  }>({
     active: false,
+    pending: false,
     pointerId: -1,
+    pointerType: "",
     anchorRoomId: "",
     anchorDateStr: "",
     focusRoomId: "",
@@ -256,6 +280,7 @@ export function DesktopPriceGrid({
     moved: false,
     startX: 0,
     startY: 0,
+    captureEl: null,
   });
   const columnWidthsRef = useRef<number[]>([]);
   const scrollPreserveRef = useRef<number | null>(null);
@@ -310,14 +335,14 @@ export function DesktopPriceGrid({
     if (!grid) return;
 
     scrollSyncRef.current = true;
-    if (compactGrid) {
+    if (focusLayout) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
     if (sidebar && sidebar.scrollTop !== grid.scrollTop) {
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, [compactGrid, syncFocusHeadTrack]);
+  }, [focusLayout, syncFocusHeadTrack]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (scrollSyncRef.current) return;
@@ -334,14 +359,14 @@ export function DesktopPriceGrid({
 
   const handleGridWheel = useCallback(
     (event: WheelEvent<HTMLDivElement>) => {
-      if (!compactGrid) return;
+      if (!focusLayout) return;
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
       const sidebar = sidebarBodyScrollRef.current;
       if (!sidebar) return;
       event.preventDefault();
       sidebar.scrollTop += event.deltaY;
     },
-    [compactGrid]
+    [focusLayout]
   );
 
   const computeDragHighlight = useCallback(
@@ -470,12 +495,12 @@ export function DesktopPriceGrid({
       const dayIdx = today.getDate() - 1;
       const offset = widths.slice(0, Math.max(0, dayIdx - 3)).reduce((a, b) => a + b, 0);
       el.scrollLeft = offset;
-      if (compactGrid) syncFocusHeadTrack(offset);
+      if (focusLayout) syncFocusHeadTrack(offset);
     } else {
       el.scrollLeft = 0;
-      if (compactGrid) syncFocusHeadTrack(0);
+      if (focusLayout) syncFocusHeadTrack(0);
     }
-  }, [startDate, daysCount, compactGrid, syncFocusHeadTrack]);
+  }, [startDate, daysCount, focusLayout, syncFocusHeadTrack]);
 
   useLayoutEffect(() => {
     if (scrollPreserveRef.current == null) return;
@@ -489,7 +514,7 @@ export function DesktopPriceGrid({
   }, [columnWidths, editCell]);
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (compactGrid) {
+    if (focusLayout) {
       return {
         horizontal: scrollRef.current,
         vertical: scrollRef.current,
@@ -500,7 +525,7 @@ export function DesktopPriceGrid({
       horizontal: scrollRef.current,
       verticalPage: settingsMainRef.current,
     };
-  }, [compactGrid]);
+  }, [focusLayout]);
 
   const stopDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) {
@@ -530,13 +555,13 @@ export function DesktopPriceGrid({
 
     scrollSyncRef.current = true;
     const scrolled = applyDragEdgeScroll(x, y, targets);
-    if (scrolled && compactGrid) {
+    if (scrolled && focusLayout) {
       syncFocusHeadTrack(scrollRef.current?.scrollLeft ?? 0);
     }
     scrollSyncRef.current = false;
 
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragAutoScrollFrame);
-  }, [compactGrid, getDragScrollTargets, syncFocusHeadTrack]);
+  }, [focusLayout, getDragScrollTargets, syncFocusHeadTrack]);
 
   const ensureDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) return;
@@ -563,10 +588,60 @@ export function DesktopPriceGrid({
     setEditDraft(draft);
   }, []);
 
+  const clearTouchSelectHold = useCallback(() => {
+    if (touchSelectHoldTimerRef.current) {
+      clearTimeout(touchSelectHoldTimerRef.current);
+      touchSelectHoldTimerRef.current = null;
+    }
+  }, []);
+
+  const resetDragSession = useCallback(() => {
+    clearTouchSelectHold();
+    dragRef.current = {
+      active: false,
+      pending: false,
+      pointerId: -1,
+      pointerType: "",
+      anchorRoomId: "",
+      anchorDateStr: "",
+      focusRoomId: "",
+      focusDateStr: "",
+      moved: false,
+      startX: 0,
+      startY: 0,
+      captureEl: null,
+    };
+    setTouchSelecting(false);
+    stopDragAutoScroll();
+  }, [clearTouchSelectHold, stopDragAutoScroll]);
+
+  const armTouchSelection = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag.pending) return;
+    drag.pending = false;
+    drag.active = true;
+    setTouchSelecting(true);
+    setDragHighlight(
+      computeDragHighlight(
+        drag.anchorRoomId,
+        drag.focusRoomId,
+        drag.anchorDateStr,
+        drag.focusDateStr
+      )
+    );
+    if (drag.captureEl) {
+      try {
+        drag.captureEl.setPointerCapture(drag.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    ensureDragAutoScroll();
+  }, [computeDragHighlight, ensureDragAutoScroll]);
+
   const onCellPointerDown = useCallback(
     (roomId: string, dateStr: string, e: ReactPointerEvent<HTMLDivElement>) => {
       if (e.button !== 0 && e.pointerType === "mouse") return;
-      if (e.pointerType === "mouse") e.preventDefault();
 
       if (
         editCell &&
@@ -579,9 +654,15 @@ export function DesktopPriceGrid({
         );
       }
 
+      clearTouchSelectHold();
+      const isTouch = e.pointerType === "touch";
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+
       dragRef.current = {
-        active: true,
+        active: !isTouch,
+        pending: isTouch,
         pointerId: e.pointerId,
+        pointerType: e.pointerType,
         anchorRoomId: roomId,
         anchorDateStr: dateStr,
         focusRoomId: roomId,
@@ -589,16 +670,26 @@ export function DesktopPriceGrid({
         moved: false,
         startX: e.clientX,
         startY: e.clientY,
+        captureEl: e.currentTarget,
       };
-      lastPointerRef.current = { x: e.clientX, y: e.clientY };
 
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
+      if (!isTouch) {
+        e.preventDefault();
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+        return;
       }
+
+      // Touch: wait for long-press before selecting so pan/scroll stays free.
+      touchSelectHoldTimerRef.current = setTimeout(() => {
+        touchSelectHoldTimerRef.current = null;
+        armTouchSelection();
+      }, TOUCH_SELECT_HOLD_MS);
     },
-    [editCell, editDraft, commitInlinePrice]
+    [editCell, editDraft, commitInlinePrice, clearTouchSelectHold, armTouchSelection]
   );
 
   const updateDragFocusFromPoint = useCallback(
@@ -644,23 +735,24 @@ export function DesktopPriceGrid({
 
   const finishDrag = useCallback(() => {
     const drag = dragRef.current;
-    if (!drag.active) return;
-    drag.active = false;
-    drag.pointerId = -1;
-    stopDragAutoScroll();
-
+    if (!drag.active) {
+      resetDragSession();
+      return;
+    }
     const highlight = computeDragHighlight(
       drag.anchorRoomId,
       drag.focusRoomId,
       drag.anchorDateStr,
       drag.focusDateStr
     );
+    const moved = drag.moved;
+    resetDragSession();
     setDragHighlight(null);
 
     if (!highlight) return;
 
     const cellCount = highlight.roomIds.length * highlight.dateStrs.length;
-    if (cellCount > 1 || drag.moved) {
+    if (cellCount > 1 || moved) {
       setEditCell(null);
       setEditDraft("");
       modals.openPriceConstructor(
@@ -670,14 +762,25 @@ export function DesktopPriceGrid({
     }
 
     openInlineEdit(highlight.roomIds[0], highlight.dateStrs[0], false);
-  }, [activeRooms.length, computeDragHighlight, modals, openInlineEdit, stopDragAutoScroll]);
+  }, [activeRooms.length, computeDragHighlight, modals, openInlineEdit, resetDragSession]);
 
   useEffect(() => {
     const onPointerMove = (e: PointerEvent) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
       const drag = dragRef.current;
-      if (!drag.active) return;
       if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
+
+      if (drag.pending) {
+        const dx = e.clientX - drag.startX;
+        const dy = e.clientY - drag.startY;
+        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+          // Finger moved before long-press → treat as pan/scroll, not selection.
+          resetDragSession();
+        }
+        return;
+      }
+
+      if (!drag.active) return;
 
       if (!drag.moved) {
         const dx = e.clientX - drag.startX;
@@ -704,8 +807,19 @@ export function DesktopPriceGrid({
 
     const onPointerUp = (e: PointerEvent) => {
       const drag = dragRef.current;
-      if (!drag.active) return;
       if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
+
+      if (drag.pending) {
+        const { anchorRoomId, anchorDateStr } = drag;
+        resetDragSession();
+        // Short tap: open inline editor, never multi-select.
+        if (anchorRoomId && anchorDateStr) {
+          openInlineEdit(anchorRoomId, anchorDateStr, false);
+        }
+        return;
+      }
+
+      if (!drag.active) return;
       finishDrag();
     };
 
@@ -716,6 +830,7 @@ export function DesktopPriceGrid({
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("pointercancel", onPointerUp);
+      clearTouchSelectHold();
       stopDragAutoScroll();
     };
   }, [
@@ -724,6 +839,9 @@ export function DesktopPriceGrid({
     ensureDragAutoScroll,
     stopDragAutoScroll,
     updateDragFocusFromPoint,
+    resetDragSession,
+    openInlineEdit,
+    clearTouchSelectHold,
   ]);
 
   const sidebarHeader = (
@@ -811,7 +929,7 @@ export function DesktopPriceGrid({
                 dragSelectionClasses={selectionClasses}
                 selectAllOnFocus={Boolean(editing && editCell?.selectAll)}
                 onStartEdit={(selectAll) => {
-                  if (dragRef.current.active) return;
+                  if (dragRef.current.active || dragRef.current.pending) return;
                   openInlineEdit(String(room.id), day.dateStr, selectAll);
                 }}
                 onDraftChange={handleDraftChange}
@@ -829,6 +947,7 @@ export function DesktopPriceGrid({
                   setEditDraft("");
                 }}
                 onDragPointerDown={(e) => onCellPointerDown(String(room.id), day.dateStr, e)}
+                allowPan={isMobile && !touchSelecting}
               />
             );
           })}
@@ -840,7 +959,7 @@ export function DesktopPriceGrid({
   const wrapperClassName = [
     "timeline-wrapper",
     "price-grid-timeline",
-    compactGrid
+    focusLayout
       ? "timeline-wrapper--compact timeline-wrapper--focus-layout price-grid-timeline--focus-root"
       : "",
   ]
@@ -856,6 +975,10 @@ export function DesktopPriceGrid({
           ["--price-grid-header-h" as string]: "64px",
           ["--price-grid-row-h" as string]: "34px",
           ["--timeline-room-height" as string]: "34px",
+          ["--timeline-row-height" as string]: "34px",
+          ["--timeline-sidebar-header-height" as string]: "64px",
+          ["--timeline-months-height" as string]: "28px",
+          ["--timeline-dates-height" as string]: "36px",
         }
       : {
           ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
@@ -868,8 +991,9 @@ export function DesktopPriceGrid({
     <div
       className={[
         "price-grid-view",
-        compactGrid ? "price-grid-view--focus" : "",
+        focusLayout ? "price-grid-view--focus" : "",
         mobileDense ? "price-grid-view--mobile-dense" : "",
+        touchSelecting ? "price-grid-view--touch-selecting" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -980,7 +1104,7 @@ export function DesktopPriceGrid({
       </div>
 
       <div
-        className={`price-grid-premium${compactGrid ? " price-grid-premium--focus" : ""}${mobileDense ? " price-grid-premium--mobile-dense" : ""}`}
+        className={`price-grid-premium${focusLayout ? " price-grid-premium--focus" : ""}${mobileDense ? " price-grid-premium--mobile-dense" : ""}`}
         style={premiumStyle}
       >
         <div
@@ -993,7 +1117,7 @@ export function DesktopPriceGrid({
           id="priceTimelineWrapper"
           style={{ marginTop: 0 }}
         >
-          {compactGrid ? (
+          {focusLayout ? (
             <>
               <div className="timeline-focus-head">
                 <div className="timeline-sidebar timeline-sidebar--focus-head">

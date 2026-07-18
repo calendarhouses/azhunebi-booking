@@ -125,6 +125,10 @@ type TimelineSelectionPointerSession = {
   selecting: boolean;
 };
 
+/** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
+const TOUCH_SELECT_HOLD_MS = 500;
+const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
+
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
   const d = new Date(startDate);
   d.setDate(startDate.getDate() + index);
@@ -357,6 +361,7 @@ export function DesktopTimelineView({
   const isDraggingRef = useRef(false);
   const dragAnchorRef = useRef<string | null>(null);
   const selectionPointerSessionRef = useRef<TimelineSelectionPointerSession | null>(null);
+  const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBookingDraggingRef = useRef(false);
   const bookingDragHoverRef = useRef<string | null>(null);
   const gridSelectionRef = useRef({ dragRoom: null as string | null, dragStart: null as string | null, dragEnd: null as string | null });
@@ -587,6 +592,10 @@ export function DesktopTimelineView({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
+    if (touchSelectHoldTimerRef.current) {
+      clearTimeout(touchSelectHoldTimerRef.current);
+      touchSelectHoldTimerRef.current = null;
+    }
     longPressTargetRef.current?.classList.remove("pressing");
     longPressTargetRef.current = null;
     if (dragAutoScrollRafRef.current != null) {
@@ -599,9 +608,16 @@ export function DesktopTimelineView({
     const onEnd = (event: PointerEvent) => {
       const session = selectionPointerSessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
+      if (touchSelectHoldTimerRef.current) {
+        clearTimeout(touchSelectHoldTimerRef.current);
+        touchSelectHoldTimerRef.current = null;
+      }
+      const wasSelecting = session.selecting;
       selectionPointerSessionRef.current = null;
       setPointerSelectingRoom(null);
-      finishDrag();
+      if (wasSelecting) {
+        finishDrag();
+      }
     };
     document.addEventListener("pointerup", onEnd);
     document.addEventListener("pointercancel", onEnd);
@@ -1106,6 +1122,11 @@ export function DesktopTimelineView({
       if (!cell || cell.dataset.room !== roomName || !cell.dataset.date) return;
 
       const isTouch = event.pointerType === "touch";
+      if (touchSelectHoldTimerRef.current) {
+        clearTimeout(touchSelectHoldTimerRef.current);
+        touchSelectHoldTimerRef.current = null;
+      }
+
       selectionPointerSessionRef.current = {
         pointerId: event.pointerId,
         pointerType: event.pointerType,
@@ -1119,7 +1140,22 @@ export function DesktopTimelineView({
 
       if (!isTouch) {
         startTimelineSelection(roomName, cell, event.clientX, true);
+        return;
       }
+
+      // Touch: wait for long-press before selecting so pan/scroll stays free.
+      touchSelectHoldTimerRef.current = setTimeout(() => {
+        touchSelectHoldTimerRef.current = null;
+        const session = selectionPointerSessionRef.current;
+        if (!session || session.pointerId !== event.pointerId || session.selecting) return;
+        session.selecting = true;
+        try {
+          session.track.setPointerCapture(session.pointerId);
+        } catch {
+          /* Pointer capture is best-effort on older mobile browsers. */
+        }
+        startTimelineSelection(roomName, session.startCell, session.startX, false);
+      }, TOUCH_SELECT_HOLD_MS);
     },
     [startTimelineSelection]
   );
@@ -1175,21 +1211,15 @@ export function DesktopTimelineView({
       if (!session.selecting && session.pointerType === "touch") {
         const dx = event.clientX - session.startX;
         const dy = event.clientY - session.startY;
-        const absX = Math.abs(dx);
-        const absY = Math.abs(dy);
-        if (Math.max(absX, absY) < 10) return;
-        if (absY >= absX) {
+        if (Math.hypot(dx, dy) >= TOUCH_SELECT_MOVE_CANCEL_PX) {
+          // Finger moved before long-press → this is a scroll/pan, not a selection.
+          if (touchSelectHoldTimerRef.current) {
+            clearTimeout(touchSelectHoldTimerRef.current);
+            touchSelectHoldTimerRef.current = null;
+          }
           selectionPointerSessionRef.current = null;
-          return;
         }
-
-        session.selecting = true;
-        try {
-          session.track.setPointerCapture(event.pointerId);
-        } catch {
-          /* Pointer capture is best-effort on older mobile browsers. */
-        }
-        if (!startTimelineSelection(roomName, session.startCell, session.startX, false)) return;
+        return;
       }
 
       if (session.selecting && isDraggingRef.current) {
@@ -1238,7 +1268,7 @@ export function DesktopTimelineView({
       }
       return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
     });
-  }, [constraintsByRoom, startTimelineSelection, updateTimelineSelection]);
+  }, [constraintsByRoom, updateTimelineSelection]);
 
   const onTrackPointerLeave = useCallback((roomName: string) => {
     setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));

@@ -4182,6 +4182,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
 
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.timeline-wrapper {
   display: flex !important;
+  flex-direction: column !important;
   flex: 1 1 0% !important;
   align-self: stretch !important;
   align-items: stretch !important;
@@ -4192,21 +4193,92 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   overflow: hidden !important;
 }
 
+/* Focus layout: sticky head + scrollable body (synced sidebar/grid) */
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-focus-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  width: 100%;
+  height: calc(var(--timeline-months-height, 28px) + var(--timeline-dates-height, 36px));
+  min-height: calc(var(--timeline-months-height, 28px) + var(--timeline-dates-height, 36px));
+  max-height: calc(var(--timeline-months-height, 28px) + var(--timeline-dates-height, 36px));
+  overflow: hidden;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-focus-body {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar--focus-head {
+  width: 88px !important;
+  min-width: 88px !important;
+  max-width: 88px !important;
+  flex-shrink: 0;
+  height: 100%;
+  background: #F9FAFB !important;
+  border-right: 1px solid #E5E7EB;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar--focus-body {
+  width: 88px !important;
+  min-width: 88px !important;
+  max-width: 88px !important;
+  flex-shrink: 0;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  background: #F9FAFB !important;
+  border-right: 1px solid #E5E7EB;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-grid-head {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-head-track {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: max-content;
+  min-width: 100%;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-grid-container {
+  flex: 1 1 0% !important;
+  align-self: stretch !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting #priceScroll.timeline-grid-container,
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting #priceScroll.timeline-grid-container * {
+  touch-action: none !important;
+}
+
+/* Legacy sidebar layout (non-focus) kept for safety */
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-sidebar.price-grid-sidebar {
   align-self: stretch !important;
   height: auto !important;
   max-height: 100%;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-grid-container {
-  flex: 1 1 auto !important;
-  align-self: stretch !important;
-  height: auto !important;
-  max-height: 100% !important;
-  min-height: 0 !important;
-  overflow: auto !important;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -4216,6 +4288,12 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   height: var(--price-grid-month-h, 28px) !important;
   min-height: var(--price-grid-month-h, 28px) !important;
   max-height: var(--price-grid-month-h, 28px) !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-focus-head .timeline-sidebar-header {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .timeline-dates,
@@ -4249,6 +4327,10 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-cell {
+  touch-action: pan-x pan-y;
+}
+
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .price-cell {
   touch-action: none;
 }
 
