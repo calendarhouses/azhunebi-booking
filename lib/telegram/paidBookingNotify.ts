@@ -5,7 +5,7 @@ import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
-import { isTelegramConfigured } from "./config";
+import { getBookingsTargets, isTelegramConfigured } from "./config";
 import { sendTelegramMessage } from "./sendMessage";
 
 const UK_MONTHS = [
@@ -96,7 +96,13 @@ export async function notifyPaidBooking(booking: GasBookingRecord): Promise<bool
     console.warn("[TG] Skipping paid booking notify — Telegram is not configured");
     return false;
   }
-  const response = await sendTelegramMessage(buildPaidBookingTelegramText(booking));
+  const target = getBookingsTargets();
+  const response = await sendTelegramMessage(
+    buildPaidBookingTelegramText(booking),
+    undefined,
+    target.chatId,
+    target.threadId
+  );
   if (response.ok) return true;
   const body = await response.text().catch(() => "");
   console.error("[TG] Paid booking notify failed", response.status, body);

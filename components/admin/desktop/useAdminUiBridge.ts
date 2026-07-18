@@ -15,6 +15,7 @@ import {
 import { bosoHover, bosoLeave } from "./adminTooltip";
 import { closeCustomSelectsOnOutsideClick, selectOption, setBookingSourceDefault, setBookingSourceFromSaved, selectDayChip, selectPeriodChip, toggleAllDiscRooms, toggleAllRoomsChip, toggleCustomSelect, toggleSingleDiscRoom, toggleSingleRoomChip } from "./adminUiHelpers";
 import {
+  attachScreenshotsToPayload,
   buildPayloadForServer,
   buildBookingRecordFromSave,
   collectBookingFromForm,
@@ -331,6 +332,7 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
       const previousSnapshot = previousBooking ? { ...previousBooking } : null;
 
       const payload = buildPayloadForServer(bookingData, editingRowRef.current);
+      await attachScreenshotsToPayload(payload, bookingData);
 
       const json = await postAdminBooking(payload);
       handleSaveApiErrors(json);

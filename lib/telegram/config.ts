@@ -1,33 +1,72 @@
 const FAKE = "FAKE_TEST_KEY_DO_NOT_TOUCH";
 
+/**
+ * Forum topics in TELEGRAM_ADMIN_CHAT_ID (t.me/c/<id_without_-100>/<topic>):
+ *   5 — БРОНЮВАННЯ
+ *   6 — ФІНАНСИ / ЗВІТИ
+ *   7 — ЗАЇЗД / ВИЇЗД
+ *   8 — ЗАПИТИ БРОНЮВАННЯ
+ */
+export const TELEGRAM_TOPIC = {
+  bookings: 5,
+  finance: 6,
+  arrivals: 7,
+  requests: 8,
+} as const;
+
+export type TelegramTopicKey = keyof typeof TELEGRAM_TOPIC;
+
 export type TelegramConfig = {
   botToken: string;
   adminChatId: string;
-  adminOpsThreadId: number | null;
+  threadBookings: number;
+  threadFinance: number;
+  threadArrivals: number;
+  threadRequests: number;
+  /** @deprecated optional legacy cleaning chat — unused when forum topics are set */
   cleaningGroupId: string;
-  adminFinanceThreadId: number | null;
   isTestMode: boolean;
   testChatId: string;
   reviewWebhookSecret: string;
+  chessboardUrl: string;
 };
+
+function parseThreadId(raw: string | undefined, fallback: number): number {
+  const n = Number(String(raw || "").trim());
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 export function getTelegramConfig(): TelegramConfig {
   // Booking uses a dedicated bot (@azhunebibooking_bot). Never reuse @azhunebifood_bot —
   // Telegram allows only one webhook URL per bot token.
-  const opsThread = process.env.TELEGRAM_ADMIN_OPS_THREAD_ID?.trim();
-  const financeThread = process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID?.trim();
   return {
     botToken: process.env.TELEGRAM_BOT_TOKEN?.trim() || FAKE,
     adminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID?.trim() || FAKE,
-    adminOpsThreadId: opsThread ? Number(opsThread) : null,
+    threadBookings: parseThreadId(
+      process.env.TELEGRAM_THREAD_BOOKINGS || process.env.TELEGRAM_ADMIN_OPS_THREAD_ID,
+      TELEGRAM_TOPIC.bookings
+    ),
+    threadFinance: parseThreadId(
+      process.env.TELEGRAM_THREAD_FINANCE || process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID,
+      TELEGRAM_TOPIC.finance
+    ),
+    threadArrivals: parseThreadId(
+      process.env.TELEGRAM_THREAD_ARRIVALS,
+      TELEGRAM_TOPIC.arrivals
+    ),
+    threadRequests: parseThreadId(
+      process.env.TELEGRAM_THREAD_REQUESTS,
+      TELEGRAM_TOPIC.requests
+    ),
     cleaningGroupId: process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || FAKE,
-    adminFinanceThreadId: financeThread ? Number(financeThread) : null,
     isTestMode: process.env.TELEGRAM_TEST_MODE === "true",
     testChatId: process.env.TELEGRAM_TEST_CHAT_ID?.trim() || FAKE,
     reviewWebhookSecret:
       process.env.TELEGRAM_REVIEW_WEBHOOK_SECRET?.trim() ||
       process.env.TELEGRAM_BOT_TOKEN?.trim() ||
       FAKE,
+    chessboardUrl:
+      process.env.TELEGRAM_CHESSBOARD_URL?.trim() || "https://admin.azhunebi.com",
   };
 }
 
@@ -41,8 +80,42 @@ export function isTelegramConfigured(): boolean {
   );
 }
 
-export function getAdminOpsTargets(): { chatId: string; threadId: number | null } {
+export type TelegramTarget = { chatId: string; threadId: number | null };
+
+function targetForThread(threadId: number): TelegramTarget {
   const cfg = getTelegramConfig();
   if (cfg.isTestMode) return { chatId: cfg.testChatId, threadId: null };
-  return { chatId: cfg.adminChatId, threadId: cfg.adminOpsThreadId };
+  return { chatId: cfg.adminChatId, threadId };
+}
+
+/** БРОНЮВАННЯ — нові / оплачені броні */
+export function getBookingsTargets(): TelegramTarget {
+  return targetForThread(getTelegramConfig().threadBookings);
+}
+
+/** ЗАПИТИ БРОНЮВАННЯ — pending review */
+export function getRequestsTargets(): TelegramTarget {
+  return targetForThread(getTelegramConfig().threadRequests);
+}
+
+/** ЗАЇЗД / ВИЇЗД */
+export function getArrivalsTargets(): TelegramTarget {
+  return targetForThread(getTelegramConfig().threadArrivals);
+}
+
+/** ФІНАНСИ / ЗВІТИ */
+export function getFinanceTargets(): TelegramTarget {
+  return targetForThread(getTelegramConfig().threadFinance);
+}
+
+/** @deprecated use getBookingsTargets */
+export function getAdminOpsTargets(): TelegramTarget {
+  return getBookingsTargets();
+}
+
+export function chessboardKeyboard() {
+  const url = getTelegramConfig().chessboardUrl;
+  return {
+    inline_keyboard: [[{ text: "📅 Шахматка", url }]],
+  };
 }

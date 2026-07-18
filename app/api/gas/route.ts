@@ -35,6 +35,103 @@ function passthroughResponse(upstream: Response): NextResponse {
   });
 }
 
+async function handleLocalTelegramActions(
+  payload: Record<string, unknown> | null
+): Promise<NextResponse | null> {
+  if (!payload?.action) return null;
+
+  if (payload.action === "sendFinanceReport") {
+    const { sendFinanceReportTelegram } = await import("@/lib/telegram/financeNotify");
+    const reportResult = await sendFinanceReportTelegram({
+      screenshot: String(payload.screenshot || ""),
+      periodLabel: String(payload.periodLabel || ""),
+    });
+    return NextResponse.json(reportResult);
+  }
+
+  if (payload.action === "sendSuccessScreenshot") {
+    const { notifyNewBookingCreated } = await import("@/lib/telegram/newBookingNotify");
+    await notifyNewBookingCreated({
+      name: String(payload.name || ""),
+      phone: String(payload.phone || ""),
+      cottage: String(payload.cottage || ""),
+      checkIn: String(payload.checkIn || ""),
+      checkOut: String(payload.checkOut || ""),
+      guests: Number(payload.guests) || 0,
+      pets: payload.pets as string | boolean | undefined,
+      source: String(payload.source || "Адмінка"),
+      comment: String(payload.comment || ""),
+      totalPrice: Number(payload.totalPrice) || 0,
+      paidAmount: Number(payload.paidAmount) || 0,
+      screenshot: payload.screenshot ? String(payload.screenshot) : undefined,
+      screenshotCleaning: payload.screenshotCleaning
+        ? String(payload.screenshotCleaning)
+        : undefined,
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  return null;
+}
+
+async function afterBookingTelegramHooks(
+  payload: Record<string, unknown>,
+  result: Record<string, unknown>
+) {
+  const isCreate = !payload.row && !payload.id;
+  const source = String(payload.source || "");
+  const status = String(payload.status || "");
+  const isPending =
+    status === BOOKING_STATUS_PENDING_REVIEW || isPendingReviewStatus(status);
+
+  if (payload.remainderPaymentAdded) {
+    const { notifyPaymentReceived } = await import(
+      "@/lib/telegram/paymentReceivedNotify"
+    );
+    await notifyPaymentReceived({
+      name: String(payload.name || ""),
+      phone: String(payload.phone || ""),
+      cottage: String(payload.cottage || ""),
+      checkIn: String(payload.checkIn || ""),
+      checkOut: String(payload.checkOut || ""),
+      totalPrice: Number(payload.totalPrice) || 0,
+      paidAmount: Number(payload.paidAmount) || 0,
+      amount: Number(payload.remainderPaymentAmount) || 0,
+      method: String(payload.surchargeMethod || payload.prepayMethod || "Готівка"),
+      screenshotPayment: payload.screenshotPayment
+        ? String(payload.screenshotPayment)
+        : undefined,
+    });
+    return;
+  }
+
+  // Site pending handled separately before this; site instant waits for MonoPay paid notify.
+  if (source === "Сайт") return;
+
+  if (isCreate && !isPending) {
+    const { notifyNewBookingCreated } = await import("@/lib/telegram/newBookingNotify");
+    await notifyNewBookingCreated({
+      name: String(payload.name || ""),
+      phone: String(payload.phone || ""),
+      cottage: String(payload.cottage || ""),
+      checkIn: String(payload.checkIn || ""),
+      checkOut: String(payload.checkOut || ""),
+      guests: Number(payload.guests) || 0,
+      pets: payload.pets as string | boolean | undefined,
+      source: source || "Адмінка",
+      comment: String(payload.comment || ""),
+      totalPrice: Number(payload.totalPrice) || 0,
+      paidAmount: Number(payload.paidAmount) || 0,
+      screenshot: payload.screenshot ? String(payload.screenshot) : undefined,
+      screenshotCleaning: payload.screenshotCleaning
+        ? String(payload.screenshotCleaning)
+        : undefined,
+    });
+  }
+
+  void result;
+}
+
 export async function GET(request: Request) {
   const gasUrl = getGasUrl();
   if (!gasUrl) {
@@ -91,8 +188,17 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
+  let payload: Record<string, unknown> | null = null;
+  try {
+    payload = JSON.parse(body) as Record<string, unknown>;
+  } catch {
+    payload = null;
+  }
 
   try {
+    const local = await handleLocalTelegramActions(payload);
+    if (local) return local;
+
     const upstream = await fetch(gasUrl, {
       method: "POST",
       headers: forwardHeaders(request, "POST"),
@@ -101,12 +207,6 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
     const responseText = await upstream.text();
-    let payload: Record<string, unknown> | null = null;
-    try {
-      payload = JSON.parse(body) as Record<string, unknown>;
-    } catch {
-      payload = null;
-    }
 
     let result: Record<string, unknown> | null = null;
     try {
@@ -169,17 +269,33 @@ export async function POST(request: Request) {
     ) {
       after(async () => {
         try {
-        const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }] =
-          await Promise.all([
-            import("@/lib/gas-api"),
-            import("@/lib/sms/bookingLifecycleSms"),
-          ]);
-        const bookingResult = await fetchBookingByDisplayId(String(result.orderId));
-        if (bookingResult.ok && bookingResult.booking) {
-          await sendBookingLifecycleSms(bookingResult.booking, "payment_link");
-        }
+          const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }] =
+            await Promise.all([
+              import("@/lib/gas-api"),
+              import("@/lib/sms/bookingLifecycleSms"),
+            ]);
+          const bookingResult = await fetchBookingByDisplayId(String(result.orderId));
+          if (bookingResult.ok && bookingResult.booking) {
+            await sendBookingLifecycleSms(bookingResult.booking, "payment_link");
+          }
         } catch (err) {
           console.error("[GAS proxy] payment link SMS:", err);
+        }
+      });
+    }
+
+    if (
+      upstream.ok &&
+      result?.success !== false &&
+      !result?.error &&
+      payload &&
+      (payload.action === "createBooking" || (payload.checkIn && payload.name))
+    ) {
+      after(async () => {
+        try {
+          await afterBookingTelegramHooks(payload, result || {});
+        } catch (err) {
+          console.error("[GAS proxy] booking telegram hooks:", err);
         }
       });
     }

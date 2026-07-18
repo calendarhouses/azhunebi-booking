@@ -275,10 +275,8 @@ export async function POST(request: Request) {
     const authBlock = await verifyAdminRequest(request, tenantId);
     if (authBlock instanceof NextResponse) return authBlock;
     try {
+      const { sendFinanceReportTelegram } = await import("@/lib/telegram/financeNotify");
       const reportResult = await sendFinanceReportTelegram({
-        period: (data.period as string) || "current",
-        customStart: (data.customStart as string) || "",
-        customEnd: (data.customEnd as string) || "",
         periodLabel: (data.periodLabel as string) || "",
         screenshot: (data.screenshot as string) || "",
       });
@@ -289,11 +287,24 @@ export async function POST(request: Request) {
   }
 
   if (action === "sendSuccessScreenshot") {
-    await notifyNewBookingCreated(
-      data as BookingNotifyData,
-      {},
-      (data.orderId as string) || (data.id as string)
-    );
+    const { notifyNewBookingCreated } = await import("@/lib/telegram/newBookingNotify");
+    await notifyNewBookingCreated({
+      name: String(data.name || ""),
+      phone: String(data.phone || ""),
+      cottage: String(data.cottage || ""),
+      checkIn: String(data.checkIn || ""),
+      checkOut: String(data.checkOut || ""),
+      guests: Number(data.guests) || 0,
+      pets: data.pets as string | boolean | undefined,
+      source: String(data.source || "Адмінка"),
+      comment: String(data.comment || ""),
+      totalPrice: Number(data.totalPrice) || 0,
+      paidAmount: Number(data.paidAmount) || 0,
+      screenshot: data.screenshot ? String(data.screenshot) : undefined,
+      screenshotCleaning: data.screenshotCleaning
+        ? String(data.screenshotCleaning)
+        : undefined,
+    });
     return jsonResponse({ success: true });
   }
 

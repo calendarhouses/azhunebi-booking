@@ -6,7 +6,7 @@ import {
   parsePendingServiceIdsFromComment,
 } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
-import { isTelegramConfigured } from "./config";
+import { getRequestsTargets, isTelegramConfigured } from "./config";
 import {
   answerTelegramCallback,
   editTelegramMessage,
@@ -153,12 +153,13 @@ export async function notifyPendingBookingReview(
   }
   const caption = buildPendingReviewCaptionWithHint(data);
   const keyboard = buildPendingReviewKeyboard(data);
-  let res = await sendTelegramMessage(caption, keyboard);
+  const target = getRequestsTargets();
+  let res = await sendTelegramMessage(caption, keyboard, target.chatId, target.threadId);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error("[TG] pending review notify failed:", res.status, body);
     // fallback без клавіатури — хоча б текст дійде
-    res = await sendTelegramMessage(caption);
+    res = await sendTelegramMessage(caption, undefined, target.chatId, target.threadId);
     if (!res.ok) {
       const body2 = await res.text().catch(() => "");
       console.error("[TG] pending review notify fallback failed:", res.status, body2);

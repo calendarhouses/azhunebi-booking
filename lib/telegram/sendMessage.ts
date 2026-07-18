@@ -1,4 +1,8 @@
-import { getAdminOpsTargets, getTelegramConfig } from "./config";
+import {
+  getBookingsTargets,
+  getTelegramConfig,
+  type TelegramTarget,
+} from "./config";
 
 export async function sendTelegramMessage(
   text: string,
@@ -7,10 +11,10 @@ export async function sendTelegramMessage(
   threadId?: number | null
 ): Promise<Response> {
   const cfg = getTelegramConfig();
-  const ops = getAdminOpsTargets();
-  const cid = chatId || ops.chatId;
+  const fallback = getBookingsTargets();
+  const cid = chatId || fallback.chatId;
   let tid = threadId;
-  if (tid === undefined) tid = ops.threadId;
+  if (tid === undefined) tid = fallback.threadId;
 
   const payload: Record<string, unknown> = {
     chat_id: cid,
@@ -22,6 +26,58 @@ export async function sendTelegramMessage(
   if (keyboard) payload.reply_markup = keyboard;
 
   return fetch(`https://api.telegram.org/bot${cfg.botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function sendTelegramPhotoBase64(
+  base64DataUrl: string,
+  caption: string,
+  keyboard?: unknown,
+  target?: TelegramTarget
+): Promise<Response> {
+  const cfg = getTelegramConfig();
+  const dest = target || getBookingsTargets();
+  const raw = base64DataUrl.includes(",")
+    ? base64DataUrl.split(",")[1]
+    : base64DataUrl;
+  const buffer = Buffer.from(raw, "base64");
+  const form = new FormData();
+  form.append("chat_id", dest.chatId);
+  if (dest.threadId) form.append("message_thread_id", String(dest.threadId));
+  form.append("photo", new Blob([buffer], { type: "image/png" }), "card.png");
+  if (caption) {
+    form.append("caption", caption);
+    form.append("parse_mode", "HTML");
+  }
+  if (keyboard) form.append("reply_markup", JSON.stringify(keyboard));
+
+  return fetch(`https://api.telegram.org/bot${cfg.botToken}/sendPhoto`, {
+    method: "POST",
+    body: form,
+  });
+}
+
+export async function sendTelegramPhotoUrl(
+  photoUrl: string,
+  caption: string,
+  keyboard?: unknown,
+  target?: TelegramTarget
+): Promise<Response> {
+  const cfg = getTelegramConfig();
+  const dest = target || getBookingsTargets();
+  const payload: Record<string, unknown> = {
+    chat_id: dest.chatId,
+    photo: photoUrl,
+    caption,
+    parse_mode: "HTML",
+  };
+  if (dest.threadId) payload.message_thread_id = dest.threadId;
+  if (keyboard) payload.reply_markup = keyboard;
+
+  return fetch(`https://api.telegram.org/bot${cfg.botToken}/sendPhoto`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
