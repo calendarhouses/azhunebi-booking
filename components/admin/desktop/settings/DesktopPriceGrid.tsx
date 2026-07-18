@@ -1073,8 +1073,7 @@ export function DesktopPriceGrid({
     ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
     ...(isMobile
       ? {
-          flex: mobileDense ? "1 1 0%" : "0 0 auto",
-          minHeight: 0,
+          flex: "0 0 auto",
           minWidth: 0,
           width: "100%",
           maxWidth: "100%",
@@ -1087,15 +1086,15 @@ export function DesktopPriceGrid({
       ? {}
       : mobileDense
         ? {
-            ["--price-grid-month-h" as string]: "28px",
-            ["--price-grid-dates-h" as string]: "36px",
-            ["--price-grid-header-h" as string]: "64px",
+            ["--price-grid-month-h" as string]: "22px",
+            ["--price-grid-dates-h" as string]: "32px",
+            ["--price-grid-header-h" as string]: "54px",
             ["--price-grid-row-h" as string]: "34px",
             ["--timeline-room-height" as string]: "34px",
             ["--timeline-row-height" as string]: "34px",
-            ["--timeline-sidebar-header-height" as string]: "64px",
-            ["--timeline-months-height" as string]: "28px",
-            ["--timeline-dates-height" as string]: "36px",
+            ["--timeline-sidebar-header-height" as string]: "54px",
+            ["--timeline-months-height" as string]: "22px",
+            ["--timeline-dates-height" as string]: "32px",
           }
         : {
             ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
@@ -1123,9 +1122,7 @@ export function DesktopPriceGrid({
               width: "100%",
               maxWidth: "100%",
               minWidth: 0,
-              ...(mobileDense
-                ? { flex: "1 1 0%", minHeight: 0, overflow: "hidden" }
-                : { flex: "0 0 auto" }),
+              flex: "0 0 auto",
             }
           : undefined
       }
@@ -1269,17 +1266,9 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
+                flex: "0 0 auto",
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
-                ...(mobileDense
-                  ? {
-                      flex: "1 1 0%",
-                      minHeight: 0,
-                      display: "flex",
-                      flexDirection: "column" as const,
-                      overflow: "hidden",
-                    }
-                  : { flex: "0 0 auto" }),
               } as CSSProperties
             }
           >
@@ -1292,20 +1281,12 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                overflow: "auto",
+                flex: "0 0 auto",
+                overflowX: "auto",
+                overflowY: "hidden",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
-                overscrollBehavior: "contain",
-                ...(mobileDense
-                  ? {
-                      flex: "1 1 0%",
-                      minHeight: 0,
-                      maxHeight: "calc(100dvh - 210px)",
-                    }
-                  : {
-                      flex: "0 0 auto",
-                      maxHeight: "none",
-                    }),
+                overscrollBehaviorX: "none",
               }}
             >
               <div
@@ -1314,6 +1295,7 @@ export function DesktopPriceGrid({
                   width: gridTotalWidth + 88,
                   minWidth: gridTotalWidth + 88,
                   maxWidth: gridTotalWidth + 88,
+                  minHeight: 0,
                   overflow: "hidden",
                   boxSizing: "border-box",
                 }}
