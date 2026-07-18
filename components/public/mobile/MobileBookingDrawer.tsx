@@ -75,6 +75,8 @@ export function MobileBookingDrawer() {
   const [comment, setComment] = useState("");
   const detailSliderRef = useRef<HTMLDivElement>(null);
   const detailSliderTrackStyle = useSliderTrackStyle(detailSliderRef, detailSlide);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   if (!room) {
     return (
@@ -94,9 +96,6 @@ export function MobileBookingDrawer() {
   const branding = runtime?.branding || {};
   const nextFree = runtime ? getNextFreeForRoom(roomAsPublic) : "—";
   const maxGuests = room.maxCapacity || room.capacity;
-
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
 
   const onDetailTouchStart = (e: TouchEvent) => {
     touchStartX.current = e.changedTouches[0].screenX;
