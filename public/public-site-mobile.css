@@ -85,11 +85,13 @@ body.public-booking-page.boso-public-mobile.ready {
 
 /* ── КОНТЕЙНЕР КАРТОК (MOBILE) ── */
 .public-mobile-brand {
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 40;
+    left: 0;
+    right: 0;
+    z-index: 50;
     padding: calc(12px + var(--safe-top)) 16px 12px;
-    background: rgba(247, 248, 246, 0.92);
+    background: rgba(247, 248, 246, 0.96);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid rgba(229, 231, 235, 0.9);
@@ -124,9 +126,14 @@ body.public-booking-page.boso-public-mobile.ready {
     font-weight: 500;
 }
 
+/* Відступ під фіксований хедер: safe-top + padding + logo row */
+.public-mobile-list-body {
+    padding-top: calc(12px + var(--safe-top) + 12px + 48px + 12px);
+}
+
 .page-wrap { padding: 0 16px calc(60px + var(--safe-bottom)); }
 .page-wrap--success { padding-top: 32px; }
-#cabinsContainer { position: relative; z-index: 2; background: var(--bg); padding-top: 24px; display: flex; flex-direction: column; gap: 28px; }
+#cabinsContainer { position: relative; z-index: 2; background: var(--bg); padding-top: 16px; display: flex; flex-direction: column; gap: 28px; }
 .screen { display: none; } .screen.active { display: block; }
 
 .cabin-card {

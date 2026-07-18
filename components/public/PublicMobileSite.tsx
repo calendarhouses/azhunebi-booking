@@ -49,29 +49,31 @@ export function PublicMobileSite() {
           </div>
         </header>
 
-        <div className="stay-filter-shell stay-filter-shell--mobile">
-          <PublicAvailabilityFilter layout="mobile" />
-        </div>
+        <div className="public-mobile-list-body">
+          <div className="stay-filter-shell stay-filter-shell--mobile">
+            <PublicAvailabilityFilter layout="mobile" />
+          </div>
 
-        <div className="page-wrap" id="cabinsContainer">
-          {showLoading ? (
-            <div className="loading-state">
-              <div className="loader" />
-              Котеджів не знайдено
-            </div>
-          ) : showEmpty ? (
-            <PublicCabinsEmptyState />
-          ) : (
-            rooms.map((room) => (
-              <CabinCardMobile
-                key={room.id}
-                room={room}
-                customPrices={runtime!.customPrices}
-                nextFreeLabel={getNextFreeForRoom(room)}
-                onBook={() => openDrawer(room)}
-              />
-            ))
-          )}
+          <div className="page-wrap" id="cabinsContainer">
+            {showLoading ? (
+              <div className="loading-state">
+                <div className="loader" />
+                Котеджів не знайдено
+              </div>
+            ) : showEmpty ? (
+              <PublicCabinsEmptyState />
+            ) : (
+              rooms.map((room) => (
+                <CabinCardMobile
+                  key={room.id}
+                  room={room}
+                  customPrices={runtime!.customPrices}
+                  nextFreeLabel={getNextFreeForRoom(room)}
+                  onBook={() => openDrawer(room)}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
 
