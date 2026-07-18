@@ -437,27 +437,13 @@ export function DesktopPriceGrid({
   const handleMobilePriceScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // Always clamp to the intended board width (not measured scrollWidth — that can be inflated).
-    const expectedBoardW = gridTotalWidth + 88;
-    const board = el.querySelector(".timeline-mobile-board") as HTMLElement | null;
-    if (board) {
-      const w = `${expectedBoardW}px`;
-      if (board.style.width !== w) {
-        board.style.width = w;
-        board.style.minWidth = w;
-        board.style.maxWidth = w;
-      }
-    }
-    const maxLeft = Math.max(0, expectedBoardW - el.clientWidth);
-    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
-    if (el.scrollLeft > maxLeft) el.scrollLeft = maxLeft;
-    if (el.scrollTop > maxTop) el.scrollTop = maxTop;
+    // Only pull back if we overscrolled past the real board (phantom empty columns).
+    const maxLeft = Math.max(0, gridTotalWidth + 88 - el.clientWidth);
+    if (el.scrollLeft > maxLeft + 1) el.scrollLeft = maxLeft;
   }, [gridTotalWidth]);
 
   useEffect(() => {
     if (!isMobile) return;
-    const el = scrollRef.current;
-    if (!el) return;
     handleMobilePriceScroll();
   }, [isMobile, gridTotalWidth, activeRooms.length, mobileDense, handleMobilePriceScroll]);
 
@@ -1085,11 +1071,13 @@ export function DesktopPriceGrid({
 
   const premiumStyle: CSSProperties | undefined = {
     ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
-    ...(isMobile && mobileDense
+    ...(isMobile
       ? {
-          flex: "1 1 0%",
+          flex: mobileDense ? "1 1 0%" : "0 0 auto",
           minHeight: 0,
-          height: 0,
+          minWidth: 0,
+          width: "100%",
+          maxWidth: "100%",
           display: "flex",
           flexDirection: "column" as const,
           overflow: "hidden",
@@ -1128,14 +1116,16 @@ export function DesktopPriceGrid({
         .filter(Boolean)
         .join(" ")}
       style={
-        isMobile && mobileDense
+        isMobile
           ? {
-              flex: "1 1 0%",
-              minHeight: 0,
-              height: 0,
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden",
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              ...(mobileDense
+                ? { flex: "1 1 0%", minHeight: 0, overflow: "hidden" }
+                : { flex: "0 0 auto" }),
             }
           : undefined
       }
@@ -1276,18 +1266,20 @@ export function DesktopPriceGrid({
             style={
               {
                 marginTop: 0,
+                width: "100%",
+                maxWidth: "100%",
+                minWidth: 0,
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
                 ...(mobileDense
                   ? {
                       flex: "1 1 0%",
                       minHeight: 0,
-                      height: 0,
                       display: "flex",
                       flexDirection: "column" as const,
                       overflow: "hidden",
                     }
-                  : {}),
+                  : { flex: "0 0 auto" }),
               } as CSSProperties
             }
           >
@@ -1296,24 +1288,25 @@ export function DesktopPriceGrid({
               id="priceScroll"
               ref={scrollRef}
               onScroll={handleMobilePriceScroll}
-              style={
-                mobileDense
+              style={{
+                width: "100%",
+                maxWidth: "100%",
+                minWidth: 0,
+                overflow: "auto",
+                WebkitOverflowScrolling: "touch",
+                touchAction: "pan-x pan-y",
+                overscrollBehavior: "contain",
+                ...(mobileDense
                   ? {
                       flex: "1 1 0%",
                       minHeight: 0,
-                      height: 0,
-                      overflow: "auto",
-                      WebkitOverflowScrolling: "touch",
-                      touchAction: "pan-x pan-y",
-                      overscrollBehavior: "contain",
+                      maxHeight: "calc(100dvh - 210px)",
                     }
                   : {
-                      overflowX: "auto",
-                      overflowY: "visible",
-                      touchAction: "pan-x pan-y",
-                      overscrollBehaviorX: "none",
-                    }
-              }
+                      flex: "0 0 auto",
+                      maxHeight: "none",
+                    }),
+              }}
             >
               <div
                 className="timeline-mobile-board"

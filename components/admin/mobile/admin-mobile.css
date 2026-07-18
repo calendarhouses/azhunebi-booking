@@ -1499,7 +1499,7 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
   flex: 1 1 0% !important;
   align-self: stretch !important;
   align-items: stretch !important;
-  height: 0 !important;
+  height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
   overflow: hidden !important;
@@ -4188,7 +4188,7 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   min-height: 44px;
 }
 
-/* Dense prices board — same feel as main chessboard dense */
+/* Dense prices board — fill remaining viewport; board owns scroll */
 body.boso-prices-dense {
   overscroll-behavior: none;
   overflow: hidden;
@@ -4199,26 +4199,28 @@ body.boso-prices-dense .boso-admin-mobile .main-content {
   flex-direction: column !important;
   flex: 1 1 0% !important;
   min-height: 0 !important;
+  height: 100% !important;
   overflow: hidden !important;
   overscroll-behavior: none;
 }
 
 body.boso-prices-dense .boso-admin-mobile #view-settings {
-  min-height: 0;
-  flex: 1 1 0%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
   padding-bottom: 0 !important;
-  height: 0;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings .settings-tab-content {
+body.boso-prices-dense .boso-admin-mobile #view-settings .settings-tab-content,
+body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   display: flex !important;
   flex: 1 1 0% !important;
   flex-direction: column !important;
   min-height: 0 !important;
-  height: 0 !important;
+  height: 100% !important;
   padding-bottom: 0 !important;
   overflow: hidden !important;
 }
@@ -4233,23 +4235,13 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-headin
   display: none;
 }
 
-body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
-  display: flex !important;
-  flex: 1 1 0% !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
-  height: 0 !important;
-  padding-bottom: 0 !important;
-  overflow: hidden !important;
-}
-
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense {
   display: flex !important;
   flex: 1 1 0% !important;
   flex-direction: column !important;
   gap: 8px;
   min-height: 0 !important;
-  height: 0 !important;
+  height: 100% !important;
   overflow: hidden !important;
 }
 
@@ -4262,7 +4254,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   flex: 1 1 0% !important;
   flex-direction: column !important;
   min-height: 0 !important;
-  height: 0 !important;
+  height: 100% !important;
   overflow: hidden !important;
 }
 
@@ -4312,12 +4304,14 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   padding-bottom: 0 !important;
 }
 
-/* Non-dense mobile prices: size to content (page scrolls); dense fills viewport */
+/* Non-dense mobile prices: size to content (page scrolls); keep X scroll width-bound */
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board:not(.timeline-wrapper--mobile-dense) {
   flex: 0 0 auto !important;
   height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
   overflow: hidden !important;
 }
 
@@ -4326,18 +4320,23 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
   height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
 }
 
-/* Dense prices: constrained height so #priceScroll can actually scroll */
+/* Dense prices: same pattern as main chessboard — flex fill, NO height:0 */
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceTimelineWrapper.price-grid-timeline--mobile-board {
   display: flex !important;
   flex-direction: column !important;
   flex: 1 1 0% !important;
   align-self: stretch !important;
   width: 100% !important;
-  height: 0 !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
   overflow: hidden !important;
@@ -4347,15 +4346,27 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobil
 body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-view--mobile-dense #priceScroll.timeline-mobile-scroll {
   flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: 0 !important;
-  max-height: none !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: calc(100dvh - 210px) !important;
   overflow: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-x pan-y !important;
   overscroll-behavior: contain !important;
 }
 
-/* Price board cells: exact grid width, no phantom columns after last day */
+/* Price board: exact width + scroller must not grow with content */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-scroll,
+.boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
   box-sizing: border-box !important;
   overflow: hidden !important;
