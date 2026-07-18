@@ -956,7 +956,7 @@ export function DesktopPriceGrid({
 
   const monthRow = (
     <div className="timeline-months" id="priceMonths">
-      <div className="timeline-month-cell" style={{ width: gridTotalWidth }}>
+      <div className="timeline-month-cell" style={{ width: "100%" }}>
         {monthLabel}
       </div>
     </div>
@@ -1258,7 +1258,11 @@ export function DesktopPriceGrid({
               >
                 <div
                   className="price-grid-track"
-                  style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
+                  style={{
+                    width: gridTotalWidth,
+                    minWidth: gridTotalWidth,
+                    maxWidth: gridTotalWidth,
+                  }}
                 >
                   {monthRow}
                   {datesRow}
