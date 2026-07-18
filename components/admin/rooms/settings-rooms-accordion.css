@@ -940,17 +940,18 @@
   height: 46px;
   padding: 0 24px;
   border-radius: 10px;
-  border: none;
+  border: 1.5px solid #f0b4ae;
   background: #fef2f2;
   color: #dc2626;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
 .khata-room-settings__delete:hover {
   background: #fee2e2;
+  border-color: #e89a93;
   transform: translateY(-1px);
 }
 

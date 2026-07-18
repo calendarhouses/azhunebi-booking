@@ -216,6 +216,7 @@ export function DesktopPriceGrid({
   const isMobile = layout === "mobile";
   const [, bump] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const mobileDense = isMobile && isFocusMode;
   const compactGrid = !isMobile && isFocusMode;
   const { setAuxiliaryFocusActive } = useGridFocusModeOptional();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -797,68 +798,149 @@ export function DesktopPriceGrid({
 
   const premiumStyle: CSSProperties | undefined = compactGrid
     ? undefined
-    : {
-        ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
-        ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
-        ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
-        ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
-      };
+    : mobileDense
+      ? {
+          ["--price-grid-month-h" as string]: "28px",
+          ["--price-grid-dates-h" as string]: "36px",
+          ["--price-grid-header-h" as string]: "64px",
+          ["--price-grid-row-h" as string]: "34px",
+          ["--timeline-room-height" as string]: "34px",
+        }
+      : {
+          ["--price-grid-month-h" as string]: `${PRICE_GRID_MONTH_HEIGHT}px`,
+          ["--price-grid-dates-h" as string]: `${PRICE_GRID_DATES_HEIGHT}px`,
+          ["--price-grid-header-h" as string]: `${PRICE_GRID_HEADER_HEIGHT}px`,
+          ["--price-grid-row-h" as string]: `${PRICE_ROW_HEIGHT}px`,
+        };
 
   return (
-    <div className={`price-grid-view${compactGrid ? " price-grid-view--focus" : ""}`}>
+    <div
+      className={[
+        "price-grid-view",
+        compactGrid ? "price-grid-view--focus" : "",
+        mobileDense ? "price-grid-view--mobile-dense" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div className={`price-grid-toolbar${isMobile ? " price-grid-toolbar--mobile" : ""}`}>
-        <div className="price-grid-toolbar__nav">
-          <div className="timeline-nav">
-            <button type="button" className={`btn-icon${isMobile ? " tap-btn" : ""}`} onClick={() => shift(-1)}>
-              <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="timeline-month-label" id="priceMonthLabel">
-              {monthLabel}
-            </span>
-            <button type="button" className={`btn-icon${isMobile ? " tap-btn" : ""}`} onClick={() => shift(1)}>
-              <svg width={isMobile ? 14 : 16} height={isMobile ? 14 : 16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-          <button
-            type="button"
-            className={`btn-secondary${isMobile ? " tap-btn" : ""}`}
-            onClick={resetToToday}
-          >
-            Поточний місяць
-          </button>
-        </div>
+        {isMobile ? (
+          <>
+            <div className="price-grid-toolbar__row">
+              <div className="timeline-nav">
+                <button type="button" className="btn-icon tap-btn" onClick={() => shift(-1)} aria-label="Попередній місяць">
+                  <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="timeline-month-label" id="priceMonthLabel">
+                  {monthLabel}
+                </span>
+                <button type="button" className="btn-icon tap-btn" onClick={() => shift(1)} aria-label="Наступний місяць">
+                  <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <button type="button" className="btn-secondary tap-btn" onClick={resetToToday}>
+                Поточний місяць
+              </button>
+            </div>
+            <div className="price-grid-toolbar__row">
+              <button
+                type="button"
+                className="btn-outline-danger tap-btn"
+                onClick={() => modals.clearPricesAlert()}
+              >
+                Очистити
+              </button>
+              <button
+                type="button"
+                className="btn-primary tap-btn"
+                onClick={() => modals.openPriceConstructor()}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Конструктор
+              </button>
+            </div>
+            <div className="price-grid-toolbar__row">
+              <button
+                type="button"
+                className="btn-secondary tap-btn price-grid-toolbar__back"
+                disabled={!mobileDense}
+                onClick={() => setIsFocusMode(false)}
+              >
+                Назад
+              </button>
+              <button
+                type="button"
+                className={`btn-secondary tap-btn price-grid-toolbar__expand${mobileDense ? " is-active" : ""}`}
+                aria-pressed={mobileDense}
+                onClick={() => setIsFocusMode(true)}
+              >
+                Розгорнута шахматка
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="price-grid-toolbar__nav">
+              <div className="timeline-nav">
+                <button type="button" className="btn-icon" onClick={() => shift(-1)}>
+                  <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="timeline-month-label" id="priceMonthLabel">
+                  {monthLabel}
+                </span>
+                <button type="button" className="btn-icon" onClick={() => shift(1)}>
+                  <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <button type="button" className="btn-secondary" onClick={resetToToday}>
+                Поточний місяць
+              </button>
+            </div>
 
-        <div className="price-grid-toolbar__actions">
-          <button
-            type="button"
-            className={`btn-outline-danger${isMobile ? " tap-btn" : ""}`}
-            onClick={() => modals.clearPricesAlert()}
-          >
-            {isMobile ? "Очистити" : "Видалити ціни"}
-          </button>
-          <button
-            type="button"
-            className={`btn-primary${isMobile ? " tap-btn" : ""}`}
-            onClick={() => modals.openPriceConstructor()}
-          >
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Конструктор
-          </button>
-        </div>
+            <div className="price-grid-toolbar__actions">
+              <button
+                type="button"
+                className="btn-outline-danger"
+                onClick={() => modals.clearPricesAlert()}
+              >
+                Видалити ціни
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => modals.openPriceConstructor()}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Конструктор
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div
-        className={`price-grid-premium${compactGrid ? " price-grid-premium--focus" : ""}`}
+        className={`price-grid-premium${compactGrid ? " price-grid-premium--focus" : ""}${mobileDense ? " price-grid-premium--mobile-dense" : ""}`}
         style={premiumStyle}
       >
         <div
-          className={wrapperClassName}
+          className={[
+            wrapperClassName,
+            mobileDense ? "timeline-wrapper--mobile-dense price-grid-timeline--mobile-dense" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           id="priceTimelineWrapper"
           style={{ marginTop: 0 }}
         >
