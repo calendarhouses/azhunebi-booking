@@ -44,7 +44,7 @@ export function PublicMobileSite() {
             ) : null}
             <div className="public-mobile-brand__text">
               <h1 className="public-mobile-brand__title">{brandName}</h1>
-              <p className="public-mobile-brand__sub">Оберіть будинок і дати перебування</p>
+              <p className="public-mobile-brand__sub">Оберіть дати перебування</p>
             </div>
           </div>
         </header>

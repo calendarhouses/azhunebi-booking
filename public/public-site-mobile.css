@@ -778,26 +778,6 @@ body.ready .bottom-nav,
   -webkit-backdrop-filter: blur(14px);
 }
 
-.stay-filter--mobile .stay-filter__intro {
-  margin-bottom: 12px;
-}
-
-.stay-filter--mobile .stay-filter__eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-.stay-filter--mobile .stay-filter__title {
-  font-family: 'Playfair Display', serif;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
 .stay-filter--mobile .stay-filter__bar {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -863,7 +843,10 @@ body.ready .bottom-nav,
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--bg);
-  color: var(--text);
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
@@ -949,6 +932,10 @@ body.ready .bottom-nav,
   background: var(--bg);
   font-size: 22px;
   line-height: 1;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .stay-filter--mobile .stay-cal__weekdays,
@@ -972,25 +959,34 @@ body.ready .bottom-nav,
   border: none;
   border-radius: 10px;
   background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
   font: inherit;
   font-size: 14px;
   font-weight: 500;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
 }
 
 .stay-filter--mobile .stay-cal-day.is-past,
 .stay-filter--mobile .stay-cal-day--empty {
   opacity: 0.28;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
 }
 
 .stay-filter--mobile .stay-cal-day.is-in-range {
   background: var(--accent-light);
   border-radius: 0;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
 }
 
 .stay-filter--mobile .stay-cal-day.is-start,
 .stay-filter--mobile .stay-cal-day.is-end {
   background: var(--accent);
-  color: #fff;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   border-radius: 10px;
 }
 

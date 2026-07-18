@@ -1445,27 +1445,33 @@ body {
   position: relative;
 }
 
-.stay-filter__intro {
-  margin-bottom: 20px;
-  max-width: 640px;
+.stay-filter__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
 }
 
-.stay-filter__eyebrow {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.stay-filter__title {
+.stay-filter__heading-title {
   font-family: 'Playfair Display', serif;
-  font-weight: 600;
-  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 500;
+  font-size: 22px;
   line-height: 1.2;
   color: var(--text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.stay-filter__heading-sub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: right;
+  max-width: 320px;
 }
 
 .stay-filter__bar {
@@ -1648,12 +1654,16 @@ button.stay-filter__field[aria-expanded="true"] {
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
-  color: var(--text);
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .stay-cal__nav:hover {
   background: var(--accent-light);
-  color: var(--accent);
+  color: var(--accent) !important;
+  -webkit-text-fill-color: var(--accent);
 }
 
 .stay-cal__weekdays {
@@ -1679,10 +1689,13 @@ button.stay-filter__field[aria-expanded="true"] {
   border: none;
   border-radius: 12px;
   background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
   font: inherit;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -1709,7 +1722,8 @@ button.stay-filter__field[aria-expanded="true"] {
 .stay-cal-day.is-start,
 .stay-cal-day.is-end {
   background: var(--accent);
-  color: #fff;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff;
   border-radius: 12px;
 }
 
@@ -1778,6 +1792,15 @@ button.stay-filter__field[aria-expanded="true"] {
 }
 
 @media (max-width: 900px) {
+  .stay-filter__heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .stay-filter__heading-sub {
+    text-align: left;
+    max-width: none;
+  }
   .stay-filter__bar {
     grid-template-columns: 1fr 1fr;
   }

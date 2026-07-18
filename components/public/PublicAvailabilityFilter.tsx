@@ -175,10 +175,14 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
       ref={rootRef}
       className={`stay-filter stay-filter--${layout}${datesOpen ? " is-open" : ""}`}
     >
-      <div className="stay-filter__intro">
-        <p className="stay-filter__eyebrow">Планування відпочинку</p>
-        <h2 className="stay-filter__title">Коли і для кого шукаємо будинок</h2>
-      </div>
+      {layout === "desktop" ? (
+        <div className="stay-filter__heading">
+          <h2 className="stay-filter__heading-title">Дати перебування</h2>
+          <p className="stay-filter__heading-sub">
+            Оберіть період — покажемо лише вільні будинки
+          </p>
+        </div>
+      ) : null}
 
       <div className="stay-filter__bar" role="search">
         <button
