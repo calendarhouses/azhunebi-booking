@@ -1282,11 +1282,11 @@ export function DesktopPriceGrid({
                 maxWidth: "100%",
                 minWidth: 0,
                 flex: "0 0 auto",
-                overflowX: "auto",
-                overflowY: "hidden",
+                maxHeight: "calc(100dvh - 210px)",
+                overflow: "auto",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
-                overscrollBehaviorX: "none",
+                overscrollBehavior: "contain",
               }}
             >
               <div

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
   type WheelEvent,
 } from "react";
@@ -35,6 +36,17 @@ import type { AdminSettingsPayload } from "../types";
 
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
+const TOUCH_DRAG_THRESHOLD_PX = 10;
+/** Touch must hold this long on a cell before multi-select starts (keeps pan/scroll free). */
+const TOUCH_SELECT_HOLD_MS = 500;
+
+function ruleCellFromPoint(x: number, y: number): { roomId: string; dateStr: string } | null {
+  if (typeof document === "undefined") return null;
+  const el = document.elementFromPoint(x, y);
+  const cell = el?.closest?.("[data-rule-room][data-rule-date]") as HTMLElement | null;
+  if (!cell?.dataset.ruleRoom || !cell.dataset.ruleDate) return null;
+  return { roomId: cell.dataset.ruleRoom, dateStr: cell.dataset.ruleDate };
+}
 
 type DragHighlight = { roomIds: string[]; dateStrs: string[] };
 
@@ -63,23 +75,27 @@ function getCellSelectionClasses(
 }
 
 function RuleGridCell({
+  roomId,
+  dateStr,
   kind,
   minNights,
   isWeekend,
   width,
   dragSelectionClasses: selectionClasses,
-  onDragMouseDown,
-  onDragMouseEnter,
+  onDragPointerDown,
   onOpenConstructor,
+  enableTouchPan,
 }: {
+  roomId: string;
+  dateStr: string;
   kind: RuleCellKind;
   minNights: number;
   isWeekend: boolean;
   width: number;
   dragSelectionClasses: string[];
-  onDragMouseDown: (e: React.MouseEvent) => void;
-  onDragMouseEnter: () => void;
+  onDragPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onOpenConstructor: () => void;
+  enableTouchPan?: boolean;
 }) {
   const cellClass = [
     "price-cell",
@@ -101,7 +117,8 @@ function RuleGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    touchAction: "pan-x pan-y",
+    // On mobile, pan until selection arms; scroll lock then blocks via touchmove preventDefault.
+    touchAction: enableTouchPan ? "pan-x pan-y" : "none",
   };
 
   return (
@@ -110,16 +127,13 @@ function RuleGridCell({
       tabIndex={0}
       className={cellClass}
       style={cellStyle}
+      data-rule-room={roomId}
+      data-rule-date={dateStr}
       onDoubleClick={(e) => {
         e.preventDefault();
         onOpenConstructor();
       }}
-      onMouseDown={(e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        onDragMouseDown(e);
-      }}
-      onMouseEnter={onDragMouseEnter}
+      onPointerDown={onDragPointerDown}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -127,7 +141,7 @@ function RuleGridCell({
         }
       }}
     >
-      <div className="flex h-full w-full flex-col items-center justify-center whitespace-nowrap px-2">
+      <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center whitespace-nowrap px-2">
         {kind === "closed" ? (
           <span className="text-xs font-bold text-red-700">Закрито</span>
         ) : kind === "minNights" ? (
@@ -174,10 +188,28 @@ export function DesktopRestrictionsGrid({
   const lastPointerRef = useRef({ x: 0, y: 0 });
   const lastDragFramePointerRef = useRef({ x: 0, y: 0 });
   const dragAutoScrollRafRef = useRef<number | null>(null);
+  const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchScrollLockRef = useRef<((e: TouchEvent) => void) | null>(null);
   const settingsMainRef = useRef<HTMLElement | null>(null);
   const [dragHighlight, setDragHighlight] = useState<DragHighlight | null>(null);
-  const dragRef = useRef({
+  const dragRef = useRef<{
+    active: boolean;
+    pending: boolean;
+    pointerId: number;
+    pointerType: string;
+    anchorRoomId: string;
+    anchorDateStr: string;
+    focusRoomId: string;
+    focusDateStr: string;
+    moved: boolean;
+    startX: number;
+    startY: number;
+    captureEl: HTMLElement | null;
+  }>({
     active: false,
+    pending: false,
+    pointerId: -1,
+    pointerType: "",
     anchorRoomId: "",
     anchorDateStr: "",
     focusRoomId: "",
@@ -185,6 +217,7 @@ export function DesktopRestrictionsGrid({
     moved: false,
     startX: 0,
     startY: 0,
+    captureEl: null,
   });
   const columnWidthsRef = useRef<number[]>([]);
   const scrollPreserveRef = useRef<number | null>(null);
@@ -454,8 +487,28 @@ export function DesktopRestrictionsGrid({
     }
     scrollSyncRef.current = false;
 
+    if (scrolled) {
+      const hit = ruleCellFromPoint(x, y);
+      if (hit) {
+        drag.focusRoomId = hit.roomId;
+        drag.focusDateStr = hit.dateStr;
+        if (hit.roomId !== drag.anchorRoomId || hit.dateStr !== drag.anchorDateStr) {
+          drag.moved = true;
+        }
+        setDragHighlight(
+          computeDragHighlight(drag.anchorRoomId, hit.roomId, drag.anchorDateStr, hit.dateStr)
+        );
+      }
+    }
+
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragAutoScrollFrame);
-  }, [compactGrid, getDragScrollTargets, dragScrollOptions, syncFocusHeadTrack]);
+  }, [
+    compactGrid,
+    getDragScrollTargets,
+    dragScrollOptions,
+    syncFocusHeadTrack,
+    computeDragHighlight,
+  ]);
 
   const ensureDragAutoScroll = useCallback(() => {
     if (dragAutoScrollRafRef.current != null) return;
@@ -471,36 +524,136 @@ export function DesktopRestrictionsGrid({
     [activeRooms.length, modals]
   );
 
-  const onCellMouseDown = useCallback((roomId: string, dateStr: string, e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    dragRef.current = {
-      active: true,
-      anchorRoomId: roomId,
-      anchorDateStr: dateStr,
-      focusRoomId: roomId,
-      focusDateStr: dateStr,
-      moved: false,
-      startX: e.clientX,
-      startY: e.clientY,
-    };
+  const setTouchSelectingClass = useCallback((on: boolean) => {
+    rootRef.current?.classList.toggle("price-grid-view--touch-selecting", on);
+    if (on) {
+      if (!touchScrollLockRef.current) {
+        const lock = (e: TouchEvent) => {
+          if (dragRef.current.active) e.preventDefault();
+        };
+        touchScrollLockRef.current = lock;
+        document.addEventListener("touchmove", lock, { passive: false });
+      }
+    } else if (touchScrollLockRef.current) {
+      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      touchScrollLockRef.current = null;
+    }
   }, []);
 
-  const onCellMouseEnter = useCallback(
-    (roomId: string, dateStr: string) => {
-      const drag = dragRef.current;
-      if (!drag.active) return;
-      if (drag.focusRoomId === roomId && drag.focusDateStr === dateStr) return;
+  const clearTouchSelectHold = useCallback(() => {
+    if (touchSelectHoldTimerRef.current) {
+      clearTimeout(touchSelectHoldTimerRef.current);
+      touchSelectHoldTimerRef.current = null;
+    }
+  }, []);
 
-      drag.focusRoomId = roomId;
-      drag.focusDateStr = dateStr;
+  const resetDragSession = useCallback(() => {
+    clearTouchSelectHold();
+    setTouchSelectingClass(false);
+    dragRef.current = {
+      active: false,
+      pending: false,
+      pointerId: -1,
+      pointerType: "",
+      anchorRoomId: "",
+      anchorDateStr: "",
+      focusRoomId: "",
+      focusDateStr: "",
+      moved: false,
+      startX: 0,
+      startY: 0,
+      captureEl: null,
+    };
+    stopDragAutoScroll();
+  }, [clearTouchSelectHold, setTouchSelectingClass, stopDragAutoScroll]);
 
-      if (roomId !== drag.anchorRoomId || dateStr !== drag.anchorDateStr) {
-        drag.moved = true;
+  const abortDragSelection = useCallback(() => {
+    resetDragSession();
+    setDragHighlight(null);
+  }, [resetDragSession]);
+
+  const armTouchSelection = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag.pending) return;
+    drag.pending = false;
+    drag.active = true;
+    // DOM class first (no React re-render) so touch-action flips without cancelling the pointer.
+    setTouchSelectingClass(true);
+    if (drag.captureEl) {
+      try {
+        drag.captureEl.setPointerCapture(drag.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    setDragHighlight(
+      computeDragHighlight(
+        drag.anchorRoomId,
+        drag.focusRoomId,
+        drag.anchorDateStr,
+        drag.focusDateStr
+      )
+    );
+    ensureDragAutoScroll();
+  }, [computeDragHighlight, ensureDragAutoScroll, setTouchSelectingClass]);
+
+  const onCellPointerDown = useCallback(
+    (roomId: string, dateStr: string, e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0 && e.pointerType === "mouse") return;
+
+      clearTouchSelectHold();
+      const isTouch = e.pointerType === "touch";
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+
+      dragRef.current = {
+        active: !isTouch,
+        pending: isTouch,
+        pointerId: e.pointerId,
+        pointerType: e.pointerType,
+        anchorRoomId: roomId,
+        anchorDateStr: dateStr,
+        focusRoomId: roomId,
+        focusDateStr: dateStr,
+        moved: false,
+        startX: e.clientX,
+        startY: e.clientY,
+        captureEl: e.currentTarget,
+      };
+
+      if (!isTouch) {
+        e.preventDefault();
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+        return;
       }
 
+      touchSelectHoldTimerRef.current = setTimeout(() => {
+        touchSelectHoldTimerRef.current = null;
+        armTouchSelection();
+      }, TOUCH_SELECT_HOLD_MS);
+    },
+    [clearTouchSelectHold, armTouchSelection]
+  );
+
+  const updateDragFocusFromPoint = useCallback(
+    (clientX: number, clientY: number) => {
+      const drag = dragRef.current;
+      if (!drag.active) return;
+      const hit = ruleCellFromPoint(clientX, clientY);
+      if (!hit) return;
+      if (drag.focusRoomId === hit.roomId && drag.focusDateStr === hit.dateStr) return;
+
+      drag.focusRoomId = hit.roomId;
+      drag.focusDateStr = hit.dateStr;
+      if (hit.roomId !== drag.anchorRoomId || hit.dateStr !== drag.anchorDateStr) {
+        drag.moved = true;
+      }
       if (drag.moved) {
         setDragHighlight(
-          computeDragHighlight(drag.anchorRoomId, roomId, drag.anchorDateStr, dateStr)
+          computeDragHighlight(drag.anchorRoomId, hit.roomId, drag.anchorDateStr, hit.dateStr)
         );
         ensureDragAutoScroll();
       }
@@ -510,33 +663,47 @@ export function DesktopRestrictionsGrid({
 
   const finishDrag = useCallback(() => {
     const drag = dragRef.current;
-    if (!drag.active) return;
-    drag.active = false;
-    stopDragAutoScroll();
-
+    if (!drag.active) {
+      resetDragSession();
+      return;
+    }
     const highlight = computeDragHighlight(
       drag.anchorRoomId,
       drag.focusRoomId,
       drag.anchorDateStr,
       drag.focusDateStr
     );
+    resetDragSession();
     setDragHighlight(null);
 
     if (!highlight) return;
 
+    // Always open rule constructor (no inline edit) — single tap or multi-select.
     openConstructorForCells(highlight.roomIds, highlight.dateStrs);
-  }, [computeDragHighlight, openConstructorForCells, stopDragAutoScroll]);
+  }, [computeDragHighlight, openConstructorForCells, resetDragSession]);
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+    const onPointerMove = (e: PointerEvent) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
       const drag = dragRef.current;
+      if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
+
+      if (drag.pending) {
+        const dx = e.clientX - drag.startX;
+        const dy = e.clientY - drag.startY;
+        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+          abortDragSelection();
+        }
+        return;
+      }
+
       if (!drag.active) return;
 
       if (!drag.moved) {
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
-        if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) {
+        const threshold = e.pointerType === "touch" ? TOUCH_DRAG_THRESHOLD_PX : DRAG_THRESHOLD_PX;
+        if (Math.hypot(dx, dy) < threshold) {
           ensureDragAutoScroll();
           return;
         }
@@ -551,19 +718,58 @@ export function DesktopRestrictionsGrid({
         );
       }
 
+      updateDragFocusFromPoint(e.clientX, e.clientY);
       ensureDragAutoScroll();
     };
 
-    const onMouseUp = () => finishDrag();
+    const onPointerUp = (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+      if (drag.pending) {
+        const { anchorRoomId, anchorDateStr } = drag;
+        resetDragSession();
+        if (anchorRoomId && anchorDateStr) {
+          openConstructorForCells([anchorRoomId], [anchorDateStr]);
+        }
+        return;
+      }
+
+      if (!drag.active) return;
+      // Only commit selection when the finger/mouse is released.
+      finishDrag();
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
+      // Cancel = browser aborted the gesture; do not open constructor.
+      if (drag.pending || drag.active) {
+        abortDragSelection();
+      }
+    };
+
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerCancel);
     return () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerCancel);
+      clearTouchSelectHold();
       stopDragAutoScroll();
     };
-  }, [finishDrag, computeDragHighlight, ensureDragAutoScroll, stopDragAutoScroll]);
+  }, [
+    finishDrag,
+    computeDragHighlight,
+    ensureDragAutoScroll,
+    stopDragAutoScroll,
+    updateDragFocusFromPoint,
+    resetDragSession,
+    abortDragSelection,
+    openConstructorForCells,
+    clearTouchSelectHold,
+  ]);
 
   const sidebarHeader = (
     <TimelineSidebarHeader
@@ -633,16 +839,19 @@ export function DesktopRestrictionsGrid({
             return (
               <RuleGridCell
                 key={day.dateStr}
+                roomId={String(room.id)}
+                dateStr={day.dateStr}
                 kind={kind}
                 minNights={minNights}
                 isWeekend={day.isWeekend}
                 width={columnWidths[i]}
                 dragSelectionClasses={selectionClasses}
-                onDragMouseDown={(e) => onCellMouseDown(String(room.id), day.dateStr, e)}
-                onDragMouseEnter={() => onCellMouseEnter(String(room.id), day.dateStr)}
-                onOpenConstructor={() =>
-                  openConstructorForCells([String(room.id)], [day.dateStr])
-                }
+                onDragPointerDown={(e) => onCellPointerDown(String(room.id), day.dateStr, e)}
+                enableTouchPan={isMobile}
+                onOpenConstructor={() => {
+                  if (dragRef.current.active || dragRef.current.pending) return;
+                  openConstructorForCells([String(room.id)], [day.dateStr]);
+                }}
               />
             );
           })}
@@ -874,11 +1083,11 @@ export function DesktopRestrictionsGrid({
                 maxWidth: "100%",
                 minWidth: 0,
                 flex: "0 0 auto",
-                overflowX: "auto",
-                overflowY: "hidden",
+                overflow: "auto",
+                maxHeight: "calc(100dvh - 210px)",
                 WebkitOverflowScrolling: "touch",
                 touchAction: "pan-x pan-y",
-                overscrollBehaviorX: "none",
+                overscrollBehavior: "contain",
               }}
             >
               <div

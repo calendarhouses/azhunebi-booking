@@ -4247,7 +4247,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   padding-bottom: 0 !important;
 }
 
-/* Prices board (dense + standard): content-sized; main-content owns vertical scroll */
+/* Prices + rules boards: board owns X+Y scroll so sticky dates/rooms work (like main chessboard) */
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board {
   flex: 0 0 auto !important;
   height: auto !important;
@@ -4260,27 +4260,25 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll,
-.boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll {
+.boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll,
+.boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll {
   flex: 0 0 auto !important;
-  height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
-  /* hidden (not visible): with overflow-x:auto, "visible" computes to "auto" on iOS
-     and the board rubber-bands instead of letting .main-content scroll. */
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
+  min-height: 0 !important;
+  /* Bounded height → vertical scroll happens HERE → sticky head/rooms work */
+  height: auto !important;
+  max-height: calc(100dvh - 210px) !important;
+  overflow: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-x pan-y !important;
-  overscroll-behavior-x: none !important;
-  overscroll-behavior-y: auto !important;
+  overscroll-behavior: contain !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
   box-sizing: border-box !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   flex-shrink: 0 !important;
   min-height: 0 !important;
   height: auto !important;
@@ -4288,17 +4286,42 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   justify-content: flex-start !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body,
+/* Sticky dates (top) + house names (left) — same as main booking board */
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 15 !important;
   box-sizing: border-box !important;
   width: 100% !important;
   max-width: 100% !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+  background: #fff !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 20 !important;
+  background: #f9fafb !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-corner {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 21 !important;
+  background: #f9fafb !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-cells,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
-  overflow: hidden !important;
+  overflow: visible !important;
   box-sizing: border-box !important;
   flex: 0 0 auto !important;
 }
@@ -4721,98 +4744,154 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   background: var(--settings-surface-muted);
 }
 
-/* Settings: discounts */
-.boso-admin-mobile #view-settings #set-discounts > p {
-  margin: 0 2px 14px !important;
+/* Settings: discounts — premium mobile (rooms / services language) */
+.boso-admin-mobile #view-settings #set-discounts {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.boso-admin-mobile #view-settings #set-discounts > p,
+.boso-admin-mobile #view-settings #set-discounts .discount-gallery-intro {
+  margin: 0 2px 2px !important;
+  max-width: 36em;
   color: var(--settings-muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
 }
 
 .boso-admin-mobile #view-settings .discount-mobile-add {
   display: block;
-  margin-bottom: 12px;
+  margin: 0;
 }
 
-.boso-admin-mobile #view-settings .discount-mobile-add button {
+.boso-admin-mobile #view-settings .discount-mobile-add button,
+.boso-admin-mobile #view-settings .discount-add-toggle {
   position: static;
   width: 100%;
-  min-height: 46px;
+  min-height: 50px;
   justify-content: center;
-  border-radius: 13px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(68, 86, 37, 0.16);
 }
 
 .boso-admin-mobile #view-settings .discount-template-cards-grid {
   display: grid !important;
   grid-template-columns: 1fr !important;
-  gap: 10px !important;
-  margin-bottom: 18px;
+  gap: 12px !important;
+  margin: 0 0 4px;
 }
 
 .boso-admin-mobile #view-settings .discount-template-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 3px 12px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 4px 14px;
   width: 100%;
-  min-height: 92px;
-  padding: 14px;
-  border-color: var(--settings-border);
-  border-radius: 15px;
-  box-shadow: none;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--settings-border);
+  border-radius: 18px;
+  background: var(--settings-surface);
+  box-shadow: 0 4px 14px rgba(28, 33, 24, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.boso-admin-mobile #view-settings .discount-template-card > div {
+.boso-admin-mobile #view-settings .discount-template-card:active {
+  transform: scale(0.985);
+}
+
+.boso-admin-mobile #view-settings .discount-template-card > div:first-child {
   grid-row: 1 / 3;
   align-self: center;
+  width: 48px !important;
+  height: 48px !important;
   margin: 0 !important;
+  border-radius: 14px !important;
 }
 
 .boso-admin-mobile #view-settings .discount-template-card h3 {
   align-self: end;
-  font-size: 14px;
+  margin: 0;
+  color: var(--settings-text);
+  font-size: 15px;
+  font-weight: 800;
   line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
 .boso-admin-mobile #view-settings .discount-template-card p {
   align-self: start;
-  font-size: 11px;
-  line-height: 1.4;
+  margin: 0;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.boso-admin-mobile #view-settings #discount-active-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
 }
 
 .boso-admin-mobile #view-settings #discount-active-section-heading {
-  margin: 20px 2px 10px !important;
-  color: #777f72;
+  margin: 4px 2px 0 !important;
+  color: var(--settings-accent);
   font-size: 11px;
-  letter-spacing: 0.09em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .boso-admin-mobile #view-settings .discount-filter-tabs {
-  margin: 0 0 12px;
-  padding: 3px;
-  border-radius: 14px;
-  background: #eef0eb;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--settings-border);
+  border-radius: 16px;
+  background: var(--settings-surface-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .boso-admin-mobile #view-settings .discount-filter-tabs__track {
-  gap: 5px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.boso-admin-mobile #view-settings .discount-filter-tabs__track::-webkit-scrollbar {
+  display: none;
 }
 
 .boso-admin-mobile #view-settings .discount-filter-tabs button {
   min-height: 40px;
-  border-radius: 11px;
+  padding: 0 14px;
+  border-radius: 12px;
   white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  margin: 0 0 10px;
-  padding: 15px;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 16px;
   border: 1px solid var(--settings-border);
-  border-radius: var(--settings-radius-card);
+  border-radius: 18px;
   background: var(--settings-surface);
-  box-shadow: none;
+  box-shadow: 0 4px 14px rgba(28, 33, 24, 0.05);
+}
+
+.boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row.is-expanded {
+  border-color: #d4dcc8;
+  box-shadow: 0 10px 28px rgba(92, 107, 75, 0.1);
 }
 
 .boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td {
@@ -4826,7 +4905,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings #settingsDiscountsTableBody .settings-discounts-row > td:first-child {
   grid-column: 1 / -1;
-  padding-bottom: 11px !important;
+  padding-bottom: 12px !important;
   border-bottom: 1px solid #eff1ec !important;
 }
 
@@ -4840,12 +4919,15 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   grid-row: 2 / 4;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__actions .btn-icon-only {
   width: 42px;
   height: 42px;
-  border-radius: 11px;
+  border-radius: 12px;
+  border: 1px solid var(--settings-border);
+  background: #fbfcfa;
 }
 
 .boso-admin-mobile #view-settings .settings-discount-expand-row,
@@ -4857,23 +4939,32 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel {
-  padding: 12px 0 18px !important;
+  padding: 14px 0 8px !important;
   border: 0 !important;
   background: transparent !important;
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel > div {
   grid-template-columns: 1fr !important;
-  gap: 10px !important;
-  margin-bottom: 10px !important;
+  gap: 12px !important;
+  margin-bottom: 12px !important;
 }
 
 .boso-admin-mobile #view-settings .discount-bento-card {
   min-height: 0 !important;
   padding: 16px !important;
-  border-color: var(--settings-border) !important;
+  border: 1px solid var(--settings-border) !important;
   border-radius: 16px !important;
+  background: #fbfcfa !important;
   box-shadow: none !important;
+}
+
+.boso-admin-mobile #view-settings .discount-bento-card input,
+.boso-admin-mobile #view-settings .discount-bento-card select,
+.boso-admin-mobile #view-settings .discount-bento-card textarea {
+  min-height: 46px;
+  border-radius: 12px !important;
+  background: #fff !important;
 }
 
 .boso-admin-mobile #view-settings .discount-bento-card input {
@@ -4882,9 +4973,43 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .discount-settings-panel__footer {
   display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  gap: 8px !important;
-  padding-top: 12px !important;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 10px !important;
+  padding-top: 14px !important;
+}
+
+.boso-admin-mobile #view-settings .discount-settings-panel__footer .btn-primary,
+.boso-admin-mobile #view-settings .discount-settings-panel__footer .btn-secondary {
+  min-height: 46px;
+  border-radius: 12px;
+  font-weight: 750;
+}
+
+.boso-admin-mobile #view-settings #set-discounts .border-dashed {
+  margin-top: 4px;
+  padding: 28px 18px !important;
+  border-radius: 18px !important;
+  border-color: var(--settings-border) !important;
+  background: var(--settings-surface-muted) !important;
+}
+
+.boso-admin-mobile #view-settings .discount-kind-section__title,
+.boso-admin-mobile #view-settings .discount-kind-section h3 {
+  margin: 8px 2px 10px;
+  color: var(--settings-text);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.boso-admin-mobile #view-settings .discount-templates-collapse {
+  margin: 0;
+}
+
+.boso-admin-mobile #view-settings .discount-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .boso-admin-mobile #view-settings .discount-settings-panel__footer button {

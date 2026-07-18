@@ -252,7 +252,7 @@ export function DiscountTemplateGallery({ settings, modals }: DiscountTemplateGa
 
   return (
     <>
-      <p className="text-sm text-stone-500 mb-8">
+      <p className="discount-gallery-intro text-sm text-stone-500 mb-8">
         Налаштуй інструменти продажів, щоб залучати більше гостей та уникати простоїв.
       </p>
 
