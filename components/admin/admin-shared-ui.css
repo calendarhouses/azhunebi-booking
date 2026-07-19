@@ -34,7 +34,7 @@
   font-weight: 800;
 }
 .booking-move-price-values span { color: #a8a29e; }
-.booking-move-price-actions { display: flex; gap: 8px; }
+.booking-move-price-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .booking-move-price-actions button {
   flex: 1;
   min-height: 44px;
@@ -47,6 +47,11 @@
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+}
+.booking-move-price-actions .booking-move-price-cancel {
+  grid-column: 1 / -1;
+  color: #78716c;
+  background: #fafaf9;
 }
 @media (max-width: 700px) {
   .booking-move-price-overlay {

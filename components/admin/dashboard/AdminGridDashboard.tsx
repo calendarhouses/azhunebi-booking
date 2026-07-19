@@ -81,10 +81,14 @@ export function AdminGridDashboard({
     setPendingMove(null);
   };
 
+  const cancelPending = () => {
+    setPendingMove(null);
+  };
+
   useEffect(() => {
     if (!pendingMove) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") commitPending(false);
+      if (event.key === "Escape") cancelPending();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -132,7 +136,7 @@ export function AdminGridDashboard({
           <div
             className="booking-move-price-overlay"
             role="presentation"
-            onClick={() => commitPending(false)}
+            onClick={cancelPending}
           >
             <div
               className="booking-move-price-popover"
@@ -147,9 +151,18 @@ export function AdminGridDashboard({
                 {pendingMove.quote.newTotal.toLocaleString("uk-UA")} ₴
               </div>
               <div className="booking-move-price-actions">
-                <button type="button" onClick={() => commitPending(false)}>Залишити</button>
+                <button type="button" onClick={() => commitPending(false)}>
+                  Залишити
+                </button>
                 <button type="button" className="primary" onClick={() => commitPending(true)}>
                   Змінити ціну
+                </button>
+                <button
+                  type="button"
+                  className="booking-move-price-cancel"
+                  onClick={cancelPending}
+                >
+                  Відмінити
                 </button>
               </div>
             </div>

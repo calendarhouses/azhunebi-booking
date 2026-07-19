@@ -39,6 +39,9 @@ export type BookingMoveSession = {
   targetRoomIndex: number;
   moved: boolean;
   pointerId: number;
+  pointerType: string;
+  /** Touch: drag only after long-press tooltip. Mouse: armed immediately. */
+  dragArmed: boolean;
   previewActive?: boolean;
 };
 

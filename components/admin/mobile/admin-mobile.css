@@ -2436,6 +2436,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-mobile-scroll .booking-block,
 .boso-admin-mobile .timeline-mobile-scroll .booking-block * {
+  /* Allow scrolling over dense bookings; drag arms only after long-press. */
+  touch-action: pan-x pan-y !important;
+}
+
+.boso-admin-mobile .timeline-mobile-scroll .booking-block.booking-block--drag-armed,
+.boso-admin-mobile .timeline-mobile-scroll .booking-block.booking-block--drag-armed *,
+.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll .booking-block,
+.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll .booking-block * {
   touch-action: none !important;
 }
 
@@ -6016,7 +6024,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   font-weight: 800;
 }
 .booking-move-price-values span { color: #a8a29e; }
-.booking-move-price-actions { display: flex; gap: 8px; }
+.booking-move-price-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .booking-move-price-actions button {
   flex: 1;
   min-height: 46px;
@@ -6029,6 +6037,11 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
+}
+.booking-move-price-actions .booking-move-price-cancel {
+  grid-column: 1 / -1;
+  color: #78716c;
+  background: #fafaf9;
 }
 
 /* ═══════════════════════════════════════════════════════════
