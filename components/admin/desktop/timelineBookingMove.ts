@@ -40,6 +40,8 @@ export type BookingMoveSession = {
   moved: boolean;
   pointerId: number;
   pointerType: string;
+  /** Touch.identifier when known — required for Android cancel/end matching. */
+  touchId: number | null;
   /** Touch: drag only after long-press tooltip. Mouse: armed immediately. */
   dragArmed: boolean;
   previewActive?: boolean;
