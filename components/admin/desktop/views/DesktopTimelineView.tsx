@@ -341,7 +341,7 @@ export function DesktopTimelineView({
    * iOS: keep classic fixed row heights (52 / 60).
    */
   const cottageCount = Math.max(activeRooms.length, 1);
-  const mobileDateHeadHeight = isAndroid ? (mobileDense ? 36 : 44) : mobileDense ? 48 : 56;
+  const mobileDateHeadHeight = isAndroid ? (mobileDense ? 36 : 56) : mobileDense ? 48 : 56;
   const [androidRowHeight, setAndroidRowHeight] = useState(mobileDense ? 38 : 44);
 
   const [mode, setMode] = useState<TimelineMode>("month");
@@ -1552,6 +1552,8 @@ export function DesktopTimelineView({
             const mobileExtensionInset = denseRows ? 16 : 20;
             const hasEarlyExtension = block.extensions.some((ext) => ext.type === "early");
             const hasLateExtension = block.extensions.some((ext) => ext.type === "late");
+            const mobilePadX = denseRows ? 4 : 5;
+            const mobileExtPad = mobileExtensionInset + (denseRows ? 4 : 6);
 
             if (isDraggingCard || !isBlockVisible(block)) return null;
 
@@ -1566,22 +1568,18 @@ export function DesktopTimelineView({
                   paddingLeft:
                     isMobile
                       ? hasEarlyExtension
-                        ? mobileExtensionInset + 3
+                        ? mobileExtPad
                         : block.nights === 1
                           ? 3
-                          : denseRows
-                            ? 5
-                            : 6
+                          : mobilePadX
                       : block.padLeft,
                   paddingRight:
                     isMobile
                       ? hasLateExtension
-                        ? mobileExtensionInset + 3
+                        ? mobileExtPad
                         : block.nights === 1
                           ? 3
-                          : denseRows
-                            ? 5
-                            : 6
+                          : mobilePadX
                       : block.padRight,
                   cursor: onMoveBooking ? "grab" : "pointer",
                   touchAction: onMoveBooking ? "none" : undefined,
@@ -1703,22 +1701,22 @@ export function DesktopTimelineView({
             paddingLeft:
               isMobile
                 ? draggingBlockRef.current.extensions.some((ext) => ext.type === "early")
-                  ? (denseRows ? 16 : 20) + 3
+                  ? (denseRows ? 16 : 20) + (denseRows ? 4 : 6)
                   : draggingBlockRef.current.nights === 1
                     ? 3
                     : denseRows
-                      ? 5
-                      : 6
+                      ? 4
+                      : 5
                 : draggingBlockRef.current.padLeft,
             paddingRight:
               isMobile
                 ? draggingBlockRef.current.extensions.some((ext) => ext.type === "late")
-                  ? (denseRows ? 16 : 20) + 3
+                  ? (denseRows ? 16 : 20) + (denseRows ? 4 : 6)
                   : draggingBlockRef.current.nights === 1
                     ? 3
                     : denseRows
-                      ? 5
-                      : 6
+                      ? 4
+                      : 5
                 : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,

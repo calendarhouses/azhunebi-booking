@@ -6041,6 +6041,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   position: relative !important;
   top: auto !important;
   z-index: 5 !important;
+  overflow: hidden !important;
 }
 
 /* Rooms column still sticks horizontally while panning dates */
@@ -6058,7 +6059,9 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   height: calc(var(--timeline-room-height, 44px) - 2px) !important;
   min-height: calc(var(--timeline-room-height, 44px) - 2px) !important;
   max-height: calc(var(--timeline-room-height, 44px) - 2px) !important;
-  padding: 0 4px !important;
+  /* Horizontal padding comes from inline styles (reserves flexible-schedule stripes) */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   box-sizing: border-box !important;
   border-radius: 8px !important;
   display: flex !important;
@@ -6079,10 +6082,14 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   align-items: stretch !important;
   gap: 1px !important;
   height: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
   min-height: 0 !important;
   max-height: 100% !important;
-  padding: 1px 2px !important;
+  /* Side inset is on .booking-block (flexible schedule). Keep content clear of stripes. */
+  padding: 1px 0 !important;
   overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-guest-name {
@@ -6101,6 +6108,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
+  justify-content: flex-start !important;
   flex: 0 0 auto !important;
   flex-shrink: 0 !important;
   gap: 3px !important;
@@ -6108,7 +6116,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   min-width: 0 !important;
   min-height: 14px !important;
   max-height: 16px !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-fin-badge,
@@ -6120,17 +6128,39 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   padding: 0 4px !important;
   border-radius: 6px !important;
   line-height: 1 !important;
-  flex: 0 0 auto !important;
-  flex-shrink: 0 !important;
+  flex: 0 1 auto !important;
+  flex-shrink: 1 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .boso-admin-android
   .booking-inner-content--android-premium
   .booking-mobile-meta-row
   .booking-fin-badge {
-  flex: 1 1 auto !important;
-  max-width: none !important;
+  flex: 0 1 auto !important;
+  max-width: 100% !important;
   min-width: 0 !important;
+}
+
+.boso-admin-android
+  .booking-inner-content--android-premium
+  .booking-mobile-meta-row
+  .booking-guest-chip {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Keep flexible-schedule stripes above card text */
+.boso-admin-android .timeline-wrapper--android .time-extension--mobile,
+.boso-admin-android .timeline-wrapper--android .time-extension {
+  z-index: 5 !important;
+}
+
+.boso-admin-android .timeline-wrapper--android .booking-inner-content {
+  z-index: 2 !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium.booking-inner-content--meta-only {

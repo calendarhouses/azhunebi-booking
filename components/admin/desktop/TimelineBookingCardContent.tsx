@@ -214,10 +214,10 @@ export function TimelineBookingCardContent({
   const name = block.guestName?.trim() || "";
 
   if (mobile) {
-    const flexibleInset = block.extensions.length * (compact ? 16 : 20);
+    const flexibleInset = block.extensions.length * (compact ? 20 : 26);
     const effectiveWidth = Math.max(
       0,
-      block.width - (compact ? 12 : 20) - flexibleInset
+      block.width - (compact ? 10 : 14) - flexibleInset
     );
     const nameMinWidth = androidPremium
       ? block.nights === 2
