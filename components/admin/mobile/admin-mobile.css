@@ -1776,6 +1776,42 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
   padding-bottom: 4px;
 }
 
+/* Dense: free vertical space so ~12 cottages fit without scroll */
+.boso-admin-mobile.boso-grid-dense .top-bar {
+  height: calc(48px + var(--safe-top)) !important;
+}
+
+.boso-admin-mobile.boso-grid-dense .top-logo .admin-logo {
+  width: 30px !important;
+  height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
+}
+
+.boso-admin-mobile.boso-grid-dense .top-title {
+  font-size: 14px !important;
+}
+
+.boso-admin-mobile.boso-grid-dense .bottom-nav {
+  height: calc(58px + var(--safe-bottom)) !important;
+  padding: 4px 4px calc(6px + var(--safe-bottom)) 4px !important;
+}
+
+.boso-admin-mobile.boso-grid-dense .bottom-nav .nav-item {
+  font-size: 9px !important;
+  gap: 2px !important;
+}
+
+.boso-admin-mobile.boso-grid-dense .bottom-nav .nav-item svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.boso-admin-mobile.boso-grid-dense .main-content:has(#view-grid) {
+  padding-top: 6px !important;
+  padding-bottom: 2px !important;
+}
+
 .boso-admin-mobile .bottom-nav {
   position: sticky;
   bottom: 0;
@@ -2415,9 +2451,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   flex-shrink: 0 !important;
   align-items: stretch !important;
   width: 100% !important;
-  height: 56px !important;
-  min-height: 56px !important;
-  max-height: 56px !important;
+  height: var(--timeline-mobile-head-height, 56px) !important;
+  min-height: var(--timeline-mobile-head-height, 56px) !important;
+  max-height: var(--timeline-mobile-head-height, 56px) !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 15 !important;
@@ -2468,9 +2504,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-mobile-corner .timeline-sidebar-header {
-  height: 56px !important;
-  min-height: 56px !important;
-  max-height: 56px !important;
+  height: var(--timeline-mobile-head-height, 56px) !important;
+  min-height: var(--timeline-mobile-head-height, 56px) !important;
+  max-height: var(--timeline-mobile-head-height, 56px) !important;
   border-bottom: none !important;
   padding: 0 4px !important;
 }
@@ -2694,50 +2730,60 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   order: 1 !important;
 }
 
-/* Dense chessboard — compact 52px rows for two-line premium cards */
+/* Dense chessboard — row height from JS (--timeline-room-height) to fit ~12 cottages */
 .boso-admin-mobile .timeline-wrapper--mobile-dense {
-  --timeline-room-height: 52px;
+  --timeline-room-height: 36px;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-rooms-list > *,
 .boso-admin-mobile #view-grid .timeline-wrapper--mobile-dense .timeline-room {
-  height: 52px !important;
-  min-height: 52px !important;
-  max-height: 52px !important;
+  height: var(--timeline-room-height, 36px) !important;
+  min-height: var(--timeline-room-height, 36px) !important;
+  max-height: var(--timeline-room-height, 36px) !important;
+  padding: 1px 4px !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room-name {
-  font-size: 11px !important;
-  line-height: 1.15 !important;
-  -webkit-line-clamp: 2;
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room__label {
+  gap: 0 !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room-name,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room__name {
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+  -webkit-line-clamp: 2 !important;
+  text-align: left !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room-icon,
-.boso-admin-mobile .timeline-wrapper--mobile-dense .room-sidebar-house-icon {
-  width: 14px !important;
-  height: 14px !important;
+.boso-admin-mobile .timeline-wrapper--mobile-dense .room-sidebar-house-icon,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room__icon {
+  display: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-block:not(.booking-block--drag-float) {
-  top: 2px !important;
-  height: calc(100% - 4px) !important;
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
+  top: 1px !important;
+  height: calc(100% - 2px) !important;
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1) !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense {
   display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  padding: 0 !important;
-  gap: 2px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  padding: 0 2px !important;
+  gap: 4px !important;
   height: 100% !important;
-  justify-content: center !important;
+  justify-content: flex-start !important;
   min-width: 0 !important;
   overflow: hidden !important;
 }
@@ -2755,16 +2801,17 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense .booking-guest-name {
   position: relative !important;
   z-index: 2 !important;
-  flex: 0 0 auto !important;
+  flex: 1 1 auto !important;
   display: block !important;
   order: 0 !important;
-  font-size: 10px !important;
+  font-size: 9px !important;
   font-weight: 800 !important;
-  line-height: 1.1 !important;
+  line-height: 1.05 !important;
   max-width: 100% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  margin: 0 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense .booking-mobile-meta-row {
@@ -2772,7 +2819,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   z-index: 1 !important;
   flex: 0 0 auto !important;
   order: 1 !important;
-  width: 100% !important;
+  width: auto !important;
+  max-width: 45% !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-guest-chip--text {
@@ -3069,29 +3118,39 @@ body.boso-grid-view .boso-admin-mobile .main-content {
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-head {
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  height: var(--timeline-mobile-head-height, 36px) !important;
+  min-height: var(--timeline-mobile-head-height, 36px) !important;
+  max-height: var(--timeline-mobile-head-height, 36px) !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-corner .timeline-sidebar-header {
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  height: var(--timeline-mobile-head-height, 36px) !important;
+  min-height: var(--timeline-mobile-head-height, 36px) !important;
+  max-height: var(--timeline-mobile-head-height, 36px) !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-months {
-  height: 18px !important;
-  min-height: 18px !important;
-  max-height: 18px !important;
-  flex: 0 0 18px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
+  flex: 0 0 14px !important;
+  font-size: 9px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-dates {
-  height: 30px !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
-  flex: 0 0 30px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  flex: 0 0 22px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-date {
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-date span {
+  font-size: 8px !important;
 }
 
 /* Guest names must show in standard multi-night cards */

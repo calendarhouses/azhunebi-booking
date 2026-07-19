@@ -1,7 +1,7 @@
 "use client";
 
 import { Infinity as InfinityIcon, Maximize2, Minimize2, Undo2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
   PointerEvent as ReactPointerEvent,
@@ -330,12 +330,14 @@ export function DesktopTimelineView({
     };
   }, [isMobile, mobileDense]);
 
-  /** Fixed dense row height — enough for premium two-line mobile cards. */
-  const rowHeight = isMobile
-    ? mobileDense
-      ? 52
-      : 60
-    : getTimelineRowHeight(compactGrid);
+  /**
+   * Fit all cottage rows on one phone screen (BookMeNow-style density).
+   * Holding row may peek below; ResizeObserver remeasures when chrome changes.
+   */
+  const cottageCount = Math.max(activeRooms.length, 1);
+  const mobileDateHeadHeight = mobileDense ? 36 : 44;
+  const [mobileRowHeight, setMobileRowHeight] = useState(mobileDense ? 36 : 42);
+
   const [mode, setMode] = useState<TimelineMode>("month");
   const [infiniteAnchor, setInfiniteAnchor] = useState(() => new Date());
   const [baseDate, setBaseDate] = useState(() => {
@@ -385,6 +387,33 @@ export function DesktopTimelineView({
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressShownRef = useRef(false);
   const longPressTargetRef = useRef<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!isMobile) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const available = el.clientHeight - mobileDateHeadHeight;
+      if (available < 80) return;
+      const raw = Math.floor(available / cottageCount);
+      const minH = mobileDense ? 30 : 34;
+      const maxH = mobileDense ? 40 : 48;
+      const next = Math.min(maxH, Math.max(minH, raw));
+      setMobileRowHeight((prev) => (prev === next ? prev : next));
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.visualViewport?.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.visualViewport?.removeEventListener("resize", measure);
+    };
+  }, [isMobile, mobileDense, cottageCount, mobileDateHeadHeight]);
+
+  const rowHeight = isMobile ? mobileRowHeight : getTimelineRowHeight(compactGrid);
 
   const infiniteRange = useMemo(
     () => buildInfiniteTimelineRange(infiniteAnchor),
@@ -1869,6 +1898,7 @@ export function DesktopTimelineView({
             "--timeline-cell-width": `${cellWidth}px`,
             "--timeline-room-height": `${rowHeight}px`,
             "--timeline-row-height": `${rowHeight}px`,
+            "--timeline-mobile-head-height": `${isMobile ? mobileDateHeadHeight : 56}px`,
             "--timeline-grid-width": `${gridTotalWidth}px`,
           } as CSSProperties
         }
