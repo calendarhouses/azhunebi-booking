@@ -532,10 +532,14 @@ export function DesktopRestrictionsGrid({
 
   const setTouchSelectingClass = useCallback((on: boolean) => {
     rootRef.current?.classList.toggle("price-grid-view--touch-selecting", on);
+    const scroll = rootRef.current?.querySelector(
+      ".timeline-mobile-scroll, .timeline-scroll-surface, #restrictionScroll"
+    ) as HTMLElement | null;
+    scroll?.classList.toggle("timeline-mobile-scroll--gesture-lock", on);
     if (on) {
       if (!touchScrollLockRef.current) {
         const lock = (e: TouchEvent) => {
-          if (dragRef.current.active) e.preventDefault();
+          if (dragRef.current.active && e.cancelable) e.preventDefault();
         };
         touchScrollLockRef.current = lock;
         document.addEventListener("touchmove", lock, { passive: false, capture: true });
@@ -1159,6 +1163,7 @@ export function DesktopRestrictionsGrid({
                 flex: "0 0 auto",
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
+                ["--timeline-mobile-head-height" as string]: mobileDense ? "54px" : "56px",
               } as CSSProperties
             }
           >
@@ -1190,39 +1195,28 @@ export function DesktopRestrictionsGrid({
                   boxSizing: "border-box",
                 }}
               >
-                <div className="timeline-mobile-head">
-                  <div className="timeline-mobile-corner">{sidebarHeader}</div>
-                  <div
-                    className="timeline-mobile-dates"
-                    style={{
-                      width: gridTotalWidth,
-                      minWidth: gridTotalWidth,
-                      maxWidth: gridTotalWidth,
-                    }}
-                  >
-                    {monthRow}
-                    {datesRow}
-                  </div>
-                </div>
+                <div className="timeline-mobile-corner">{sidebarHeader}</div>
                 <div
-                  className="timeline-mobile-body"
+                  className="timeline-mobile-dates"
                   style={{
-                    width: gridTotalWidth + 88,
-                    minWidth: gridTotalWidth + 88,
-                    maxWidth: gridTotalWidth + 88,
+                    width: gridTotalWidth,
+                    minWidth: gridTotalWidth,
+                    maxWidth: gridTotalWidth,
                   }}
                 >
-                  <div className="timeline-mobile-rooms">{roomRows}</div>
-                  <div
-                    className="timeline-mobile-cells"
-                    style={{
-                      width: gridTotalWidth,
-                      minWidth: gridTotalWidth,
-                      maxWidth: gridTotalWidth,
-                    }}
-                  >
-                    {gridRows}
-                  </div>
+                  {monthRow}
+                  {datesRow}
+                </div>
+                <div className="timeline-mobile-rooms">{roomRows}</div>
+                <div
+                  className="timeline-mobile-cells"
+                  style={{
+                    width: gridTotalWidth,
+                    minWidth: gridTotalWidth,
+                    maxWidth: gridTotalWidth,
+                  }}
+                >
+                  {gridRows}
                 </div>
               </div>
             </div>

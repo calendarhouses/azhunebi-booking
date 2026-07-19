@@ -618,6 +618,7 @@ export function DesktopTimelineView({
       document.removeEventListener("touchmove", touchScrollLockRef.current, true);
       touchScrollLockRef.current = null;
     }
+    scrollRef.current?.classList.remove("timeline-mobile-scroll--gesture-lock");
   }, []);
 
   const unlockBoardTouchPan = useCallback(() => {
@@ -628,10 +629,10 @@ export function DesktopTimelineView({
   }, []);
 
   /** Android: do NOT flip touch-action mid-gesture — Chrome cancels the pointer.
-   * Scroll is blocked via acquireTouchScrollLock (non-passive preventDefault) instead. */
+   * Scroll is blocked via acquireTouchScrollLock (overflow freeze + preventDefault). */
   const lockBoardTouchPan = useCallback(
     (..._els: Array<HTMLElement | null | undefined>) => {
-      // Intentionally no-op for touch-action. Kept for call-site clarity / future CSS class locks.
+      // Intentionally no-op for touch-action. Kept for call-site clarity.
     },
     []
   );
@@ -642,6 +643,7 @@ export function DesktopTimelineView({
   }, []);
 
   const acquireTouchScrollLock = useCallback(() => {
+    scrollRef.current?.classList.add("timeline-mobile-scroll--gesture-lock");
     if (touchScrollLockRef.current) return;
     const lock = (e: TouchEvent) => {
       const move = moveSessionRef.current;
@@ -652,7 +654,7 @@ export function DesktopTimelineView({
         move?.previewActive ||
         move?.moved
       ) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
       }
     };
     touchScrollLockRef.current = lock;
@@ -706,6 +708,7 @@ export function DesktopTimelineView({
       document.removeEventListener("touchmove", touchScrollLockRef.current, true);
       touchScrollLockRef.current = null;
     }
+    scrollRef.current?.classList.remove("timeline-mobile-scroll--gesture-lock");
     for (const el of touchPanLockedElsRef.current) {
       el.style.touchAction = "";
     }
@@ -2245,34 +2248,30 @@ export function DesktopTimelineView({
                 minWidth: gridTotalWidth + 88,
               }}
             >
-              <div className="timeline-mobile-head">
-                <div className="timeline-mobile-corner">
-                  <TimelineSidebarHeader
-                    roomCount={activeRooms.length}
-                    showFocusToggle={false}
-                    {...sidebarUndoProps}
-                  />
-                </div>
-                <div
-                  className="timeline-mobile-dates"
-                  style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
-                >
-                  {timelineMonths}
-                  {timelineDates}
-                </div>
+              <div className="timeline-mobile-corner">
+                <TimelineSidebarHeader
+                  roomCount={activeRooms.length}
+                  showFocusToggle={false}
+                  {...sidebarUndoProps}
+                />
               </div>
-              <div className="timeline-mobile-body">
-                <div className="timeline-mobile-rooms" id="timelineRooms">
-                  {timelineRoomRows}
-                </div>
-                <div
-                  className={`timeline-rows timeline-mobile-cells${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
-                  id="timelineGrid"
-                  ref={gridRowsRef}
-                  style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
-                >
-                  {timelineRows}
-                </div>
+              <div
+                className="timeline-mobile-dates"
+                style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
+              >
+                {timelineMonths}
+                {timelineDates}
+              </div>
+              <div className="timeline-mobile-rooms" id="timelineRooms">
+                {timelineRoomRows}
+              </div>
+              <div
+                className={`timeline-rows timeline-mobile-cells${isVirtualTimeline ? " timeline-rows--virtual" : ""}`}
+                id="timelineGrid"
+                ref={gridRowsRef}
+                style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
+              >
+                {timelineRows}
               </div>
             </div>
           </div>

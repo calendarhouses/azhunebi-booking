@@ -2447,19 +2447,48 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   touch-action: pan-x pan-y !important;
 }
 
-.boso-admin-mobile .timeline-mobile-board {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 100%;
+.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-mobile-scroll,
+.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll,
+.boso-admin-mobile .timeline-mobile-scroll.timeline-mobile-scroll--gesture-lock {
+  /* Hard freeze while selecting/dragging. preventDefault alone fails on Android with pan-*. */
+  overflow: hidden !important;
 }
 
-.boso-admin-mobile .timeline-mobile-head {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-shrink: 0 !important;
+.boso-admin-mobile .timeline-mobile-board {
+  /* Flat 2×2 grid: corner/dates/rooms/cells are siblings of the scrollport.
+     Nested sticky (corner inside sticky head) fails on iOS + Android. */
+  display: grid !important;
+  grid-template-columns: 88px var(--timeline-grid-width, max-content) !important;
+  grid-template-rows: var(--timeline-mobile-head-height, 56px) auto !important;
   align-items: stretch !important;
-  width: 100% !important;
+  min-height: 100%;
+  overflow: visible !important;
+}
+
+.boso-admin-mobile .timeline-mobile-corner {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 88px !important;
+  min-width: 88px !important;
+  max-width: 88px !important;
+  height: var(--timeline-mobile-head-height, 56px) !important;
+  min-height: var(--timeline-mobile-head-height, 56px) !important;
+  max-height: var(--timeline-mobile-head-height, 56px) !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 30 !important;
+  background: #F9FAFB !important;
+  border-right: 1px solid #E5E7EB !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile .timeline-mobile-dates {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
   height: var(--timeline-mobile-head-height, 56px) !important;
   min-height: var(--timeline-mobile-head-height, 56px) !important;
   max-height: var(--timeline-mobile-head-height, 56px) !important;
@@ -2468,13 +2497,17 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   z-index: 15 !important;
   background: #fff !important;
   border-bottom: 1px solid #E5E7EB !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-mobile .timeline-mobile-rooms {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
   width: 88px !important;
   min-width: 88px !important;
   max-width: 88px !important;
-  flex-shrink: 0 !important;
+  align-self: start !important;
   position: sticky !important;
   left: 0 !important;
   z-index: 20 !important;
@@ -2490,26 +2523,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-mobile-cells {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
   position: relative !important;
-  flex-shrink: 0 !important;
   background: #fff !important;
   z-index: 1 !important;
   isolation: isolate;
   max-width: var(--timeline-grid-width, none) !important;
   overflow: hidden !important;
-}
-
-.boso-admin-mobile .timeline-mobile-corner {
-  width: 88px !important;
-  min-width: 88px !important;
-  max-width: 88px !important;
-  flex-shrink: 0 !important;
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 21 !important;
-  background: #F9FAFB !important;
-  border-right: 1px solid #E5E7EB !important;
-  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .timeline-mobile-corner .timeline-sidebar-header {
@@ -2520,12 +2541,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   padding: 0 4px !important;
 }
 
-.boso-admin-mobile .timeline-mobile-dates {
-  display: flex !important;
-  flex-direction: column !important;
-  flex-shrink: 0 !important;
-  height: 100% !important;
-  background: #fff !important;
+/* Legacy wrappers (if any remain) — collapse so sticky siblings stay flat */
+.boso-admin-mobile .timeline-mobile-head,
+.boso-admin-mobile .timeline-mobile-body {
+  display: contents !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-months {
@@ -2550,14 +2569,6 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
-}
-
-.boso-admin-mobile .timeline-mobile-body {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-shrink: 0 !important;
-  align-items: stretch !important;
-  width: 100% !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg {
@@ -3128,7 +3139,8 @@ body.boso-grid-view .boso-admin-mobile .main-content {
     max-height 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-head {
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-dates,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-mobile-corner {
   height: var(--timeline-mobile-head-height, 36px) !important;
   min-height: var(--timeline-mobile-head-height, 36px) !important;
   max-height: var(--timeline-mobile-head-height, 36px) !important;
@@ -4315,60 +4327,67 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
+  display: grid !important;
+  grid-template-columns: 88px var(--timeline-grid-width, max-content) !important;
+  grid-template-rows: var(--timeline-mobile-head-height, 56px) auto !important;
   box-sizing: border-box !important;
-  /* sticky left rooms require this node NOT to clip; scrollport is .timeline-mobile-scroll */
+  /* sticky chrome requires this node NOT to clip; scrollport is .timeline-mobile-scroll */
   overflow: visible !important;
   flex-shrink: 0 !important;
   min-height: 0 !important;
   height: auto !important;
   align-items: stretch !important;
-  justify-content: flex-start !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-body,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-head {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: stretch !important;
-  box-sizing: border-box !important;
-  width: max-content !important;
-  max-width: none !important;
-  overflow: visible !important;
+  display: contents !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-cells,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-corner {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 30 !important;
+  background: #f9fafb !important;
+  box-shadow: 4px 0 10px rgba(28, 33, 24, 0.06);
+}
+
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
-  position: relative !important;
-  z-index: 1 !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 15 !important;
+  background: #fff !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
-  flex: 0 0 auto !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms,
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-corner {
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
   position: sticky !important;
   left: 0 !important;
   z-index: 24 !important;
   background: #f9fafb !important;
   box-shadow: 4px 0 10px rgba(28, 33, 24, 0.06);
+  align-self: start !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-cells {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-rooms .timeline-room {
   background: #f9fafb !important;
-}
-
-/* Dates scroll horizontally with cells — not pinned */
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-head {
-  position: relative !important;
-  top: auto !important;
-  z-index: 2 !important;
-}
-
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-dates {
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-months,
@@ -4424,7 +4443,8 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   max-height: 34px !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-dense .timeline-mobile-head {
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-dense .timeline-mobile-dates,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-dense .timeline-mobile-corner {
   height: var(--price-grid-header-h, 54px) !important;
   min-height: var(--price-grid-header-h, 54px) !important;
   max-height: var(--price-grid-header-h, 54px) !important;
@@ -6049,20 +6069,34 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
    Android vs iOS chessboard split
    ═══════════════════════════════════════════════════════════ */
 
-/* —— Android: dates scroll away with the board —— */
-.boso-admin-android .timeline-mobile-head,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-mobile-head {
-  position: relative !important;
-  top: auto !important;
-  z-index: 5 !important;
-  overflow: hidden !important;
+/* —— Sticky chrome handled by flat 2×2 board grid (iOS + Android) —— */
+.boso-admin-android .timeline-mobile-corner,
+.boso-admin-ios .timeline-mobile-corner {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 30 !important;
 }
 
-/* Rooms column still sticks horizontally while panning dates */
 .boso-admin-android .timeline-mobile-rooms,
-.boso-admin-android .timeline-mobile-corner {
+.boso-admin-ios .timeline-mobile-rooms {
   position: sticky !important;
   left: 0 !important;
+  z-index: 22 !important;
+  background: #F9FAFB !important;
+}
+
+.boso-admin-android .timeline-mobile-rooms .timeline-room,
+.boso-admin-ios .timeline-mobile-rooms .timeline-room {
+  background: #F9FAFB !important;
+}
+
+.boso-admin-android .timeline-mobile-dates,
+.boso-admin-ios .timeline-mobile-dates {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 15 !important;
+  background: #fff !important;
 }
 
 /* —— Android: booking cards fill the full row (same as drag float) —— */
@@ -6221,18 +6255,17 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   -webkit-line-clamp: 2 !important;
 }
 
-/* —— iOS: restore classic sticky dates + 52/60 row feel —— */
-.boso-admin-ios .timeline-mobile-head,
-.boso-admin-ios .timeline-wrapper--mobile-board .timeline-mobile-head {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 15 !important;
-  height: 56px !important;
-  min-height: 56px !important;
-  max-height: 56px !important;
+/* —— iOS: dense row feel (sticky chrome via flat board grid) —— */
+.boso-admin-ios .timeline-mobile-dates,
+.boso-admin-ios .timeline-mobile-corner,
+.boso-admin-ios .timeline-mobile-corner .timeline-sidebar-header {
+  height: var(--timeline-mobile-head-height, 56px) !important;
+  min-height: var(--timeline-mobile-head-height, 56px) !important;
+  max-height: var(--timeline-mobile-head-height, 56px) !important;
 }
 
-.boso-admin-ios .timeline-wrapper--mobile-dense .timeline-mobile-head,
+.boso-admin-ios .timeline-wrapper--mobile-dense .timeline-mobile-dates,
+.boso-admin-ios .timeline-wrapper--mobile-dense .timeline-mobile-corner,
 .boso-admin-ios .timeline-wrapper--mobile-dense .timeline-mobile-corner .timeline-sidebar-header {
   height: 48px !important;
   min-height: 48px !important;
@@ -6240,6 +6273,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 }
 
 .boso-admin-ios .timeline-wrapper--mobile-dense {
+  --timeline-mobile-head-height: 48px;
   --timeline-room-height: 52px;
 }
 
@@ -6395,7 +6429,22 @@ body.boso-admin-android .booking-quick-edit-sheet * {
   box-sizing: border-box !important;
 }
 
-/* Android price/rules chessboards: lock scroll during range select */
+/* Android/iOS price/rules: freeze board scroll while selecting (match booking grid). */
+.boso-admin-mobile .price-grid-view--touch-selecting .timeline-mobile-scroll,
+.boso-admin-mobile .price-grid-view--touch-selecting #priceScroll,
+.boso-admin-mobile .price-grid-view--touch-selecting #restrictionScroll,
+.boso-admin-mobile .timeline-mobile-scroll.timeline-mobile-scroll--gesture-lock,
+.boso-admin-mobile #view-settings .price-grid-view--touch-selecting > .timeline-mobile-scroll,
+.boso-admin-mobile #view-settings .price-grid-view--touch-selecting #priceScroll.timeline-mobile-scroll,
+.boso-admin-mobile #view-settings .price-grid-view--touch-selecting #restrictionScroll.timeline-mobile-scroll,
+.boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll.timeline-mobile-scroll--gesture-lock,
+.boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll.timeline-mobile-scroll--gesture-lock {
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+/* Android price/rules chessboards: keep pan-* (no mid-gesture touch-action flip). */
 .boso-admin-android .price-grid-view--touch-selecting,
 .boso-admin-android .price-grid-view--touch-selecting .price-cell,
 .boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll,
