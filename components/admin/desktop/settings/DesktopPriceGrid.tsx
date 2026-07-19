@@ -706,7 +706,8 @@ export function DesktopPriceGrid({
     drag.active = true;
     // DOM class first (no React re-render) so touch-action flips without cancelling the pointer.
     setTouchSelectingClass(true);
-    if (drag.captureEl) {
+    // Android: never setPointerCapture / touch-action mid-gesture — both cancel the pointer.
+    if (!isAndroid && drag.captureEl) {
       try {
         drag.captureEl.setPointerCapture(drag.pointerId);
       } catch {
@@ -722,7 +723,7 @@ export function DesktopPriceGrid({
       )
     );
     ensureDragAutoScroll();
-  }, [computeDragHighlight, ensureDragAutoScroll, setTouchSelectingClass]);
+  }, [computeDragHighlight, ensureDragAutoScroll, setTouchSelectingClass, isAndroid]);
 
   const onCellPointerDown = useCallback(
     (roomId: string, dateStr: string, e: ReactPointerEvent<HTMLDivElement>) => {
@@ -927,19 +928,80 @@ export function DesktopPriceGrid({
     const onPointerCancel = (e: PointerEvent) => {
       const drag = dragRef.current;
       if (drag.pointerId >= 0 && e.pointerId !== drag.pointerId) return;
-      // Cancel = browser aborted the gesture; do not open constructor/editor.
+      // Android often cancels during/after long-press; keep hold or active selection.
+      if (isAndroid && (drag.active || drag.pending)) return;
       if (drag.pending || drag.active) {
         abortDragSelection();
       }
     };
 
+    const onTouchMove = (e: TouchEvent) => {
+      const drag = dragRef.current;
+      if (!drag.active && !drag.pending) return;
+      const t = e.touches[0];
+      if (!t) return;
+
+      if (drag.pending) {
+        const dx = t.clientX - drag.startX;
+        const dy = t.clientY - drag.startY;
+        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+          abortDragSelection();
+        }
+        return;
+      }
+
+      if (e.cancelable) e.preventDefault();
+      lastPointerRef.current = { x: t.clientX, y: t.clientY };
+
+      if (!drag.moved) {
+        const dx = t.clientX - drag.startX;
+        const dy = t.clientY - drag.startY;
+        if (Math.hypot(dx, dy) < TOUCH_DRAG_THRESHOLD_PX) {
+          ensureDragAutoScroll();
+          return;
+        }
+        drag.moved = true;
+        setDragHighlight(
+          computeDragHighlight(
+            drag.anchorRoomId,
+            drag.focusRoomId,
+            drag.anchorDateStr,
+            drag.focusDateStr
+          )
+        );
+      }
+
+      updateDragFocusFromPoint(t.clientX, t.clientY);
+      ensureDragAutoScroll();
+    };
+
+    const onTouchEnd = () => {
+      const drag = dragRef.current;
+      if (!drag.active && !drag.pending) return;
+      if (drag.pending) {
+        const { anchorRoomId, anchorDateStr } = drag;
+        resetDragSession();
+        if (anchorRoomId && anchorDateStr) {
+          openInlineEdit(anchorRoomId, anchorDateStr, false);
+        }
+        return;
+      }
+      finishDrag();
+    };
+
     document.addEventListener("pointermove", onPointerMove, { passive: false });
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("pointercancel", onPointerCancel);
+    document.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
     return () => {
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("pointercancel", onPointerCancel);
+      document.removeEventListener("touchmove", onTouchMove, true);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
       clearTouchSelectHold();
       stopDragAutoScroll();
     };
@@ -953,6 +1015,7 @@ export function DesktopPriceGrid({
     abortDragSelection,
     openInlineEdit,
     clearTouchSelectHold,
+    isAndroid,
   ]);
 
   const sidebarHeader = (

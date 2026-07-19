@@ -373,6 +373,7 @@ export function DesktopTimelineView({
   const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchScrollLockRef = useRef<((e: TouchEvent) => void) | null>(null);
   const selectionMoveCleanupRef = useRef<(() => void) | null>(null);
+  const touchPanLockedElsRef = useRef<HTMLElement[]>([]);
   const isBookingDraggingRef = useRef(false);
   const bookingDragHoverRef = useRef<string | null>(null);
   const gridSelectionRef = useRef({ dragRoom: null as string | null, dragStart: null as string | null, dragEnd: null as string | null });
@@ -619,6 +620,22 @@ export function DesktopTimelineView({
     }
   }, []);
 
+  const unlockBoardTouchPan = useCallback(() => {
+    for (const el of touchPanLockedElsRef.current) {
+      el.style.touchAction = "";
+    }
+    touchPanLockedElsRef.current = [];
+  }, []);
+
+  /** Android: do NOT flip touch-action mid-gesture — Chrome cancels the pointer.
+   * Scroll is blocked via acquireTouchScrollLock (non-passive preventDefault) instead. */
+  const lockBoardTouchPan = useCallback(
+    (..._els: Array<HTMLElement | null | undefined>) => {
+      // Intentionally no-op for touch-action. Kept for call-site clarity / future CSS class locks.
+    },
+    []
+  );
+
   const clearSelectionMoveListeners = useCallback(() => {
     selectionMoveCleanupRef.current?.();
     selectionMoveCleanupRef.current = null;
@@ -649,6 +666,7 @@ export function DesktopTimelineView({
     setPointerSelectingRoom(null);
     clearSelectionMoveListeners();
     releaseTouchScrollLock();
+    unlockBoardTouchPan();
     if (dragAutoScrollRafRef.current != null) {
       cancelAnimationFrame(dragAutoScrollRafRef.current);
       dragAutoScrollRafRef.current = null;
@@ -661,7 +679,13 @@ export function DesktopTimelineView({
       onCreateBooking(selection.dragRoom, checkInStr, checkOutStr);
     }
     setTimeout(clearSelection, 300);
-  }, [onCreateBooking, clearSelection, clearSelectionMoveListeners, releaseTouchScrollLock]);
+  }, [
+    onCreateBooking,
+    clearSelection,
+    clearSelectionMoveListeners,
+    releaseTouchScrollLock,
+    unlockBoardTouchPan,
+  ]);
 
   useEffect(() => () => {
     moveCleanupRef.current?.();
@@ -682,6 +706,10 @@ export function DesktopTimelineView({
       document.removeEventListener("touchmove", touchScrollLockRef.current, true);
       touchScrollLockRef.current = null;
     }
+    for (const el of touchPanLockedElsRef.current) {
+      el.style.touchAction = "";
+    }
+    touchPanLockedElsRef.current = [];
     longPressTargetRef.current?.classList.remove("pressing");
     longPressTargetRef.current = null;
     if (dragAutoScrollRafRef.current != null) {
@@ -694,6 +722,15 @@ export function DesktopTimelineView({
     const onEnd = (event: PointerEvent) => {
       const session = selectionPointerSessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
+
+      // Android often fires spurious pointercancel after long-press / touch-action lock.
+      // Keep the selection alive — touchend / later pointerup will commit.
+      if (event.type === "pointercancel" && isAndroid) {
+        if (session.selecting && isDraggingRef.current) return;
+        // Cancel during hold: keep waiting; touch may still deliver moves after arm.
+        if (touchSelectHoldTimerRef.current) return;
+      }
+
       if (touchSelectHoldTimerRef.current) {
         clearTimeout(touchSelectHoldTimerRef.current);
         touchSelectHoldTimerRef.current = null;
@@ -703,8 +740,8 @@ export function DesktopTimelineView({
       setPointerSelectingRoom(null);
       clearSelectionMoveListeners();
       releaseTouchScrollLock();
+      unlockBoardTouchPan();
       if (wasSelecting) {
-        // Commit only on real finger/mouse release — not on pointercancel.
         if (event.type === "pointerup") {
           finishDrag();
         } else {
@@ -712,13 +749,40 @@ export function DesktopTimelineView({
         }
       }
     };
+
+    const onTouchEndFallback = () => {
+      const session = selectionPointerSessionRef.current;
+      if (!session?.selecting || !isDraggingRef.current) return;
+      if (touchSelectHoldTimerRef.current) {
+        clearTimeout(touchSelectHoldTimerRef.current);
+        touchSelectHoldTimerRef.current = null;
+      }
+      selectionPointerSessionRef.current = null;
+      setPointerSelectingRoom(null);
+      clearSelectionMoveListeners();
+      releaseTouchScrollLock();
+      unlockBoardTouchPan();
+      finishDrag();
+    };
+
     document.addEventListener("pointerup", onEnd);
     document.addEventListener("pointercancel", onEnd);
+    document.addEventListener("touchend", onTouchEndFallback);
+    document.addEventListener("touchcancel", onTouchEndFallback);
     return () => {
       document.removeEventListener("pointerup", onEnd);
       document.removeEventListener("pointercancel", onEnd);
+      document.removeEventListener("touchend", onTouchEndFallback);
+      document.removeEventListener("touchcancel", onTouchEndFallback);
     };
-  }, [finishDrag, clearSelection, clearSelectionMoveListeners, releaseTouchScrollLock]);
+  }, [
+    finishDrag,
+    clearSelection,
+    clearSelectionMoveListeners,
+    releaseTouchScrollLock,
+    unlockBoardTouchPan,
+    isAndroid,
+  ]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -947,9 +1011,21 @@ export function DesktopTimelineView({
         ensureDragFrame();
         updateTimelineSelectionRef.current(session.roomName, ev.clientX, ev.clientY);
       };
+      const onTouchMove = (ev: TouchEvent) => {
+        const session = selectionPointerSessionRef.current;
+        if (!session?.selecting || !isDraggingRef.current) return;
+        const t = ev.touches[0];
+        if (!t) return;
+        if (ev.cancelable) ev.preventDefault();
+        lastPointerRef.current = { x: t.clientX, y: t.clientY };
+        ensureDragFrame();
+        updateTimelineSelectionRef.current(session.roomName, t.clientX, t.clientY);
+      };
       document.addEventListener("pointermove", onMove, { passive: false });
+      document.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
       selectionMoveCleanupRef.current = () => {
         document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("touchmove", onTouchMove, true);
         selectionMoveCleanupRef.current = null;
       };
     },
@@ -1005,6 +1081,7 @@ export function DesktopTimelineView({
       stopDragAutoScroll();
       clearDragUiState();
       releaseTouchScrollLock();
+      unlockBoardTouchPan();
       scheduleRecompute();
     },
     [
@@ -1015,6 +1092,7 @@ export function DesktopTimelineView({
       clearMoveListeners,
       onMoveBooking,
       releaseTouchScrollLock,
+      unlockBoardTouchPan,
       scheduleRecompute,
       stopDragAutoScroll,
     ]
@@ -1063,15 +1141,23 @@ export function DesktopTimelineView({
           longPressShownRef.current = true;
           session.dragArmed = true;
           target.classList.add("booking-block--drag-armed");
+          // Lock pan WHILE finger is still — required on Android to avoid pointercancel.
+          if (isAndroid) {
+            lockBoardTouchPan(scrollRef.current, target);
+          }
           acquireTouchScrollLock();
           if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
           bosoHover(target, block.booking.row, "main");
-          try {
-            target.setPointerCapture(e.pointerId);
-          } catch {
-            /* ignore */
+          // Android: setPointerCapture mid-gesture often emits pointercancel.
+          // Document touchmove/pointermove listeners keep the drag alive instead.
+          if (!isAndroid) {
+            try {
+              target.setPointerCapture(e.pointerId);
+            } catch {
+              /* ignore */
+            }
           }
-        }, 420);
+        }, isAndroid ? 380 : 420);
       }
 
       const scrollEl = scrollRef.current;
@@ -1108,6 +1194,7 @@ export function DesktopTimelineView({
         dragEndedAtRef.current = Date.now();
         target.classList.remove("booking-block--drag-armed");
         releaseTouchScrollLock();
+        unlockBoardTouchPan();
         try {
           if (target.hasPointerCapture(e.pointerId)) {
             target.releasePointerCapture(e.pointerId);
@@ -1161,6 +1248,42 @@ export function DesktopTimelineView({
         ensureDragFrame();
       };
 
+      const onTouchMoveDrag = (ev: TouchEvent) => {
+        const session = moveSessionRef.current;
+        if (!session || session.pointerId !== e.pointerId) return;
+        if (isTouch && !session.dragArmed) {
+          const t0 = ev.touches[0];
+          if (!t0) return;
+          const dist = Math.hypot(t0.clientX - session.startX, t0.clientY - session.startY);
+          if (dist >= moveThreshold) abortTouchForScroll();
+          return;
+        }
+        if (!session.dragArmed && !session.previewActive) return;
+        const t = ev.touches[0];
+        if (!t) return;
+        if (ev.cancelable) ev.preventDefault();
+        lastPointerRef.current = { x: t.clientX, y: t.clientY };
+        const dist = Math.hypot(t.clientX - session.startX, t.clientY - session.startY);
+        const dragStartPx = isTouch ? 3 : moveThreshold;
+        if (!session.moved && dist < dragStartPx) return;
+        clearLongPress();
+        bosoLeave();
+        longPressShownRef.current = false;
+        session.moved = true;
+        acquireTouchScrollLock();
+        if (!session.previewActive) {
+          session.previewActive = true;
+          draggingBlockRef.current = block;
+          isBookingDraggingRef.current = true;
+          setIsBookingDragging(true);
+          setCellHoverPreview(null);
+          setDraggingBookingKey(bookingMoveKey(session.booking));
+          lastDragFramePointerRef.current = { x: 0, y: 0 };
+          updateDragFloatPosition(session, block);
+        }
+        ensureDragFrame();
+      };
+
       const onDocUp = (ev: PointerEvent) => {
         const session = moveSessionRef.current;
         if (!session || ev.pointerId !== session.pointerId) return;
@@ -1177,6 +1300,7 @@ export function DesktopTimelineView({
           dragEndedAtRef.current = Date.now();
           target.classList.remove("booking-block--drag-armed");
           releaseTouchScrollLock();
+          unlockBoardTouchPan();
           return;
         }
 
@@ -1187,6 +1311,19 @@ export function DesktopTimelineView({
       const onDocCancel = (ev: PointerEvent) => {
         const session = moveSessionRef.current;
         if (!session || ev.pointerId !== session.pointerId) return;
+
+        // Android: capture / system long-press often emit cancel. Keep session while
+        // armed, already dragging, or still waiting on the long-press timer.
+        if (
+          isAndroid &&
+          (session.dragArmed ||
+            session.previewActive ||
+            session.moved ||
+            longPressTimerRef.current != null)
+        ) {
+          return;
+        }
+
         stopDragAutoScroll();
         clearLongPress();
         bosoLeave();
@@ -1195,26 +1332,57 @@ export function DesktopTimelineView({
         moveSessionRef.current = null;
         target.classList.remove("booking-block--drag-armed");
         releaseTouchScrollLock();
+        unlockBoardTouchPan();
         clearDragUiState();
       };
 
+      const onTouchEndDrag = () => {
+        const session = moveSessionRef.current;
+        if (!session || session.pointerId !== e.pointerId) return;
+        if (!session.dragArmed && !session.moved && !session.previewActive) return;
+        stopDragAutoScroll();
+        const wasPeek = !session.moved && longPressShownRef.current;
+        clearLongPress();
+        bosoLeave();
+        longPressShownRef.current = false;
+        target.classList.remove("booking-block--drag-armed");
+        if (wasPeek) {
+          clearMoveListeners();
+          moveSessionRef.current = null;
+          dragEndedAtRef.current = Date.now();
+          releaseTouchScrollLock();
+          unlockBoardTouchPan();
+          return;
+        }
+        finishBookingDrag(session);
+      };
+
       document.addEventListener("pointermove", onDocMove, { passive: false });
+      document.addEventListener("touchmove", onTouchMoveDrag, { passive: false, capture: true });
       document.addEventListener("pointerup", onDocUp);
       document.addEventListener("pointercancel", onDocCancel);
+      document.addEventListener("touchend", onTouchEndDrag);
+      document.addEventListener("touchcancel", onTouchEndDrag);
       moveCleanupRef.current = () => {
         document.removeEventListener("pointermove", onDocMove);
+        document.removeEventListener("touchmove", onTouchMoveDrag, true);
         document.removeEventListener("pointerup", onDocUp);
         document.removeEventListener("pointercancel", onDocCancel);
+        document.removeEventListener("touchend", onTouchEndDrag);
+        document.removeEventListener("touchcancel", onTouchEndDrag);
       };
     },
     [
       dragRooms,
       onMoveBooking,
+      isAndroid,
       clearLongPress,
       clearMoveListeners,
       clearDragUiState,
       acquireTouchScrollLock,
       releaseTouchScrollLock,
+      lockBoardTouchPan,
+      unlockBoardTouchPan,
       ensureDragFrame,
       finishBookingDrag,
       stopDragAutoScroll,
@@ -1356,11 +1524,17 @@ export function DesktopTimelineView({
         const session = selectionPointerSessionRef.current;
         if (!session || session.pointerId !== event.pointerId || session.selecting) return;
         session.selecting = true;
+        if (isAndroid) {
+          lockBoardTouchPan(scrollRef.current, session.track);
+        }
         acquireTouchScrollLock();
-        try {
-          session.track.setPointerCapture(session.pointerId);
-        } catch {
-          /* Pointer capture is best-effort on older mobile browsers. */
+        // Android: mid-gesture capture often cancels the pointer; doc listeners are enough.
+        if (!isAndroid) {
+          try {
+            session.track.setPointerCapture(session.pointerId);
+          } catch {
+            /* Pointer capture is best-effort on older mobile browsers. */
+          }
         }
         lastPointerRef.current = { x: session.startX, y: session.startY };
         startTimelineSelection(roomName, session.startCell, session.startX, false);
@@ -1372,6 +1546,7 @@ export function DesktopTimelineView({
       isAndroid,
       startTimelineSelection,
       acquireTouchScrollLock,
+      lockBoardTouchPan,
       attachSelectionMoveListeners,
       ensureDragFrame,
     ]
@@ -1438,6 +1613,7 @@ export function DesktopTimelineView({
           selectionPointerSessionRef.current = null;
           clearSelectionMoveListeners();
           releaseTouchScrollLock();
+          unlockBoardTouchPan();
         }
         return;
       }
@@ -1495,6 +1671,7 @@ export function DesktopTimelineView({
     updateTimelineSelection,
     clearSelectionMoveListeners,
     releaseTouchScrollLock,
+    unlockBoardTouchPan,
     ensureDragFrame,
   ]);
 
@@ -1629,16 +1806,19 @@ export function DesktopTimelineView({
             const mobilePadX = denseRows ? 4 : 5;
             const mobileExtPad = mobileExtensionInset + (denseRows ? 4 : 6);
 
-            if (isDraggingCard || !isBlockVisible(block)) return null;
+            if (!isBlockVisible(block) && !isDraggingCard) return null;
 
+            // Keep the same DOM node while dragging (opacity only). Replacing/unmounting
+            // the source card mid-gesture cancels the pointer on Android Chrome.
             return (
               <div
                 key={String(bookingMoveKey(block.booking))}
-                className={`booking-block ${block.statusClass}${block.nights === 1 ? " micro-booking" : ""}${block.nights >= 2 ? " booking-block--multi-night" : ""}`}
+                className={`booking-block ${block.statusClass}${block.nights === 1 ? " micro-booking" : ""}${block.nights >= 2 ? " booking-block--multi-night" : ""}${isDraggingCard ? " booking-block--drag-source-hidden" : ""}`}
                 style={{
                   left: block.left,
                   width: block.width,
                   position: "absolute",
+                  opacity: isDraggingCard ? 0 : undefined,
                   paddingLeft:
                     isMobile
                       ? hasEarlyExtension
@@ -1656,9 +1836,15 @@ export function DesktopTimelineView({
                           : mobilePadX
                       : block.padRight,
                   cursor: onMoveBooking ? "grab" : "pointer",
-                  touchAction: onMoveBooking ? (isMobile ? "pan-x pan-y" : "none") : undefined,
+                  // Mobile: leave touch-action to CSS. Inline flips mid-drag cancel Android pointers.
+                  touchAction: onMoveBooking
+                    ? isMobile
+                      ? undefined
+                      : "none"
+                    : undefined,
                   ...bookingBlockStyle,
                 }}
+                aria-hidden={isDraggingCard || undefined}
                 onPointerDown={
                   onMoveBooking ? (e) => handleBookingPointerDown(e, block, roomIndex) : undefined
                 }

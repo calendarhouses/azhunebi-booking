@@ -6089,6 +6089,19 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   overflow: hidden !important;
 }
 
+/* Invisible drag source must stay mounted (same node) — do not use pointer-events:none. */
+.boso-admin-android .booking-block.booking-block--drag-source-hidden {
+  opacity: 0 !important;
+}
+
+.boso-admin-android .booking-block,
+.boso-admin-android .timeline-track-window,
+.boso-admin-android .price-cell {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
 .boso-admin-android .booking-inner-content--android-premium {
   display: flex !important;
   flex-direction: column !important;
