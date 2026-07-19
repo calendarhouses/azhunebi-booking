@@ -15,11 +15,22 @@ import {
   type YesNo,
 } from "./bookingDrawerForm";
 import {
+  applyEarlyLateChips,
+  renderCottageOptions,
+  resetFlexibleSchedule,
+  setBookingStatus,
+  setModeToggle,
+  togglePet,
+  toggleVat,
+} from "./bookingDrawerDom";
+import { findRoomForBooking, formatRoomDisplayLabel, parseBookingComment } from "./bookingUtils";
+import {
   childrenPolicyViolationMessage,
   DEFAULT_YOUNGEST_CHILD_AGE,
   listServicesForRoom,
   MAX_CHILD_AGE,
   migrateLegacyServiceSelection,
+  roomAllowsChildren,
 } from "./settings/additionalServicesLogic";
 import {
   getBookingPayments,

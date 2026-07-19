@@ -385,11 +385,13 @@ export function migrateLegacyServiceSelection(
   return selected;
 }
 
-export function roomAllowsChildren(room: RoomConfig | null | undefined): boolean {
+export type RoomChildrenPolicyFields = Pick<RoomConfig, "allowChildren" | "minChildAge">;
+
+export function roomAllowsChildren(room: RoomChildrenPolicyFields | null | undefined): boolean {
   return room?.allowChildren !== false;
 }
 
-export function roomMinChildAge(room: RoomConfig | null | undefined): number | null {
+export function roomMinChildAge(room: RoomChildrenPolicyFields | null | undefined): number | null {
   if (!roomAllowsChildren(room)) return null;
   const raw = room?.minChildAge;
   if (raw == null) return null;
@@ -400,7 +402,7 @@ export function roomMinChildAge(room: RoomConfig | null | undefined): number | n
 
 /** Чи підходить склад дітей (кількість + вік наймолодшої) під політику будинку. */
 export function roomFitsChildrenPolicy(
-  room: RoomConfig | null | undefined,
+  room: RoomChildrenPolicyFields | null | undefined,
   children: number,
   youngestAge: number | null | undefined
 ): boolean {
@@ -414,7 +416,7 @@ export function roomFitsChildrenPolicy(
 
 /** Текст для banner / toast, якщо політика порушена; інакше null. */
 export function childrenPolicyViolationMessage(
-  room: RoomConfig | null | undefined,
+  room: RoomChildrenPolicyFields | null | undefined,
   children: number,
   youngestAge: number | null | undefined
 ): string | null {
@@ -431,7 +433,9 @@ export function childrenPolicyViolationMessage(
 }
 
 /** Короткий бейдж для карток / списку будинків. */
-export function formatChildrenPolicyBadge(room: RoomConfig | null | undefined): string | null {
+export function formatChildrenPolicyBadge(
+  room: RoomChildrenPolicyFields | null | undefined
+): string | null {
   if (!roomAllowsChildren(room)) return "Без дітей";
   const minAge = roomMinChildAge(room);
   if (minAge == null || minAge <= 0) return null;
