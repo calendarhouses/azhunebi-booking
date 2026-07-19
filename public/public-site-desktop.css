@@ -1469,13 +1469,17 @@ body {
 
 .stay-filter__bar {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 0.7fr)) auto;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 0.7fr));
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 18px 50px rgba(26, 26, 26, 0.06);
+}
+
+.stay-filter__bar:has(.stay-filter__field--age) {
+  grid-template-columns: minmax(200px, 1.3fr) repeat(3, minmax(120px, 0.7fr));
 }
 
 .stay-filter__field {
@@ -1617,14 +1621,15 @@ button.stay-filter__field[aria-expanded="true"] {
 }
 
 .stay-filter__aside {
+  grid-column: 1 / -1;
   background: var(--white);
-  padding: 16px 20px;
+  padding: 14px 22px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-  min-width: 140px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
 .stay-filter__count {
@@ -1831,16 +1836,13 @@ button.stay-filter__field[aria-expanded="true"] {
 }
 
 @media (max-width: 900px) {
-  .stay-filter__bar {
+  .stay-filter__bar,
+  .stay-filter__bar:has(.stay-filter__field--age) {
     grid-template-columns: 1fr 1fr;
   }
-  .stay-filter__field--dates {
-    grid-column: 1 / -1;
-  }
+  .stay-filter__field--dates,
+  .stay-filter__field--age,
   .stay-filter__aside {
     grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
   }
 }

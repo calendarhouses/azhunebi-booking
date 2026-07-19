@@ -806,8 +806,12 @@ body.ready .bottom-nav,
   color: inherit;
 }
 
-.stay-filter--mobile .stay-filter__field--dates {
+.stay-filter--mobile .stay-filter__field--dates,
+.stay-filter--mobile .stay-filter__field--age {
   grid-column: 1 / -1;
+}
+
+.stay-filter--mobile .stay-filter__field--dates {
   cursor: pointer;
 }
 
