@@ -33,6 +33,7 @@ import {
   getTimelineRowHeight,
   type BookingMoveSession,
 } from "../timelineBookingMove";
+import { isAndroidUserAgent } from "@/lib/isMobileUserAgent";
 import {
   buildTimelineConstraintsByRoom,
   buildRoomTimelineConstraints,
@@ -309,6 +310,9 @@ export function DesktopTimelineView({
   isUndoing = false,
 }: DesktopTimelineViewProps) {
   const isMobile = layout === "mobile";
+  const isAndroid = isMobile && isAndroidUserAgent(
+    typeof navigator !== "undefined" ? navigator.userAgent : ""
+  );
   const { isCompactMode, toggleCompactMode } = useGridFocusModeOptional();
   /** Desktop: focus layout. Mobile: denser rows only (same toggle). */
   const compactGrid = !isMobile && isCompactMode;
@@ -322,21 +326,22 @@ export function DesktopTimelineView({
 
   useEffect(() => {
     if (!isMobile) return;
-    document.body.classList.toggle("boso-grid-dense", mobileDense);
+    // Dense chrome tweaks only on Android — iOS keeps the pre-density layout.
+    document.body.classList.toggle("boso-grid-dense", Boolean(mobileDense && isAndroid));
     document.body.classList.add("boso-grid-view");
     return () => {
       document.body.classList.remove("boso-grid-dense");
       document.body.classList.remove("boso-grid-view");
     };
-  }, [isMobile, mobileDense]);
+  }, [isMobile, mobileDense, isAndroid]);
 
   /**
-   * Fit all cottage rows on one phone screen (BookMeNow-style density).
-   * Holding row may peek below; ResizeObserver remeasures when chrome changes.
+   * Android: fit all cottage rows on one screen.
+   * iOS: keep classic fixed row heights (52 / 60).
    */
   const cottageCount = Math.max(activeRooms.length, 1);
-  const mobileDateHeadHeight = mobileDense ? 36 : 44;
-  const [mobileRowHeight, setMobileRowHeight] = useState(mobileDense ? 36 : 42);
+  const mobileDateHeadHeight = isAndroid ? (mobileDense ? 36 : 44) : mobileDense ? 48 : 56;
+  const [androidRowHeight, setAndroidRowHeight] = useState(mobileDense ? 38 : 44);
 
   const [mode, setMode] = useState<TimelineMode>("month");
   const [infiniteAnchor, setInfiniteAnchor] = useState(() => new Date());
@@ -389,7 +394,7 @@ export function DesktopTimelineView({
   const longPressTargetRef = useRef<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile || !isAndroid) return;
     const el = scrollRef.current;
     if (!el) return;
 
@@ -397,10 +402,10 @@ export function DesktopTimelineView({
       const available = el.clientHeight - mobileDateHeadHeight;
       if (available < 80) return;
       const raw = Math.floor(available / cottageCount);
-      const minH = mobileDense ? 30 : 34;
-      const maxH = mobileDense ? 40 : 48;
+      const minH = mobileDense ? 34 : 38;
+      const maxH = mobileDense ? 44 : 52;
       const next = Math.min(maxH, Math.max(minH, raw));
-      setMobileRowHeight((prev) => (prev === next ? prev : next));
+      setAndroidRowHeight((prev) => (prev === next ? prev : next));
     };
 
     measure();
@@ -411,9 +416,15 @@ export function DesktopTimelineView({
       ro.disconnect();
       window.visualViewport?.removeEventListener("resize", measure);
     };
-  }, [isMobile, mobileDense, cottageCount, mobileDateHeadHeight]);
+  }, [isMobile, isAndroid, mobileDense, cottageCount, mobileDateHeadHeight]);
 
-  const rowHeight = isMobile ? mobileRowHeight : getTimelineRowHeight(compactGrid);
+  const rowHeight = isMobile
+    ? isAndroid
+      ? androidRowHeight
+      : mobileDense
+        ? 52
+        : 60
+    : getTimelineRowHeight(compactGrid);
 
   const infiniteRange = useMemo(
     () => buildInfiniteTimelineRange(infiniteAnchor),
@@ -1373,13 +1384,13 @@ export function DesktopTimelineView({
     </svg>
   );
 
-  const bookingBlockLayout = denseRows
-    ? getTimelineBookingBlockLayout(rowHeight, true)
-    : isMobile
-      ? getTimelineBookingBlockLayout(rowHeight, false)
+  const bookingBlockLayout = isMobile
+    ? getTimelineBookingBlockLayout(rowHeight, isAndroid || denseRows)
+    : denseRows
+      ? getTimelineBookingBlockLayout(rowHeight, true)
       : TIMELINE_BOOKING_BLOCK_LAYOUT;
   const bookingBlockStyle =
-    denseRows || isMobile
+    isMobile || denseRows
       ? { top: bookingBlockLayout.top, height: bookingBlockLayout.height }
       : bookingBlockLayout;
 
@@ -1617,7 +1628,12 @@ export function DesktopTimelineView({
                     {iconClock}
                   </div>
                 ))}
-                <TimelineBookingCardContent block={block} mobile={isMobile} compact={denseRows} />
+                <TimelineBookingCardContent
+                  block={block}
+                  mobile={isMobile}
+                  compact={denseRows}
+                  androidPremium={isAndroid}
+                />
               </div>
             );
           })}
@@ -1681,6 +1697,7 @@ export function DesktopTimelineView({
             block={draggingBlockRef.current}
             mobile={isMobile}
             compact={denseRows}
+            androidPremium={isAndroid}
           />
         </div>
       ) : null}
@@ -1694,6 +1711,8 @@ export function DesktopTimelineView({
     compactGrid ? "timeline-wrapper--compact" : "",
     mobileBoard ? "timeline-wrapper--mobile-board" : "",
     mobileDense ? "timeline-wrapper--mobile-dense" : "",
+    isAndroid ? "timeline-wrapper--android" : "",
+    isAndroid && mobileDense ? "timeline-wrapper--android-dense" : "",
   ]
     .filter(Boolean)
     .join(" ");

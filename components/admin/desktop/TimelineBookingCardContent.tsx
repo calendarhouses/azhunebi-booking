@@ -49,6 +49,8 @@ type TimelineBookingCardContentProps = {
   block: TimelineBookingCardBlock;
   mobile?: boolean;
   compact?: boolean;
+  /** Android chessboard: fuller cards (name + price + guests) at denser row heights. */
+  androidPremium?: boolean;
 };
 
 function GuestChipIcon() {
@@ -203,6 +205,7 @@ export function TimelineBookingCardContent({
   block,
   mobile = false,
   compact = false,
+  androidPremium = false,
 }: TimelineBookingCardContentProps) {
   const isOneNight = block.nights === 1;
   const { showGuestChip } = resolveTimelineGuestChipVisibility(block);
@@ -216,14 +219,21 @@ export function TimelineBookingCardContent({
       0,
       block.width - (compact ? 12 : 20) - flexibleInset
     );
+    const nameMinWidth = androidPremium
+      ? block.nights === 2
+        ? 56
+        : 64
+      : block.nights === 2
+        ? 78
+        : 82;
     const showName =
-      !isOneNight &&
-      Boolean(name) &&
-      effectiveWidth >= (block.nights === 2 ? 78 : 82);
-    const textOnlyGuests = isOneNight || effectiveWidth < 100;
+      !isOneNight && Boolean(name) && effectiveWidth >= nameMinWidth;
+    const textOnlyGuests = isOneNight || effectiveWidth < (androidPremium ? 84 : 100);
     const amount = block.finText.replace(/\s*(грн|₴)\s*$/i, "").trim();
     const mobileFinText =
-      block.finText === "—" ? "—" : `${amount}${effectiveWidth >= 68 ? " ₴" : ""}`;
+      block.finText === "—"
+        ? "—"
+        : `${amount}${effectiveWidth >= (androidPremium ? 52 : 68) ? " ₴" : ""}`;
     const stayClass =
       block.nights === 1
         ? "booking-inner-content--stay-1"
@@ -238,6 +248,7 @@ export function TimelineBookingCardContent({
           compact
             ? "booking-inner-content--mobile-premium-dense"
             : "booking-inner-content--mobile-premium-standard",
+          androidPremium ? "booking-inner-content--android-premium" : "",
           stayClass,
           showName ? "" : "booking-inner-content--meta-only",
         ]

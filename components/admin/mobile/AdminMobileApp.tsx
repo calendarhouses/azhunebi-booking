@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { isAndroidUserAgent, isIOSUserAgent } from "@/lib/isMobileUserAgent";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAdminUndo, resolveActiveUndoScope } from "@/components/admin/undo/useAdminUndo";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -125,11 +126,24 @@ export function AdminMobileApp() {
     String(branding.site_title || "").trim() || membership?.tenantName || null;
   const brandLogoUrl = normalizeDriveImageUrl(String(branding.logo_url || "")) || null;
 
+  const platformClass = useMemo(() => {
+    if (typeof navigator === "undefined") return "";
+    if (isAndroidUserAgent(navigator.userAgent)) return "boso-admin-android";
+    if (isIOSUserAgent(navigator.userAgent)) return "boso-admin-ios";
+    return "";
+  }, []);
+
+  useEffect(() => {
+    if (!platformClass) return;
+    document.body.classList.add(platformClass);
+    return () => document.body.classList.remove(platformClass);
+  }, [platformClass]);
+
   return (
     <MobileUiProvider>
       <GridFocusModeProvider tenantId={membership?.tenantId}>
       <AdminDocumentTitleSync siteTitle={documentSiteTitle} enabled={admin.appVisible} />
-      <div className="boso-admin-mobile">
+      <div className={`boso-admin-mobile${platformClass ? ` ${platformClass}` : ""}`}>
         <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
           <MobileTopBar
             title={admin.pageMeta.title}
