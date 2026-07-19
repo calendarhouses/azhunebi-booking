@@ -4973,12 +4973,13 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row {
   display: grid !important;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
-    "name name name"
-    "type status actions";
+    "name name"
+    "type actions"
+    "status status";
   column-gap: 10px;
-  row-gap: 0;
+  row-gap: 10px;
   align-items: center;
   justify-items: start;
   width: 100%;
@@ -5022,25 +5023,26 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   margin-bottom: 0 !important;
 }
 
-/* Space below the divider + gap between type / status chips */
+/* Space below the name divider */
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type,
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status,
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
-  margin-top: 14px !important;
-  padding-top: 2px !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type {
   grid-area: type;
   justify-self: start;
-  margin-right: 2px !important;
+  margin-right: 0 !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status {
   grid-area: status;
   justify-self: start;
   justify-content: flex-start !important;
-  margin-left: 8px !important;
+  margin-left: 0 !important;
+  width: 100% !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
@@ -5049,6 +5051,9 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   justify-content: flex-end !important;
   gap: 10px;
   width: auto !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 1;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-wrap {
@@ -6278,4 +6283,91 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   justify-content: center !important;
   gap: 2px !important;
   padding: 0 2px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Android: sticky :hover + drawer footer chrome
+   Chrome keeps :hover after tap → transform shifts buttons.
+   ═══════════════════════════════════════════════════════════ */
+
+body.boso-admin-android .btn-primary:hover,
+body.boso-admin-android .btn-secondary:hover,
+body.boso-admin-android .btn-outline-danger:hover,
+body.boso-admin-android .btn-success:hover,
+.boso-admin-android .btn-primary:hover,
+.boso-admin-android .btn-secondary:hover,
+.boso-admin-android .btn-outline-danger:hover,
+.boso-admin-android .btn-success:hover {
+  transform: none !important;
+}
+
+body.boso-admin-android .drawer,
+body.boso-admin-android .booking-quick-edit-sheet {
+  padding-bottom: 0 !important;
+}
+
+body.boso-admin-android .drawer-footer,
+body.boso-admin-android .drawer-footer--mobile,
+body.boso-admin-android .booking-quick-edit-footer {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 10px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 14px 16px calc(14px + max(var(--safe-bottom), 12px)) !important;
+  margin: 0 !important;
+}
+
+body.boso-admin-android .drawer-footer-actions,
+body.boso-admin-android .booking-quick-edit-footer .drawer-footer-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 10px !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+body.boso-admin-android .drawer-footer .btn-secondary,
+body.boso-admin-android .drawer-footer .btn-primary,
+body.boso-admin-android .drawer-footer .btn-outline-danger,
+body.boso-admin-android .booking-quick-edit-footer .btn-secondary,
+body.boso-admin-android .booking-quick-edit-footer .btn-primary {
+  box-sizing: border-box !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  flex: 1 1 0 !important;
+  width: auto !important;
+  align-self: stretch !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1.2 !important;
+  transform: none !important;
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+}
+
+body.boso-admin-android .drawer-footer--mobile .drawer-footer-delete,
+body.boso-admin-android .drawer-footer .drawer-footer-delete {
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  padding: 0 !important;
+}
+
+body.boso-admin-android .booking-quick-edit-sheet,
+body.boso-admin-android .booking-quick-edit-sheet * {
+  box-sizing: border-box !important;
 }

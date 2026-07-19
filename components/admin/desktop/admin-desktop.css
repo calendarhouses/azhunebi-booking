@@ -1373,13 +1373,11 @@
 .btn-outline-danger:hover {
     background: #FEF2F2;
     border-color: #F87171;
-    transform: translateY(-2px); /* Ефект підняття, як у головної */
     box-shadow: 0 6px 12px rgba(220, 38, 38, 0.15);
 }
         
 .btn-primary:hover {
     background: var(--accent-gradient-hover);
-    transform: translateY(-2px);
     box-shadow: var(--accent-premium-shadow-hover);
 }
         .btn-secondary { 
@@ -1396,7 +1394,14 @@
     justify-content: center;
     gap: 8px;
 }
-.btn-secondary:hover { background: #F9FAFB; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+.btn-secondary:hover { background: #F9FAFB; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-outline-danger:hover {
+    transform: translateY(-2px);
+  }
+}
         .btn-success { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;}
         .btn-success:hover { background: #059669; }
         

@@ -393,7 +393,6 @@ export function DesktopBookingDrawer({
                       width: 48,
                       minWidth: 48,
                       margin: 0,
-                      height: 46,
                       padding: 12,
                     }
                   : {}),
@@ -417,7 +416,7 @@ export function DesktopBookingDrawer({
               type="button"
               className="btn-secondary"
               onClick={() => drawer.closeDrawer()}
-              style={isMobile ? { flex: 1, margin: 0, height: 46, whiteSpace: "nowrap" } : undefined}
+              style={isMobile ? { flex: 1, margin: 0, whiteSpace: "nowrap" } : undefined}
             >
               Скасувати
             </button>
@@ -428,7 +427,7 @@ export function DesktopBookingDrawer({
               id="adminSubmitBtn"
               disabled={drawer.submitDisabled}
               style={{
-                ...(isMobile ? { flex: 1, margin: 0, height: 46, whiteSpace: "nowrap" } : {}),
+                ...(isMobile ? { flex: 1, margin: 0, whiteSpace: "nowrap" } : {}),
                 ...(drawer.submitDisabled
                   ? { opacity: 0.5, cursor: "not-allowed" }
                   : { opacity: 1, cursor: "pointer" }),
