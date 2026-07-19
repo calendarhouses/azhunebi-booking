@@ -4,6 +4,7 @@ import type { CustomServiceConfig } from "@/components/admin/desktop/types";
 import {
   formatServicePriceHint,
   getServiceQty,
+  MAX_CHILD_AGE,
   serviceInputType,
   serviceIsHourly,
   type ServiceSelectionMap,
@@ -12,12 +13,15 @@ import {
 type Props = {
   adults: number;
   children: number;
+  youngestChildAge: number;
   maxOccupants: number;
   showChildren: boolean;
+  childrenPolicyMessage?: string | null;
   availableServices: CustomServiceConfig[];
   selectedServices: ServiceSelectionMap;
   onChangeAdults: (delta: number) => void;
   onChangeChildren: (delta: number) => void;
+  onChangeYoungestChildAge: (delta: number) => void;
   onSetServiceQty: (serviceId: number, qty: number) => void;
 };
 
@@ -56,12 +60,15 @@ function ServiceToggle({
 export function PublicGuestsAndServicesBlock({
   adults,
   children,
+  youngestChildAge,
   maxOccupants,
   showChildren,
+  childrenPolicyMessage,
   availableServices,
   selectedServices,
   onChangeAdults,
   onChangeChildren,
+  onChangeYoungestChildAge,
   onSetServiceQty,
 }: Props) {
   const maxAdults = Math.max(1, maxOccupants - children);
@@ -121,6 +128,49 @@ export function PublicGuestsAndServicesBlock({
               +
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {showChildren && children > 0 ? (
+        <div
+          className="guests-row"
+          style={{ marginTop: 8, borderTop: "1px dashed var(--border)", paddingTop: 16 }}
+        >
+          <div>
+            <div className="guests-label">Наймолодшій дитині</div>
+            <div className="guests-sub" style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+              Вік у роках
+            </div>
+          </div>
+          <div className="counter-wrap">
+            <button
+              type="button"
+              className="cnt-btn"
+              disabled={youngestChildAge <= 0}
+              onClick={() => onChangeYoungestChildAge(-1)}
+            >
+              −
+            </button>
+            <span className="cnt-val">
+              {youngestChildAge}
+              <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 2 }}>р.</span>
+            </span>
+            <button
+              type="button"
+              className="cnt-btn"
+              disabled={youngestChildAge >= MAX_CHILD_AGE}
+              onClick={() => onChangeYoungestChildAge(1)}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {childrenPolicyMessage ? (
+        <div className="children-policy-banner" role="alert">
+          <p className="children-policy-banner__title">Бронювання недоступне</p>
+          <p className="children-policy-banner__text">{childrenPolicyMessage}</p>
         </div>
       ) : null}
 

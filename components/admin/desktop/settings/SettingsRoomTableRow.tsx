@@ -12,7 +12,7 @@ import { showPublishingToast } from "../adminGlobals";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { RoomConfig } from "../types";
 import type { RoomAvailabilityUiStatus } from "./roomAvailability";
-import { formatCapacityLabel } from "./roomCapacityLabel";
+import { formatCapacityWithChildrenLabel } from "./roomCapacityLabel";
 import {
   RoomAvailabilityBadge,
   RoomCapacityQuickEditPopover,
@@ -213,7 +213,7 @@ export function SettingsRoomTableRow({
             <span className="settings-rooms-card__capacity-icon" aria-hidden>
               <Users size={15} strokeWidth={2} />
             </span>
-            {formatCapacityLabel(room)}
+            {formatCapacityWithChildrenLabel(room)}
           </button>
           <RoomCapacityQuickEditPopover
             open={quickEdit === "capacity"}
@@ -290,7 +290,7 @@ export function SettingsRoomTableRow({
           <span className={ROOM_CHIP_ICON_CLASS.capacity} aria-hidden>
             <Users size={14} strokeWidth={2} />
           </span>
-          {formatCapacityLabel(room)}
+          {formatCapacityWithChildrenLabel(room)}
         </button>
         <RoomCapacityQuickEditPopover
           open={quickEdit === "capacity"}

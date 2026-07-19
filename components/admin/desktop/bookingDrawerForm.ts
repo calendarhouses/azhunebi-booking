@@ -17,6 +17,8 @@ export type BookingDrawerFormState = {
   checkOut: string;
   guests: number;
   children: number;
+  /** Вік наймолодшої дитини (років), якщо children > 0 */
+  youngestChildAge: number;
   /** @deprecated legacy — лишається для зворотної сумісності при парсингу */
   pets: YesNo;
   /** @deprecated legacy */
@@ -50,6 +52,7 @@ export function defaultBookingDrawerForm(): BookingDrawerFormState {
     checkOut: "",
     guests: 2,
     children: 0,
+    youngestChildAge: 5,
     pets: "Ні",
     dayGuests: 0,
     vat: "Ні",

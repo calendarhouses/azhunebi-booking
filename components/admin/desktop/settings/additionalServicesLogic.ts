@@ -266,14 +266,26 @@ export function previewServiceFee(
   return calculateServiceFee(pseudo, qty, opts, { isPublicBooking: form.requiresApproval });
 }
 
-const CHILDREN_TOKEN = /👶\s*Діти[^:]*:\s*(\d+)/;
+/** `👶 Діти: 2` or `👶 Діти: 2 · від 8 р.` */
+const CHILDREN_TOKEN = /👶\s*Діти[^:]*:\s*(\d+)(?:\s*[·•]\s*від\s*(\d+)\s*р\.?)?/;
 const SERVICE_TOKEN = /🛎️#(\d+):\s*([^|]+)/g;
 const SERVICE_PENDING_TOKEN = /🛎️#(\d+)⏳:\s*([^|]+)/g;
+
+export const DEFAULT_YOUNGEST_CHILD_AGE = 5;
+export const MAX_CHILD_AGE = 17;
 
 export function parseChildrenFromComment(raw: string): number {
   const match = raw.match(CHILDREN_TOKEN);
   if (!match) return 0;
   return Math.max(0, parseInt(match[1], 10) || 0);
+}
+
+export function parseYoungestChildAgeFromComment(raw: string): number | null {
+  const match = raw.match(CHILDREN_TOKEN);
+  if (!match?.[2]) return null;
+  const age = parseInt(match[2], 10);
+  if (!Number.isFinite(age)) return null;
+  return Math.max(0, Math.min(MAX_CHILD_AGE, age));
 }
 
 export function stripChildrenFromComment(raw: string): string {
@@ -327,8 +339,15 @@ export function stripServiceTokensFromComment(raw: string): string {
     .trim();
 }
 
-export function buildChildrenCommentToken(children: number): string | null {
+export function buildChildrenCommentToken(
+  children: number,
+  youngestAge?: number | null
+): string | null {
   if (children <= 0) return null;
+  if (youngestAge != null && Number.isFinite(Number(youngestAge))) {
+    const age = Math.max(0, Math.min(MAX_CHILD_AGE, Math.round(Number(youngestAge))));
+    return `👶 Діти: ${children} · від ${age} р.`;
+  }
   return `👶 Діти: ${children}`;
 }
 
@@ -368,6 +387,55 @@ export function migrateLegacyServiceSelection(
 
 export function roomAllowsChildren(room: RoomConfig | null | undefined): boolean {
   return room?.allowChildren !== false;
+}
+
+export function roomMinChildAge(room: RoomConfig | null | undefined): number | null {
+  if (!roomAllowsChildren(room)) return null;
+  const raw = room?.minChildAge;
+  if (raw == null) return null;
+  const age = Number(raw);
+  if (!Number.isFinite(age)) return null;
+  return Math.max(0, Math.min(MAX_CHILD_AGE, Math.round(age)));
+}
+
+/** Чи підходить склад дітей (кількість + вік наймолодшої) під політику будинку. */
+export function roomFitsChildrenPolicy(
+  room: RoomConfig | null | undefined,
+  children: number,
+  youngestAge: number | null | undefined
+): boolean {
+  if (children <= 0) return true;
+  if (!roomAllowsChildren(room)) return false;
+  const minAge = roomMinChildAge(room);
+  if (minAge == null) return true;
+  if (youngestAge == null || !Number.isFinite(Number(youngestAge))) return false;
+  return Number(youngestAge) >= minAge;
+}
+
+/** Текст для banner / toast, якщо політика порушена; інакше null. */
+export function childrenPolicyViolationMessage(
+  room: RoomConfig | null | undefined,
+  children: number,
+  youngestAge: number | null | undefined
+): string | null {
+  if (children <= 0) return null;
+  if (!roomAllowsChildren(room)) {
+    return "Цей будинок — лише для дорослих. Оберіть інший котедж або приберіть дітей із бронювання.";
+  }
+  const minAge = roomMinChildAge(room);
+  if (minAge == null) return null;
+  if (youngestAge == null || !Number.isFinite(Number(youngestAge)) || Number(youngestAge) < minAge) {
+    return `У цьому будинку відпочинок з дітьми молодше ${minAge} років недоступний. Оберіть інший котедж або змініть склад гостей.`;
+  }
+  return null;
+}
+
+/** Короткий бейдж для карток / списку будинків. */
+export function formatChildrenPolicyBadge(room: RoomConfig | null | undefined): string | null {
+  if (!roomAllowsChildren(room)) return "Без дітей";
+  const minAge = roomMinChildAge(room);
+  if (minAge == null || minAge <= 0) return null;
+  return `Діти від ${minAge}`;
 }
 
 export function roomPricingModel(room: RoomConfig | null | undefined): "per_house" | "per_guest" {

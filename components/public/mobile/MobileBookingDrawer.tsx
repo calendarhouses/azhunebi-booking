@@ -40,10 +40,14 @@ export function MobileBookingDrawer() {
     changeGuests,
     childCount,
     changeChildren,
+    youngestChildAge,
+    changeYoungestChildAge,
     availableServices,
     selectedServices,
     setServiceQty,
     showChildren,
+    childrenPolicyMessage,
+    childrenPolicyBlocked,
     flexibleSchedule,
     hasUbd,
     setHasUbd,
@@ -217,12 +221,15 @@ export function MobileBookingDrawer() {
               <PublicGuestsAndServicesBlock
                 adults={guestCount}
                 children={childCount}
+                youngestChildAge={youngestChildAge}
                 maxOccupants={maxGuests}
                 showChildren={showChildren}
+                childrenPolicyMessage={childrenPolicyMessage}
                 availableServices={availableServices}
                 selectedServices={selectedServices}
                 onChangeAdults={changeGuests}
                 onChangeChildren={changeChildren}
+                onChangeYoungestChildAge={changeYoungestChildAge}
                 onSetServiceQty={setServiceQty}
               />
 
@@ -432,7 +439,7 @@ export function MobileBookingDrawer() {
               type="button"
               className="btn-proceed"
               id="bookBtn"
-              disabled={submitting || !price}
+              disabled={submitting || !price || childrenPolicyBlocked}
               onClick={() =>
                 submitCheckout({ firstName, lastName, phone, comment })
               }

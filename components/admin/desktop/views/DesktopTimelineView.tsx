@@ -139,7 +139,6 @@ type TimelineSelectionPointerSession = {
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
-const TOUCH_SELECT_HOLD_MS_ANDROID = 520;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -1552,13 +1551,17 @@ export function DesktopTimelineView({
       if (isBookingDraggingRef.current || moveSessionRef.current) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
+      // Android: no empty-cell date selection for new bookings — scroll/pan
+      // otherwise arms selection and opens the booking drawer by accident.
+      const isTouch = event.pointerType !== "mouse";
+      if (isAndroid && isTouch) return;
+
       const cell = (event.target as HTMLElement).closest(
         ".timeline-cell[data-date][data-room]"
       ) as HTMLElement | null;
       if (!cell || cell.dataset.room !== roomName || !cell.dataset.date) return;
 
       // Android/WebView sometimes reports "" instead of "touch".
-      const isTouch = event.pointerType !== "mouse";
       ensureChessboardTouchTracking();
       if (touchSelectHoldTimerRef.current) {
         clearTimeout(touchSelectHoldTimerRef.current);
@@ -1595,8 +1598,8 @@ export function DesktopTimelineView({
         return;
       }
 
-      // Touch: wait for long-press before selecting so pan/scroll stays free.
-      const holdMs = isAndroid ? TOUCH_SELECT_HOLD_MS_ANDROID : TOUCH_SELECT_HOLD_MS;
+      // Touch (iOS): wait for long-press before selecting so pan/scroll stays free.
+      const holdMs = TOUCH_SELECT_HOLD_MS;
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         const session = selectionPointerSessionRef.current;
@@ -1608,12 +1611,10 @@ export function DesktopTimelineView({
         }
         session.selecting = true;
         acquireTouchScrollLock();
-        if (!isAndroid) {
-          try {
-            session.track.setPointerCapture(session.pointerId);
-          } catch {
-            /* Pointer capture is best-effort on older mobile browsers. */
-          }
+        try {
+          session.track.setPointerCapture(session.pointerId);
+        } catch {
+          /* Pointer capture is best-effort on older mobile browsers. */
         }
         lastPointerRef.current = { x: session.startX, y: session.startY };
         startTimelineSelection(roomName, session.startCell, session.startX, false);

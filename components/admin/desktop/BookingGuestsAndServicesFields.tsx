@@ -5,6 +5,7 @@ import type { CustomServiceConfig } from "./types";
 import {
   formatServicePriceHint,
   getServiceQty,
+  MAX_CHILD_AGE,
   serviceInputType,
   type ServiceSelectionMap,
 } from "./settings/additionalServicesLogic";
@@ -55,6 +56,7 @@ function GuestCounter({
   value,
   min,
   max,
+  suffix,
   onDecrement,
   onIncrement,
 }: {
@@ -63,6 +65,7 @@ function GuestCounter({
   value: number;
   min: number;
   max?: number;
+  suffix?: string;
   onDecrement: () => void;
   onIncrement: () => void;
 }) {
@@ -89,6 +92,11 @@ function GuestCounter({
             fontWeight: 700,
           }}
         />
+        {suffix ? (
+          <span style={{ paddingRight: 10, fontSize: 13, fontWeight: 650, color: "#57534e" }}>
+            {suffix}
+          </span>
+        ) : null}
         <button type="button" onClick={onIncrement} style={COUNTER_BTN_PLUS} disabled={atMax}>
           +
         </button>
@@ -178,22 +186,28 @@ function ServiceRow({
 export function BookingGuestsAndServicesFields({
   adults,
   children,
+  youngestChildAge,
   maxOccupants,
   showChildren,
+  childrenPolicyMessage,
   selectedServices,
   availableServices,
   onChangeAdults,
   onChangeChildren,
+  onChangeYoungestChildAge,
   onSetServiceQty,
 }: {
   adults: number;
   children: number;
+  youngestChildAge: number;
   maxOccupants: number;
   showChildren: boolean;
+  childrenPolicyMessage?: string | null;
   selectedServices: ServiceSelectionMap;
   availableServices: CustomServiceConfig[];
   onChangeAdults: (delta: number) => void;
   onChangeChildren: (delta: number) => void;
+  onChangeYoungestChildAge: (delta: number) => void;
   onSetServiceQty: (serviceId: number, qty: number) => void;
 }) {
   const maxAdults = Math.max(1, maxOccupants - children);
@@ -211,18 +225,59 @@ export function BookingGuestsAndServicesFields({
         onIncrement={() => onChangeAdults(1)}
       />
       {showChildren ? (
-        <GuestCounter
-          id="adminChildren"
-          label="Діти:"
-          value={children}
-          min={0}
-          max={maxChildren}
-          onDecrement={() => onChangeChildren(-1)}
-          onIncrement={() => onChangeChildren(1)}
-        />
+        <>
+          <GuestCounter
+            id="adminChildren"
+            label="Діти:"
+            value={children}
+            min={0}
+            max={maxChildren}
+            onDecrement={() => onChangeChildren(-1)}
+            onIncrement={() => onChangeChildren(1)}
+          />
+          {children > 0 ? (
+            <GuestCounter
+              id="adminYoungestChildAge"
+              label="Наймолодшій дитині (років):"
+              value={youngestChildAge}
+              min={0}
+              max={MAX_CHILD_AGE}
+              suffix="р."
+              onDecrement={() => onChangeYoungestChildAge(-1)}
+              onIncrement={() => onChangeYoungestChildAge(1)}
+            />
+          ) : (
+            <input type="hidden" id="adminYoungestChildAge" value={String(youngestChildAge)} readOnly />
+          )}
+        </>
       ) : (
-        <input type="hidden" id="adminChildren" value="0" readOnly />
+        <>
+          <input type="hidden" id="adminChildren" value="0" readOnly />
+          <input type="hidden" id="adminYoungestChildAge" value="0" readOnly />
+        </>
       )}
+
+      {childrenPolicyMessage ? (
+        <div
+          className="form-group"
+          style={{
+            gridColumn: "1 / -1",
+            margin: 0,
+            padding: "12px 14px",
+            borderRadius: 12,
+            border: "1px solid #ead7d4",
+            background: "#fff5f4",
+          }}
+          role="alert"
+        >
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#9f1239" }}>
+            Обмеження будинку
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.45, color: "#881337" }}>
+            {childrenPolicyMessage}
+          </p>
+        </div>
+      ) : null}
 
       <input type="hidden" id="adminPets" value="Ні" readOnly />
       <input type="hidden" id="adminDayGuests" value="0" readOnly />

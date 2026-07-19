@@ -264,12 +264,15 @@ export function DesktopBookingDrawer({
                 <BookingGuestsAndServicesFields
                   adults={form.guests}
                   children={form.children}
+                  youngestChildAge={form.youngestChildAge}
                   maxOccupants={drawer.maxOccupants}
                   showChildren={drawer.showChildren}
+                  childrenPolicyMessage={drawer.childrenPolicyMessage}
                   selectedServices={form.selectedServices}
                   availableServices={drawer.availableServices}
                   onChangeAdults={drawer.changeGuests}
                   onChangeChildren={drawer.changeChildren}
+                  onChangeYoungestChildAge={drawer.changeYoungestChildAge}
                   onSetServiceQty={drawer.setServiceQty}
                 />
                 <BookingSpecialTariffsFields
@@ -425,10 +428,10 @@ export function DesktopBookingDrawer({
               className="btn-primary"
               form="adminBookingForm"
               id="adminSubmitBtn"
-              disabled={drawer.submitDisabled}
+              disabled={drawer.submitDisabled || drawer.childrenPolicyBlocked}
               style={{
                 ...(isMobile ? { flex: 1, margin: 0, whiteSpace: "nowrap" } : {}),
-                ...(drawer.submitDisabled
+                ...(drawer.submitDisabled || drawer.childrenPolicyBlocked
                   ? { opacity: 0.5, cursor: "not-allowed" }
                   : { opacity: 1, cursor: "pointer" }),
               }}

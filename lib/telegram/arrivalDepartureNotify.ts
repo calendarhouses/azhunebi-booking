@@ -1,4 +1,4 @@
-import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import {
@@ -39,7 +39,8 @@ function petsYes(pets: unknown): boolean {
 function buildDetails(booking: ArrivalDepartureBooking, kind: "arrival" | "departure"): string {
   const guestsLabel = formatGuestsLabel(
     Number(booking.guests) || 0,
-    parseChildrenFromComment(booking.comment || "")
+    parseChildrenFromComment(booking.comment || ""),
+    parseYoungestChildAgeFromComment(booking.comment || "")
   );
   const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(booking.comment || "");
   const hasUbd = (booking.comment || "").includes("🇺🇦 УБД: Так");

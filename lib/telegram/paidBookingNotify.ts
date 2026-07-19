@@ -3,7 +3,7 @@ import "server-only";
 import type { GasBookingRecord } from "@/lib/gas-api";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
-import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { getBookingsTargets, isTelegramConfigured } from "./config";
 import { sendTelegramMessage } from "./sendMessage";
@@ -66,7 +66,8 @@ export function buildPaidBookingTelegramText(booking: GasBookingRecord): string 
   const comment = guestComment(booking.comment);
   const guestsLabel = formatGuestsLabel(
     Number(booking.guests) || 0,
-    parseChildrenFromComment(booking.comment || "")
+    parseChildrenFromComment(booking.comment || ""),
+    parseYoungestChildAgeFromComment(booking.comment || "")
   );
   const lines = [
     "✅ <b>Нове оплачене бронювання</b> | Сайт",

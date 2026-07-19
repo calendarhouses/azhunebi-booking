@@ -32,6 +32,7 @@ export function buildSystemComment(
   rawComment: string,
   opts: {
     children: number;
+    youngestChildAge?: number | null;
     selectedServices: ServiceSelectionMap;
     dayGuests: number;
     vat: string;
@@ -43,7 +44,10 @@ export function buildSystemComment(
   }
 ): string {
   const sysComment: string[] = [];
-  const childrenToken = buildChildrenCommentToken(opts.children);
+  const childrenToken = buildChildrenCommentToken(
+    opts.children,
+    opts.children > 0 ? opts.youngestChildAge ?? null : null
+  );
   if (childrenToken) sysComment.push(childrenToken);
   sysComment.push(...buildServiceCommentTokens(opts.selectedServices));
   if (opts.dayGuests > 0) sysComment.push(`👥 Денні гості: ${opts.dayGuests}`);
@@ -147,6 +151,7 @@ export function collectBookingFromForm(
     payments: paymentsForSave,
     comment: buildSystemComment(getFormString("adminComment"), {
       children: parseInt(getFormString("adminChildren"), 10) || 0,
+      youngestChildAge: parseInt(getFormString("adminYoungestChildAge"), 10) || null,
       selectedServices: readSelectedServicesFromDom(),
       dayGuests: parseInt(getFormString("adminDayGuests"), 10) || 0,
       vat: getFormString("adminVat"),

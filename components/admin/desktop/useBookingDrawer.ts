@@ -14,19 +14,11 @@ import {
   type SchedulePriceLabels,
   type YesNo,
 } from "./bookingDrawerForm";
-import { roomAllowsChildren } from "./settings/additionalServicesLogic";
 import {
-  applyEarlyLateChips,
-  renderCottageOptions,
-  resetFlexibleSchedule,
-  setBookingStatus,
-  setModeToggle,
-  togglePet,
-  toggleVat,
-} from "./bookingDrawerDom";
-import { findRoomForBooking, formatRoomDisplayLabel, parseBookingComment } from "./bookingUtils";
-import {
+  childrenPolicyViolationMessage,
+  DEFAULT_YOUNGEST_CHILD_AGE,
   listServicesForRoom,
+  MAX_CHILD_AGE,
   migrateLegacyServiceSelection,
 } from "./settings/additionalServicesLogic";
 import {
@@ -71,6 +63,7 @@ function syncFormFieldsToDom(form: BookingDrawerFormState): void {
   set("adminRoomId", form.roomId != null ? String(form.roomId) : "");
   set("adminGuests", String(form.guests));
   set("adminChildren", String(form.children));
+  set("adminYoungestChildAge", String(form.youngestChildAge));
   set("adminPets", form.pets);
   set("adminDayGuests", String(form.dayGuests));
   set("adminVat", form.vat);
@@ -188,12 +181,25 @@ export function useBookingDrawer({
     [form.cottage, roomsList]
   );
 
-  const showChildren = useMemo(() => {
-    const room =
+  const showChildren = true;
+
+  const selectedRoomForPolicy = useMemo(() => {
+    return (
       roomsList.find((r) => r.name === form.cottage) ||
-      (form.roomId != null ? roomsList.find((r) => String(r.id) === String(form.roomId)) : undefined);
-    return roomAllowsChildren(room);
+      (form.roomId != null ? roomsList.find((r) => String(r.id) === String(form.roomId)) : undefined)
+    );
   }, [form.cottage, form.roomId, roomsList]);
+
+  const childrenPolicyMessage = useMemo(
+    () =>
+      childrenPolicyViolationMessage(
+        selectedRoomForPolicy,
+        form.children,
+        form.youngestChildAge
+      ),
+    [selectedRoomForPolicy, form.children, form.youngestChildAge]
+  );
+  const childrenPolicyBlocked = Boolean(childrenPolicyMessage);
 
   const patchForm = useCallback((partial: Partial<BookingDrawerFormState>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -245,14 +251,13 @@ export function useBookingDrawer({
           roomName,
           roomsList
         );
-        const children = roomAllowsChildren(room) ? rawChildren : 0;
         return {
           ...prev,
           cottage: roomName,
           cottageLabel: roomName ? formatRoomDisplayLabel(roomName, room?.desc) : "Оберіть котедж",
           roomId: holding ? null : room?.id ?? null,
           guests: adults,
-          children,
+          children: rawChildren,
         };
       });
     },
@@ -443,6 +448,9 @@ export function useBookingDrawer({
         checkOut: normalizeDateToIso(booking.checkOut || ""),
         guests: occupants.adults,
         children: occupants.children,
+        youngestChildAge:
+          parsed.youngestChildAge ??
+          (occupants.children > 0 ? DEFAULT_YOUNGEST_CHILD_AGE : DEFAULT_YOUNGEST_CHILD_AGE),
         pets: booking.pets === "Так" || booking.pets === true ? "Так" : "Ні",
         dayGuests: parsed.dayGuests,
         vat: parsed.vat,
@@ -481,10 +489,6 @@ export function useBookingDrawer({
   const changeChildren = useCallback(
     (amount: number) => {
       setForm((prev) => {
-        const room =
-          roomsList.find((r) => r.name === prev.cottage) ||
-          (prev.roomId != null ? roomsList.find((r) => String(r.id) === String(prev.roomId)) : undefined);
-        if (!roomAllowsChildren(room)) return prev;
         const maxCap = getRoomMaxCapacity(prev.cottage, roomsList);
         const next = prev.children + amount;
         if (next < 0) return prev;
@@ -494,11 +498,28 @@ export function useBookingDrawer({
           }
           return prev;
         }
-        return { ...prev, children: next };
+        return {
+          ...prev,
+          children: next,
+          youngestChildAge:
+            prev.children === 0 && next > 0
+              ? DEFAULT_YOUNGEST_CHILD_AGE
+              : prev.youngestChildAge,
+        };
       });
     },
     [roomsList]
   );
+
+  const changeYoungestChildAge = useCallback((amount: number) => {
+    setForm((prev) => ({
+      ...prev,
+      youngestChildAge: Math.max(
+        0,
+        Math.min(MAX_CHILD_AGE, prev.youngestChildAge + amount)
+      ),
+    }));
+  }, []);
 
   const setServiceQty = useCallback((serviceId: number, qty: number) => {
     setForm((prev) => ({
@@ -741,12 +762,15 @@ export function useBookingDrawer({
     openDetailsByRow,
     changeGuests,
     changeChildren,
+    changeYoungestChildAge,
     changeAdminDayGuests,
     setPets,
     setVat,
     availableServices,
     maxOccupants,
     showChildren,
+    childrenPolicyMessage,
+    childrenPolicyBlocked,
     setServiceQty,
     specialTariffToggles,
     setSpecialTariff,

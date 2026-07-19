@@ -1047,17 +1047,18 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .custom-select-trigger { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 12px; font-size: 15px; font-weight: 500; min-height: 50px; box-sizing: border-box; }
 .reports-toolbar-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.15fr;
+    grid-template-columns: 64px minmax(0, 1fr) 64px;
     gap: 10px;
     align-items: stretch;
     margin-bottom: 20px;
 }
 .reports-toolbar-row .report-cal-wrap {
     position: relative;
+    width: 64px;
     height: 64px;
 }
 .reports-toolbar-row .report-cal-btn {
-    width: 100%;
+    width: 64px;
     height: 64px;
     border-radius: 12px;
     border: 1px solid #D1D5DB;
@@ -1076,11 +1077,23 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     opacity: 0;
     cursor: pointer;
 }
-.reports-toolbar-row .custom-select-wrapper { min-width: 0; height: 100%; }
+.reports-toolbar-row .custom-select-wrapper {
+    min-width: 0;
+    height: 100%;
+    width: 100%;
+}
 .reports-toolbar-row .custom-select-trigger {
     height: 64px;
     min-height: 64px;
     overflow: hidden;
+    padding: 10px 40px 10px 16px !important;
+    border-radius: 12px !important;
+    border: none !important;
+    background: linear-gradient(135deg, #6b7f3f 0%, #556b2f 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 18px rgba(85, 107, 47, 0.22);
+    font-size: 15px !important;
+    font-weight: 700 !important;
 }
 .reports-toolbar-row #reportPeriodText,
 .reports-toolbar-row #reportPeriodDates {
@@ -1091,17 +1104,51 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.reports-toolbar-row .btn-report-tg {
-    width: auto;
-    height: 64px;
-    min-height: 64px;
-    padding: 12px 10px;
-    font-size: 12px;
+.reports-toolbar-row #reportPeriodText {
+    color: #fff !important;
+    font-size: 15px;
+    font-weight: 750;
     line-height: 1.2;
-    border-radius: 12px;
-    justify-content: center;
-    box-sizing: border-box;
+}
+.reports-toolbar-row #reportPeriodDates {
+    color: rgba(255, 255, 255, 0.78) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+}
+.reports-toolbar-row .custom-select-trigger svg {
+    stroke: rgba(255, 255, 255, 0.85) !important;
+}
+.reports-toolbar-row .btn-report-tg {
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    border-radius: 12px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
     white-space: nowrap;
+    gap: 0 !important;
+    background: #FFF !important;
+    color: #4B5563 !important;
+    border: 1px solid #D1D5DB !important;
+    box-shadow: none !important;
+}
+.reports-toolbar-row .btn-report-tg svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0;
+}
+.reports-toolbar-row .btn-report-tg .btn-report-tg__label {
+    display: none;
+}
+.reports-toolbar-row .btn-report-tg:disabled {
+    opacity: 0.55;
 }
 #financeReportResultModal.modal-overlay {
     align-items: center;

@@ -20,6 +20,8 @@ export interface PublicRoom {
   pricingModel?: "per_house" | "per_guest";
   pricePerGuest?: number;
   allowChildren?: boolean;
+  /** Мінімальний вік дитини (років). Ігнорується, якщо allowChildren === false */
+  minChildAge?: number | null;
   priceWeekday: number;
   priceWeekend: number;
   active: boolean;

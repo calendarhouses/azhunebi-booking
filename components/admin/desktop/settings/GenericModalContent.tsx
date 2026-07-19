@@ -48,6 +48,8 @@ export type RoomFormState = {
   pricingModel: "per_house" | "per_guest";
   pricePerGuest: number;
   allowChildren: boolean;
+  /** null = без обмеження по віку (коли діти дозволені) */
+  minChildAge: number | null;
   priceWeekday: number;
   priceWeekend: number;
   active: boolean;
@@ -178,6 +180,10 @@ export function buildRoomForm(room: Partial<RoomConfig>): RoomFormState {
     pricingModel: room.pricingModel === "per_guest" ? "per_guest" : "per_house",
     pricePerGuest: room.pricePerGuest ?? room.priceWeekday ?? 4000,
     allowChildren: room.allowChildren !== false,
+    minChildAge:
+      room.minChildAge != null && Number.isFinite(Number(room.minChildAge))
+        ? Math.max(0, Math.min(17, Math.round(Number(room.minChildAge))))
+        : null,
     priceWeekday: room.priceWeekday ?? 4000,
     priceWeekend: room.priceWeekend ?? 5000,
     active: room.active !== false,
@@ -861,10 +867,40 @@ function RoomModalTabs({
             <input
               type="checkbox"
               checked={roomForm.allowChildren}
-              onChange={(e) => setRoomForm((f) => ({ ...f, allowChildren: e.target.checked }))}
+              onChange={(e) =>
+                setRoomForm((f) => ({
+                  ...f,
+                  allowChildren: e.target.checked,
+                  minChildAge: e.target.checked ? f.minChildAge : null,
+                }))
+              }
             />
             <span>Дозволити бронювання з дітьми</span>
           </label>
+
+          {roomForm.allowChildren ? (
+            <div className="form-group">
+              <label>Мінімальний вік дитини (років):</label>
+              <input
+                type="number"
+                min={0}
+                max={17}
+                value={roomForm.minChildAge ?? 0}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    setRoomForm((f) => ({ ...f, minChildAge: 0 }));
+                    return;
+                  }
+                  const n = Math.max(0, Math.min(17, parseInt(raw, 10) || 0));
+                  setRoomForm((f) => ({ ...f, minChildAge: n }));
+                }}
+              />
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#78716c" }}>
+                Наприклад, 10 — діти молодше не підійдуть. 0 — без обмеження по віку.
+              </p>
+            </div>
+          ) : null}
 
           <div className="form-grid">
             <div className="form-group">

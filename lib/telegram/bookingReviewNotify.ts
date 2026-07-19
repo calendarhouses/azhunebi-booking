@@ -3,6 +3,7 @@ import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import {
   parseChildrenFromComment,
+  parseYoungestChildAgeFromComment,
   parsePendingServiceIdsFromComment,
 } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
@@ -114,7 +115,8 @@ export function buildPendingReviewCaption(data: PendingReviewNotifyInput): strin
   const reasonLine = reasons.length ? reasons.join(", ") : "особливі умови";
   const guestsLabel = formatGuestsLabel(
     Number(data.guests) || 0,
-    parseChildrenFromComment(data.comment || "")
+    parseChildrenFromComment(data.comment || ""),
+    parseYoungestChildAgeFromComment(data.comment || "")
   );
 
   return (

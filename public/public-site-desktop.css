@@ -1572,6 +1572,50 @@ button.stay-filter__field[aria-expanded="true"] {
   font-variant-numeric: tabular-nums;
 }
 
+.stay-filter__age-unit {
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 1px;
+  opacity: 0.75;
+}
+
+.cabin-children-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: #445625;
+  background: #eef3e8;
+  border: 1px solid #d4dcc8;
+  white-space: nowrap;
+}
+
+.children-policy-banner {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #ead7d4;
+  background: linear-gradient(180deg, #fff8f7 0%, #fff5f4 100%);
+}
+
+.children-policy-banner__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 750;
+  color: #9f1239;
+}
+
+.children-policy-banner__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #881337;
+}
+
 .stay-filter__aside {
   background: var(--white);
   padding: 16px 20px;

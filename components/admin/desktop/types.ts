@@ -58,6 +58,8 @@ export interface RoomConfig {
   pricePerGuest?: number;
   /** Чи дозволені діти при бронюванні */
   allowChildren?: boolean;
+  /** Мінімальний вік дитини (років). Ігнорується, якщо allowChildren === false */
+  minChildAge?: number | null;
   priceWeekday: number;
   priceWeekend: number;
   active: boolean;

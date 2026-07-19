@@ -322,18 +322,16 @@ export function DesktopReportsView({
             id="btnDownloadFinanceReport"
             className="btn-primary btn-report-tg"
             disabled={r.tgSending}
+            aria-label="Звіт у Telegram"
+            title="Звіт у Telegram"
             onClick={() => void r.downloadFinanceReportToTelegram()}
           >
-            {r.tgSending ? (
-              <span>Надсилаємо...</span>
-            ) : (
-              <>
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 10.5 12 15m0 0 4.5-4.5M12 15V3" />
-                </svg>
-                Звіт у Telegram
-              </>
-            )}
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 10.5 12 15m0 0 4.5-4.5M12 15V3" />
+            </svg>
+            <span className="btn-report-tg__label">
+              {r.tgSending ? "Надсилаємо..." : "Звіт у Telegram"}
+            </span>
           </button>
     </>
   );

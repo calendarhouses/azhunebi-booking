@@ -31,6 +31,7 @@ import {
 import {
   parseChildrenFromComment,
   parseSelectedServicesFromComment,
+  parseYoungestChildAgeFromComment,
   stripChildrenFromComment,
   stripServiceTokensFromComment,
   type ServiceSelectionMap,
@@ -271,6 +272,7 @@ export function displayPhone(phone: string): string {
 export interface ParsedBookingComment {
   guestComment: string;
   children: number;
+  youngestChildAge: number | null;
   selectedServices: ServiceSelectionMap;
   dayGuests: number;
   vat: "Так" | "Ні";
@@ -312,6 +314,7 @@ export function parseBookingComment(
   textComment = stripFlexibleTokensFromComment(textComment);
 
   const children = parseChildrenFromComment(raw || "");
+  const youngestChildAge = parseYoungestChildAgeFromComment(raw || "");
   const selectedServices = parseSelectedServicesFromComment(raw || "");
   textComment = stripChildrenFromComment(textComment);
   textComment = stripServiceTokensFromComment(textComment);
@@ -325,6 +328,7 @@ export function parseBookingComment(
   return {
     guestComment: textComment,
     children,
+    youngestChildAge,
     selectedServices,
     dayGuests: parsedDayGuests,
     vat,

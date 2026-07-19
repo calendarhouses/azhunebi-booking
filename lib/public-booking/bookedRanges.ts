@@ -4,7 +4,7 @@ import {
   hasClosedDateInStay,
 } from "@/components/admin/desktop/bookingPriceEngine";
 import { bookingHasEarlyLate, findRoomForBooking } from "@/components/admin/desktop/bookingUtils";
-import { roomAllowsChildren } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { roomFitsChildrenPolicy } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import type {
   AdminSettingsPayload,
   BookingRecord,
@@ -118,9 +118,10 @@ export function isRoomFreeForRange(
 export function roomFitsGuestParty(
   room: RoomConfig,
   adults: number,
-  children: number
+  children: number,
+  youngestAge?: number | null
 ): boolean {
-  if (children > 0 && !roomAllowsChildren(room)) return false;
+  if (!roomFitsChildrenPolicy(room, children, youngestAge ?? null)) return false;
   const max = room.maxCapacity || room.capacity || 0;
   return adults + children <= max;
 }
@@ -132,18 +133,30 @@ export function filterRoomsForStay(
     checkOut: Date | null;
     adults: number;
     children: number;
+    youngestAge?: number | null;
     bookings: BookingRecord[];
     closedDates?: AdminSettingsPayload["closedDates"];
     restrictions?: AdminSettingsPayload["restrictions"];
   }
 ): RoomConfig[] {
-  const { checkIn, checkOut, adults, children, bookings, closedDates, restrictions } =
-    opts;
+  const {
+    checkIn,
+    checkOut,
+    adults,
+    children,
+    youngestAge = null,
+    bookings,
+    closedDates,
+    restrictions,
+  } = opts;
   const datesActive = Boolean(checkIn && checkOut);
+  const partyActive = datesActive || children > 0;
 
   return rooms.filter((room) => {
+    if (partyActive) {
+      if (!roomFitsGuestParty(room, adults, children, youngestAge)) return false;
+    }
     if (datesActive) {
-      if (!roomFitsGuestParty(room, adults, children)) return false;
       if (
         !isRoomFreeForRange(
           room,

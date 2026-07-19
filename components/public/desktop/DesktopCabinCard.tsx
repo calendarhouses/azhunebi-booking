@@ -11,6 +11,7 @@ import {
   getRoomMinPrice,
   getRoomSubtitle,
 } from "@/lib/public-booking/roomHelpers";
+import { formatChildrenPolicyBadge } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "../CabinSlideImage";
 
@@ -138,6 +139,9 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
           <div className="cabin-meta-item">
             {DesktopIcons.guests}
             До {room.maxCapacity || room.capacity} гостей
+            {formatChildrenPolicyBadge(room) ? (
+              <span className="cabin-children-badge">{formatChildrenPolicyBadge(room)}</span>
+            ) : null}
           </div>
           <div className="cabin-meta-item">
             {DesktopIcons.calendar}

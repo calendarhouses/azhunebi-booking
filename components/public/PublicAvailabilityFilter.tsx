@@ -121,8 +121,10 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     checkOut,
     guestCount,
     childCount,
+    youngestChildAge,
     changeGuests,
     changeChildren,
+    changeYoungestChildAge,
     clearStayDates,
     filteredRooms,
     listFilterActive,
@@ -251,6 +253,36 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
           </div>
         </div>
 
+        {childCount > 0 ? (
+          <div className="stay-filter__field stay-filter__field--guests stay-filter__field--age">
+            <span className="stay-filter__field-label">Наймолодшій</span>
+            <div className="stay-filter__stepper">
+              <button
+                type="button"
+                className="stay-filter__step"
+                aria-label="Менший вік"
+                onClick={() => changeYoungestChildAge(-1)}
+                disabled={youngestChildAge <= 0}
+              >
+                −
+              </button>
+              <span className="stay-filter__step-value">
+                {youngestChildAge}
+                <span className="stay-filter__age-unit"> р.</span>
+              </span>
+              <button
+                type="button"
+                className="stay-filter__step"
+                aria-label="Більший вік"
+                onClick={() => changeYoungestChildAge(1)}
+                disabled={youngestChildAge >= 17}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {(listFilterActive || checkIn) && (
           <div className="stay-filter__aside">
             {availableLabel ? (
@@ -280,17 +312,28 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
 }
 
 export function PublicCabinsEmptyState() {
-  const { clearStayDates } = usePublicBooking();
+  const { clearStayDates, childCount, changeChildren } = usePublicBooking();
+  const hasKids = childCount > 0;
   return (
     <div className="stay-empty">
       <p className="stay-empty__eyebrow">Немає вільних будинків</p>
-      <h3 className="stay-empty__title">На ці дати всі котеджі зайняті</h3>
+      <h3 className="stay-empty__title">
+        {hasKids ? "Немає будинків під цей склад гостей" : "На ці дати всі котеджі зайняті"}
+      </h3>
       <p className="stay-empty__text">
-        Спробуйте інші дати або змініть кількість гостей — можливо, знайдеться
-        варіант поруч.
+        {hasKids
+          ? "Спробуйте змінити вік наймолодшої дитини, кількість дітей або дати — можливо, знайдеться варіант поруч."
+          : "Спробуйте інші дати або змініть кількість гостей — можливо, знайдеться варіант поруч."}
       </p>
-      <button type="button" className="stay-empty__btn" onClick={clearStayDates}>
-        Змінити дати
+      <button
+        type="button"
+        className="stay-empty__btn"
+        onClick={() => {
+          if (hasKids) changeChildren(-childCount);
+          clearStayDates();
+        }}
+      >
+        {hasKids ? "Скинути дітей і дати" : "Змінити дати"}
       </button>
     </div>
   );

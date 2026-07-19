@@ -10,6 +10,7 @@ import {
   getRoomMinPrice,
   getRoomSubtitle,
 } from "@/lib/public-booking/roomHelpers";
+import { formatChildrenPolicyBadge } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "./CabinSlideImage";
 
@@ -132,6 +133,9 @@ export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: P
               />
             </svg>
             До {room.maxCapacity || room.capacity} гостей
+            {formatChildrenPolicyBadge(room) ? (
+              <span className="cabin-children-badge">{formatChildrenPolicyBadge(room)}</span>
+            ) : null}
           </div>
           <div className="cabin-meta-item">
             <svg viewBox="0 0 24 24">

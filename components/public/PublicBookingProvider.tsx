@@ -46,8 +46,10 @@ import { formatUaPhoneE164, normalizeUaNationalPhoneDigits } from "@/lib/public-
 import {
   buildChildrenCommentToken,
   buildServiceCommentTokens,
+  childrenPolicyViolationMessage,
+  DEFAULT_YOUNGEST_CHILD_AGE,
   listServicesForRoom,
-  roomAllowsChildren,
+  MAX_CHILD_AGE,
   type ServiceSelectionMap,
 } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import {
@@ -113,6 +115,9 @@ type Ctx = {
   changeGuests: (delta: number) => void;
   childCount: number;
   changeChildren: (delta: number) => void;
+  youngestChildAge: number;
+  changeYoungestChildAge: (delta: number) => void;
+  setYoungestChildAge: (age: number) => void;
   filteredRooms: RoomConfig[];
   listFilterActive: boolean;
   listGuestMax: number;
@@ -120,6 +125,8 @@ type Ctx = {
   selectedServices: ServiceSelectionMap;
   setServiceQty: (serviceId: number, qty: number) => void;
   showChildren: boolean;
+  childrenPolicyMessage: string | null;
+  childrenPolicyBlocked: boolean;
   flexibleSchedule: ReturnType<typeof resolveFlexibleScheduleSettings>;
   hasUbd: boolean;
   setHasUbd: (v: boolean) => void;
@@ -209,6 +216,7 @@ export function PublicBookingProvider({
   const [checkOut, setCheckOut] = useState<Date | null>(null);
   const [guestCount, setGuestCount] = useState(2);
   const [childCount, setChildCount] = useState(0);
+  const [youngestChildAge, setYoungestChildAgeState] = useState(DEFAULT_YOUNGEST_CHILD_AGE);
   const [selectedServices, setSelectedServices] = useState<ServiceSelectionMap>({});
   const [hasUbd, setHasUbd] = useState(false);
   const [earlyTime, setEarlyTime] = useState<string | null>(null);
@@ -431,16 +439,19 @@ export function PublicBookingProvider({
       resetDrawerExtras();
       const max = room.maxCapacity || room.capacity || 1;
       const adults = Math.min(Math.max(guestCount, 1), max);
-      const kids = roomAllowsChildren(room)
-        ? Math.min(childCount, Math.max(0, max - adults))
-        : 0;
+      const kids = Math.min(childCount, Math.max(0, max - adults));
       setGuestCount(adults);
       setChildCount(kids);
       setDrawerScrollKey((key) => key + 1);
       setDrawerOpen(true);
       document.body.style.overflow = "hidden";
+
+      const violation = childrenPolicyViolationMessage(room, kids, youngestChildAge);
+      if (violation) {
+        showPublicToast(violation);
+      }
     },
-    [resetDrawerExtras, guestCount, childCount]
+    [resetDrawerExtras, guestCount, childCount, youngestChildAge]
   );
 
   const closeDrawer = useCallback(() => {
@@ -588,7 +599,7 @@ export function PublicBookingProvider({
     );
   }, [runtime]);
 
-  const listFilterActive = Boolean(checkIn && checkOut);
+  const listFilterActive = Boolean((checkIn && checkOut) || childCount > 0);
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
@@ -597,11 +608,12 @@ export function PublicBookingProvider({
       checkOut,
       adults: guestCount,
       children: childCount,
+      youngestAge: childCount > 0 ? youngestChildAge : null,
       bookings: runtime.bookings,
       closedDates: runtime.closedDates,
       restrictions: runtime.restrictions,
     });
-  }, [runtime, checkIn, checkOut, guestCount, childCount]);
+  }, [runtime, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
 
   const changeGuests = useCallback(
     (delta: number) => {
@@ -637,11 +649,24 @@ export function PublicBookingProvider({
           }
           return c;
         }
+        if (c === 0 && next > 0) {
+          setYoungestChildAgeState(DEFAULT_YOUNGEST_CHILD_AGE);
+        }
         return next;
       });
     },
     [selectedRoom, guestCount, listGuestMax]
   );
+
+  const changeYoungestChildAge = useCallback((delta: number) => {
+    setYoungestChildAgeState((age) =>
+      Math.max(0, Math.min(MAX_CHILD_AGE, age + delta))
+    );
+  }, []);
+
+  const setYoungestChildAge = useCallback((age: number) => {
+    setYoungestChildAgeState(Math.max(0, Math.min(MAX_CHILD_AGE, Math.round(age))));
+  }, []);
 
   const setServiceQty = useCallback((serviceId: number, qty: number) => {
     setSelectedServices((prev) => ({ ...prev, [String(serviceId)]: Math.max(0, qty) }));
@@ -652,7 +677,16 @@ export function PublicBookingProvider({
     [runtime?.customServicesList, selectedRoom]
   );
 
-  const showChildren = useMemo(() => roomAllowsChildren(selectedRoom), [selectedRoom]);
+  const showChildren = true;
+
+  const childrenPolicyMessage = useMemo(
+    () =>
+      selectedRoom
+        ? childrenPolicyViolationMessage(selectedRoom, childCount, youngestChildAge)
+        : null,
+    [selectedRoom, childCount, youngestChildAge]
+  );
+  const childrenPolicyBlocked = Boolean(childrenPolicyMessage);
 
   const flexibleSchedule = useMemo(
     () => resolveFlexibleScheduleSettings(settings ?? undefined),
@@ -810,7 +844,8 @@ export function PublicBookingProvider({
     data.branding,
   ]);
 
-  const proceedDisabled = !checkIn || !checkOut || Boolean(priceResult.error);
+  const proceedDisabled =
+    !checkIn || !checkOut || Boolean(priceResult.error) || childrenPolicyBlocked;
   let proceedLabel = "Оберіть дати";
   if (checkIn && !checkOut) {
     const min = selectedRoom
@@ -860,13 +895,26 @@ export function PublicBookingProvider({
         return;
       }
 
+      const policyMsg = childrenPolicyViolationMessage(
+        selectedRoom,
+        childCount,
+        youngestChildAge
+      );
+      if (policyMsg) {
+        showPublicToast(policyMsg);
+        return;
+      }
+
       const calc = priceResult.price;
       let fullComment = comment.trim();
       const servicesById = new Map(
         (runtime?.customServicesList || []).map((s) => [s.id, s] as const)
       );
       const parts: string[] = [];
-      const childrenToken = buildChildrenCommentToken(childCount);
+      const childrenToken = buildChildrenCommentToken(
+        childCount,
+        childCount > 0 ? youngestChildAge : null
+      );
       if (childrenToken) parts.push(childrenToken);
       parts.push(
         ...buildServiceCommentTokens(selectedServices, servicesById, { isPublicBooking: true })
@@ -1063,6 +1111,7 @@ export function PublicBookingProvider({
       earlyTime,
       lateTime,
       guestCount,
+      youngestChildAge,
       data.tenantId,
       closeDrawer,
     ]
@@ -1095,6 +1144,9 @@ export function PublicBookingProvider({
     changeGuests,
     childCount,
     changeChildren,
+    youngestChildAge,
+    changeYoungestChildAge,
+    setYoungestChildAge,
     filteredRooms,
     listFilterActive,
     listGuestMax,
@@ -1102,6 +1154,8 @@ export function PublicBookingProvider({
     selectedServices,
     setServiceQty,
     showChildren,
+    childrenPolicyMessage,
+    childrenPolicyBlocked,
     flexibleSchedule,
     hasUbd,
     setHasUbd,

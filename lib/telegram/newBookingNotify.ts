@@ -1,4 +1,4 @@
-import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { chessboardKeyboard, getBookingsTargets, isTelegramConfigured } from "./config";
@@ -47,7 +47,8 @@ export function buildNewBookingAdminCaption(data: NewBookingNotifyInput): string
   const phone = formatPhoneDisplay(data.phone);
   const guestsLabel = formatGuestsLabel(
     Number(data.guests) || 0,
-    parseChildrenFromComment(data.comment || "")
+    parseChildrenFromComment(data.comment || ""),
+    parseYoungestChildAgeFromComment(data.comment || "")
   );
   const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(data.comment || "");
   const pets =

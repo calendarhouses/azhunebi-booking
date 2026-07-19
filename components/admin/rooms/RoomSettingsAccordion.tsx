@@ -78,6 +78,14 @@ export function RoomSettingsAccordion({
   const [extraPlaces, setExtraPlaces] = useState(() =>
     String(Math.max(0, initialMax - initialCap))
   );
+  const [allowChildren, setAllowChildren] = useState(resolvedRoom?.allowChildren !== false);
+  const [minChildAge, setMinChildAge] = useState(() =>
+    String(
+      resolvedRoom?.minChildAge != null && Number.isFinite(Number(resolvedRoom.minChildAge))
+        ? Math.max(0, Math.round(Number(resolvedRoom.minChildAge)))
+        : 0
+    )
+  );
   const [siteHighlights, setSiteHighlights] = useState<RoomSiteHighlight[]>(() =>
     normalizeSiteHighlights(resolvedRoom?.siteHighlights)
   );
@@ -131,6 +139,14 @@ export function RoomSettingsAccordion({
     setSiteDescription(resolvedRoom.detailedDescription ?? "");
     setMainPlaces(String(cap));
     setExtraPlaces(String(Math.max(0, max - cap)));
+    setAllowChildren(resolvedRoom.allowChildren !== false);
+    setMinChildAge(
+      String(
+        resolvedRoom.minChildAge != null && Number.isFinite(Number(resolvedRoom.minChildAge))
+          ? Math.max(0, Math.round(Number(resolvedRoom.minChildAge)))
+          : 0
+      )
+    );
     setSiteHighlights(normalizeSiteHighlights(resolvedRoom.siteHighlights));
     setSelectedAmenities(getActiveAmenityIds(resolvedRoom));
     setSelectedRules(getActiveRuleIds(resolvedRoom));
@@ -256,6 +272,7 @@ export function RoomSettingsAccordion({
     const capacity = Math.max(1, Number(mainPlaces) || 2);
     const extra = Math.max(0, Number(extraPlaces) || 0);
     const saveKey = effectiveRoomId ?? roomKey;
+    const parsedMinAge = Math.max(0, Math.min(17, Math.round(Number(minChildAge) || 0)));
 
     setSaving(true);
     try {
@@ -265,6 +282,8 @@ export function RoomSettingsAccordion({
         detailedDescription: siteDescription.trim(),
         capacity,
         maxCapacity: capacity + extra,
+        allowChildren,
+        minChildAge: allowChildren ? parsedMinAge : null,
         siteHighlights: siteHighlightsForSave(siteHighlights),
         amenities: buildAmenitiesPayload(),
         priceWeekday: weekday,
@@ -386,6 +405,34 @@ export function RoomSettingsAccordion({
                           max={20}
                           onChange={setExtraPlaces}
                         />
+                      </div>
+
+                      <div className="khata-room-settings__children-policy">
+                        <label className="khata-room-settings__children-toggle">
+                          <input
+                            type="checkbox"
+                            checked={allowChildren}
+                            onChange={(e) => setAllowChildren(e.target.checked)}
+                          />
+                          <span>
+                            <strong>Можна з дітьми</strong>
+                            <span className="khata-room-settings__children-toggle-hint">
+                              {allowChildren
+                                ? "Гості зможуть вказати дітей у бронюванні"
+                                : "Будинок лише для дорослих"}
+                            </span>
+                          </span>
+                        </label>
+                        {allowChildren ? (
+                          <CapacityStepperField
+                            label="Мінімальний вік дитини"
+                            hint="Наприклад, 10 — діти молодше не підійдуть. 0 — без обмеження."
+                            value={minChildAge}
+                            min={0}
+                            max={17}
+                            onChange={setMinChildAge}
+                          />
+                        ) : null}
                       </div>
 
                       <RoomSiteHighlightsEditor
