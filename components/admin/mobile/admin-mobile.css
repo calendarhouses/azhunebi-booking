@@ -2423,9 +2423,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 /* Override global touch-action: manipulation so pan scroll is reliable.
-   Booking cards keep touch-action:none so drag still works. */
+   Booking cards keep touch-action:none so drag still works.
+   While selecting dates, lock pan so Android can extend the range. */
 .boso-admin-mobile .timeline-track-window--selecting {
-  touch-action: pan-x pan-y !important;
+  touch-action: none !important;
 }
 
 .boso-admin-mobile .timeline-mobile-scroll,
@@ -2435,6 +2436,13 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-mobile-scroll .booking-block,
 .boso-admin-mobile .timeline-mobile-scroll .booking-block * {
+  touch-action: none !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-mobile-scroll,
+.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-mobile-scroll *,
+.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-track-window,
+.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-track-window * {
   touch-action: none !important;
 }
 
@@ -2574,7 +2582,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: var(--timeline-cell-width, 60px) !important;
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
-  border-right: 1px solid #F3F4F6 !important;
+  /* Vertical rules come from .timeline-row-bg gradient only — avoid double lines */
+  border-right: none !important;
   box-sizing: border-box !important;
 }
 
@@ -6045,55 +6054,83 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 .boso-admin-android #view-grid .booking-block:not(.booking-block--drag-float),
 .boso-admin-android .timeline-wrapper--android .booking-block:not(.booking-block--drag-float),
 .boso-admin-android .timeline-wrapper--android .booking-block.booking-block--drag-float {
-  top: 2px !important;
-  height: calc(var(--timeline-room-height, 44px) - 4px) !important;
-  min-height: calc(var(--timeline-room-height, 44px) - 4px) !important;
-  max-height: calc(var(--timeline-room-height, 44px) - 4px) !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  top: 1px !important;
+  height: calc(var(--timeline-room-height, 44px) - 2px) !important;
+  min-height: calc(var(--timeline-room-height, 44px) - 2px) !important;
+  max-height: calc(var(--timeline-room-height, 44px) - 2px) !important;
+  padding: 0 4px !important;
   box-sizing: border-box !important;
-  border-radius: 10px !important;
+  border-radius: 8px !important;
   display: flex !important;
   align-items: stretch !important;
+  contain: none !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-android .timeline-wrapper--android .timeline-row-bg {
+  /* Keep cards fully inside the row (esp. first cottage) */
+  overflow: hidden !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium {
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
-  gap: 2px !important;
+  align-items: stretch !important;
+  gap: 1px !important;
   height: 100% !important;
   min-height: 0 !important;
-  padding: 3px 6px !important;
+  max-height: 100% !important;
+  padding: 1px 2px !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-guest-name {
-  font-size: 10px !important;
+  flex: 0 1 auto !important;
+  font-size: 9px !important;
   font-weight: 800 !important;
   line-height: 1.1 !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   margin: 0 !important;
+  max-height: 12px !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-mobile-meta-row {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  gap: 4px !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  gap: 3px !important;
   width: 100% !important;
   min-width: 0 !important;
-  overflow: hidden !important;
+  min-height: 14px !important;
+  max-height: 16px !important;
+  overflow: visible !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-fin-badge,
 .boso-admin-android .booking-inner-content--android-premium .booking-guest-chip {
-  font-size: 9px !important;
-  padding: 1px 5px !important;
-  border-radius: 999px !important;
-  line-height: 1.15 !important;
+  font-size: 8px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
+  padding: 0 4px !important;
+  border-radius: 6px !important;
+  line-height: 1 !important;
+  flex: 0 0 auto !important;
   flex-shrink: 0 !important;
+}
+
+.boso-admin-android
+  .booking-inner-content--android-premium
+  .booking-mobile-meta-row
+  .booking-fin-badge {
+  flex: 1 1 auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium.booking-inner-content--meta-only {
@@ -6106,21 +6143,22 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   max-width: 100% !important;
 }
 
-/* Android dense: keep room labels readable, hide bulky icons */
-.boso-admin-android .timeline-wrapper--android-dense .timeline-room__icon,
-.boso-admin-android .timeline-wrapper--android-dense .timeline-room-icon,
-.boso-admin-android .timeline-wrapper--android-dense .room-sidebar-house-icon {
+/* Android: hide house icons in both standard and dense chessboard */
+.boso-admin-android .timeline-wrapper--android .timeline-room__icon,
+.boso-admin-android .timeline-wrapper--android .timeline-room-icon,
+.boso-admin-android .timeline-wrapper--android .room-sidebar-house-icon {
   display: none !important;
 }
 
-.boso-admin-android .timeline-wrapper--android-dense .timeline-room__label {
+.boso-admin-android .timeline-wrapper--android .timeline-room__label {
   flex-direction: row !important;
   gap: 0 !important;
   justify-content: flex-start !important;
+  align-items: center !important;
 }
 
-.boso-admin-android .timeline-wrapper--android-dense .timeline-room__name,
-.boso-admin-android .timeline-wrapper--android-dense .timeline-room-name {
+.boso-admin-android .timeline-wrapper--android .timeline-room__name,
+.boso-admin-android .timeline-wrapper--android .timeline-room-name {
   font-size: 10px !important;
   text-align: left !important;
   -webkit-line-clamp: 2 !important;

@@ -128,6 +128,7 @@ type TimelineSelectionPointerSession = {
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
+const TOUCH_SELECT_HOLD_MS_ANDROID = 350;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -370,6 +371,7 @@ export function DesktopTimelineView({
   const selectionPointerSessionRef = useRef<TimelineSelectionPointerSession | null>(null);
   const touchSelectHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchScrollLockRef = useRef<((e: TouchEvent) => void) | null>(null);
+  const selectionMoveCleanupRef = useRef<(() => void) | null>(null);
   const isBookingDraggingRef = useRef(false);
   const bookingDragHoverRef = useRef<string | null>(null);
   const gridSelectionRef = useRef({ dragRoom: null as string | null, dragStart: null as string | null, dragEnd: null as string | null });
@@ -402,8 +404,8 @@ export function DesktopTimelineView({
       const available = el.clientHeight - mobileDateHeadHeight;
       if (available < 80) return;
       const raw = Math.floor(available / cottageCount);
-      const minH = mobileDense ? 34 : 38;
-      const maxH = mobileDense ? 44 : 52;
+      const minH = mobileDense ? 34 : 42;
+      const maxH = mobileDense ? 44 : 54;
       const next = Math.min(maxH, Math.max(minH, raw));
       setAndroidRowHeight((prev) => (prev === next ? prev : next));
     };
@@ -616,6 +618,11 @@ export function DesktopTimelineView({
     }
   }, []);
 
+  const clearSelectionMoveListeners = useCallback(() => {
+    selectionMoveCleanupRef.current?.();
+    selectionMoveCleanupRef.current = null;
+  }, []);
+
   const acquireTouchScrollLock = useCallback(() => {
     if (touchScrollLockRef.current) return;
     const lock = (e: TouchEvent) => {
@@ -630,6 +637,7 @@ export function DesktopTimelineView({
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     setPointerSelectingRoom(null);
+    clearSelectionMoveListeners();
     releaseTouchScrollLock();
     if (dragAutoScrollRafRef.current != null) {
       cancelAnimationFrame(dragAutoScrollRafRef.current);
@@ -643,13 +651,15 @@ export function DesktopTimelineView({
       onCreateBooking(selection.dragRoom, checkInStr, checkOutStr);
     }
     setTimeout(clearSelection, 300);
-  }, [onCreateBooking, clearSelection, releaseTouchScrollLock]);
+  }, [onCreateBooking, clearSelection, clearSelectionMoveListeners, releaseTouchScrollLock]);
 
   useEffect(() => () => {
     moveCleanupRef.current?.();
     moveCleanupRef.current = null;
     moveSessionRef.current = null;
     draggingBlockRef.current = null;
+    selectionMoveCleanupRef.current?.();
+    selectionMoveCleanupRef.current = null;
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -681,6 +691,7 @@ export function DesktopTimelineView({
       const wasSelecting = session.selecting;
       selectionPointerSessionRef.current = null;
       setPointerSelectingRoom(null);
+      clearSelectionMoveListeners();
       releaseTouchScrollLock();
       if (wasSelecting) {
         // Commit only on real finger/mouse release — not on pointercancel.
@@ -697,7 +708,7 @@ export function DesktopTimelineView({
       document.removeEventListener("pointerup", onEnd);
       document.removeEventListener("pointercancel", onEnd);
     };
-  }, [finishDrag, clearSelection, releaseTouchScrollLock]);
+  }, [finishDrag, clearSelection, clearSelectionMoveListeners, releaseTouchScrollLock]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -913,6 +924,27 @@ export function DesktopTimelineView({
     if (dragAutoScrollRafRef.current != null) return;
     dragAutoScrollRafRef.current = requestAnimationFrame(runDragFrame);
   }, [runDragFrame]);
+
+  const attachSelectionMoveListeners = useCallback(
+    (pointerId: number) => {
+      clearSelectionMoveListeners();
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        const session = selectionPointerSessionRef.current;
+        if (!session?.selecting || !isDraggingRef.current) return;
+        if (ev.cancelable) ev.preventDefault();
+        lastPointerRef.current = { x: ev.clientX, y: ev.clientY };
+        ensureDragFrame();
+        updateTimelineSelectionRef.current(session.roomName, ev.clientX, ev.clientY);
+      };
+      document.addEventListener("pointermove", onMove, { passive: false });
+      selectionMoveCleanupRef.current = () => {
+        document.removeEventListener("pointermove", onMove);
+        selectionMoveCleanupRef.current = null;
+      };
+    },
+    [clearSelectionMoveListeners, ensureDragFrame]
+  );
 
   const clearMoveListeners = useCallback(() => {
     moveCleanupRef.current?.();
@@ -1217,7 +1249,8 @@ export function DesktopTimelineView({
       ) as HTMLElement | null;
       if (!cell || cell.dataset.room !== roomName || !cell.dataset.date) return;
 
-      const isTouch = event.pointerType === "touch";
+      // Android/WebView sometimes reports "" instead of "touch".
+      const isTouch = event.pointerType !== "mouse";
       if (touchSelectHoldTimerRef.current) {
         clearTimeout(touchSelectHoldTimerRef.current);
         touchSelectHoldTimerRef.current = null;
@@ -1237,11 +1270,13 @@ export function DesktopTimelineView({
       if (!isTouch) {
         lastPointerRef.current = { x: event.clientX, y: event.clientY };
         startTimelineSelection(roomName, cell, event.clientX, true);
+        attachSelectionMoveListeners(event.pointerId);
         ensureDragFrame();
         return;
       }
 
       // Touch: wait for long-press before selecting so pan/scroll stays free.
+      const holdMs = isAndroid ? TOUCH_SELECT_HOLD_MS_ANDROID : TOUCH_SELECT_HOLD_MS;
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         const session = selectionPointerSessionRef.current;
@@ -1255,10 +1290,17 @@ export function DesktopTimelineView({
         }
         lastPointerRef.current = { x: session.startX, y: session.startY };
         startTimelineSelection(roomName, session.startCell, session.startX, false);
+        attachSelectionMoveListeners(session.pointerId);
         ensureDragFrame();
-      }, TOUCH_SELECT_HOLD_MS);
+      }, holdMs);
     },
-    [startTimelineSelection, acquireTouchScrollLock, ensureDragFrame]
+    [
+      isAndroid,
+      startTimelineSelection,
+      acquireTouchScrollLock,
+      attachSelectionMoveListeners,
+      ensureDragFrame,
+    ]
   );
 
   const onCellMouseEnter = useCallback((_roomName: string, _dateString: string) => {
@@ -1308,8 +1350,9 @@ export function DesktopTimelineView({
     if (isBookingDraggingRef.current || moveSessionRef.current) return;
 
     const session = selectionPointerSessionRef.current;
-    if (session?.pointerId === event.pointerId && session.roomName === roomName) {
-      if (!session.selecting && session.pointerType === "touch") {
+    // Match by pointerId only — finger can drift onto another row while selecting.
+    if (session?.pointerId === event.pointerId) {
+      if (!session.selecting && session.pointerType !== "mouse") {
         const dx = event.clientX - session.startX;
         const dy = event.clientY - session.startY;
         if (Math.hypot(dx, dy) >= TOUCH_SELECT_MOVE_CANCEL_PX) {
@@ -1319,6 +1362,7 @@ export function DesktopTimelineView({
             touchSelectHoldTimerRef.current = null;
           }
           selectionPointerSessionRef.current = null;
+          clearSelectionMoveListeners();
           releaseTouchScrollLock();
         }
         return;
@@ -1328,7 +1372,7 @@ export function DesktopTimelineView({
         event.preventDefault();
         lastPointerRef.current = { x: event.clientX, y: event.clientY };
         ensureDragFrame();
-        updateTimelineSelection(roomName, event.clientX, event.clientY);
+        updateTimelineSelection(session.roomName, event.clientX, event.clientY);
         return;
       }
     }
@@ -1372,7 +1416,13 @@ export function DesktopTimelineView({
       }
       return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
     });
-  }, [constraintsByRoom, updateTimelineSelection, releaseTouchScrollLock, ensureDragFrame]);
+  }, [
+    constraintsByRoom,
+    updateTimelineSelection,
+    clearSelectionMoveListeners,
+    releaseTouchScrollLock,
+    ensureDragFrame,
+  ]);
 
   const onTrackPointerLeave = useCallback((roomName: string) => {
     setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));
@@ -1385,7 +1435,7 @@ export function DesktopTimelineView({
   );
 
   const bookingBlockLayout = isMobile
-    ? getTimelineBookingBlockLayout(rowHeight, isAndroid || denseRows)
+    ? getTimelineBookingBlockLayout(rowHeight, true)
     : denseRows
       ? getTimelineBookingBlockLayout(rowHeight, true)
       : TIMELINE_BOOKING_BLOCK_LAYOUT;
@@ -1713,6 +1763,7 @@ export function DesktopTimelineView({
     mobileDense ? "timeline-wrapper--mobile-dense" : "",
     isAndroid ? "timeline-wrapper--android" : "",
     isAndroid && mobileDense ? "timeline-wrapper--android-dense" : "",
+    pointerSelectingRoom ? "timeline-wrapper--cell-selecting" : "",
   ]
     .filter(Boolean)
     .join(" ");

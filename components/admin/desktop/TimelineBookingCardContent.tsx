@@ -221,19 +221,19 @@ export function TimelineBookingCardContent({
     );
     const nameMinWidth = androidPremium
       ? block.nights === 2
-        ? 56
-        : 64
+        ? 40
+        : 48
       : block.nights === 2
         ? 78
         : 82;
     const showName =
-      !isOneNight && Boolean(name) && effectiveWidth >= nameMinWidth;
-    const textOnlyGuests = isOneNight || effectiveWidth < (androidPremium ? 84 : 100);
+      !isOneNight && Boolean(name) && (androidPremium || effectiveWidth >= nameMinWidth);
+    const textOnlyGuests = isOneNight || effectiveWidth < (androidPremium ? 72 : 100);
     const amount = block.finText.replace(/\s*(грн|₴)\s*$/i, "").trim();
     const mobileFinText =
       block.finText === "—"
         ? "—"
-        : `${amount}${effectiveWidth >= (androidPremium ? 52 : 68) ? " ₴" : ""}`;
+        : `${amount}${androidPremium || effectiveWidth >= 68 ? " ₴" : ""}`;
     const stayClass =
       block.nights === 1
         ? "booking-inner-content--stay-1"
