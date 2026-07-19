@@ -33,12 +33,14 @@ import { buildRuleGridSelectionPreset } from "./ruleConstructorLogic";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 import type { AdminSettingsPayload } from "../types";
+import { isAndroidUserAgent } from "@/lib/isMobileUserAgent";
 
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
 const TOUCH_DRAG_THRESHOLD_PX = 10;
 /** Touch must hold this long on a cell before multi-select starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
+const TOUCH_SELECT_HOLD_MS_ANDROID = 350;
 
 function ruleCellFromPoint(x: number, y: number): { roomId: string; dateStr: string } | null {
   if (typeof document === "undefined") return null;
@@ -174,6 +176,10 @@ export function DesktopRestrictionsGrid({
   adminUndo,
 }: DesktopRestrictionsGridProps) {
   const isMobile = layout === "mobile";
+  const isAndroid = useMemo(
+    () => (typeof navigator !== "undefined" ? isAndroidUserAgent(navigator.userAgent) : false),
+    []
+  );
   const [, bump] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const mobileDense = isMobile && isFocusMode;
@@ -532,10 +538,10 @@ export function DesktopRestrictionsGrid({
           if (dragRef.current.active) e.preventDefault();
         };
         touchScrollLockRef.current = lock;
-        document.addEventListener("touchmove", lock, { passive: false });
+        document.addEventListener("touchmove", lock, { passive: false, capture: true });
       }
     } else if (touchScrollLockRef.current) {
-      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      document.removeEventListener("touchmove", touchScrollLockRef.current, true);
       touchScrollLockRef.current = null;
     }
   }, []);
@@ -602,7 +608,7 @@ export function DesktopRestrictionsGrid({
       if (e.button !== 0 && e.pointerType === "mouse") return;
 
       clearTouchSelectHold();
-      const isTouch = e.pointerType === "touch";
+      const isTouch = e.pointerType !== "mouse";
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
 
       dragRef.current = {
@@ -630,12 +636,13 @@ export function DesktopRestrictionsGrid({
         return;
       }
 
+      const holdMs = isAndroid ? TOUCH_SELECT_HOLD_MS_ANDROID : TOUCH_SELECT_HOLD_MS;
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         armTouchSelection();
-      }, TOUCH_SELECT_HOLD_MS);
+      }, holdMs);
     },
-    [clearTouchSelectHold, armTouchSelection]
+    [clearTouchSelectHold, armTouchSelection, isAndroid]
   );
 
   const updateDragFocusFromPoint = useCallback(
@@ -698,11 +705,12 @@ export function DesktopRestrictionsGrid({
       }
 
       if (!drag.active) return;
+      if (e.cancelable) e.preventDefault();
 
       if (!drag.moved) {
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
-        const threshold = e.pointerType === "touch" ? TOUCH_DRAG_THRESHOLD_PX : DRAG_THRESHOLD_PX;
+        const threshold = drag.pointerType !== "mouse" ? TOUCH_DRAG_THRESHOLD_PX : DRAG_THRESHOLD_PX;
         if (Math.hypot(dx, dy) < threshold) {
           ensureDragAutoScroll();
           return;
@@ -749,7 +757,7 @@ export function DesktopRestrictionsGrid({
       }
     };
 
-    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointermove", onPointerMove, { passive: false });
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("pointercancel", onPointerCancel);
     return () => {

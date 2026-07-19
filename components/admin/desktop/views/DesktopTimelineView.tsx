@@ -9,6 +9,7 @@ import type {
 } from "react";
 import { parseSafeDate } from "../adminDates";
 import { bosoHover, bosoLeave } from "../adminTooltip";
+import { showToast } from "../adminGlobals";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
 import { TimelineGridRow } from "../TimelineGridCells";
@@ -613,7 +614,7 @@ export function DesktopTimelineView({
 
   const releaseTouchScrollLock = useCallback(() => {
     if (touchScrollLockRef.current) {
-      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      document.removeEventListener("touchmove", touchScrollLockRef.current, true);
       touchScrollLockRef.current = null;
     }
   }, []);
@@ -626,10 +627,19 @@ export function DesktopTimelineView({
   const acquireTouchScrollLock = useCallback(() => {
     if (touchScrollLockRef.current) return;
     const lock = (e: TouchEvent) => {
-      if (isDraggingRef.current) e.preventDefault();
+      const move = moveSessionRef.current;
+      if (
+        isDraggingRef.current ||
+        isBookingDraggingRef.current ||
+        move?.dragArmed ||
+        move?.previewActive ||
+        move?.moved
+      ) {
+        e.preventDefault();
+      }
     };
     touchScrollLockRef.current = lock;
-    document.addEventListener("touchmove", lock, { passive: false });
+    document.addEventListener("touchmove", lock, { passive: false, capture: true });
   }, []);
 
   const finishDrag = useCallback(() => {
@@ -669,7 +679,7 @@ export function DesktopTimelineView({
       touchSelectHoldTimerRef.current = null;
     }
     if (touchScrollLockRef.current) {
-      document.removeEventListener("touchmove", touchScrollLockRef.current);
+      document.removeEventListener("touchmove", touchScrollLockRef.current, true);
       touchScrollLockRef.current = null;
     }
     longPressTargetRef.current?.classList.remove("pressing");
@@ -987,14 +997,27 @@ export function DesktopTimelineView({
             );
         if (snapped) {
           onMoveBooking(session.booking, targetRoom, snapped.checkIn, snapped.checkOut);
+        } else {
+          showToast("Тут зайнято або конфлікт гнучкого графіку");
         }
       }
 
       stopDragAutoScroll();
       clearDragUiState();
+      releaseTouchScrollLock();
       scheduleRecompute();
     },
-    [activeBookings, activeRooms, dragRooms, clearDragUiState, clearMoveListeners, onMoveBooking, scheduleRecompute, stopDragAutoScroll]
+    [
+      activeBookings,
+      activeRooms,
+      dragRooms,
+      clearDragUiState,
+      clearMoveListeners,
+      onMoveBooking,
+      releaseTouchScrollLock,
+      scheduleRecompute,
+      stopDragAutoScroll,
+    ]
   );
 
   const clearLongPress = useCallback(() => {
@@ -1040,6 +1063,7 @@ export function DesktopTimelineView({
           longPressShownRef.current = true;
           session.dragArmed = true;
           target.classList.add("booking-block--drag-armed");
+          acquireTouchScrollLock();
           if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
           bosoHover(target, block.booking.row, "main");
           try {
@@ -1083,6 +1107,7 @@ export function DesktopTimelineView({
         moveSessionRef.current = null;
         dragEndedAtRef.current = Date.now();
         target.classList.remove("booking-block--drag-armed");
+        releaseTouchScrollLock();
         try {
           if (target.hasPointerCapture(e.pointerId)) {
             target.releasePointerCapture(e.pointerId);
@@ -1108,12 +1133,19 @@ export function DesktopTimelineView({
           return;
         }
 
-        if (!session.moved && dist < moveThreshold) return;
+        if (session.dragArmed || session.previewActive) {
+          if (ev.cancelable) ev.preventDefault();
+        }
+
+        // After long-press, start drag on a small move (tooltip already shown).
+        const dragStartPx = isTouch ? 3 : moveThreshold;
+        if (!session.moved && dist < dragStartPx) return;
 
         clearLongPress();
         bosoLeave();
         longPressShownRef.current = false;
         session.moved = true;
+        acquireTouchScrollLock();
 
         if (!session.previewActive) {
           session.previewActive = true;
@@ -1144,6 +1176,7 @@ export function DesktopTimelineView({
           moveSessionRef.current = null;
           dragEndedAtRef.current = Date.now();
           target.classList.remove("booking-block--drag-armed");
+          releaseTouchScrollLock();
           return;
         }
 
@@ -1161,10 +1194,11 @@ export function DesktopTimelineView({
         clearMoveListeners();
         moveSessionRef.current = null;
         target.classList.remove("booking-block--drag-armed");
+        releaseTouchScrollLock();
         clearDragUiState();
       };
 
-      document.addEventListener("pointermove", onDocMove);
+      document.addEventListener("pointermove", onDocMove, { passive: false });
       document.addEventListener("pointerup", onDocUp);
       document.addEventListener("pointercancel", onDocCancel);
       moveCleanupRef.current = () => {
@@ -1179,6 +1213,8 @@ export function DesktopTimelineView({
       clearLongPress,
       clearMoveListeners,
       clearDragUiState,
+      acquireTouchScrollLock,
+      releaseTouchScrollLock,
       ensureDragFrame,
       finishBookingDrag,
       stopDragAutoScroll,

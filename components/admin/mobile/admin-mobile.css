@@ -2423,10 +2423,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 /* Override global touch-action: manipulation so pan scroll is reliable.
-   Booking cards keep touch-action:none so drag still works.
-   While selecting dates, lock pan so Android can extend the range. */
+   Never flip touch-action mid-gesture (Android/iOS cancel the pointer).
+   Scroll is blocked via non-passive touchmove preventDefault while selecting/dragging. */
 .boso-admin-mobile .timeline-track-window--selecting {
-  touch-action: none !important;
+  touch-action: pan-x pan-y !important;
 }
 
 .boso-admin-mobile .timeline-mobile-scroll,
@@ -2436,22 +2436,15 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-mobile-scroll .booking-block,
 .boso-admin-mobile .timeline-mobile-scroll .booking-block * {
-  /* Allow scrolling over dense bookings; drag arms only after long-press. */
   touch-action: pan-x pan-y !important;
-}
-
-.boso-admin-mobile .timeline-mobile-scroll .booking-block.booking-block--drag-armed,
-.boso-admin-mobile .timeline-mobile-scroll .booking-block.booking-block--drag-armed *,
-.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll .booking-block,
-.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll .booking-block * {
-  touch-action: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-mobile-scroll,
 .boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-mobile-scroll *,
-.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-track-window,
-.boso-admin-mobile .timeline-wrapper--cell-selecting .timeline-track-window * {
-  touch-action: none !important;
+.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll,
+.boso-admin-mobile .timeline-wrapper--booking-drag .timeline-mobile-scroll * {
+  /* Keep pan-* so the browser does not cancel the active pointer. */
+  touch-action: pan-x pan-y !important;
 }
 
 .boso-admin-mobile .timeline-mobile-board {
@@ -2597,7 +2590,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-board.timeline-wrapper--booking-drag .timeline-mobile-scroll,
 .boso-admin-mobile .timeline-wrapper--mobile-board.timeline-wrapper--booking-drag .timeline-mobile-scroll * {
-  touch-action: none !important;
+  /* Keep pan-* — flipping to none mid-drag cancels the pointer on Android. */
+  touch-action: pan-x pan-y !important;
 }
 
 /* Month nav + Today — identical height */
@@ -4973,12 +4967,12 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
     "name name"
-    "type actions"
-    "status status";
-  column-gap: 10px;
+    "type status"
+    "actions actions";
+  column-gap: 8px;
   row-gap: 10px;
   align-items: center;
   justify-items: start;
@@ -5035,6 +5029,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   grid-area: type;
   justify-self: start;
   margin-right: 0 !important;
+  flex-shrink: 0 !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status {
@@ -5042,15 +5037,16 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   justify-self: start;
   justify-content: flex-start !important;
   margin-left: 0 !important;
-  width: 100% !important;
+  width: auto !important;
+  min-width: 0 !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
   grid-area: actions;
-  justify-self: end;
+  justify-self: stretch;
   justify-content: flex-end !important;
   gap: 10px;
-  width: auto !important;
+  width: 100% !important;
   flex-shrink: 0 !important;
   position: relative !important;
   z-index: 1;
@@ -6313,12 +6309,14 @@ body.boso-admin-android .booking-quick-edit-footer {
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   align-items: stretch !important;
-  justify-content: stretch !important;
+  justify-content: flex-start !important;
   gap: 10px !important;
   width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
   padding: 14px 16px calc(14px + max(var(--safe-bottom), 12px)) !important;
   margin: 0 !important;
+  overflow: hidden !important;
 }
 
 body.boso-admin-android .drawer-footer-actions,
@@ -6326,12 +6324,14 @@ body.boso-admin-android .booking-quick-edit-footer .drawer-footer-actions {
   display: flex !important;
   flex-direction: row !important;
   align-items: stretch !important;
-  justify-content: stretch !important;
+  justify-content: flex-start !important;
   gap: 10px !important;
   flex: 1 1 auto !important;
   width: 100% !important;
+  max-width: 100% !important;
   min-width: 0 !important;
   margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
 body.boso-admin-android .drawer-footer .btn-secondary,
@@ -6344,9 +6344,11 @@ body.boso-admin-android .booking-quick-edit-footer .btn-primary {
   min-height: 48px !important;
   max-height: 48px !important;
   margin: 0 !important;
-  padding: 0 14px !important;
+  padding: 0 12px !important;
   flex: 1 1 0 !important;
-  width: auto !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
   align-self: stretch !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -6356,6 +6358,7 @@ body.boso-admin-android .booking-quick-edit-footer .btn-primary {
   position: relative !important;
   top: auto !important;
   bottom: auto !important;
+  white-space: nowrap !important;
 }
 
 body.boso-admin-android .drawer-footer--mobile .drawer-footer-delete,
@@ -6367,7 +6370,22 @@ body.boso-admin-android .drawer-footer .drawer-footer-delete {
   padding: 0 !important;
 }
 
+body.boso-admin-android .booking-quick-edit-sheet {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
 body.boso-admin-android .booking-quick-edit-sheet,
 body.boso-admin-android .booking-quick-edit-sheet * {
   box-sizing: border-box !important;
+}
+
+/* Android price/rules chessboards: lock scroll during range select */
+.boso-admin-android .price-grid-view--touch-selecting,
+.boso-admin-android .price-grid-view--touch-selecting .price-cell,
+.boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll,
+.boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll * {
+  touch-action: pan-x pan-y !important;
 }
