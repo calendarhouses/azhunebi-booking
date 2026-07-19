@@ -48,7 +48,7 @@ const DRAG_THRESHOLD_PX = 5;
 const TOUCH_DRAG_THRESHOLD_PX = 10;
 /** Touch must hold this long on a cell before multi-select starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
-const TOUCH_SELECT_HOLD_MS_ANDROID = 350;
+const TOUCH_SELECT_HOLD_MS_ANDROID = 520;
 
 function ruleCellFromPoint(x: number, y: number): { roomId: string; dateStr: string } | null {
   if (typeof document === "undefined") return null;

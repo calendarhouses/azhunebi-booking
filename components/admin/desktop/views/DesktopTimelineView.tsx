@@ -139,7 +139,7 @@ type TimelineSelectionPointerSession = {
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
-const TOUCH_SELECT_HOLD_MS_ANDROID = 350;
+const TOUCH_SELECT_HOLD_MS_ANDROID = 520;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -1213,7 +1213,7 @@ export function DesktopTimelineView({
               /* ignore */
             }
           }
-        }, isAndroid ? 380 : 420);
+        }, isAndroid ? 480 : 420);
       }
 
       const scrollEl = scrollRef.current;

@@ -4404,10 +4404,23 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   width: var(--timeline-grid-width) !important;
   min-width: 0 !important;
   max-width: var(--timeline-grid-width) !important;
-  background-image: none !important;
-  background-size: auto !important;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--timeline-cell-width, 72px) - 1px),
+    #F3F4F6 calc(var(--timeline-cell-width, 72px) - 1px),
+    #F3F4F6 var(--timeline-cell-width, 72px)
+  ) !important;
+  background-size: var(--timeline-grid-width, 100%) 100% !important;
+  background-repeat: no-repeat !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .price-cell,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .restriction-cell,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-date {
+  border-right: none !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-rows {
@@ -4993,7 +5006,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
     "type status"
     "actions actions";
   column-gap: 8px;
-  row-gap: 10px;
+  row-gap: 14px;
   align-items: center;
   justify-items: start;
   width: 100%;
@@ -5037,12 +5050,24 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   margin-bottom: 0 !important;
 }
 
-/* Space below the name divider */
+/* Space below the name divider — keep type/status tight; actions get air below */
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type,
-.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status,
-.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status {
   margin-top: 0 !important;
   padding-top: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
+  grid-area: actions;
+  justify-self: stretch;
+  justify-content: flex-end !important;
+  gap: 10px;
+  width: 100% !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 1;
+  margin-top: 6px !important;
+  padding-top: 2px !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type {
@@ -5059,17 +5084,6 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   margin-left: 0 !important;
   width: auto !important;
   min-width: 0 !important;
-}
-
-.boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__actions {
-  grid-area: actions;
-  justify-self: stretch;
-  justify-content: flex-end !important;
-  gap: 10px;
-  width: 100% !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-  z-index: 1;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-wrap {
@@ -6126,6 +6140,22 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 /* Invisible drag source must stay mounted (same node) — do not use pointer-events:none. */
 .boso-admin-android .booking-block.booking-block--drag-source-hidden {
   opacity: 0 !important;
+}
+
+/* Guest messenger action icons — keep visible on Android (global * resets can collapse SVG). */
+.boso-admin-android #view-guests .boso-mobile-card__messengers .btn-action svg,
+.boso-admin-android #view-guests .boso-mobile-card__call svg,
+.boso-admin-android #view-guests .boso-mobile-card__tg svg,
+.boso-admin-android #view-guests .boso-mobile-card__wa svg {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  flex-shrink: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible !important;
 }
 
 .boso-admin-android .booking-block,
