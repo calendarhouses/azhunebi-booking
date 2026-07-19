@@ -15,7 +15,16 @@ const iconPhone = (
 );
 
 const iconPhoneAction = (
-  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+  <svg
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    style={{ display: "block", flexShrink: 0 }}
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -89,7 +98,7 @@ export function MobileGuestCard({
           rel="noreferrer"
           className="btn-action tap-btn boso-mobile-card__tg"
         >
-          <MessengerIcon kind="telegram" size={16} />
+          <MessengerIcon kind="telegram" size={14} />
           Telegram
         </a>
         <a
@@ -98,7 +107,7 @@ export function MobileGuestCard({
           rel="noreferrer"
           className="btn-action tap-btn boso-mobile-card__wa"
         >
-          <MessengerIcon kind="whatsapp" size={16} />
+          <MessengerIcon kind="whatsapp" size={14} />
           WhatsApp
         </a>
       </div>

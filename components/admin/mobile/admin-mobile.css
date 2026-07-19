@@ -411,19 +411,45 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .boso-mobile-card__messengers {
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 6px;
     padding-top: 8px;
+    width: 100%;
+    min-width: 0;
 }
 .boso-mobile-card__tg,
-.boso-mobile-card__wa {
-    flex: 1;
+.boso-mobile-card__wa,
+.boso-mobile-card__call {
+    flex: 1 1 0;
     justify-content: center;
-    font-weight: 700;
-    font-size: 13px;
-    display: flex;
     align-items: center;
-    gap: 6px;
-    min-width: 0;
+    font-weight: 700;
+    font-size: 12px;
+    display: inline-flex;
+    gap: 5px;
+    min-width: 0 !important;
+    min-height: 40px;
+    height: 40px;
+    padding: 0 8px !important;
+    border-radius: 10px;
+    box-sizing: border-box !important;
+    overflow: hidden;
+    line-height: 1;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+}
+.boso-mobile-card__tg svg,
+.boso-mobile-card__wa svg,
+.boso-mobile-card__call svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    max-width: 14px;
+    max-height: 14px;
+    flex: 0 0 14px;
+    overflow: hidden;
+    align-self: center;
 }
 .boso-mobile-card__tg {
     background: #EFF6FF !important;
@@ -432,6 +458,13 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .boso-mobile-card__wa {
     background: #DCFCE7 !important;
     color: #059669 !important;
+}
+
+.boso-mobile-card__call {
+    flex: 1;
+    background: #ECFDF5 !important;
+    color: #047857 !important;
+    text-decoration: none !important;
 }
 
 .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
@@ -1656,10 +1689,10 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
     min-width: 0;
 }
 .boso-mobile-card__call {
-    flex: 0 0 auto;
-    height: 42px;
-    min-height: 42px;
-    padding: 0 12px;
+    flex: 1 1 0;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 8px !important;
     border-radius: 10px;
     display: inline-flex;
     align-items: center;
@@ -1668,18 +1701,27 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
     background: #ECFDF5;
     color: #047857;
     font-weight: 700;
-    font-size: 13px;
-    gap: 6px;
+    font-size: 12px;
+    gap: 5px;
+    box-sizing: border-box !important;
+    overflow: hidden;
+    line-height: 1;
+    white-space: nowrap;
+    min-width: 0 !important;
 }
 .boso-mobile-card__details {
     flex: 1;
 }
 .boso-mobile-guest-card .boso-mobile-card__messengers {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: stretch;
 }
-.boso-mobile-guest-card .boso-mobile-card__call {
-    flex: 1;
-    min-width: calc(33% - 6px);
+.boso-mobile-guest-card .boso-mobile-card__call,
+.boso-mobile-guest-card .boso-mobile-card__tg,
+.boso-mobile-guest-card .boso-mobile-card__wa {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
 }
 #view-guests input#guestSearch {
     width: 100%;
@@ -4975,8 +5017,8 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   display: none !important;
 }
 
-/* Kill global mobile `tr` card chrome on non-row table rows */
-.boso-admin-mobile #view-settings .settings-discounts-table > tbody > tr {
+/* Kill global mobile `tr` card chrome on non-row table rows — but NOT discount cards */
+.boso-admin-mobile #view-settings .settings-discounts-table > tbody > tr:not(.settings-discounts-row) {
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
@@ -5005,8 +5047,10 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
     "name name"
     "type status"
     "actions actions";
-  column-gap: 8px;
-  row-gap: 14px;
+  /* Spacing is on name-wrap / badges — grid gap alone is flaky on Android <tr> */
+  column-gap: 0 !important;
+  row-gap: 10px !important;
+  gap: 10px 0 !important;
   align-items: center;
   justify-items: start;
   width: 100%;
@@ -5045,12 +5089,12 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td:first-child {
   grid-area: name;
   width: 100% !important;
-  padding-bottom: 14px !important;
-  border-bottom: 1px solid #eff1ec !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
   margin-bottom: 0 !important;
 }
 
-/* Space below the name divider — keep type/status tight; actions get air below */
+/* Space below the name divider + between type/status pills */
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type,
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__status {
   margin-top: 0 !important;
@@ -5067,7 +5111,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   position: relative !important;
   z-index: 1;
   margin-top: 6px !important;
-  padding-top: 2px !important;
+  padding-top: 0 !important;
 }
 
 .boso-admin-mobile #view-settings .settings-discounts-table .settings-discounts-row > td.settings-discounts-row__type {
@@ -5091,6 +5135,10 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   flex-direction: column;
   align-items: stretch;
   gap: 12px;
+  /* Divider + air live on the div (margins on <td> / grid gap on <tr> are unreliable on Android) */
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #eff1ec !important;
+  margin-bottom: 12px !important;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .settings-discounts-row__name-inline {
@@ -5164,6 +5212,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   background: #f7f8f5;
   color: #4f5748;
   white-space: nowrap;
+  margin-right: 10px !important;
 }
 
 .boso-admin-mobile #view-settings #set-discounts .discount-status-toggle {
@@ -6142,20 +6191,61 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   opacity: 0 !important;
 }
 
-/* Guest messenger action icons — keep visible on Android (global * resets can collapse SVG). */
+/* Guest messenger buttons — icons stay inside the pill (Android) */
+.boso-admin-android #view-guests .boso-mobile-card__messengers {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.boso-admin-android #view-guests .boso-mobile-card__messengers .btn-action,
+.boso-admin-android #view-guests .boso-mobile-card__call,
+.boso-admin-android #view-guests .boso-mobile-card__tg,
+.boso-admin-android #view-guests .boso-mobile-card__wa {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important;
+  font-size: 12px !important;
+  letter-spacing: -0.01em !important;
+}
+
 .boso-admin-android #view-guests .boso-mobile-card__messengers .btn-action svg,
 .boso-admin-android #view-guests .boso-mobile-card__call svg,
 .boso-admin-android #view-guests .boso-mobile-card__tg svg,
 .boso-admin-android #view-guests .boso-mobile-card__wa svg {
   display: block !important;
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-  flex-shrink: 0 !important;
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  max-width: 14px !important;
+  max-height: 14px !important;
+  flex: 0 0 14px !important;
   opacity: 1 !important;
   visibility: visible !important;
-  overflow: visible !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: static !important;
+  align-self: center !important;
+  vertical-align: middle !important;
 }
 
 .boso-admin-android .booking-block,

@@ -16,7 +16,14 @@ export function MessengerIcon({
   size?: number;
 }) {
   return (
-    <svg width={size} height={size} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      fill="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden
+      style={{ display: "block", flexShrink: 0 }}
+    >
       <path d={kind === "telegram" ? TELEGRAM_PATH : WHATSAPP_PATH} />
     </svg>
   );
