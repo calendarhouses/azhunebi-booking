@@ -1,6 +1,7 @@
 "use client";
 
 import { BOOKING_COLOR_SWATCHES, normalizeBookingCustomColor } from "@/lib/bookingCustomColor";
+import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 
 type BookingColorPickerProps = {
   value: string | null | undefined;
@@ -13,8 +14,8 @@ export function BookingColorPicker({ value, onChange, disabled }: BookingColorPi
 
   return (
     <div className="booking-color-picker">
-      <div className="booking-color-picker__label">Колір на шаховатці</div>
-      <div className="booking-color-picker__row" role="listbox" aria-label="Колір броні">
+      <BookingFormSectionHeading compact title="Колір бронювання" />
+      <div className="booking-color-picker__row" role="listbox" aria-label="Колір бронювання">
         <button
           type="button"
           className={`booking-color-picker__swatch booking-color-picker__swatch--clear${

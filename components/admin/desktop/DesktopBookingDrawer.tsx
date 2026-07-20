@@ -123,10 +123,12 @@ export function DesktopBookingDrawer({
               </div>
             ))}
           </div>
-          <BookingColorPicker
-            value={form.customColor}
-            onChange={drawer.setCustomColor}
-          />
+          <div className="form-section booking-color-picker-section">
+            <BookingColorPicker
+              value={form.customColor}
+              onChange={drawer.setCustomColor}
+            />
+          </div>
           <input type="hidden" id="adminCustomColor" value={form.customColor} readOnly />
           {isPendingReviewStatus(activeBooking?.status ?? form.status) ? (
             <p

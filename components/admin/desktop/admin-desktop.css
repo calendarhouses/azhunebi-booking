@@ -3665,7 +3665,7 @@
             transition: background 0.25s ease, border-color 0.25s ease;
         }
         .drawer.drawer--booking-tint .drawer-body {
-            background: transparent;
+            background: var(--booking-tint-bg, #fff);
         }
         .drawer.drawer--booking-tint .drawer-footer {
             background: var(--booking-tint-header, #F9FAFB);
@@ -3673,9 +3673,14 @@
             transition: background 0.25s ease, border-color 0.25s ease;
         }
         .drawer.drawer--booking-tint .form-section {
-            background: var(--booking-tint-section, rgba(255, 255, 255, 0.72));
+            background: var(--booking-tint-section, #fff);
             border-color: var(--booking-tint-border, #E5E7EB);
             transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        .drawer.drawer--booking-tint .booking-color-picker-section {
+            margin-bottom: 20px;
+            padding-top: 16px;
+            padding-bottom: 16px;
         }
         .flatpickr-calendar { z-index: 10050 !important; }
         .drawer .form-group .flatpickr-wrapper { width: 100%; display: block; }
@@ -3789,28 +3794,28 @@
         }
 
         .booking-color-picker {
-            margin-top: 14px;
+            margin-top: 0;
         }
-        .booking-color-picker__label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #6B7280;
-            margin-bottom: 10px;
+        .booking-color-picker .booking-form-section-heading {
+            margin-bottom: 12px;
         }
         .booking-color-picker__row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
+            display: grid;
+            grid-template-columns: repeat(6, 28px);
             gap: 10px;
+            justify-content: start;
         }
         .booking-color-picker__swatch {
             width: 28px;
             height: 28px;
+            min-width: 28px;
+            min-height: 28px;
             border-radius: 999px;
             border: 2px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
             cursor: pointer;
             padding: 0;
+            flex-shrink: 0;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
         .booking-color-picker__swatch:hover:not(:disabled) {

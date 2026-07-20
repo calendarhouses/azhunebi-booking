@@ -48,21 +48,25 @@ export function bookingColorForeground(hex: string): "#FFFFFF" | "#1A1A1A" {
   return luminance > 0.62 ? "#1A1A1A" : "#FFFFFF";
 }
 
-function hexToRgba(hex: string, alpha: number): string {
+/** Непрозорий pastel: змішування акценту з білим (без просвічування). */
+function mixHexWithWhite(hex: string, whiteRatio: number): string {
   const h = hex.replace("#", "");
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const colorRatio = 1 - whiteRatio;
+  const mix = (channel: number) => Math.round(channel * colorRatio + 255 * whiteRatio);
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
 }
 
 /** Легкий pastel-tint для drawer/modal під обраний або статусний колір. */
 export function bookingAccentTintStyle(accentHex: string): CSSProperties {
   return {
     ["--booking-accent" as string]: accentHex,
-    ["--booking-tint-bg" as string]: hexToRgba(accentHex, 0.07),
-    ["--booking-tint-header" as string]: hexToRgba(accentHex, 0.11),
-    ["--booking-tint-border" as string]: hexToRgba(accentHex, 0.2),
-    ["--booking-tint-section" as string]: "rgba(255, 255, 255, 0.72)",
+    ["--booking-tint-bg" as string]: mixHexWithWhite(accentHex, 0.92),
+    ["--booking-tint-header" as string]: mixHexWithWhite(accentHex, 0.86),
+    ["--booking-tint-border" as string]: mixHexWithWhite(accentHex, 0.72),
+    ["--booking-tint-section" as string]: "#FFFFFF",
   } as CSSProperties;
 }
