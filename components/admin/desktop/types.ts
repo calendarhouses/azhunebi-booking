@@ -191,6 +191,8 @@ export interface BookingRecord {
   surchargeMethod?: string;
   payments?: BookingPayment[];
   createdAt?: string;
+  /** Ручний колір картки на шаховатці (#RRGGBB). Порожній = авто за статусом. */
+  custom_color?: string | null;
   [key: string]: unknown;
 }
 

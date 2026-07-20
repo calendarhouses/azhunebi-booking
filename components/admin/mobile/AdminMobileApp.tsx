@@ -64,6 +64,7 @@ export function AdminMobileApp() {
     editingRowRef: bridge.editingRowRef,
     earlyTimeRef: bridge.earlyTimeRef,
     lateTimeRef: bridge.lateTimeRef,
+    setBookings: admin.setBookings,
   });
 
   const priceTimelineBaseDateRef = useRef(new Date());

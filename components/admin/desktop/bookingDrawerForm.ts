@@ -32,6 +32,8 @@ export type BookingDrawerFormState = {
   status: string;
   earlyCardActive: boolean;
   lateCardActive: boolean;
+  /** Ручний колір шахматки (#RRGGBB) або "" */
+  customColor: string;
 };
 
 export type SchedulePriceLabels = {
@@ -62,6 +64,7 @@ export function defaultBookingDrawerForm(): BookingDrawerFormState {
     status: "Нова бронь",
     earlyCardActive: false,
     lateCardActive: false,
+    customColor: "",
   };
 }
 

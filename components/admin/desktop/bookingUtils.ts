@@ -29,6 +29,12 @@ import {
   stripFlexibleTokensFromComment,
 } from "@/lib/admin/flexibleSchedule";
 import {
+  BOOKING_STATUS_ACCENT,
+  bookingColorForeground,
+  normalizeBookingCustomColor,
+} from "@/lib/bookingCustomColor";
+import type { CSSProperties } from "react";
+import {
   parseChildrenFromComment,
   parseSelectedServicesFromComment,
   parseYoungestChildAgeFromComment,
@@ -191,24 +197,79 @@ export function formatTimelineFinText(
   return finBadge.text;
 }
 
+/**
+ * Ієрархія кольору картки:
+ * 1) custom_color → status-custom (+ inline style)
+ * 2) Оплачено повністю → status-paid (зелений)
+ * 3) Підтверджено → status-confirmed (блакитний)
+ * 4) Очікує оплату / Нова бронь → status-new (синій)
+ * Інакше — legacy (скасовано / review / hutshub).
+ */
 export function getTimelineStatusClass(booking: BookingRecord): string {
-  const sClass = String(booking.status).toLowerCase();
+  if (normalizeBookingCustomColor(booking.custom_color)) return "status-custom";
+
+  const status = String(booking.status || "");
+  const sClass = status.toLowerCase();
   if (sClass.includes("скас")) return "status-cancelled";
   if (isPendingReviewStatus(booking.status)) return "status-pending-review";
-  if (isAwaitingPaymentStatus(booking.status)) return "status-new";
-  if (
-    String(booking.source || "")
-      .toLowerCase()
-      .includes("hutshub") ||
-    String(booking.name || "")
-      .toLowerCase()
-      .includes("hutshub")
-  ) {
-    return "status-hutshub";
-  }
+
   const { total, balance } = resolveBookingFinanceSummary(booking);
-  if (total > 0 && balance <= 0) return "status-confirmed";
+  if (total > 0 && balance <= 0) return "status-paid";
+
+  if (status === "Підтверджено") return "status-confirmed";
+  if (status === "Очікує оплату" || status === "Нова бронь" || isAwaitingPaymentStatus(booking.status)) {
+    return "status-new";
+  }
+
+  if (isHutshubBooking(booking)) return "status-hutshub";
+
   return "status-new";
+}
+
+/** Акцентний колір для drawer/modal (custom → оплата → статус). */
+export function resolveBookingAccentColor(
+  booking: BookingRecord | null | undefined,
+  overrides?: { customColor?: string | null; status?: string }
+): string {
+  const custom = normalizeBookingCustomColor(
+    overrides?.customColor ?? booking?.custom_color
+  );
+  if (custom) return custom;
+
+  const status = String(overrides?.status ?? booking?.status ?? "");
+  const sClass = status.toLowerCase();
+  if (sClass.includes("скас")) return BOOKING_STATUS_ACCENT.cancelled;
+  if (isPendingReviewStatus(status)) return BOOKING_STATUS_ACCENT.pendingReview;
+
+  if (booking) {
+    const { total, balance } = resolveBookingFinanceSummary(booking);
+    if (total > 0 && balance <= 0) return BOOKING_STATUS_ACCENT.paid;
+  }
+
+  if (status === "Підтверджено") return BOOKING_STATUS_ACCENT.confirmed;
+  if (status === "Очікує оплату" || status === "Нова бронь" || isAwaitingPaymentStatus(status)) {
+    return BOOKING_STATUS_ACCENT.new;
+  }
+
+  if (booking && isHutshubBooking(booking)) return BOOKING_STATUS_ACCENT.hutshub;
+
+  return BOOKING_STATUS_ACCENT.default;
+}
+
+/** Inline стиль для ручного кольору (пріоритет над CSS статусу). */
+export function getTimelineCustomColorStyle(
+  booking: BookingRecord
+): CSSProperties | undefined {
+  const color = normalizeBookingCustomColor(booking.custom_color);
+  if (!color) return undefined;
+  const fg = bookingColorForeground(color);
+  return {
+    background: color,
+    backgroundImage: "none",
+    color: fg,
+    borderColor: "transparent",
+    transition: "background-color 0.2s ease-in-out, color 0.2s ease-in-out",
+  };
 }
 
 export function bookingHasEarlyLate(comment: string): { hasEarly: boolean; hasLate: boolean } {

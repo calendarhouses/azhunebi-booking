@@ -539,6 +539,7 @@ export type GasBookingRecord = {
   successSmsSentAt?: string;
   expirySmsSentAt?: string;
   paidTelegramSentAt?: string;
+  custom_color?: string;
 };
 
 function reviewWebhookSecret(): string {

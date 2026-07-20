@@ -8,9 +8,11 @@ import { BookingGuestsAndServicesFields } from "./BookingGuestsAndServicesFields
 import { BookingSpecialTariffsFields } from "./BookingSpecialTariffsFields";
 import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
+import { BookingColorPicker } from "./BookingColorPicker";
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
 import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
-import { findBookingInList, resolveBookingOrderId } from "./bookingUtils";
+import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
+import { findBookingInList, resolveBookingAccentColor, resolveBookingOrderId } from "./bookingUtils";
 import { ADMIN_SELECTABLE_SOURCES } from "./adminUiHelpers";
 import {
   BookingReviewActions,
@@ -71,10 +73,19 @@ export function DesktopBookingDrawer({
         })
         ? "valid"
         : "invalid";
+  const accentColor = useMemo(
+    () =>
+      resolveBookingAccentColor(activeBooking, {
+        customColor: form.customColor,
+        status: form.status,
+      }),
+    [activeBooking, form.customColor, form.status]
+  );
+  const drawerTintStyle = useMemo(() => bookingAccentTintStyle(accentColor), [accentColor]);
 
   return (
     <div id="bookingDrawer" className="drawer-overlay">
-      <div className="drawer">
+      <div className="drawer drawer--booking-tint" style={drawerTintStyle}>
         {isMobile ? (
           <MobileSheetHeader title={<span id="drawerTitle">{drawer.drawerTitle}</span>} onClose={() => drawer.closeDrawer()} />
         ) : (
@@ -112,6 +123,11 @@ export function DesktopBookingDrawer({
               </div>
             ))}
           </div>
+          <BookingColorPicker
+            value={form.customColor}
+            onChange={drawer.setCustomColor}
+          />
+          <input type="hidden" id="adminCustomColor" value={form.customColor} readOnly />
           {isPendingReviewStatus(activeBooking?.status ?? form.status) ? (
             <p
               style={{

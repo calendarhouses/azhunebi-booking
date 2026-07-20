@@ -170,6 +170,10 @@ export function collectBookingFromForm(
     earlyFee: getFormVal("manualEarly"),
     lateFee: getFormVal("manualLate"),
     discountAmount: getFormVal("manualDiscount"),
+    custom_color: (() => {
+      const raw = getFormString("adminCustomColor").trim();
+      return raw || "";
+    })(),
   };
 
   if (editingRowNumber !== null && editingRowNumber !== undefined) {
@@ -332,5 +336,10 @@ export function buildBookingRecordFromSave(
       ? (bookingData.payments as BookingRecord["payments"])
       : undefined,
     createdAt: existing?.createdAt || new Date().toISOString(),
+    custom_color: (() => {
+      const raw = bookingData.custom_color;
+      if (raw == null) return existing?.custom_color ?? "";
+      return String(raw).trim();
+    })(),
   };
 }

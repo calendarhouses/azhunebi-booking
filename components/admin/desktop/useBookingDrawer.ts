@@ -49,6 +49,7 @@ import {
 } from "./drawerDatePickers";
 import type { FlatpickrInstance } from "./flatpickrAdmin";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
+import { normalizeBookingCustomColor } from "@/lib/bookingCustomColor";
 function isoDatePlusDays(iso: string, days: number): string {
   const base = normalizeDateToIso(iso);
   if (!base) return "";
@@ -78,6 +79,7 @@ function syncFormFieldsToDom(form: BookingDrawerFormState): void {
   set("adminPets", form.pets);
   set("adminDayGuests", String(form.dayGuests));
   set("adminVat", form.vat);
+  set("adminCustomColor", form.customColor);
   const cottageLabel = document.getElementById("cottageSelectedText");
   if (cottageLabel) cottageLabel.textContent = form.cottageLabel;
   const sourceLabel = document.getElementById("sourceSelectedText");
@@ -95,6 +97,7 @@ export type UseBookingDrawerParams = {
   editingRowRef: React.MutableRefObject<number | string | null>;
   earlyTimeRef: React.MutableRefObject<string | null>;
   lateTimeRef: React.MutableRefObject<string | null>;
+  setBookings?: React.Dispatch<React.SetStateAction<BookingRecord[]>>;
 };
 
 export function useBookingDrawer({
@@ -103,6 +106,7 @@ export function useBookingDrawer({
   editingRowRef,
   earlyTimeRef,
   lateTimeRef,
+  setBookings,
 }: UseBookingDrawerParams) {
   const findBookingByKey = useCallback(
     (key: number | string) => {
@@ -471,6 +475,7 @@ export function useBookingDrawer({
         status: displayedStatus,
         earlyCardActive: !!parsed.earlyTime,
         lateCardActive: !!parsed.lateTime,
+        customColor: normalizeBookingCustomColor(booking.custom_color) || "",
       });
 
       setEarlyTime(parsed.earlyTime);
@@ -585,6 +590,62 @@ export function useBookingDrawer({
     setBookingStatus(status);
     patchForm({ status });
   }, [patchForm]);
+
+  const colorPersistSeqRef = useRef(0);
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  const setCustomColor = useCallback(
+    (color: string | null) => {
+      const next = normalizeBookingCustomColor(color) || "";
+      patchForm({ customColor: next });
+
+      const editingKey = editingRowRef.current;
+      if (editingKey == null) return;
+
+      setBookings?.((prev) =>
+        prev.map((b) => {
+          if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
+            return b;
+          }
+          return { ...b, custom_color: next };
+        })
+      );
+
+      const seq = ++colorPersistSeqRef.current;
+      void (async () => {
+        try {
+          const latest = { ...formRef.current, customColor: next };
+          syncFormFieldsToDom(latest);
+          const el = document.getElementById("adminCustomColor") as HTMLInputElement | null;
+          if (el) el.value = next;
+
+          const { collectBookingFromForm, buildPayloadForServer, isBookingSaveSuccessful } =
+            await import("./bookingForm");
+          const { postAdminBooking } = await import("./adminApi");
+
+          const bookingData = collectBookingFromForm(
+            editingKey,
+            earlyTimeRef.current,
+            lateTimeRef.current,
+            { checkIn: latest.checkIn, checkOut: latest.checkOut }
+          );
+          bookingData.custom_color = next;
+          const payload = buildPayloadForServer(bookingData, editingKey);
+          const json = await postAdminBooking(payload);
+          if (seq !== colorPersistSeqRef.current) return;
+          if (!isBookingSaveSuccessful(json)) {
+            showToast("Не вдалося зберегти колір");
+          }
+        } catch {
+          if (seq === colorPersistSeqRef.current) {
+            showToast("Не вдалося зберегти колір");
+          }
+        }
+      })();
+    },
+    [patchForm, setBookings, editingRowRef, earlyTimeRef, lateTimeRef]
+  );
 
   const selectAdminTime = useCallback(
     (type: "early" | "late", time: string, chipEl: HTMLElement) => {
@@ -786,6 +847,7 @@ export function useBookingDrawer({
     specialTariffToggles,
     setSpecialTariff,
     setStatus,
+    setCustomColor,
     selectAdminTime,
     toggleAdminService,
     handleStatusFromPayment,

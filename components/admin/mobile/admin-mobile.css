@@ -807,8 +807,10 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     filter: brightness(1.03);
 }
 
-.booking-block.status-new { background: linear-gradient(135deg, #DEB887 0%, #CDA062 100%); color: #1A1A1A; }
-.booking-block.status-confirmed { background: linear-gradient(135deg, #6B8E23 0%, #4B5D28 100%); color: #FFFFFF; }
+.booking-block.status-new { background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%); color: #FFFFFF; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
+.booking-block.status-confirmed { background: linear-gradient(135deg, #7DD3FC 0%, #38BDF8 100%); color: #FFFFFF; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
+.booking-block.status-paid { background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%); color: #FFFFFF; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
+.booking-block.status-custom { border-color: transparent; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
 .booking-block.status-cancelled { background: #F9FAFB; color: #9CA3AF; border: 1px dashed #D1D5DB; }
 .booking-block.status-pending-review {
   background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
@@ -844,6 +846,26 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .drawer-overlay.active .drawer { bottom: 0; }
+
+.drawer.drawer--booking-tint {
+  background: var(--booking-tint-bg, #fff);
+  transition: bottom 0.3s, background 0.25s ease;
+}
+.drawer.drawer--booking-tint .drawer-header {
+  background: var(--booking-tint-header, #fff);
+  border-bottom-color: var(--booking-tint-border, #E5E7EB);
+}
+.drawer.drawer--booking-tint .drawer-body {
+  background: transparent;
+}
+.drawer.drawer--booking-tint .drawer-footer {
+  background: var(--booking-tint-header, #fff);
+  border-top-color: var(--booking-tint-border, #E5E7EB);
+}
+.drawer.drawer--booking-tint .form-section {
+  background: var(--booking-tint-section, rgba(255, 255, 255, 0.72));
+  border-color: var(--booking-tint-border, #E5E7EB);
+}
 .flatpickr-calendar { z-index: 10050 !important; }
 .drawer .flatpickr-input[readonly] { cursor: pointer; background: #fff; }
 .drawer-header { padding: 20px; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; }

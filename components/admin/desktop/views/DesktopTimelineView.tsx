@@ -22,6 +22,7 @@ import {
   formatTimelineGuestChip,
   getTimelineFinBadge,
   getTimelineStatusClass,
+  getTimelineCustomColorStyle,
 } from "../bookingUtils";
 import {
   shiftDateKey,
@@ -135,6 +136,10 @@ type TimelineSelectionPointerSession = {
   startCell: HTMLElement;
   track: HTMLDivElement;
   selecting: boolean;
+  /** Android: tap-to-create without drag-select. */
+  androidTap?: boolean;
+  /** Android: finger moved past threshold → treat as scroll. */
+  scrolled?: boolean;
 };
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
@@ -757,12 +762,20 @@ export function DesktopTimelineView({
         touchSelectHoldTimerRef.current = null;
       }
       const session = selectionPointerSessionRef.current;
+      const androidTap =
+        Boolean(session?.androidTap) && !session?.scrolled && !session?.selecting;
+      const tapRoom = session?.startCell.dataset.room;
+      const tapDate = session?.startCell.dataset.date;
       const wasSelecting = Boolean(session?.selecting && isDraggingRef.current);
       selectionPointerSessionRef.current = null;
       setPointerSelectingRoom(null);
       clearSelectionMoveListeners();
       releaseTouchScrollLock();
       unlockBoardTouchPan();
+      if (androidTap && tapRoom && tapDate) {
+        onCreateBooking(tapRoom, tapDate, shiftDateKey(tapDate, 1));
+        return;
+      }
       if (wasSelecting) {
         finishDrag();
       }
@@ -771,11 +784,27 @@ export function DesktopTimelineView({
     const onPointerUp = (event: PointerEvent) => {
       const session = selectionPointerSessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
+      if (session.androidTap) {
+        commitSelectionSession();
+        return;
+      }
       if (session.selecting && isDraggingRef.current) {
         commitSelectionSession();
       } else {
         // Pending hold — finger up before arm = cancel, do nothing.
         abortSelectionSession();
+      }
+    };
+
+    const onAndroidTapMove = (event: PointerEvent) => {
+      const session = selectionPointerSessionRef.current;
+      if (!session?.androidTap || event.pointerId !== session.pointerId || session.scrolled) {
+        return;
+      }
+      const dx = event.clientX - session.startX;
+      const dy = event.clientY - session.startY;
+      if (Math.hypot(dx, dy) >= TOUCH_SELECT_MOVE_CANCEL_PX) {
+        session.scrolled = true;
       }
     };
 
@@ -791,6 +820,10 @@ export function DesktopTimelineView({
       const session = selectionPointerSessionRef.current;
       if (!session || session.touchId == null) return;
       if (!changedTouchMatches(event, session.touchId)) return;
+      if (session.androidTap) {
+        commitSelectionSession();
+        return;
+      }
       if (session.selecting && isDraggingRef.current) {
         commitSelectionSession();
       } else {
@@ -806,11 +839,13 @@ export function DesktopTimelineView({
     };
 
     document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointermove", onAndroidTapMove);
     document.addEventListener("pointercancel", onPointerCancel);
     document.addEventListener("touchend", onTouchEnd);
     document.addEventListener("touchcancel", onTouchCancel);
     return () => {
       document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointermove", onAndroidTapMove);
       document.removeEventListener("pointercancel", onPointerCancel);
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("touchcancel", onTouchCancel);
@@ -821,6 +856,7 @@ export function DesktopTimelineView({
     clearSelectionMoveListeners,
     releaseTouchScrollLock,
     unlockBoardTouchPan,
+    onCreateBooking,
   ]);
 
   useEffect(() => {
@@ -1551,11 +1587,7 @@ export function DesktopTimelineView({
       if (isBookingDraggingRef.current || moveSessionRef.current) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
-      // Android: no empty-cell date selection for new bookings — scroll/pan
-      // otherwise arms selection and opens the booking drawer by accident.
       const isTouch = event.pointerType !== "mouse";
-      if (isAndroid && isTouch) return;
-
       const cell = (event.target as HTMLElement).closest(
         ".timeline-cell[data-date][data-room]"
       ) as HTMLElement | null;
@@ -1569,6 +1601,29 @@ export function DesktopTimelineView({
       }
 
       const touchId = null as number | null;
+
+      // Android: tap-to-create (no drag-select). Scroll/pan cancels via 10px threshold.
+      if (isAndroid && isTouch) {
+        selectionPointerSessionRef.current = {
+          pointerId: event.pointerId,
+          pointerType: event.pointerType,
+          touchId,
+          roomName,
+          startX: event.clientX,
+          startY: event.clientY,
+          startCell: cell,
+          track: event.currentTarget,
+          selecting: false,
+          androidTap: true,
+          scrolled: false,
+        };
+        bindTouchIdWhenReady(event.clientX, event.clientY, (id) => {
+          const session = selectionPointerSessionRef.current;
+          if (!session || session.pointerId !== event.pointerId) return;
+          session.touchId = id;
+        });
+        return;
+      }
 
       selectionPointerSessionRef.current = {
         pointerId: event.pointerId,
@@ -1680,6 +1735,14 @@ export function DesktopTimelineView({
     const session = selectionPointerSessionRef.current;
     // Match by pointerId only — finger can drift onto another row while selecting.
     if (session?.pointerId === event.pointerId) {
+      if (session.androidTap) {
+        const dx = event.clientX - session.startX;
+        const dy = event.clientY - session.startY;
+        if (Math.hypot(dx, dy) >= TOUCH_SELECT_MOVE_CANCEL_PX) {
+          session.scrolled = true;
+        }
+        return;
+      }
       if (!session.selecting && session.pointerType !== "mouse") {
         const dx = event.clientX - session.startX;
         const dy = event.clientY - session.startY;
@@ -1927,6 +1990,7 @@ export function DesktopTimelineView({
                       : "none"
                     : undefined,
                   ...bookingBlockStyle,
+                  ...getTimelineCustomColorStyle(block.booking),
                 }}
                 aria-hidden={isDraggingCard || undefined}
                 onPointerDown={
@@ -2064,6 +2128,7 @@ export function DesktopTimelineView({
                 : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,
+            ...getTimelineCustomColorStyle(draggingBlockRef.current.booking),
           }}
         >
           {draggingBlockRef.current.extensions.map((ext, idx) => (
