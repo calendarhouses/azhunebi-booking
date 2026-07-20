@@ -99,11 +99,7 @@ export function DesktopBookingDrawer({
               }}
             />
           ) : null}
-          <BookingFormSectionHeading
-            compact
-            title="Статус броні"
-            description="Обери, на якому етапі зараз це бронювання — можна змінити в будь-який момент."
-          />
+          <BookingFormSectionHeading compact title="Статус броні" />
           <div className="status-toggle">
             {(["Нова бронь", "Очікує оплату", "Підтверджено", "Скасовано"] as const).map((status) => (
               <div
@@ -130,10 +126,7 @@ export function DesktopBookingDrawer({
           ) : null}
           <form id="adminBookingForm">
             <div className="form-section">
-              <BookingFormSectionHeading
-                title="Гість"
-                description="Вкажи імʼя, телефон і звідки прийшло бронювання — це побачиш у картці та в коментарі."
-              />
+              <BookingFormSectionHeading title="Гість" />
               <div className="form-grid">
                 <div className="form-group" style={{ gridColumn: "span 2" }}>
                   <label>Ім&apos;я та Прізвище:</label>
@@ -214,10 +207,7 @@ export function DesktopBookingDrawer({
             </div>
 
             <div className="form-section">
-              <BookingFormSectionHeading
-                title="Заїзд і опції"
-                description="Обери котедж, дати та перемикачі — від них залежить розрахунок у розшифровці нижче."
-              />
+              <BookingFormSectionHeading title="Заїзд і опції" />
               <div className="form-group">
                 <label>Номер / Котедж:</label>
                 <div className="custom-select-wrapper" id="cottageWrapper">
@@ -294,7 +284,6 @@ export function DesktopBookingDrawer({
                   compact
                   className="booking-form-section-heading--inset"
                   title="Гнучкий графік"
-                  description="Додай ранній заїзд або пізній виїзд, якщо домовлялись окремо з гостем."
                 />
                 <div className={`service-card${form.earlyCardActive ? " active" : ""}`} id="adminCardEarly">
                   <div className="srv-header" onClick={() => drawer.toggleAdminService("early")}>

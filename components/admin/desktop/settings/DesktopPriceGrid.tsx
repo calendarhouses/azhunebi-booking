@@ -1082,7 +1082,7 @@ export function DesktopPriceGrid({
   const monthRow = (
     <div className="timeline-months" id="priceMonths">
       <div className="timeline-month-cell" style={{ width: "100%" }}>
-        {monthLabel}
+        <span className="timeline-month-cell__label">{monthLabel}</span>
       </div>
     </div>
   );

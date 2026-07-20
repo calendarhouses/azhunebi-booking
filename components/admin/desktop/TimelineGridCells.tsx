@@ -6,6 +6,7 @@ import type { PointerEvent, ReactNode } from "react";
 export type TimelineGridCellProps = {
   dateString: string;
   isWeekend: boolean;
+  isToday: boolean;
   roomName: string;
   selectedClass: string;
   hoverClass: string;
@@ -17,6 +18,7 @@ function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps
   return (
     prev.dateString === next.dateString &&
     prev.isWeekend === next.isWeekend &&
+    prev.isToday === next.isToday &&
     prev.roomName === next.roomName &&
     prev.selectedClass === next.selectedClass &&
     prev.hoverClass === next.hoverClass &&
@@ -28,6 +30,7 @@ function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps
 export const TimelineGridCell = memo(function TimelineGridCell({
   dateString,
   isWeekend,
+  isToday,
   roomName,
   selectedClass,
   hoverClass,
@@ -36,7 +39,7 @@ export const TimelineGridCell = memo(function TimelineGridCell({
 }: TimelineGridCellProps) {
   return (
     <div
-      className={`timeline-cell${isWeekend ? " weekend" : ""}${isDraggingOver ? " timeline-cell--drag-hover" : ""} ${selectedClass} ${hoverClass}`.trim()}
+      className={`timeline-cell${isWeekend ? " weekend" : ""}${isToday ? " today" : ""}${isDraggingOver ? " timeline-cell--drag-hover" : ""} ${selectedClass} ${hoverClass}`.trim()}
       data-room={roomName}
       data-date={dateString}
       onMouseEnter={() => onMouseEnter(roomName, dateString)}
@@ -50,7 +53,7 @@ export type TimelineGridRowProps = {
   isVirtualTimeline: boolean;
   gridTotalWidth: number;
   virtualOffsetPx: number;
-  renderDays: { dateString: string; isWeekend: boolean }[];
+  renderDays: { dateString: string; isWeekend: boolean; isToday: boolean }[];
   selectionKey: string;
   hoverPreviewKey: string;
   selectedClassForDate: (roomName: string, dateString: string) => string;
@@ -129,6 +132,7 @@ export const TimelineGridRow = memo(function TimelineGridRow({
             key={day.dateString}
             dateString={day.dateString}
             isWeekend={day.isWeekend}
+            isToday={day.isToday}
             roomName={roomName}
             selectedClass={selectedClassForDate(roomName, day.dateString)}
             hoverClass={hoverClassForDate(roomName, day.dateString)}

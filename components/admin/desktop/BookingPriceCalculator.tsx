@@ -712,7 +712,6 @@ export function BookingPriceCalculator({
       <BookingFormSectionHeading
         accent
         title={`Розшифровка · ${computed.nights} ${nightWord(computed.nights)}`}
-        description="Перевір суму й за потреби зміни рядки вручну — цифри одразу оновлять «До сплати»."
       />
 
       <PriceLine

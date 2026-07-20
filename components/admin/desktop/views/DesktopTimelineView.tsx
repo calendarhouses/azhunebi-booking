@@ -1786,7 +1786,7 @@ export function DesktopTimelineView({
     >
       {monthBands.map((band, i) => (
         <div key={i} className="timeline-month-cell" style={{ width: band.width }}>
-          {band.label}
+          <span className="timeline-month-cell__label">{band.label}</span>
         </div>
       ))}
     </div>
@@ -1845,7 +1845,12 @@ export function DesktopTimelineView({
   );
 
   const renderDaysForCells = useMemo(
-    () => renderDays.map((day) => ({ dateString: day.dateString, isWeekend: day.isWeekend })),
+    () =>
+      renderDays.map((day) => ({
+        dateString: day.dateString,
+        isWeekend: day.isWeekend,
+        isToday: day.isToday,
+      })),
     [renderDays]
   );
 

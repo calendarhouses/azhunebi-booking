@@ -906,7 +906,7 @@ export function DesktopRestrictionsGrid({
   const monthRow = (
     <div className="timeline-months" id="restrictionMonths">
       <div className="timeline-month-cell" style={{ width: isMobile ? "100%" : gridTotalWidth }}>
-        {monthLabel}
+        <span className="timeline-month-cell__label">{monthLabel}</span>
       </div>
     </div>
   );

@@ -888,7 +888,34 @@
             flex-shrink: 0;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
         }
-        .timeline-month-cell { display: flex; align-items: center; justify-content: flex-start; padding-left: 15px; font-size: 12px; font-weight: 700; color: #4B5563; border-right: 1px solid #E5E7EB; text-transform: uppercase; letter-spacing: 0.5px;}
+        .timeline-month-cell {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding-left: 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: #4B5563;
+            border-right: 1px solid #E5E7EB;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .timeline-month-cell__label {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            display: inline-block;
+            max-width: 100%;
+            padding: 0 10px 0 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background: #F9FAFB;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
         
         .timeline-dates {
             display: flex;
@@ -929,6 +956,32 @@
         }
         .timeline-date.today { color: var(--accent); background: #EFF6FF; }
         .timeline-date.today span { color: var(--accent); }
+        .timeline-date.today::before,
+        .timeline-cell.today::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--accent);
+            pointer-events: none;
+            z-index: 3;
+        }
+        .timeline-cell.today {
+            background-image: linear-gradient(
+                to right,
+                rgba(85, 107, 47, 0.06),
+                rgba(85, 107, 47, 0.06)
+            );
+        }
+        .timeline-cell.today.weekend {
+            background-image: linear-gradient(
+                to right,
+                rgba(85, 107, 47, 0.08),
+                rgba(85, 107, 47, 0.08)
+            );
+        }
         .timeline-date.weekend { background: #F9FAFB; color: #EF4444; }
 
         .timeline-rows { position: relative; width: max-content; padding-bottom: 16px; }
@@ -1003,7 +1056,7 @@
             height: 100%; min-height: var(--timeline-row-height, 70px); align-self: stretch; box-sizing: border-box;
             transition: min-height 300ms ease-in-out;
         }
-        .timeline-cell.weekend { background: #F9FAFB; }
+        .timeline-cell.weekend { background-color: #F9FAFB; }
 
         /* Забороняємо виділяти текст, коли тягнемо мишкою */
         .timeline-wrapper {
