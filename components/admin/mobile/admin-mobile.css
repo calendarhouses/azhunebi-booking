@@ -2976,7 +2976,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1) !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content:not(.booking-inner-content--mobile-premium),
 .boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-dense {
   display: flex !important;
   flex-direction: row !important;
@@ -2985,6 +2985,18 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   gap: 4px !important;
   height: 100% !important;
   justify-content: flex-start !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Premium cards: column layout (name + sum/guests) even in dense/expanded grid */
+.boso-admin-mobile .timeline-wrapper--mobile-dense .booking-inner-content--mobile-premium {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  padding: 0 2px !important;
+  height: 100% !important;
   min-width: 0 !important;
   overflow: hidden !important;
 }
@@ -6464,12 +6476,12 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  flex: 0 1 auto !important;
-  flex-shrink: 1 !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
   gap: 3px !important;
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 0 !important;
+  min-height: 14px !important;
   max-height: none !important;
   overflow: hidden !important;
 }
@@ -6506,6 +6518,22 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   .booking-guest-chip {
   flex: 0 0 auto !important;
   flex-shrink: 0 !important;
+}
+
+.boso-admin-android .timeline-wrapper--mobile-dense .booking-inner-content--android-premium {
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
+
+.boso-admin-android
+  .timeline-wrapper--mobile-dense
+  .booking-inner-content--android-premium
+  .booking-mobile-meta-row {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  min-height: 14px !important;
 }
 
 /* Keep flexible-schedule stripes above card text */
