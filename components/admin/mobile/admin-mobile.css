@@ -821,7 +821,10 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 
 .booking-block.status-hutshub { background: linear-gradient(135deg, #C9D6D2 0%, #B2C4BE 100%); color: #1A332A; border-color: rgba(26, 51, 42, 0.15); }
-.booking-block .booking-guest-name { font-weight: 800 !important; }
+.booking-block .booking-guest-name {
+  font-weight: 800 !important;
+  color: var(--booking-card-fg, inherit);
+}
 .badge.hutshub { background-color: #C9D6D2; color: #1A332A; }
 
 /* --- ПРЕМІУМ-ІНДИКАТОРИ РАННЬОГО/ПІЗНЬОГО ЗАЇЗДУ --- */
@@ -3113,8 +3116,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   font-weight: 850 !important;
   line-height: 1.24 !important;
   letter-spacing: -0.01em !important;
-  color: rgba(28, 25, 23, 0.94) !important;
-  text-shadow: 0 1px 0 rgba(255,255,255,.2);
+  color: var(--booking-card-fg, inherit) !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -3361,7 +3363,7 @@ body.boso-grid-view .boso-admin-mobile .main-content {
   font-size: 11px !important;
   font-weight: 800 !important;
   line-height: 1.15 !important;
-  color: inherit !important;
+  color: var(--booking-card-fg, inherit) !important;
 }
 
 .boso-admin-mobile #adminCheckIn,

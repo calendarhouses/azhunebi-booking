@@ -256,20 +256,32 @@ export function resolveBookingAccentColor(
   return BOOKING_STATUS_ACCENT.default;
 }
 
-/** Inline стиль для ручного кольору (пріоритет над CSS статусу). */
+/** Inline стилі картки на шахматці: фон для custom_color + контрастний колір імені. */
+export function getTimelineBookingBlockStyle(booking: BookingRecord): CSSProperties {
+  const color = normalizeBookingCustomColor(booking.custom_color);
+  const fg = bookingColorForeground(color ?? resolveBookingAccentColor(booking));
+
+  if (color) {
+    return {
+      background: color,
+      backgroundImage: "none",
+      color: fg,
+      ["--booking-card-fg" as string]: fg,
+      borderColor: "transparent",
+      transition: "background-color 0.2s ease-in-out, color 0.2s ease-in-out",
+    };
+  }
+
+  return { ["--booking-card-fg" as string]: fg };
+}
+
+/** @deprecated Використовуйте getTimelineBookingBlockStyle */
 export function getTimelineCustomColorStyle(
   booking: BookingRecord
 ): CSSProperties | undefined {
   const color = normalizeBookingCustomColor(booking.custom_color);
   if (!color) return undefined;
-  const fg = bookingColorForeground(color);
-  return {
-    background: color,
-    backgroundImage: "none",
-    color: fg,
-    borderColor: "transparent",
-    transition: "background-color 0.2s ease-in-out, color 0.2s ease-in-out",
-  };
+  return getTimelineBookingBlockStyle(booking);
 }
 
 export function bookingHasEarlyLate(comment: string): { hasEarly: boolean; hasLate: boolean } {

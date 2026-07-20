@@ -22,7 +22,7 @@ import {
   formatTimelineGuestChip,
   getTimelineFinBadge,
   getTimelineStatusClass,
-  getTimelineCustomColorStyle,
+  getTimelineBookingBlockStyle,
 } from "../bookingUtils";
 import {
   shiftDateKey,
@@ -1933,7 +1933,7 @@ export function DesktopTimelineView({
                       : "none"
                     : undefined,
                   ...bookingBlockStyle,
-                  ...getTimelineCustomColorStyle(block.booking),
+                  ...getTimelineBookingBlockStyle(block.booking),
                 }}
                 aria-hidden={isDraggingCard || undefined}
                 onPointerDown={
@@ -2071,7 +2071,7 @@ export function DesktopTimelineView({
                 : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,
-            ...getTimelineCustomColorStyle(draggingBlockRef.current.booking),
+            ...getTimelineBookingBlockStyle(draggingBlockRef.current.booking),
           }}
         >
           {draggingBlockRef.current.extensions.map((ext, idx) => (

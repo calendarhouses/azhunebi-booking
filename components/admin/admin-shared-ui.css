@@ -1200,7 +1200,10 @@
             transition: none !important;
         }
 
-        .booking-block .booking-guest-name { font-weight: 800 !important; }
+        .booking-block .booking-guest-name {
+            font-weight: 800 !important;
+            color: var(--booking-card-fg, inherit);
+        }
 
         .booking-inner-content {
             position: relative;
