@@ -956,11 +956,14 @@
         }
         .timeline-date.today { color: var(--accent); background: #EFF6FF; }
         .timeline-date.today span { color: var(--accent); }
-        .timeline-date.today::before,
+        .timeline-date.today::before {
+            display: none;
+        }
         .timeline-cell.today::before {
             content: "";
             position: absolute;
-            left: 0;
+            left: 50%;
+            transform: translateX(-50%);
             top: 0;
             bottom: 0;
             width: 2px;

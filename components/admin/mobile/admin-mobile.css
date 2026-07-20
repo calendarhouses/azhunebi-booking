@@ -662,11 +662,14 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .timeline-date.today { color: var(--accent); background: #F0FDF4; }
 .timeline-date.today span { color: var(--accent); }
 .timeline-date.weekend { background: #FEF2F2; color: #DC2626; }
-.timeline-date.today::before,
+.timeline-date.today::before {
+  display: none;
+}
 .timeline-cell.today::before {
   content: "";
   position: absolute;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   top: 0;
   bottom: 0;
   width: 2px;
