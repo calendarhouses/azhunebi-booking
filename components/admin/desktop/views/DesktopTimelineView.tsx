@@ -143,6 +143,7 @@ type TimelineSelectionPointerSession = {
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
+const ANDROID_TOUCH_SELECT_HOLD_MS = 1200;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -1604,6 +1605,7 @@ export function DesktopTimelineView({
       }
 
       // Touch: long-press before selecting so pan/scroll stays free.
+      const holdMs = isAndroid ? ANDROID_TOUCH_SELECT_HOLD_MS : TOUCH_SELECT_HOLD_MS;
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         const session = selectionPointerSessionRef.current;
@@ -1624,9 +1626,10 @@ export function DesktopTimelineView({
         startTimelineSelection(roomName, session.startCell, session.startX, false);
         attachSelectionMoveListeners(session.pointerId, session.touchId);
         ensureDragFrame();
-      }, TOUCH_SELECT_HOLD_MS);
+      }, holdMs);
     },
     [
+      isAndroid,
       startTimelineSelection,
       acquireTouchScrollLock,
       attachSelectionMoveListeners,
