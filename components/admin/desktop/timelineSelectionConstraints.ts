@@ -241,6 +241,25 @@ export function resolveSelectionNightFromPointer(
   return isRightHalf ? cellDate : shiftDateKey(cellDate, -1);
 }
 
+/** Надійніший hit-test по X (без elementFromPoint — ламається на Android). */
+export function resolveTimelineCellFromClientX(
+  trackEl: HTMLElement,
+  clientX: number,
+  cellWidth: number,
+  days: { dateString: string }[]
+): { date: string; cellRect: Pick<DOMRect, "left" | "width"> } | null {
+  if (cellWidth <= 0 || days.length === 0) return null;
+  const rect = trackEl.getBoundingClientRect();
+  const x = clientX - rect.left;
+  if (x < 0) return null;
+  const index = Math.min(days.length - 1, Math.floor(x / cellWidth));
+  const cellLeft = rect.left + index * cellWidth;
+  return {
+    date: days[index].dateString,
+    cellRect: { left: cellLeft, width: cellWidth },
+  };
+}
+
 export function clampSelectionWithAnchor(
   anchor: string,
   moving: string,

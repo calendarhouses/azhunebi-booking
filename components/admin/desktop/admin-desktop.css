@@ -3816,6 +3816,9 @@
             cursor: pointer;
             padding: 0;
             flex-shrink: 0;
+            touch-action: manipulation;
+            -webkit-user-drag: none;
+            user-select: none;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
         .booking-color-picker__swatch:hover:not(:disabled) {

@@ -51,6 +51,7 @@ import {
   resolveHoverPreviewRange,
   resolveSelectionNightFromPointer,
   resolveSelectionStartFromPointer,
+  resolveTimelineCellFromClientX,
   snapMovedBookingDates,
 } from "../timelineSelectionConstraints";
 import { TIMELINE_CELL_BASE, useTimelineCellWidth } from "../timelineCellWidth";
@@ -142,8 +143,6 @@ type TimelineSelectionPointerSession = {
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
-/** Android: довший long-press, щоб не плутати зі скролом. */
-const ANDROID_TOUCH_SELECT_HOLD_MS = 1200;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -1516,20 +1515,25 @@ export function DesktopTimelineView({
   );
 
   const updateTimelineSelection = useCallback(
-    (roomName: string, clientX: number, clientY: number) => {
-      const cell = document
-        .elementFromPoint(clientX, clientY)
-        ?.closest(".timeline-cell[data-date][data-room]") as HTMLElement | null;
-      if (!cell || cell.dataset.room !== roomName) return;
+    (roomName: string, clientX: number, _clientY: number) => {
+      const session = selectionPointerSessionRef.current;
+      if (!session || session.roomName !== roomName) return;
 
-      const date = cell.dataset.date;
+      const hit = resolveTimelineCellFromClientX(
+        session.track,
+        clientX,
+        cellWidth,
+        renderDays
+      );
+      if (!hit) return;
+
       const anchor = dragAnchorRef.current;
-      if (!date || !anchor) return;
+      if (!anchor) return;
 
       const movingNight = resolveSelectionNightFromPointer(
-        date,
+        hit.date,
         clientX,
-        cell.getBoundingClientRect()
+        hit.cellRect
       );
       const constraints = constraintsByRoom.get(roomName);
       const next = constraints
@@ -1547,7 +1551,7 @@ export function DesktopTimelineView({
       setDragStart(next.start);
       setDragEnd(next.end);
     },
-    [constraintsByRoom]
+    [constraintsByRoom, cellWidth, renderDays]
   );
   updateTimelineSelectionRef.current = updateTimelineSelection;
 
@@ -1599,8 +1603,7 @@ export function DesktopTimelineView({
         return;
       }
 
-      // Touch: long-press before selecting so pan/scroll stays free (Android — довше).
-      const holdMs = isAndroid ? ANDROID_TOUCH_SELECT_HOLD_MS : TOUCH_SELECT_HOLD_MS;
+      // Touch: long-press before selecting so pan/scroll stays free.
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         const session = selectionPointerSessionRef.current;
@@ -1621,10 +1624,9 @@ export function DesktopTimelineView({
         startTimelineSelection(roomName, session.startCell, session.startX, false);
         attachSelectionMoveListeners(session.pointerId, session.touchId);
         ensureDragFrame();
-      }, holdMs);
+      }, TOUCH_SELECT_HOLD_MS);
     },
     [
-      isAndroid,
       startTimelineSelection,
       acquireTouchScrollLock,
       attachSelectionMoveListeners,
