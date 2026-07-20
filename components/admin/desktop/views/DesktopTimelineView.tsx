@@ -136,14 +136,14 @@ type TimelineSelectionPointerSession = {
   startCell: HTMLElement;
   track: HTMLDivElement;
   selecting: boolean;
-  /** Android: tap-to-create without drag-select. */
-  androidTap?: boolean;
   /** Android: finger moved past threshold → treat as scroll. */
   scrolled?: boolean;
 };
 
 /** Touch must hold this long on a cell before selection starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
+/** Android: довший long-press, щоб не плутати зі скролом. */
+const ANDROID_TOUCH_SELECT_HOLD_MS = 1200;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
@@ -762,20 +762,12 @@ export function DesktopTimelineView({
         touchSelectHoldTimerRef.current = null;
       }
       const session = selectionPointerSessionRef.current;
-      const androidTap =
-        Boolean(session?.androidTap) && !session?.scrolled && !session?.selecting;
-      const tapRoom = session?.startCell.dataset.room;
-      const tapDate = session?.startCell.dataset.date;
       const wasSelecting = Boolean(session?.selecting && isDraggingRef.current);
       selectionPointerSessionRef.current = null;
       setPointerSelectingRoom(null);
       clearSelectionMoveListeners();
       releaseTouchScrollLock();
       unlockBoardTouchPan();
-      if (androidTap && tapRoom && tapDate) {
-        onCreateBooking(tapRoom, tapDate, shiftDateKey(tapDate, 1));
-        return;
-      }
       if (wasSelecting) {
         finishDrag();
       }
@@ -784,27 +776,11 @@ export function DesktopTimelineView({
     const onPointerUp = (event: PointerEvent) => {
       const session = selectionPointerSessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
-      if (session.androidTap) {
-        commitSelectionSession();
-        return;
-      }
       if (session.selecting && isDraggingRef.current) {
         commitSelectionSession();
       } else {
         // Pending hold — finger up before arm = cancel, do nothing.
         abortSelectionSession();
-      }
-    };
-
-    const onAndroidTapMove = (event: PointerEvent) => {
-      const session = selectionPointerSessionRef.current;
-      if (!session?.androidTap || event.pointerId !== session.pointerId || session.scrolled) {
-        return;
-      }
-      const dx = event.clientX - session.startX;
-      const dy = event.clientY - session.startY;
-      if (Math.hypot(dx, dy) >= TOUCH_SELECT_MOVE_CANCEL_PX) {
-        session.scrolled = true;
       }
     };
 
@@ -820,10 +796,6 @@ export function DesktopTimelineView({
       const session = selectionPointerSessionRef.current;
       if (!session || session.touchId == null) return;
       if (!changedTouchMatches(event, session.touchId)) return;
-      if (session.androidTap) {
-        commitSelectionSession();
-        return;
-      }
       if (session.selecting && isDraggingRef.current) {
         commitSelectionSession();
       } else {
@@ -839,13 +811,11 @@ export function DesktopTimelineView({
     };
 
     document.addEventListener("pointerup", onPointerUp);
-    document.addEventListener("pointermove", onAndroidTapMove);
     document.addEventListener("pointercancel", onPointerCancel);
     document.addEventListener("touchend", onTouchEnd);
     document.addEventListener("touchcancel", onTouchCancel);
     return () => {
       document.removeEventListener("pointerup", onPointerUp);
-      document.removeEventListener("pointermove", onAndroidTapMove);
       document.removeEventListener("pointercancel", onPointerCancel);
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("touchcancel", onTouchCancel);
@@ -856,7 +826,6 @@ export function DesktopTimelineView({
     clearSelectionMoveListeners,
     releaseTouchScrollLock,
     unlockBoardTouchPan,
-    onCreateBooking,
   ]);
 
   useEffect(() => {
@@ -1602,29 +1571,6 @@ export function DesktopTimelineView({
 
       const touchId = null as number | null;
 
-      // Android: tap-to-create (no drag-select). Scroll/pan cancels via 10px threshold.
-      if (isAndroid && isTouch) {
-        selectionPointerSessionRef.current = {
-          pointerId: event.pointerId,
-          pointerType: event.pointerType,
-          touchId,
-          roomName,
-          startX: event.clientX,
-          startY: event.clientY,
-          startCell: cell,
-          track: event.currentTarget,
-          selecting: false,
-          androidTap: true,
-          scrolled: false,
-        };
-        bindTouchIdWhenReady(event.clientX, event.clientY, (id) => {
-          const session = selectionPointerSessionRef.current;
-          if (!session || session.pointerId !== event.pointerId) return;
-          session.touchId = id;
-        });
-        return;
-      }
-
       selectionPointerSessionRef.current = {
         pointerId: event.pointerId,
         pointerType: event.pointerType,
@@ -1653,8 +1599,8 @@ export function DesktopTimelineView({
         return;
       }
 
-      // Touch (iOS): wait for long-press before selecting so pan/scroll stays free.
-      const holdMs = TOUCH_SELECT_HOLD_MS;
+      // Touch: long-press before selecting so pan/scroll stays free (Android — довше).
+      const holdMs = isAndroid ? ANDROID_TOUCH_SELECT_HOLD_MS : TOUCH_SELECT_HOLD_MS;
       touchSelectHoldTimerRef.current = setTimeout(() => {
         touchSelectHoldTimerRef.current = null;
         const session = selectionPointerSessionRef.current;
@@ -1735,14 +1681,6 @@ export function DesktopTimelineView({
     const session = selectionPointerSessionRef.current;
     // Match by pointerId only — finger can drift onto another row while selecting.
     if (session?.pointerId === event.pointerId) {
-      if (session.androidTap) {
-        const dx = event.clientX - session.startX;
-        const dy = event.clientY - session.startY;
-        if (Math.hypot(dx, dy) >= TOUCH_SELECT_MOVE_CANCEL_PX) {
-          session.scrolled = true;
-        }
-        return;
-      }
       if (!session.selecting && session.pointerType !== "mouse") {
         const dx = event.clientX - session.startX;
         const dy = event.clientY - session.startY;

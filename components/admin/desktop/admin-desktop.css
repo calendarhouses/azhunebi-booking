@@ -3800,10 +3800,10 @@
             margin-bottom: 12px;
         }
         .booking-color-picker__row {
-            display: grid;
-            grid-template-columns: repeat(6, 28px);
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
             gap: 10px;
-            justify-content: start;
         }
         .booking-color-picker__swatch {
             width: 28px;

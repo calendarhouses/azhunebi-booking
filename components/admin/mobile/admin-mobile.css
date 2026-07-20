@@ -872,8 +872,14 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   padding-bottom: 14px;
 }
 .boso-admin-mobile .booking-color-picker__row {
-  grid-template-columns: repeat(6, 32px);
-  gap: 12px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.boso-admin-mobile .booking-color-picker__row::-webkit-scrollbar {
+  display: none;
 }
 .boso-admin-mobile .booking-color-picker__swatch {
   width: 32px;
@@ -1467,27 +1473,21 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     -webkit-touch-callout: none;
 }
 
-/* Преміум підсвітка (використовуємо inset тіні замість border, щоб не ламало краї) */
+/* Преміум підсвітка — повна рамка клітинки */
 .timeline-cell.cell-selected {
-    background-color: rgba(85, 107, 47, 0.15) !important;
-    box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent) !important;
+    background-color: rgba(85, 107, 47, 0.12) !important;
+    box-shadow: inset 0 0 0 3px var(--accent) !important;
     z-index: 5;
 }
-/* Закруглюємо краї на початку і в кінці виділення */
-.timeline-cell.cell-selected-start { 
-    box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent), inset 2px 0 0 var(--accent) !important;
-    border-top-left-radius: 8px !important; 
-    border-bottom-left-radius: 8px !important; 
+.timeline-cell.cell-selected-start,
+.timeline-cell.cell-selected-end,
+.timeline-cell.cell-selected-tail {
+    box-shadow: inset 0 0 0 3px var(--accent) !important;
+    border-radius: 6px !important;
 }
-.timeline-cell.cell-selected-end { 
-    box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent), inset -2px 0 0 var(--accent) !important;
-    border-top-right-radius: 8px !important; 
-    border-bottom-right-radius: 8px !important; 
-}
-/* Якщо виділено лише один день */
 .timeline-cell.cell-selected-start.cell-selected-end {
-    box-shadow: inset 0 0 0 2px var(--accent) !important;
-    border-radius: 8px !important;
+    box-shadow: inset 0 0 0 3px var(--accent) !important;
+    border-radius: 6px !important;
 }
 
 /* Sticky house names stay above selection while panning */
@@ -6281,12 +6281,63 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   background: #F9FAFB !important;
 }
 
-.boso-admin-android .timeline-mobile-dates,
+.boso-admin-android .timeline-mobile-dates {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 15 !important;
+  background: #fff !important;
+  overflow: hidden !important;
+}
+
+/* Android: дати і сітка — однакова ширина колонок (без зсуву ліній) */
+.boso-admin-android .timeline-mobile-dates .timeline-months,
+.boso-admin-android .timeline-mobile-dates .timeline-dates,
+.boso-admin-android .timeline-mobile-dates .timeline-track-window,
+.boso-admin-android .timeline-mobile-cells .timeline-row-bg,
+.boso-admin-android .timeline-mobile-cells .timeline-track-window {
+  width: var(--timeline-grid-width) !important;
+  min-width: var(--timeline-grid-width) !important;
+  max-width: var(--timeline-grid-width) !important;
+  flex: 0 0 var(--timeline-grid-width) !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-android .timeline-mobile-dates .timeline-date,
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-cell {
+  flex: 0 0 var(--timeline-cell-width, 60px) !important;
+  width: var(--timeline-cell-width, 60px) !important;
+  min-width: var(--timeline-cell-width, 60px) !important;
+  max-width: var(--timeline-cell-width, 60px) !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-android .timeline-mobile-dates .timeline-dates .timeline-track-window,
+.boso-admin-android .timeline-mobile-cells .timeline-track-window {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+}
+
 .boso-admin-ios .timeline-mobile-dates {
   position: sticky !important;
   top: 0 !important;
   z-index: 15 !important;
   background: #fff !important;
+}
+
+/* Мобільна шахматка: повна рамка виділення (не смужки ::before з desktop) */
+.boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected,
+.boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-start,
+.boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-end,
+.boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-tail {
+  background-color: rgba(85, 107, 47, 0.12) !important;
+  box-shadow: inset 0 0 0 3px var(--accent) !important;
+  border-radius: 6px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected::before,
+.boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-tail::before {
+  display: none !important;
+  content: none !important;
 }
 
 /* —— Android: booking cards fill the full row (same as drag float) —— */
