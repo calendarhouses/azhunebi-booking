@@ -219,18 +219,8 @@ export function TimelineBookingCardContent({
       0,
       block.width - (compact ? 10 : 14) - flexibleInset
     );
-    const nameMinWidth = androidPremium
-      ? block.nights === 2
-        ? 40
-        : 48
-      : block.nights === 2
-        ? 78
-        : 82;
-    // 3+ nights: always show name (ellipsis if long). Sum + guests always stay.
-    const showName =
-      !isOneNight &&
-      Boolean(name) &&
-      (block.nights >= 3 || androidPremium || effectiveWidth >= nameMinWidth);
+    // 2+ nights: always show name (ellipsis if narrow). 1-night: meta only.
+    const showName = !isOneNight && Boolean(name);
     const textOnlyGuests = isOneNight || effectiveWidth < (androidPremium ? 72 : 100);
     const amount = block.finText.replace(/\s*(грн|₴)\s*$/i, "").trim();
     const mobileFinText =
