@@ -979,6 +979,46 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     color: #6B7280;
     line-height: 1.45;
 }
+
+/* Premium nightly breakdown + breathing room for discount rows */
+.boso-admin-mobile .booking-nightly-breakdown {
+  margin-top: 14px !important;
+  border-radius: 18px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__head {
+  padding: 14px 14px 12px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__list {
+  padding: 10px 10px 12px !important;
+  gap: 7px !important;
+  max-height: 240px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__row {
+  padding: 11px 12px !important;
+  border-radius: 14px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__total {
+  padding: 14px 14px 16px !important;
+}
+.boso-admin-mobile .booking-discount-breakdown {
+  margin-top: 18px !important;
+  padding-top: 18px !important;
+  gap: 12px !important;
+}
+.boso-admin-mobile .booking-discount-line {
+  padding: 14px 14px !important;
+  border-radius: 14px !important;
+  align-items: flex-start !important;
+}
+.boso-admin-mobile .booking-discount-line__label {
+  flex-wrap: wrap !important;
+  row-gap: 6px !important;
+  align-items: center !important;
+}
+.boso-admin-mobile .booking-discount-line__edit {
+  margin-top: 2px !important;
+}
+
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 13px; font-weight: 600; color: #4B5563; margin-bottom: 8px; }
 .form-group input, .form-group select { width: 100%; padding: 14px 16px; border: 1px solid #D1D5DB; border-radius: 12px; font-size: 15px; background: #F9FAFB; outline: none; }

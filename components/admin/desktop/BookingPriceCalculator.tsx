@@ -1139,7 +1139,7 @@ function PriceLine({
   onChange: (value: number) => void;
 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}>
       <span
         style={{
           display: "flex",
