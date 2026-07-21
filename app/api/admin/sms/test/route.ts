@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/admin/verifyAdminRequest";
 import { isTurboSmsConfigured } from "@/lib/sms/config";
-import { sendTurboSms } from "@/lib/sms/turbosms";
+import { sendTurboSms, fetchTurboSmsMessageDetails } from "@/lib/sms/turbosms";
 import {
   type SmsTemplateId,
   normalizeSmsSettings,
@@ -87,7 +87,24 @@ export async function POST(request: Request) {
     pricePerSegment: settings.pricePerSegment,
   });
 
-  const persisted = await persistSmsJournalEntryAdmin(entry, {
+  let enrichedEntry = entry;
+  if (result.ok && result.messageId) {
+    const details = await fetchTurboSmsMessageDetails([result.messageId]);
+    const detail = details.details?.[0];
+    if (detail?.status) {
+      enrichedEntry = {
+        ...entry,
+        deliveryStatus: detail.status,
+        deliveryTime: detail.status_time,
+        costEstimate: detail.cost ?? entry.costEstimate,
+        segments: detail.parts ?? entry.segments,
+      };
+    } else {
+      enrichedEntry = { ...entry, deliveryStatus: "Queued" };
+    }
+  }
+
+  const persisted = await persistSmsJournalEntryAdmin(enrichedEntry, {
     authToken: extractBearerToken(request),
     tenantId,
   });
@@ -101,7 +118,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         error: result.error || result.responseStatus,
-        journal: entry,
+        journal: enrichedEntry,
         journalPersisted: persisted.ok,
       },
       { status: 502 },
@@ -112,7 +129,7 @@ export async function POST(request: Request) {
     ok: true,
     messageId: result.messageId,
     responseStatus: result.responseStatus,
-    journal: entry,
+    journal: enrichedEntry,
     journalPersisted: persisted.ok,
     journalAll: persisted.journal,
   });

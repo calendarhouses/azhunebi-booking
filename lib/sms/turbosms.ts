@@ -4,12 +4,42 @@ const API_BASE = "https://api.turbosms.ua";
 
 export type TurboSmsMessageDetail = {
   message_id: string;
-  phone?: string;
   status?: string;
   status_time?: string;
   cost?: number;
   parts?: number;
+  sent?: string | null;
+  api_ok?: boolean;
+  api_error?: string;
 };
+
+type TurboSmsDetailsApiRow = {
+  message_id?: string;
+  sms?: {
+    status?: string;
+    updated?: string;
+    price?: number;
+    segments?: number;
+    sent?: string | null;
+  } | null;
+  response_code?: number;
+  response_status?: string;
+};
+
+function parseTurboSmsDetailRow(row: TurboSmsDetailsApiRow): TurboSmsMessageDetail | null {
+  const messageId = row.message_id?.trim();
+  if (!messageId) return null;
+  return {
+    message_id: messageId,
+    status: row.sms?.status,
+    status_time: row.sms?.updated,
+    cost: row.sms?.price,
+    parts: row.sms?.segments,
+    sent: row.sms?.sent ?? null,
+    api_ok: row.response_code === 0,
+    api_error: row.response_code !== 0 ? row.response_status : undefined,
+  };
+}
 
 export async function fetchTurboSmsMessageDetails(messageIds: string[]): Promise<{
   ok: boolean;
@@ -34,7 +64,7 @@ export async function fetchTurboSmsMessageDetails(messageIds: string[]): Promise
 
   const data = (await res.json().catch(() => null)) as {
     response_code?: number;
-    response_result?: TurboSmsMessageDetail[] | null;
+    response_result?: TurboSmsDetailsApiRow[] | null;
   } | null;
 
   if (!data || data.response_code !== 0) {
@@ -46,7 +76,11 @@ export async function fetchTurboSmsMessageDetails(messageIds: string[]): Promise
     };
   }
 
-  return { ok: true, details: data.response_result ?? [] };
+  const details = (data.response_result ?? [])
+    .map(parseTurboSmsDetailRow)
+    .filter((row): row is TurboSmsMessageDetail => row != null);
+
+  return { ok: true, details };
 }
 
 export type TurboSmsSendResult = {

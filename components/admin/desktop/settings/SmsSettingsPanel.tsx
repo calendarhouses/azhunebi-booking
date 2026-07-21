@@ -33,6 +33,10 @@ import {
   type SmsTemplateId,
 } from "@/lib/sms/smsSettings";
 import { countSmsSegments, estimateSmsCost } from "@/lib/sms/smsSegments";
+import {
+  SmsJournalStatusBadge,
+  hasPendingSmsDeliveries,
+} from "./SmsJournalStatusBadge";
 import "./settings-sms.css";
 
 const TURBOSMS_CABINET_URL = "https://turbosms.ua/";
@@ -226,6 +230,18 @@ export function SmsSettingsPanel({
     void loadJournal(true);
   }, [isActive, subView, loadJournal]);
 
+  /** Auto-refresh pending deliveries every 8s while journal tab is open */
+  useEffect(() => {
+    if (!isActive || subView !== "journal") return;
+    if (!hasPendingSmsDeliveries(journal)) return;
+
+    const timer = window.setInterval(() => {
+      void loadJournal(true);
+    }, 8000);
+
+    return () => window.clearInterval(timer);
+  }, [isActive, subView, journal, loadJournal]);
+
   const patchForm = useCallback((patch: Partial<Omit<SmsSettings, "journal">>) => {
     dirtyRef.current = true;
     setForm((prev) => ({ ...prev, ...patch }));
@@ -326,6 +342,7 @@ export function SmsSettingsPanel({
         } else if (data.journal) {
           setJournal((prev) => mergeSmsJournal(prev, [data.journal!]));
         }
+        void loadJournal(true);
         if (data.journalPersisted === false) {
           showToast("SMS надіслано, але журнал не збережено — спробуйте ще раз");
         }
@@ -662,7 +679,7 @@ export function SmsSettingsPanel({
               disabled={journalLoading}
             >
               <RefreshCw size={16} className={journalLoading ? "sms-spin" : undefined} />
-              Оновити статуси
+              {hasPendingSmsDeliveries(journal) ? "Оновлюємо статуси…" : "Оновити статуси"}
             </button>
           </header>
 
@@ -712,19 +729,20 @@ export function SmsSettingsPanel({
                 <li key={entry.id} className={`sms-journal__item ${entry.ok ? "is-ok" : "is-fail"}`}>
                   <div className="sms-journal__top">
                     <span className="sms-pill">{TYPE_LABELS[entry.type]}</span>
+                    <SmsJournalStatusBadge entry={entry} />
                     <time dateTime={entry.at}>{formatJournalTime(entry.at)}</time>
                     <span className="sms-journal__phone">{entry.phone}</span>
-                    <span className={`sms-journal__status ${entry.ok ? "is-ok" : "is-fail"}`}>
-                      {entry.ok ? entry.deliveryStatus || "надіслано" : entry.error || "помилка"}
-                    </span>
                   </div>
                   <p className="sms-journal__text">{entry.text}</p>
                   <div className="sms-journal__foot">
                     {entry.segments != null ? <span>{entry.segments} сегм.</span> : null}
                     {entry.costEstimate != null ? (
-                      <span>~{formatMoney(entry.costEstimate)}</span>
+                      <span>{formatMoney(entry.costEstimate)}</span>
                     ) : null}
                     {entry.bookingId ? <span>#{entry.bookingId}</span> : null}
+                    {entry.deliveryTime ? (
+                      <span className="sms-journal__updated">оновлено {entry.deliveryTime}</span>
+                    ) : null}
                   </div>
                 </li>
               ))}
