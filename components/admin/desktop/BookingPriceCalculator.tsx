@@ -20,6 +20,7 @@ import {
 import { formatFlexibleScheduleCardLabel } from "@/lib/admin/flexibleSchedule";
 import type { AdminSettingsPayload, BookingPayment, BookingRecord } from "./types";
 import { PaymentJournalSection } from "./PaymentJournalSection";
+import { IntegerAmountInput } from "../shared/IntegerAmountInput";
 import {
   applyManualDiscountOverrides,
   calculateTotal,
@@ -69,7 +70,7 @@ export interface BookingPriceCalculatorProps {
   onScheduleLabelsChange?: (labels: SchedulePriceLabels) => void;
   onPricingSnapshotChange?: (snapshot: BookingPricingSnapshot | null) => void;
   onStatusFromPayment?: (
-    status: "Нова бронь" | "Очікує оплату" | "Підтверджено"
+    status: "Очікує оплату" | "Підтверджено"
   ) => void;
   initialPrepay?: number;
   initialSurcharge?: number;
@@ -112,7 +113,7 @@ export function BookingPriceCalculator({
   initialSurcharge = 0,
   initialPrepayMethod = "ФОП",
   initialSurchargeMethod = "Готівка",
-  bookingStatus = "Нова бронь",
+  bookingStatus = "Очікує оплату",
 }: BookingPriceCalculatorProps) {
   const isMobile = useMobileUi();
   const prevFormRef = useRef<FormStateSnapshot | null>(null);
@@ -512,12 +513,7 @@ export function BookingPriceCalculator({
   useEffect(() => {
     if (bookingStatus === "Скасовано") return;
     const paid = prepay + surcharge;
-    const next =
-      paid > 0
-        ? "Підтверджено"
-        : bookingStatus === "Очікує оплату"
-          ? "Очікує оплату"
-          : "Нова бронь";
+    const next = paid > 0 ? "Підтверджено" : "Очікує оплату";
     if (paymentStatusRef.current === next) return;
     paymentStatusRef.current = next;
     onStatusFromPayment?.(next);
@@ -919,12 +915,10 @@ export function BookingPriceCalculator({
           <label style={{ color: "var(--accent)", fontWeight: 700, fontSize: 14 }}>
             До сплати (загальна вартість):
           </label>
-          <input
-            type="number"
-            inputMode="numeric"
+          <IntegerAmountInput
             id="adminTotalPrice"
             value={displayTotal}
-            onChange={(e) => setTotalOverride(Number(e.target.value) || 0)}
+            onValueChange={(n) => setTotalOverride(n)}
             style={{
               fontWeight: 800,
               fontSize: 18,
@@ -946,12 +940,10 @@ export function BookingPriceCalculator({
             <div className="pay-row-block">
               <label>Передплата:</label>
               <div className="pay-amount-inwrap">
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <IntegerAmountInput
                   id="adminPrepayAmount"
                   value={prepay}
-                  onChange={(e) => onPrepayChange(Number(e.target.value) || 0)}
+                  onValueChange={onPrepayChange}
                 />
                 <button
                   type="button"
@@ -972,12 +964,10 @@ export function BookingPriceCalculator({
             <div className="pay-row-block">
               <label>Доплата на місці:</label>
               <div className="pay-amount-inwrap">
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <IntegerAmountInput
                   id="adminSurchargeAmount"
                   value={surcharge}
-                  onChange={(e) => onSurchargeChange(Number(e.target.value) || 0)}
+                  onValueChange={onSurchargeChange}
                 />
                 <button
                   type="button"

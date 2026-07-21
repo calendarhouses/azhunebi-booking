@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MobileSheetHeader } from "./MobileSheetHeader";
+import {
+  parseIntegerAmountInput,
+  sanitizeIntegerAmountInput,
+} from "@/lib/admin/integerAmountInput";
 
 export interface BookingQuickEditDrawerProps {
   open: boolean;
@@ -80,12 +84,13 @@ export function BookingQuickEditDrawer({
             Сума (грн)
           </label>
           <input
-            type="number"
+            type="text"
             inputMode="numeric"
             pattern="[0-9]*"
             id="qeInput"
+            autoComplete="off"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => setDraft(sanitizeIntegerAmountInput(e.target.value))}
             autoFocus
             style={{
               fontSize: 32,
@@ -115,7 +120,7 @@ export function BookingQuickEditDrawer({
               type="button"
               className="btn-primary"
               onClick={() => {
-                let next = Math.max(0, Math.round(Number(draft) || 0));
+                let next = Math.max(0, parseIntegerAmountInput(draft));
                 if (maxAmount !== undefined && Number.isFinite(maxAmount)) {
                   next = Math.min(next, Math.max(0, Math.round(maxAmount)));
                 }

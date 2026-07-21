@@ -2,6 +2,7 @@
 
 import { getCategoryIconPath } from "../desktop/reports/financeCategoryIcons";
 import type { useReportsAnalytics } from "../desktop/reports/useReportsAnalytics";
+import { sanitizeIntegerAmountInput } from "@/lib/admin/integerAmountInput";
 
 type ReportsApi = ReturnType<typeof useReportsAnalytics>;
 
@@ -144,12 +145,17 @@ export function FinanceMobileTable({ r }: FinanceMobileTableProps) {
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Сума (грн)</label>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
                     id={`editAmt-${row.id}`}
                     value={r.editDraft.amount}
-                    min={1}
-                    onChange={(e) => r.setEditDraft({ ...r.editDraft!, amount: e.target.value })}
+                    autoComplete="off"
+                    onChange={(e) =>
+                      r.setEditDraft({
+                        ...r.editDraft!,
+                        amount: sanitizeIntegerAmountInput(e.target.value),
+                      })
+                    }
                     style={{ fontWeight: 800, fontSize: 18, color, background: "#FFF", width: "100%" }}
                   />
                 </div>

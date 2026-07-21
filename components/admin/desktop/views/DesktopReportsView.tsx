@@ -12,6 +12,7 @@ import { useReportsAnalytics } from "../reports/useReportsAnalytics";
 import { useAnimatedMetric } from "../reports/useAnimatedMetric";
 import { AnalyticsDetailsDrawer } from "../reports/AnalyticsDetailsDrawer";
 import { createFlatpickr } from "../flatpickrAdmin";
+import { sanitizeIntegerAmountInput } from "@/lib/admin/integerAmountInput";
 
 const CUSTOM_SERVICE_CARD_COLORS = [
   { color: "#B45309", bg: "#FFEDD5" },
@@ -761,12 +762,16 @@ export function DesktopReportsView({
                                     <div className="form-group">
                                       <label>Сума (грн)</label>
                                       <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
                                         id={`editAmt-${row.id}`}
                                         value={r.editDraft.amount}
-                                        min={1}
+                                        autoComplete="off"
                                         onChange={(e) =>
-                                          r.setEditDraft({ ...r.editDraft!, amount: e.target.value })
+                                          r.setEditDraft({
+                                            ...r.editDraft!,
+                                            amount: sanitizeIntegerAmountInput(e.target.value),
+                                          })
                                         }
                                         style={{ fontWeight: 800, fontSize: 20, color }}
                                       />
@@ -886,15 +891,19 @@ export function DesktopReportsView({
                           <div className="form-group">
                             <label>Сума (грн)</label>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="numeric"
                               id={`itAmt-${idx}`}
                               placeholder="0"
-                              min={1}
+                              autoComplete="off"
                               value={draft.amount}
                               onChange={(e) =>
                                 r.setInlineDrafts((d) => ({
                                   ...d,
-                                  [idx]: { ...draft, amount: e.target.value },
+                                  [idx]: {
+                                    ...draft,
+                                    amount: sanitizeIntegerAmountInput(e.target.value),
+                                  },
                                 }))
                               }
                               style={{ fontWeight: 800, fontSize: 20, color: cardColor }}

@@ -78,7 +78,7 @@ export function calculateBalanceLive(): void {
     if (paid > 0) {
       document.querySelector('.status-btn[data-status="Підтверджено"]')?.classList.add("active");
     } else {
-      document.querySelector('.status-btn[data-status="Нова бронь"]')?.classList.add("active");
+      document.querySelector('.status-btn[data-status="Очікує оплату"]')?.classList.add("active");
     }
   }
 }

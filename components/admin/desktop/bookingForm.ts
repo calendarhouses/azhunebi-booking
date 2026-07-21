@@ -74,7 +74,7 @@ export function collectBookingFromForm(
   formDates?: { checkIn?: string; checkOut?: string }
 ): Record<string, unknown> {
   const statusBtn = document.querySelector(".status-btn.active");
-  const status = statusBtn?.getAttribute("data-status") || "Нова бронь";
+  const status = statusBtn?.getAttribute("data-status") || "Очікує оплату";
 
   const prepay = getFormVal("adminPrepayAmount");
   const surcharge = getFormVal("adminSurchargeAmount");
@@ -308,7 +308,7 @@ export function buildBookingRecordFromSave(
     roomId: bookingData.roomId as number | string | undefined,
     assignmentState:
       bookingData.assignmentState === "holding" ? "holding" : "assigned",
-    status: String(bookingData.status || "Нова бронь"),
+    status: String(bookingData.status || "Очікує оплату"),
     name: String(bookingData.name || ""),
     phone: String(bookingData.phone || ""),
     guests: (() => {

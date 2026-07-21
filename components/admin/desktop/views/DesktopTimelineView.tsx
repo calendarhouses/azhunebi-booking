@@ -481,9 +481,15 @@ export function DesktopTimelineView({
   }, [isBookingDragging]);
 
   const syncFocusHeadTrack = useCallback((scrollLeft: number) => {
+    const head = gridHeadScrollRef.current;
+    if (head && head.scrollLeft !== scrollLeft) {
+      head.scrollLeft = scrollLeft;
+    }
     const track = headTrackRef.current;
-    if (!track) return;
-    track.style.transform = `translate3d(${-scrollLeft}px, 0, 0)`;
+    if (track) {
+      // Keep transform cleared — sticky month labels need a real scrollport, not translate3d.
+      track.style.transform = "";
+    }
   }, []);
 
   const days = useMemo(() => buildDays(startDate, daysCount), [startDate, daysCount]);

@@ -6,6 +6,8 @@ import type { BookingPayment } from "./types";
 import { createFlatpickr, type FlatpickrInstance } from "./flatpickrAdmin";
 import { closeCustomConfirm, openCustomConfirm } from "./reports/confirmDialog";
 import { formatDateIso } from "@/lib/admin/bookingPayments";
+import { IntegerAmountInput } from "../shared/IntegerAmountInput";
+import { parseIntegerAmountInput } from "@/lib/admin/integerAmountInput";
 
 const METHOD_OPTS = [
   { value: "ФОП", label: "ФОП" },
@@ -227,7 +229,14 @@ export function PaymentJournalSection({
       onChange(
         payments.map((p, i) => {
           if (i !== idx) return p;
-          if (field === "amount") return { ...p, amount: Math.round(Number(val) || 0) };
+          if (field === "amount") {
+            return {
+              ...p,
+              amount: Math.round(
+                typeof val === "number" ? val : parseIntegerAmountInput(String(val), true)
+              ),
+            };
+          }
           return { ...p, [field]: val };
         })
       );
@@ -304,11 +313,11 @@ export function PaymentJournalSection({
                     date={dateVal}
                     onChange={(iso) => updateField(idx, "date", iso)}
                   />
-                  <input
-                    type="number"
+                  <IntegerAmountInput
                     className={`pj-field pj-amount${neg ? " pj-amount-negative" : ""}`}
                     value={Number(p.amount) || 0}
-                    onChange={(e) => updateField(idx, "amount", e.target.value)}
+                    allowNegative
+                    onValueChange={(n) => updateField(idx, "amount", n)}
                   />
                   <PaymentJournalSelect
                     selectKey={`${rowKey}-method`}

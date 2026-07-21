@@ -11,18 +11,18 @@ export const BOOKING_STATUS_ACCENT = {
   default: "#94A3B8",
 } as const;
 
-/** Палітра ручних кольорів броні на шаховатці. */
+/** Палітра ручних кольорів броні на шаховатці (пастельні / soft). */
 export const BOOKING_COLOR_SWATCHES = [
-  "#EF4444", // red
-  "#F97316", // orange
-  "#EAB308", // yellow
-  "#22C55E", // green
-  "#14B8A6", // teal
-  "#3B82F6", // blue
-  "#8B5CF6", // violet
-  "#EC4899", // pink
-  "#78716C", // stone
-  "#0F172A", // slate
+  "#FDA4AF", // rose-300
+  "#FDBA74", // orange-300
+  "#FDE68A", // amber-200
+  "#6EE7B7", // emerald-300
+  "#5EEAD4", // teal-300
+  "#7DD3FC", // sky-300
+  "#A5B4FC", // indigo-300
+  "#F0ABFC", // fuchsia-300
+  "#D6D3D1", // stone-300
+  "#CBD5E1", // slate-300
 ] as const;
 
 export type BookingColorSwatch = (typeof BOOKING_COLOR_SWATCHES)[number];

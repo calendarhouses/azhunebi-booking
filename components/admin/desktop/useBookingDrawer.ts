@@ -42,12 +42,6 @@ import {
   listActiveSpecialTariffDiscounts,
   type SpecialTariffToggle,
 } from "@/lib/admin/specialTariffBooking";
-import {
-  destroyDrawerDatePickers,
-  initDrawerDatePickers,
-  syncDrawerDatePickers,
-} from "./drawerDatePickers";
-import type { FlatpickrInstance } from "./flatpickrAdmin";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 import { normalizeBookingCustomColor } from "@/lib/bookingCustomColor";
 function isoDatePlusDays(iso: string, days: number): string {
@@ -80,6 +74,8 @@ function syncFormFieldsToDom(form: BookingDrawerFormState): void {
   set("adminDayGuests", String(form.dayGuests));
   set("adminVat", form.vat);
   set("adminCustomColor", form.customColor);
+  set("adminCheckIn", form.checkIn);
+  set("adminCheckOut", form.checkOut);
   const cottageLabel = document.getElementById("cottageSelectedText");
   if (cottageLabel) cottageLabel.textContent = form.cottageLabel;
   const sourceLabel = document.getElementById("sourceSelectedText");
@@ -139,12 +135,6 @@ export function useBookingDrawer({
     prepayMethod: "ФОП",
     surchargeMethod: "Готівка",
   });
-
-  const checkInPickerRef = useRef<FlatpickrInstance | null>(null);
-  const checkOutPickerRef = useRef<FlatpickrInstance | null>(null);
-  const datesSyncSkipRef = useRef(false);
-  const formDatesRef = useRef({ checkIn: form.checkIn, checkOut: form.checkOut });
-  formDatesRef.current = { checkIn: form.checkIn, checkOut: form.checkOut };
 
   const roomsList = settings.roomsList || [];
 
@@ -420,12 +410,14 @@ export function useBookingDrawer({
       const savedPaymentTotals = syncJournalTotals(savedPayments);
       const savedPrepay = savedPaymentTotals.prepay;
       const savedSurcharge = savedPaymentTotals.surcharge;
-      const displayedStatus =
+      const rawStatus =
         booking.source === "Сайт" &&
         booking.status === "Підтверджено" &&
         savedPaymentTotals.paidAmount === 0
           ? "Очікує оплату"
-          : booking.status || "Нова бронь";
+          : booking.status || "Очікує оплату";
+      const displayedStatus =
+        rawStatus === "Нова бронь" ? "Очікує оплату" : rawStatus;
 
       setInitialPayment({
         prepay: savedPrepay,
@@ -686,7 +678,7 @@ export function useBookingDrawer({
   );
 
   const handleStatusFromPayment = useCallback(
-    (status: "Нова бронь" | "Очікує оплату" | "Підтверджено") => {
+    (status: "Очікує оплату" | "Підтверджено") => {
       if (form.status === "Скасовано") return;
       if (form.status !== status) {
         setBookingStatus(status);
@@ -714,56 +706,6 @@ export function useBookingDrawer({
     if (!drawerOpen || typeof document === "undefined") return;
     syncFormFieldsToDom(form);
   }, [drawerOpen, form]);
-
-  useEffect(() => {
-    if (!drawerOpen || typeof document === "undefined") return;
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
-      const { checkIn, checkOut } = formDatesRef.current;
-      const pickers = initDrawerDatePickers({
-        checkIn,
-        checkOut,
-        onCheckInChange: (iso) => {
-          datesSyncSkipRef.current = true;
-          patchForm({ checkIn: iso });
-          bumpPrice();
-        },
-        onCheckOutChange: (iso) => {
-          datesSyncSkipRef.current = true;
-          patchForm({ checkOut: iso });
-          bumpPrice();
-        },
-      });
-      if (pickers) {
-        checkInPickerRef.current = pickers.checkIn;
-        checkOutPickerRef.current = pickers.checkOut;
-      }
-    }, 50);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      destroyDrawerDatePickers(checkInPickerRef.current, checkOutPickerRef.current);
-      checkInPickerRef.current = null;
-      checkOutPickerRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ініціалізація flatpickr лише при відкритті drawer
-  }, [drawerOpen]);
-
-  useEffect(() => {
-    if (!drawerOpen || datesSyncSkipRef.current) {
-      datesSyncSkipRef.current = false;
-      return;
-    }
-    syncDrawerDatePickers(
-      checkInPickerRef.current,
-      checkOutPickerRef.current,
-      form.checkIn,
-      form.checkOut
-    );
-  }, [drawerOpen, form.checkIn, form.checkOut]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

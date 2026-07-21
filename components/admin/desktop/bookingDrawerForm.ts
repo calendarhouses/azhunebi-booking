@@ -61,7 +61,7 @@ export function defaultBookingDrawerForm(): BookingDrawerFormState {
     selectedServices: {},
     specialTariffs: {},
     promoCode: "",
-    status: "Нова бронь",
+    status: "Очікує оплату",
     earlyCardActive: false,
     lateCardActive: false,
     customColor: "",

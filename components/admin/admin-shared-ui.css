@@ -900,12 +900,12 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
         .timeline-month-cell__label {
             position: sticky;
             left: 0;
-            z-index: 1;
+            z-index: 2;
             display: inline-block;
             max-width: 100%;
             padding: 0 10px 0 15px;
@@ -1945,6 +1945,102 @@
             color: inherit;
         }
 
+        .booking-stay-calendar-wrap {
+            margin-bottom: 8px;
+        }
+        .booking-stay-calendar .price-range-calendar__cell--in-range {
+            background: rgba(85, 107, 47, 0.12) !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .booking-stay-calendar .price-range-calendar__cell--in-range .price-range-calendar__day-num {
+            color: var(--accent, #556B2F) !important;
+        }
+        .booking-stay-calendar .price-range-calendar__cell--range-start,
+        .booking-stay-calendar .price-range-calendar__cell--range-end,
+        .booking-stay-calendar .price-range-calendar__cell--single {
+            background: var(--accent, #556B2F) !important;
+            color: #fff !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 999px;
+        }
+        .booking-stay-calendar .price-range-calendar__cell--range-start .price-range-calendar__day-num,
+        .booking-stay-calendar .price-range-calendar__cell--range-end .price-range-calendar__day-num,
+        .booking-stay-calendar .price-range-calendar__cell--single .price-range-calendar__day-num {
+            color: #fff !important;
+        }
+        .booking-stay-calendar .price-range-calendar__cell--range-start:not(.price-range-calendar__cell--range-end) {
+            border-radius: 999px 0 0 999px;
+        }
+        .booking-stay-calendar .price-range-calendar__cell--range-end:not(.price-range-calendar__cell--range-start) {
+            border-radius: 0 999px 999px 0;
+        }
+
+        .booking-nightly-breakdown {
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+        }
+        .booking-nightly-breakdown__title {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #94A3B8;
+            margin-bottom: 10px;
+        }
+        .booking-nightly-breakdown__list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .booking-nightly-breakdown__row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 14px;
+            color: #334155;
+            padding: 4px 0;
+        }
+        .booking-nightly-breakdown__row--weekend .booking-nightly-breakdown__price {
+            color: #B45309;
+            font-weight: 700;
+        }
+        .booking-nightly-breakdown__date {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+        .booking-nightly-breakdown__price {
+            font-variant-numeric: tabular-nums;
+            color: #475569;
+        }
+        .booking-nightly-breakdown__total {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #E2E8F0;
+            font-size: 14px;
+            color: #64748B;
+        }
+        .booking-nightly-breakdown__total strong {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0F172A;
+            font-variant-numeric: tabular-nums;
+        }
+
         /* --- Панель керування сіткою цін --- */
         .price-grid-toolbar {
             display: flex;
@@ -2231,7 +2327,7 @@
             transform: scale(1.08);
         }
         .booking-color-picker__swatch.is-active {
-            box-shadow: 0 0 0 2px #fff, 0 0 0 4px #9CA3AF;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px #A8A29E;
             transform: scale(1.06);
         }
         .booking-color-picker__swatch--clear {

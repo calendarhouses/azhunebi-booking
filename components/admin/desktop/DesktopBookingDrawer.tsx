@@ -9,6 +9,8 @@ import { BookingSpecialTariffsFields } from "./BookingSpecialTariffsFields";
 import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 import { BookingColorPicker } from "./BookingColorPicker";
+import { BookingStayRangeCalendar } from "./BookingStayRangeCalendar";
+import { BookingNightlyBreakdown } from "./BookingNightlyBreakdown";
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
 import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
@@ -82,6 +84,15 @@ export function DesktopBookingDrawer({
     [activeBooking, form.customColor, form.status]
   );
   const drawerTintStyle = useMemo(() => bookingAccentTintStyle(accentColor), [accentColor]);
+  const selectedRoom = useMemo(() => {
+    if (!form.cottage || form.cottage === "Нерозподілені") return null;
+    const rooms = settings.roomsList || [];
+    if (form.roomId != null) {
+      const byId = rooms.find((r) => String(r.id) === String(form.roomId));
+      if (byId) return byId;
+    }
+    return rooms.find((r) => r.name === form.cottage) || null;
+  }, [form.cottage, form.roomId, settings.roomsList]);
 
   return (
     <div id="bookingDrawer" className="drawer-overlay">
@@ -112,7 +123,7 @@ export function DesktopBookingDrawer({
           ) : null}
           <BookingFormSectionHeading compact title="Статус броні" />
           <div className="status-toggle">
-            {(["Нова бронь", "Очікує оплату", "Підтверджено", "Скасовано"] as const).map((status) => (
+            {(["Очікує оплату", "Підтверджено", "Скасовано"] as const).map((status) => (
               <div
                 key={status}
                 className={`status-btn${form.status === status ? " active" : ""}`}
@@ -246,29 +257,26 @@ export function DesktopBookingDrawer({
                 />
               </div>
 
+              <div className="form-group booking-stay-calendar-wrap">
+                <label>Дати перебування:</label>
+                <BookingStayRangeCalendar
+                  checkIn={form.checkIn}
+                  checkOut={form.checkOut}
+                  onChange={(checkIn, checkOut) => {
+                    drawer.patchForm({ checkIn, checkOut });
+                    drawer.bumpPrice();
+                  }}
+                />
+                <input type="hidden" id="adminCheckIn" value={form.checkIn} readOnly required />
+                <input type="hidden" id="adminCheckOut" value={form.checkOut} readOnly required />
+                <BookingNightlyBreakdown
+                  checkIn={form.checkIn}
+                  checkOut={form.checkOut}
+                  room={selectedRoom}
+                  customPrices={settings.customPrices}
+                />
+              </div>
               <div className="form-grid">
-                <div className="form-group">
-                  <label>Дата заїзду:</label>
-                  <input
-                    type="text"
-                    id="adminCheckIn"
-                    required
-                    readOnly
-                    autoComplete="off"
-                    placeholder="Оберіть дату"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Дата виїзду:</label>
-                  <input
-                    type="text"
-                    id="adminCheckOut"
-                    required
-                    readOnly
-                    autoComplete="off"
-                    placeholder="Оберіть дату"
-                  />
-                </div>
                 <BookingGuestsAndServicesFields
                   adults={form.guests}
                   children={form.children}

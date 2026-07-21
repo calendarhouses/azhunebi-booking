@@ -7,7 +7,12 @@ export function formatPriceAmount(amount: number): string {
 }
 
 export function parsePriceInput(raw: string): number {
-  const n = parseInt(String(raw || "").replace(/\s/g, ""), 10);
+  const cleaned = String(raw || "")
+    .replace(/\s/g, "")
+    .replace(/[^\d]/g, "")
+    .replace(/^0+(?=\d)/, "");
+  if (!cleaned) return 0;
+  const n = parseInt(cleaned, 10);
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 

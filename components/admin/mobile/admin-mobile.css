@@ -639,11 +639,11 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 
 .timeline-grid-container { flex: 1; overflow-x: auto; position: relative; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch;}
 .timeline-months { display: flex; height: 24px; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; width: max-content;}
-.timeline-month-cell { display: flex; align-items: center; padding-left: 0; font-size: 11px; font-weight: 700; color: #6B7280; border-right: 1px solid #E5E7EB; text-transform: uppercase; position: relative; overflow: hidden;}
+.timeline-month-cell { display: flex; align-items: center; padding-left: 0; font-size: 11px; font-weight: 700; color: #6B7280; border-right: 1px solid #E5E7EB; text-transform: uppercase; position: relative; overflow: visible;}
 .timeline-month-cell__label {
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 2;
   display: inline-block;
   max-width: 100%;
   padding: 0 8px 0 10px;
@@ -2665,7 +2665,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background: #fff !important;
   border-bottom: 1px solid #E5E7EB !important;
   box-sizing: border-box !important;
-  overflow: hidden !important;
+  /* overflow:hidden breaks sticky month labels while scrolling horizontally */
+  overflow: visible !important;
 }
 
 .boso-admin-mobile .timeline-mobile-rooms {
@@ -2775,7 +2776,11 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-month-cell__label {
+  position: sticky !important;
+  left: 88px !important;
+  z-index: 16 !important;
   background: #F9FAFB !important;
+  padding-left: 10px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board.timeline-wrapper--booking-drag .timeline-mobile-scroll,
