@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
+  History,
   MessageSquareText,
   RefreshCw,
+  RotateCcw,
   Send,
+  Smartphone,
   Wallet,
 } from "lucide-react";
 import { getAdminTenantId, saveAdminSettings } from "../adminApi";
@@ -21,7 +24,9 @@ import {
 import {
   DEFAULT_SMS_SETTINGS,
   SMS_TEMPLATE_META,
+  SMS_TEMPLATE_VARIABLES,
   normalizeSmsSettings,
+  renderSmsTemplate,
   type SmsJournalEntry,
   type SmsSettings,
   type SmsTemplateId,
@@ -37,6 +42,17 @@ const TEMPLATE_ORDER: SmsTemplateId[] = [
   "reject",
 ];
 
+const SAMPLE_VARS: Record<string, string> = {
+  name: "Олена",
+  cottage: "Будинок №3",
+  check_in: "24 липня",
+  check_out: "31 липня",
+  pay_url: "azhunebi.com/pay/ABC123",
+  order_id: "ABC123",
+  prepay: "1500 грн",
+  site: "azhunebi.com",
+};
+
 const TYPE_LABELS: Record<SmsJournalEntry["type"], string> = {
   payment_link: "Оплата",
   success: "Успіх",
@@ -44,6 +60,9 @@ const TYPE_LABELS: Record<SmsJournalEntry["type"], string> = {
   reject: "Відмова",
   test: "Тест",
 };
+
+type SmsSubView = "settings" | "journal";
+type JournalFilter = "all" | SmsJournalEntry["type"];
 
 type SmsSettingsPanelProps = {
   settings: AdminSettingsPayload;
@@ -58,6 +77,18 @@ function editableSlice(settings: SmsSettings): Omit<SmsSettings, "journal"> {
     testPhone: settings.testPhone,
     templates: settings.templates,
   };
+}
+
+function derivePricePerSegment(journal: SmsJournalEntry[]): number {
+  const priced = journal.filter(
+    (e) => e.ok && e.costEstimate != null && e.segments != null && e.segments > 0,
+  );
+  if (!priced.length) return DEFAULT_SMS_SETTINGS.pricePerSegment;
+  const recent = priced.slice(0, 30);
+  const totalCost = recent.reduce((s, e) => s + (e.costEstimate || 0), 0);
+  const totalSegs = recent.reduce((s, e) => s + (e.segments || 0), 0);
+  if (!totalSegs) return DEFAULT_SMS_SETTINGS.pricePerSegment;
+  return Math.round((totalCost / totalSegs) * 100) / 100;
 }
 
 async function adminSmsFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -86,6 +117,19 @@ function formatJournalTime(iso: string): string {
   });
 }
 
+function insertAtCursor(textarea: HTMLTextAreaElement | null, snippet: string): string {
+  if (!textarea) return snippet;
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  const next = `${textarea.value.slice(0, start)}${snippet}${textarea.value.slice(end)}`;
+  window.requestAnimationFrame(() => {
+    const pos = start + snippet.length;
+    textarea.setSelectionRange(pos, pos);
+    textarea.focus();
+  });
+  return next;
+}
+
 export function SmsSettingsPanel({
   settings,
   onSettingsChange,
@@ -95,6 +139,7 @@ export function SmsSettingsPanel({
     editableSlice(normalizeSmsSettings(settings.smsSettings)),
   );
   const [saving, setSaving] = useState(false);
+  const [subView, setSubView] = useState<SmsSubView>("settings");
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -102,8 +147,11 @@ export function SmsSettingsPanel({
     normalizeSmsSettings(settings.smsSettings).journal,
   );
   const [journalLoading, setJournalLoading] = useState(false);
+  const [journalFilter, setJournalFilter] = useState<JournalFilter>("all");
   const [testSending, setTestSending] = useState(false);
+  const [templateTestId, setTemplateTestId] = useState<SmsTemplateId | null>(null);
   const [openTemplate, setOpenTemplate] = useState<SmsTemplateId | null>("payment_link");
+  const textareaRefs = useRef<Partial<Record<SmsTemplateId, HTMLTextAreaElement | null>>>({});
   const serverKeyRef = useRef("");
   const dirtyRef = useRef(false);
 
@@ -116,6 +164,8 @@ export function SmsSettingsPanel({
     setForm(editableSlice(next));
     setJournal(next.journal);
   }, [settings.smsSettings]);
+
+  const pricePerSegment = useMemo(() => derivePricePerSegment(journal), [journal]);
 
   const loadBalance = useCallback(async () => {
     setBalanceLoading(true);
@@ -160,8 +210,12 @@ export function SmsSettingsPanel({
   useEffect(() => {
     if (!isActive) return;
     void loadBalance();
+  }, [isActive, loadBalance]);
+
+  useEffect(() => {
+    if (!isActive || subView !== "journal") return;
     void loadJournal(true);
-  }, [isActive, loadBalance, loadJournal]);
+  }, [isActive, subView, loadJournal]);
 
   const patchForm = useCallback((patch: Partial<Omit<SmsSettings, "journal">>) => {
     dirtyRef.current = true;
@@ -187,6 +241,7 @@ export function SmsSettingsPanel({
     try {
       const nextSettings: SmsSettings = {
         ...form,
+        pricePerSegment,
         journal,
       };
       const next: AdminSettingsPayload = {
@@ -204,343 +259,440 @@ export function SmsSettingsPanel({
     } finally {
       setSaving(false);
     }
-  }, [form, journal, onSettingsChange, settings]);
+  }, [form, journal, onSettingsChange, pricePerSegment, settings]);
 
-  const handleTestSend = useCallback(async () => {
-    const phoneDraft = form.testPhone || "";
-    const parsed = parseStoredGuestPhone(phoneDraft);
-    if (!isValidGuestPhone(parsed.iso, parsed.dial, parsed.national)) {
-      showToast("Вкажіть коректний тестовий номер");
-      return;
-    }
-    const phone = formatGuestPhoneForSave(parsed.iso, parsed.dial, parsed.national);
-    setTestSending(true);
-    try {
-      const res = await adminSmsFetch("/api/admin/sms/test", {
-        method: "POST",
-        body: JSON.stringify({
-          phone,
-          text: "Тест SMS з кабінету АЖ У НЕБІ. Якщо ви отримали це повідомлення — TurboSMS працює.",
-          smsSettings: { ...form, journal: [] },
-        }),
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        journal?: SmsJournalEntry;
-      };
-      if (!res.ok || !data.ok) {
-        showToast(data.error || "Тестове SMS не надіслано");
+  const sendTest = useCallback(
+    async (opts: { text?: string; templateId?: SmsTemplateId }) => {
+      const phoneDraft = form.testPhone || "";
+      const parsed = parseStoredGuestPhone(phoneDraft);
+      if (!isValidGuestPhone(parsed.iso, parsed.dial, parsed.national)) {
+        showToast("Вкажіть коректний тестовий номер");
         return;
       }
-      showToast("Тестове SMS надіслано");
-      if (data.journal) setJournal((prev) => [data.journal!, ...prev].slice(0, 100));
-      void loadBalance();
-    } catch {
-      showToast("Помилка відправки тестового SMS");
-    } finally {
-      setTestSending(false);
-    }
-  }, [form, loadBalance]);
+      const phone = formatGuestPhoneForSave(parsed.iso, parsed.dial, parsed.national);
+      if (opts.templateId) setTemplateTestId(opts.templateId);
+      else setTestSending(true);
+
+      try {
+        const res = await adminSmsFetch("/api/admin/sms/test", {
+          method: "POST",
+          body: JSON.stringify({
+            phone,
+            text: opts.text,
+            templateId: opts.templateId,
+            smsSettings: { ...form, pricePerSegment, journal: [] },
+          }),
+        });
+        const data = (await res.json()) as {
+          ok?: boolean;
+          error?: string;
+          journal?: SmsJournalEntry;
+        };
+        if (!res.ok || !data.ok) {
+          showToast(data.error || "Тестове SMS не надіслано");
+          return;
+        }
+        showToast("Тестове SMS надіслано");
+        if (data.journal) setJournal((prev) => [data.journal!, ...prev].slice(0, 100));
+        void loadBalance();
+      } catch {
+        showToast("Помилка відправки тестового SMS");
+      } finally {
+        setTestSending(false);
+        setTemplateTestId(null);
+      }
+    },
+    [form, loadBalance, pricePerSegment],
+  );
 
   const balanceLow =
-    balance != null && balance < (form.lowBalanceThreshold || DEFAULT_SMS_SETTINGS.lowBalanceThreshold);
+    balance != null &&
+    balance < (form.lowBalanceThreshold || DEFAULT_SMS_SETTINGS.lowBalanceThreshold);
 
   const templateStats = useMemo(() => {
     const map = {} as Record<
       SmsTemplateId,
-      ReturnType<typeof countSmsSegments> & { cost: number }
+      ReturnType<typeof countSmsSegments> & { cost: number; preview: string }
     >;
     for (const id of TEMPLATE_ORDER) {
-      const seg = countSmsSegments(form.templates[id].text);
+      const text = form.templates[id].text;
+      const seg = countSmsSegments(text);
       map[id] = {
         ...seg,
-        cost: estimateSmsCost(seg.segments, form.pricePerSegment || 0),
+        cost: estimateSmsCost(seg.segments, pricePerSegment),
+        preview: renderSmsTemplate(text, SAMPLE_VARS),
       };
     }
     return map;
-  }, [form.pricePerSegment, form.templates]);
+  }, [form.templates, pricePerSegment]);
+
+  const filteredJournal = useMemo(() => {
+    if (journalFilter === "all") return journal;
+    return journal.filter((e) => e.type === journalFilter);
+  }, [journal, journalFilter]);
+
+  const journalStats = useMemo(() => {
+    const ok = journal.filter((e) => e.ok).length;
+    const fail = journal.length - ok;
+    const cost = journal.reduce((s, e) => s + (e.costEstimate || 0), 0);
+    return { ok, fail, cost, total: journal.length };
+  }, [journal]);
 
   return (
     <div className="sms-page">
-      <p className="sms-page__intro">
-        Шаблони автоматичних SMS гостям, тариф за сегмент і журнал відправок через TurboSMS.
-      </p>
+      <div className="sms-page__top">
+        <p className="sms-page__intro">
+          Автоматичні SMS гостям через TurboSMS. Тариф рахується з реальних відправок.
+        </p>
+        <div className="reports-tabs sms-subtabs">
+          <button
+            type="button"
+            className={`r-tab${subView === "settings" ? " active" : ""}`}
+            onClick={() => setSubView("settings")}
+          >
+            <MessageSquareText size={16} strokeWidth={1.75} aria-hidden />
+            SMS
+          </button>
+          <button
+            type="button"
+            className={`r-tab${subView === "journal" ? " active" : ""}`}
+            onClick={() => setSubView("journal")}
+          >
+            <History size={16} strokeWidth={1.75} aria-hidden />
+            Журнал
+            {journal.length > 0 ? (
+              <span className="sms-subtabs__count">{journal.length}</span>
+            ) : null}
+          </button>
+        </div>
+      </div>
 
-      <section className={`sms-balance ${balanceLow ? "sms-balance--low" : ""}`}>
-        <div className="sms-balance__main">
-          <div className="sms-balance__icon" aria-hidden>
-            <Wallet size={22} strokeWidth={1.75} />
+      {subView === "settings" ? (
+        <>
+          <section className={`sms-balance ${balanceLow ? "sms-balance--low" : ""}`}>
+            <div className="sms-balance__main">
+              <div className="sms-balance__icon" aria-hidden>
+                <Wallet size={22} strokeWidth={1.75} />
+              </div>
+              <div className="sms-balance__copy">
+                <span className="sms-balance__label">Баланс TurboSMS</span>
+                <strong className="sms-balance__value">
+                  {balanceLoading && balance == null
+                    ? "…"
+                    : balance != null
+                      ? formatMoney(balance)
+                      : "—"}
+                </strong>
+                {balanceError ? (
+                  <span className="sms-balance__hint sms-balance__hint--error">{balanceError}</span>
+                ) : balanceLow ? (
+                  <span className="sms-balance__hint sms-balance__hint--warn">
+                    Баланс нижче {formatMoney(form.lowBalanceThreshold)} — поповніть рахунок
+                  </span>
+                ) : (
+                  <span className="sms-balance__hint">
+                    ~{formatMoney(pricePerSegment)}/сегмент · з TurboSMS API
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="sms-balance__actions">
+              <button
+                type="button"
+                className="btn-secondary sms-btn-icon"
+                onClick={() => void loadBalance()}
+                disabled={balanceLoading}
+                aria-label="Оновити баланс"
+              >
+                <RefreshCw size={16} className={balanceLoading ? "sms-spin" : undefined} />
+                Оновити
+              </button>
+              <a
+                className="btn-primary sms-topup"
+                href={TURBOSMS_CABINET_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Поповнити
+                <ExternalLink size={15} aria-hidden />
+              </a>
+            </div>
+          </section>
+
+          <section className="sms-card">
+            <header className="sms-card__header">
+              <h3>Шаблони</h3>
+              <p>Чотири автоматичні повідомлення. Кирилиця: до 70 символів у 1 SMS.</p>
+            </header>
+            <div className="sms-templates">
+              {TEMPLATE_ORDER.map((id) => {
+                const meta = SMS_TEMPLATE_META[id];
+                const tpl = form.templates[id];
+                const stats = templateStats[id];
+                const open = openTemplate === id;
+                const testingThis = templateTestId === id;
+                return (
+                  <article
+                    key={id}
+                    className={`sms-template ${open ? "is-open" : ""} ${tpl.enabled ? "" : "is-disabled"}`}
+                  >
+                    <button
+                      type="button"
+                      className="sms-template__trigger"
+                      onClick={() => setOpenTemplate(open ? null : id)}
+                      aria-expanded={open}
+                    >
+                      <span className="sms-template__icon" aria-hidden>
+                        <MessageSquareText size={18} strokeWidth={1.75} />
+                      </span>
+                      <span className="sms-template__titles">
+                        <strong>{meta.title}</strong>
+                        <span>{meta.when}</span>
+                      </span>
+                      <span className="sms-template__meta">
+                        <span className="sms-pill">
+                          {stats.segments} SMS · {formatMoney(stats.cost)}
+                        </span>
+                        <span className={`sms-status ${tpl.enabled ? "is-on" : "is-off"}`}>
+                          {tpl.enabled ? "Увімкнено" : "Вимкнено"}
+                        </span>
+                      </span>
+                    </button>
+
+                    {open ? (
+                      <div className="sms-template__body">
+                        <div className="sms-template__toolbar">
+                          <label className="sms-switch">
+                            <input
+                              type="checkbox"
+                              checked={tpl.enabled}
+                              onChange={(e) => patchTemplate(id, { enabled: e.target.checked })}
+                            />
+                            <span>Надсилати автоматично</span>
+                          </label>
+                          <div className="sms-template__toolbar-actions">
+                            <button
+                              type="button"
+                              className="btn-secondary sms-btn-icon sms-btn-sm"
+                              onClick={() =>
+                                patchTemplate(id, {
+                                  text: DEFAULT_SMS_SETTINGS.templates[id].text,
+                                })
+                              }
+                            >
+                              <RotateCcw size={14} />
+                              Скинути
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary sms-btn-icon sms-btn-sm"
+                              onClick={() => void sendTest({ templateId: id })}
+                              disabled={testingThis || testSending}
+                            >
+                              <Send size={14} />
+                              {testingThis ? "…" : "Тест"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="sms-template__editor">
+                          <label className="sms-field sms-field--block">
+                            <span className="sms-field__label">Текст SMS</span>
+                            <textarea
+                              ref={(el) => {
+                                textareaRefs.current[id] = el;
+                              }}
+                              className="sms-field__textarea"
+                              rows={4}
+                              value={tpl.text}
+                              onChange={(e) => patchTemplate(id, { text: e.target.value })}
+                            />
+                          </label>
+
+                          <div className="sms-preview">
+                            <div className="sms-preview__label">
+                              <Smartphone size={14} aria-hidden />
+                              Попередній перегляд
+                            </div>
+                            <div className="sms-preview__bubble">{stats.preview}</div>
+                          </div>
+                        </div>
+
+                        <div className="sms-template__stats">
+                          <span>
+                            Символів: <strong>{stats.chars}</strong>
+                          </span>
+                          <span>
+                            Кодування:{" "}
+                            <strong>{stats.encoding === "unicode" ? "кирилиця" : "латиниця"}</strong>
+                          </span>
+                          <span>
+                            Сегментів: <strong>{stats.segments}</strong>
+                          </span>
+                          <span>
+                            Залишок: <strong>{stats.remainingInSegment}</strong>
+                          </span>
+                          <span>
+                            ~{formatMoney(stats.cost)}
+                          </span>
+                        </div>
+
+                        <div className="sms-vars-section">
+                          <span className="sms-vars-section__label">Змінні — натисніть, щоб вставити</span>
+                          <div className="sms-vars">
+                            {SMS_TEMPLATE_VARIABLES.map((v) => (
+                              <button
+                                key={v.key}
+                                type="button"
+                                className="sms-var"
+                                title={v.label}
+                                onClick={() => {
+                                  const snippet = `{${v.key}}`;
+                                  const ta = textareaRefs.current[id] ?? null;
+                                  const next = ta
+                                    ? insertAtCursor(ta, snippet)
+                                    : `${tpl.text}${snippet}`;
+                                  patchTemplate(id, { text: next });
+                                }}
+                              >
+                                {`{${v.key}}`}
+                                <span>{v.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="sms-card">
+            <header className="sms-card__header">
+              <h3>Тестова відправка</h3>
+              <p>Перевірте TurboSMS на свій номер перед запуском для гостей.</p>
+            </header>
+            <div className="sms-test-row">
+              <div className="sms-field sms-field--grow">
+                <span className="sms-field__label">Номер для тестів</span>
+                <GuestPhoneField
+                  value={form.testPhone || ""}
+                  onChange={(value) => patchForm({ testPhone: value })}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-secondary sms-test-btn"
+                onClick={() =>
+                  void sendTest({
+                    text: "Тест SMS з кабінету АЖ У НЕБІ. Якщо ви отримали це — TurboSMS працює.",
+                  })
+                }
+                disabled={testSending}
+              >
+                <Send size={16} />
+                {testSending ? "Надсилаємо…" : "Надіслати тест"}
+              </button>
+            </div>
+          </section>
+
+          <div className="sms-save-inline">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => void handleSave()}
+              disabled={saving}
+            >
+              {saving ? "Збереження…" : "Зберегти SMS"}
+            </button>
           </div>
-          <div className="sms-balance__copy">
-            <span className="sms-balance__label">Баланс TurboSMS</span>
-            <strong className="sms-balance__value">
-              {balanceLoading && balance == null
-                ? "…"
-                : balance != null
-                  ? formatMoney(balance)
-                  : "—"}
-            </strong>
-            {balanceError ? (
-              <span className="sms-balance__hint sms-balance__hint--error">{balanceError}</span>
-            ) : balanceLow ? (
-              <span className="sms-balance__hint sms-balance__hint--warn">
-                Баланс нижче порогу {formatMoney(form.lowBalanceThreshold)}
-              </span>
-            ) : (
-              <span className="sms-balance__hint">Оновлюється з API TurboSMS</span>
+        </>
+      ) : (
+        <section className="sms-card sms-card--journal">
+          <header className="sms-card__header sms-card__header--row">
+            <div>
+              <h3>Журнал відправлених SMS</h3>
+              <p>Останні відправки з вашого кабінету (до 100).</p>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary sms-btn-icon"
+              onClick={() => void loadJournal(true)}
+              disabled={journalLoading}
+            >
+              <RefreshCw size={16} className={journalLoading ? "sms-spin" : undefined} />
+              Оновити статуси
+            </button>
+          </header>
+
+          <div className="sms-journal-stats">
+            <div className="sms-journal-stat">
+              <strong>{journalStats.total}</strong>
+              <span>всього</span>
+            </div>
+            <div className="sms-journal-stat sms-journal-stat--ok">
+              <strong>{journalStats.ok}</strong>
+              <span>надіслано</span>
+            </div>
+            <div className="sms-journal-stat sms-journal-stat--fail">
+              <strong>{journalStats.fail}</strong>
+              <span>помилок</span>
+            </div>
+            <div className="sms-journal-stat">
+              <strong>{formatMoney(journalStats.cost)}</strong>
+              <span>орієнтовно</span>
+            </div>
+          </div>
+
+          <div className="sms-journal-filters">
+            {(["all", "payment_link", "success", "expiry", "reject", "test"] as const).map(
+              (key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`sms-journal-filter${journalFilter === key ? " is-active" : ""}`}
+                  onClick={() => setJournalFilter(key)}
+                >
+                  {key === "all" ? "Усі" : TYPE_LABELS[key]}
+                </button>
+              ),
             )}
           </div>
-        </div>
-        <div className="sms-balance__actions">
-          <button
-            type="button"
-            className="btn-secondary sms-btn-icon"
-            onClick={() => void loadBalance()}
-            disabled={balanceLoading}
-            aria-label="Оновити баланс"
-          >
-            <RefreshCw size={16} className={balanceLoading ? "sms-spin" : undefined} />
-            Оновити
-          </button>
-          <a
-            className="btn-primary sms-topup"
-            href={TURBOSMS_CABINET_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Поповнити
-            <ExternalLink size={15} aria-hidden />
-          </a>
-        </div>
-      </section>
 
-      <section className="sms-card">
-        <header className="sms-card__header">
-          <h3>Тариф</h3>
-          <p>Вкажіть вартість одного сегмента SMS у гривнях (як у кабінеті TurboSMS).</p>
-        </header>
-        <div className="sms-tariff-grid">
-          <label className="sms-field">
-            <span className="sms-field__label">грн за сегмент</span>
-            <input
-              className="sms-field__input"
-              type="number"
-              min={0}
-              step={0.01}
-              inputMode="decimal"
-              value={form.pricePerSegment}
-              onChange={(e) =>
-                patchForm({
-                  pricePerSegment: Math.max(0, Number(e.target.value) || 0),
-                })
-              }
-            />
-          </label>
-          <label className="sms-field">
-            <span className="sms-field__label">Поріг низького балансу</span>
-            <input
-              className="sms-field__input"
-              type="number"
-              min={0}
-              step={1}
-              inputMode="decimal"
-              value={form.lowBalanceThreshold}
-              onChange={(e) =>
-                patchForm({
-                  lowBalanceThreshold: Math.max(0, Number(e.target.value) || 0),
-                })
-              }
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="sms-card">
-        <header className="sms-card__header">
-          <h3>Шаблони</h3>
-          <p>Чотири автоматичні повідомлення. Кирилиця: до 70 символів у 1 SMS.</p>
-        </header>
-        <div className="sms-templates">
-          {TEMPLATE_ORDER.map((id) => {
-            const meta = SMS_TEMPLATE_META[id];
-            const tpl = form.templates[id];
-            const stats = templateStats[id];
-            const open = openTemplate === id;
-            return (
-              <article
-                key={id}
-                className={`sms-template ${open ? "is-open" : ""} ${tpl.enabled ? "" : "is-disabled"}`}
-              >
-                <button
-                  type="button"
-                  className="sms-template__trigger"
-                  onClick={() => setOpenTemplate(open ? null : id)}
-                  aria-expanded={open}
-                >
-                  <span className="sms-template__icon" aria-hidden>
-                    <MessageSquareText size={18} strokeWidth={1.75} />
-                  </span>
-                  <span className="sms-template__titles">
-                    <strong>{meta.title}</strong>
-                    <span>{meta.when}</span>
-                  </span>
-                  <span className="sms-template__meta">
-                    <span className="sms-pill">
-                      {stats.segments} SMS · {formatMoney(stats.cost)}
+          {filteredJournal.length === 0 ? (
+            <div className="sms-journal-empty">
+              {journal.length === 0
+                ? "Поки немає відправлених SMS."
+                : "Немає записів для цього фільтра."}
+            </div>
+          ) : (
+            <ul className="sms-journal">
+              {filteredJournal.map((entry) => (
+                <li key={entry.id} className={`sms-journal__item ${entry.ok ? "is-ok" : "is-fail"}`}>
+                  <div className="sms-journal__top">
+                    <span className="sms-pill">{TYPE_LABELS[entry.type]}</span>
+                    <time dateTime={entry.at}>{formatJournalTime(entry.at)}</time>
+                    <span className="sms-journal__phone">{entry.phone}</span>
+                    <span className={`sms-journal__status ${entry.ok ? "is-ok" : "is-fail"}`}>
+                      {entry.ok ? entry.deliveryStatus || "надіслано" : entry.error || "помилка"}
                     </span>
-                    <span className={`sms-status ${tpl.enabled ? "is-on" : "is-off"}`}>
-                      {tpl.enabled ? "Увімкнено" : "Вимкнено"}
-                    </span>
-                  </span>
-                </button>
-
-                {open ? (
-                  <div className="sms-template__body">
-                    <label className="sms-switch">
-                      <input
-                        type="checkbox"
-                        checked={tpl.enabled}
-                        onChange={(e) => patchTemplate(id, { enabled: e.target.checked })}
-                      />
-                      <span>Надсилати цей шаблон автоматично</span>
-                    </label>
-
-                    <label className="sms-field sms-field--block">
-                      <span className="sms-field__label">Текст SMS</span>
-                      <textarea
-                        className="sms-field__textarea"
-                        rows={4}
-                        value={tpl.text}
-                        onChange={(e) => patchTemplate(id, { text: e.target.value })}
-                      />
-                    </label>
-
-                    <div className="sms-template__stats">
-                      <span>
-                        Символів: <strong>{stats.chars}</strong>
-                      </span>
-                      <span>
-                        Кодування:{" "}
-                        <strong>{stats.encoding === "unicode" ? "кирилиця" : "латиниця"}</strong>
-                      </span>
-                      <span>
-                        Сегментів: <strong>{stats.segments}</strong>
-                      </span>
-                      <span>
-                        Залишок у сегменті: <strong>{stats.remainingInSegment}</strong>
-                      </span>
-                      <span>
-                        Орієнтовна вартість: <strong>{formatMoney(stats.cost)}</strong>
-                      </span>
-                    </div>
-
-                    <div className="sms-vars">
-                      {meta.variables.map((v) => (
-                        <button
-                          key={v.key}
-                          type="button"
-                          className="sms-var"
-                          title={v.label}
-                          onClick={() =>
-                            patchTemplate(id, {
-                              text: `${tpl.text}{${v.key}}`.replace(/\s{2,}/g, " "),
-                            })
-                          }
-                        >
-                          {`{${v.key}}`}
-                          <span>{v.label}</span>
-                        </button>
-                      ))}
-                    </div>
                   </div>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="sms-card">
-        <header className="sms-card__header">
-          <h3>Тестова відправка</h3>
-          <p>Перевірте TurboSMS на свій номер перед запуском для гостей.</p>
-        </header>
-        <div className="sms-test-row">
-          <div className="sms-field sms-field--grow">
-            <span className="sms-field__label">Номер для тестів</span>
-            <GuestPhoneField
-              value={form.testPhone || ""}
-              onChange={(value) => patchForm({ testPhone: value })}
-            />
-          </div>
-          <button
-            type="button"
-            className="btn-secondary sms-test-btn"
-            onClick={() => void handleTestSend()}
-            disabled={testSending}
-          >
-            <Send size={16} />
-            {testSending ? "Надсилаємо…" : "Надіслати тест"}
-          </button>
-        </div>
-      </section>
-
-      <section className="sms-card">
-        <header className="sms-card__header sms-card__header--row">
-          <div>
-            <h3>Журнал відправлених SMS</h3>
-            <p>Останні відправки з вашого кабінету (до 100).</p>
-          </div>
-          <button
-            type="button"
-            className="btn-secondary sms-btn-icon"
-            onClick={() => void loadJournal(true)}
-            disabled={journalLoading}
-          >
-            <RefreshCw size={16} className={journalLoading ? "sms-spin" : undefined} />
-            Оновити
-          </button>
-        </header>
-
-        {journal.length === 0 ? (
-          <div className="sms-journal-empty">Поки немає відправлених SMS.</div>
-        ) : (
-          <ul className="sms-journal">
-            {journal.map((entry) => (
-              <li key={entry.id} className={`sms-journal__item ${entry.ok ? "is-ok" : "is-fail"}`}>
-                <div className="sms-journal__top">
-                  <span className="sms-pill">{TYPE_LABELS[entry.type]}</span>
-                  <time dateTime={entry.at}>{formatJournalTime(entry.at)}</time>
-                  <span className="sms-journal__phone">{entry.phone}</span>
-                  <span className={`sms-journal__status ${entry.ok ? "is-ok" : "is-fail"}`}>
-                    {entry.ok ? entry.deliveryStatus || "надіслано" : entry.error || "помилка"}
-                  </span>
-                </div>
-                <p className="sms-journal__text">{entry.text}</p>
-                <div className="sms-journal__foot">
-                  {entry.segments != null ? <span>{entry.segments} сегм.</span> : null}
-                  {entry.costEstimate != null ? (
-                    <span>~{formatMoney(entry.costEstimate)}</span>
-                  ) : null}
-                  {entry.bookingId ? <span>#{entry.bookingId}</span> : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="sms-save-bar">
-        <button
-          type="button"
-          className="btn-primary settings-save-action--sticky"
-          onClick={() => void handleSave()}
-          disabled={saving}
-        >
-          {saving ? "Збереження…" : "Зберегти SMS"}
-        </button>
-      </div>
+                  <p className="sms-journal__text">{entry.text}</p>
+                  <div className="sms-journal__foot">
+                    {entry.segments != null ? <span>{entry.segments} сегм.</span> : null}
+                    {entry.costEstimate != null ? (
+                      <span>~{formatMoney(entry.costEstimate)}</span>
+                    ) : null}
+                    {entry.bookingId ? <span>#{entry.bookingId}</span> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
 }

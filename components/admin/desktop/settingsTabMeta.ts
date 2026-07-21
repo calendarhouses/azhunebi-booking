@@ -9,10 +9,10 @@ export type SettingsTabMeta = {
 };
 
 /** Вкладки, де білий блок вужчий за шириною форми */
-export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding", "sms"];
+export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding"];
 
 /** Вкладки: повна ширина як шапка, висота за контентом */
-export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = ["rooms", "prices", "restrictions"];
+export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = ["rooms", "prices", "restrictions", "sms"];
 
 export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
   branding: {

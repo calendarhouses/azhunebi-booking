@@ -32,6 +32,18 @@ export type SmsSettings = {
   journal: SmsJournalEntry[]; // max 100, newest first
 };
 
+/** Усі змінні для будь-якого шаблону SMS */
+export const SMS_TEMPLATE_VARIABLES: { key: string; label: string }[] = [
+  { key: "name", label: "Ім'я гостя" },
+  { key: "cottage", label: "Назва котеджу" },
+  { key: "check_in", label: "Дата заїзду" },
+  { key: "check_out", label: "Дата виїзду" },
+  { key: "pay_url", label: "Посилання на оплату" },
+  { key: "order_id", label: "Номер бронювання" },
+  { key: "prepay", label: "Сума передоплати" },
+  { key: "site", label: "Сайт" },
+];
+
 export const SMS_TEMPLATE_META: Record<
   SmsTemplateId,
   { title: string; when: string; variables: { key: string; label: string }[] }
@@ -39,40 +51,22 @@ export const SMS_TEMPLATE_META: Record<
   payment_link: {
     title: "Посилання на оплату",
     when: "Після створення резерву (очікує оплату)",
-    variables: [
-      { key: "pay_url", label: "URL оплати" },
-      { key: "order_id", label: "Номер замовлення" },
-    ],
+    variables: SMS_TEMPLATE_VARIABLES,
   },
   success: {
     title: "Підтвердження бронювання",
     when: "Після отримання передоплати",
-    variables: [
-      { key: "name", label: "Ім'я гостя" },
-      { key: "cottage", label: "Назва котеджу" },
-      { key: "check_in", label: "Дата заїзду" },
-      { key: "check_out", label: "Дата виїзду" },
-      { key: "prepay", label: "Сума передоплати" },
-    ],
+    variables: SMS_TEMPLATE_VARIABLES,
   },
   expiry: {
     title: "Скасування резерву",
     when: "Після закінчення часу на оплату",
-    variables: [
-      { key: "name", label: "Ім'я гостя" },
-      { key: "cottage", label: "Назва котеджу" },
-      { key: "site", label: "Сайт" },
-    ],
+    variables: SMS_TEMPLATE_VARIABLES,
   },
   reject: {
     title: "Відмова в бронюванні",
     when: "Після рішення адміністратора відхилити бронь",
-    variables: [
-      { key: "name", label: "Ім'я гостя" },
-      { key: "cottage", label: "Назва котеджу" },
-      { key: "check_in", label: "Дата заїзду" },
-      { key: "check_out", label: "Дата виїзду" },
-    ],
+    variables: SMS_TEMPLATE_VARIABLES,
   },
 };
 
