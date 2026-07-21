@@ -118,6 +118,9 @@ export function DesktopBookingDrawer({
   );
 
   const nightlyOverridesActive = hasNightlyPriceOverrides(nightlyPriceOverrides);
+  const [instantDiscountAmount, setInstantDiscountAmount] = useState(0);
+  const [instantDiscountPercent, setInstantDiscountPercent] = useState(0);
+  const [instantDiscountMode, setInstantDiscountMode] = useState<"amount" | "percent">("amount");
 
   useEffect(() => {
     setNightlyPriceOverrides({});
@@ -126,6 +129,12 @@ export function DesktopBookingDrawer({
   useEffect(() => {
     setNightlyPriceOverrides({});
   }, [editingRow, editingBookingId]);
+
+  useEffect(() => {
+    setInstantDiscountAmount(0);
+    setInstantDiscountPercent(0);
+    setInstantDiscountMode("amount");
+  }, [form.checkIn, form.checkOut, form.cottage, form.roomId, editingRow, editingBookingId]);
 
   const handleNightlyPriceChange = useCallback((dateKey: string, price: number) => {
     setNightlyPriceOverrides((prev) => ({
@@ -137,6 +146,38 @@ export function DesktopBookingDrawer({
   const clearNightlyPriceOverrides = useCallback(() => {
     setNightlyPriceOverrides({});
   }, []);
+
+  const handleInstantDiscountAmountChange = useCallback(
+    (value: number) => {
+      const clamped = Math.min(Math.max(0, Math.round(value)), nightlyBaseSum);
+      setInstantDiscountMode("amount");
+      setInstantDiscountAmount(clamped);
+      setInstantDiscountPercent(nightlyBaseSum > 0 ? Math.round((clamped / nightlyBaseSum) * 100) : 0);
+    },
+    [nightlyBaseSum]
+  );
+
+  const handleInstantDiscountPercentChange = useCallback(
+    (value: number) => {
+      const clampedPercent = Math.min(100, Math.max(0, Math.round(value)));
+      setInstantDiscountMode("percent");
+      setInstantDiscountPercent(clampedPercent);
+      setInstantDiscountAmount(Math.min(nightlyBaseSum, Math.round((nightlyBaseSum * clampedPercent) / 100)));
+    },
+    [nightlyBaseSum]
+  );
+
+  useEffect(() => {
+    if (instantDiscountMode === "percent") {
+      setInstantDiscountAmount(Math.min(nightlyBaseSum, Math.round((nightlyBaseSum * instantDiscountPercent) / 100)));
+      return;
+    }
+    const clamped = Math.min(Math.max(0, Math.round(instantDiscountAmount)), nightlyBaseSum);
+    if (clamped !== instantDiscountAmount) {
+      setInstantDiscountAmount(clamped);
+    }
+    setInstantDiscountPercent(nightlyBaseSum > 0 ? Math.round((clamped / nightlyBaseSum) * 100) : 0);
+  }, [nightlyBaseSum, instantDiscountAmount, instantDiscountPercent, instantDiscountMode]);
 
   return (
     <div id="bookingDrawer" className="drawer-overlay">
@@ -320,6 +361,10 @@ export function DesktopBookingDrawer({
                   customPrices={settings.customPrices}
                   priceOverrides={nightlyPriceOverrides}
                   onPriceChange={handleNightlyPriceChange}
+                  discountAmount={instantDiscountAmount}
+                  discountPercent={instantDiscountPercent}
+                  onDiscountAmountChange={handleInstantDiscountAmountChange}
+                  onDiscountPercentChange={handleInstantDiscountPercentChange}
                 />
               </div>
               <div className="form-grid">
@@ -439,6 +484,7 @@ export function DesktopBookingDrawer({
                 initialSurchargeMethod={drawer.initialPayment.surchargeMethod}
                 nightlyBaseSum={nightlyOverridesActive ? nightlyBaseSum : null}
                 onClearNightlyPriceOverrides={clearNightlyPriceOverrides}
+                instantDiscountAmount={instantDiscountAmount}
               />
               )}
             </div>

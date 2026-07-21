@@ -81,6 +81,7 @@ export interface BookingPriceCalculatorProps {
   /** Сума базової вартості з розбивки по ночах (коли адмін редагує окремі дати). */
   nightlyBaseSum?: number | null;
   onClearNightlyPriceOverrides?: () => void;
+  instantDiscountAmount?: number;
 }
 
 type ManualLineKey = keyof Pick<
@@ -120,6 +121,7 @@ export function BookingPriceCalculator({
   bookingStatus = "Очікує оплату",
   nightlyBaseSum = null,
   onClearNightlyPriceOverrides,
+  instantDiscountAmount = 0,
 }: BookingPriceCalculatorProps) {
   const isMobile = useMobileUi();
   const prevFormRef = useRef<FormStateSnapshot | null>(null);
@@ -416,7 +418,8 @@ export function BookingPriceCalculator({
 
   const extrasTotal = manualLines.pet + manualLines.dayGuest + manualLines.early + manualLines.late;
 
-  const autoTotal = discountBreakdown.total + extrasTotal;
+  const instantDiscount = Math.max(0, Math.round(instantDiscountAmount));
+  const autoTotal = Math.max(0, discountBreakdown.total - instantDiscount + extrasTotal);
 
   const handleDiscountAmountChange = useCallback(
     (discountId: string, amount: number) => {
@@ -440,16 +443,20 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (computed.empty || computed.isOverlap) return;
-    const sum = discountBreakdown.discountSum;
+    const sum = discountBreakdown.discountSum + instantDiscount;
     setManualLines((prev) => ({ ...prev, discount: sum }));
-    if (editedDiscountIds.size > 0 || manual.discountEdited) {
-      setManual((prev) => ({ ...prev, discountEdited: true, discount: sum }));
-    }
+    const hasDiscountEdits = editedDiscountIds.size > 0 || instantDiscount > 0;
+    setManual((prev) => ({
+      ...prev,
+      discountEdited: hasDiscountEdits,
+      discount: hasDiscountEdits ? sum : null,
+    }));
   }, [
     computed.empty,
     computed.isOverlap,
     discountBreakdown.discountSum,
     editedDiscountIds.size,
+    instantDiscount,
     manual.discountEdited,
   ]);
 
@@ -458,7 +465,7 @@ export function BookingPriceCalculator({
     setTotalOverride(null);
   }, [autoTotal, isInitialLoad]);
 
-  const hasManualDiscountEdits = editedDiscountIds.size > 0 || manual.discountEdited;
+  const hasManualDiscountEdits = editedDiscountIds.size > 0 || manual.discountEdited || instantDiscount > 0;
 
   const displayTotal =
     totalOverride !== null && !isInitialLoad

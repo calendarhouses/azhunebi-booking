@@ -1048,6 +1048,39 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   margin-top: 12px !important;
   padding: 14px 2px 16px !important;
 }
+.boso-admin-mobile .booking-nightly-breakdown__discount {
+  margin-top: 12px !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-head {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-head-left {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-iconWrap {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 12px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-subtitle {
+  align-self: flex-start !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-grid {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-input {
+  margin: 0 !important;
+  padding: 6px 10px !important;
+  border-radius: 12px !important;
+}
 .boso-admin-mobile .booking-discount-breakdown {
   margin-top: 18px !important;
   padding-top: 18px !important;

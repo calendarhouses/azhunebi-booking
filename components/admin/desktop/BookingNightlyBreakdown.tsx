@@ -71,6 +71,10 @@ type BookingNightlyBreakdownProps = {
   customPrices?: AdminSettingsPayload["customPrices"];
   priceOverrides?: Record<string, number>;
   onPriceChange?: (dateKey: string, price: number) => void;
+  discountAmount?: number;
+  discountPercent?: number;
+  onDiscountAmountChange?: (value: number) => void;
+  onDiscountPercentChange?: (value: number) => void;
 };
 
 export function BookingNightlyBreakdown({
@@ -80,6 +84,10 @@ export function BookingNightlyBreakdown({
   customPrices,
   priceOverrides = {},
   onPriceChange,
+  discountAmount = 0,
+  discountPercent = 0,
+  onDiscountAmountChange,
+  onDiscountPercentChange,
 }: BookingNightlyBreakdownProps) {
   const isMobile = useMobileUi();
   const [quickEdit, setQuickEdit] = useState<{
@@ -108,9 +116,12 @@ export function BookingNightlyBreakdown({
 
   if (lines.length === 0) return null;
 
-  const total = lines.reduce((sum, line) => sum + line.price, 0);
+  const subtotal = lines.reduce((sum, line) => sum + line.price, 0);
+  const safeDiscountAmount = Math.max(0, Math.round(discountAmount));
+  const total = Math.max(0, subtotal - safeDiscountAmount);
   const nights = lines.length;
   const editable = Boolean(onPriceChange);
+  const discountEditable = Boolean(onDiscountAmountChange || onDiscountPercentChange);
 
   const handlePriceChange = (dateKey: string, price: number) => {
     onPriceChange?.(dateKey, Math.max(0, Math.round(price)));
@@ -173,6 +184,48 @@ export function BookingNightlyBreakdown({
             </li>
           ))}
         </ul>
+        {discountEditable ? (
+          <div className="booking-nightly-breakdown__discount">
+            <div className="booking-nightly-breakdown__discount-head">
+              <span className="booking-nightly-breakdown__discount-head-left">
+                <span className="booking-nightly-breakdown__discount-iconWrap" aria-hidden>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                </span>
+                <span className="booking-nightly-breakdown__discount-title">Знижка</span>
+              </span>
+              <span className="booking-nightly-breakdown__discount-subtitle">Швидке ручне коригування</span>
+            </div>
+            <div className="booking-nightly-breakdown__discount-grid">
+              <label className="booking-nightly-breakdown__discount-field">
+                <span className="booking-nightly-breakdown__discount-label">Сума</span>
+                <div className="price-edit-wrapper booking-nightly-breakdown__discount-input">
+                  <PriceLineInput
+                    value={safeDiscountAmount}
+                    onChange={(value) => onDiscountAmountChange?.(value)}
+                    maxAmount={subtotal}
+                    ariaLabel="Знижка сума"
+                  />
+                  <span className="price-edit-suffix">грн</span>
+                </div>
+              </label>
+              <label className="booking-nightly-breakdown__discount-field">
+                <span className="booking-nightly-breakdown__discount-label">Відсоток</span>
+                <div className="price-edit-wrapper booking-nightly-breakdown__discount-input">
+                  <PriceLineInput
+                    value={Math.max(0, Math.round(discountPercent))}
+                    onChange={(value) => onDiscountPercentChange?.(Math.min(100, value))}
+                    maxAmount={100}
+                    ariaLabel="Знижка відсоток"
+                  />
+                  <span className="price-edit-suffix">%</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        ) : null}
         <div className="booking-nightly-breakdown__total">
           <span className="booking-nightly-breakdown__total-label">Загальна сума</span>
           <strong className="booking-nightly-breakdown__total-value">
