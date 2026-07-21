@@ -26,9 +26,7 @@ export function getRoomSubtitle(room: PublicRoom): string {
     return detailed;
   }
 
-  const short = (room.short || "").trim();
-  if (short && short !== name) return short;
-
+  // room.short — назва в шахматці, не для сайту
   const desc = (room.desc || "").trim();
   if (!desc || desc === name) return "";
 
