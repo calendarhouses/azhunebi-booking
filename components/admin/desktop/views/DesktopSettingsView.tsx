@@ -16,7 +16,7 @@ import { SIDEBAR_SETTINGS_ITEMS } from "../sidebarSettingsItems";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 import { SETTINGS_FIT_CONTENT_TABS, SETTINGS_FULL_WIDTH_TABS } from "../settingsTabMeta";
-import type { AdminSettingsPayload, SettingsTabName } from "../types";
+import type { AdminSettingsPayload, BookingRecord, SettingsTabName } from "../types";
 
 function tabDisplay(active: SettingsTabName, tab: SettingsTabName): CSSProperties {
   return { display: active === tab ? "block" : "none" };
@@ -57,6 +57,8 @@ export interface DesktopSettingsViewProps {
   priceTimelineBaseDateRef: React.MutableRefObject<Date>;
   restrictionsTimelineBaseDateRef: React.MutableRefObject<Date>;
   adminUndo: AdminUndoApi;
+  bookings?: BookingRecord[];
+  onShowGuestBookings?: (phone: string, name: string) => void;
 }
 
 export function DesktopSettingsView({
@@ -73,6 +75,8 @@ export function DesktopSettingsView({
   priceTimelineBaseDateRef,
   restrictionsTimelineBaseDateRef,
   adminUndo,
+  bookings = [],
+  onShowGuestBookings,
 }: DesktopSettingsViewProps) {
   const isMobile = layout === "mobile";
   const restrictionsWrapperRef = useRef<HTMLDivElement>(null);
@@ -296,6 +300,8 @@ export function DesktopSettingsView({
             settings={settings}
             onSettingsChange={onSettingsChange ?? (() => {})}
             isActive={activeTab === "sms"}
+            bookings={bookings}
+            onShowGuestBookings={onShowGuestBookings}
           />
         </div>
         ) : null}

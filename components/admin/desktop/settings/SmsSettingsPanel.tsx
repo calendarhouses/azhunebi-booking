@@ -37,6 +37,8 @@ import {
   SmsJournalStatusBadge,
   hasPendingSmsDeliveries,
 } from "./SmsJournalStatusBadge";
+import { SmsJournalGuestCell } from "./SmsJournalGuestCell";
+import type { BookingRecord } from "../types";
 import "./settings-sms.css";
 
 const TURBOSMS_CABINET_URL = "https://turbosms.ua/";
@@ -74,6 +76,8 @@ type SmsSettingsPanelProps = {
   settings: AdminSettingsPayload;
   onSettingsChange: (next: AdminSettingsPayload) => void;
   isActive?: boolean;
+  bookings?: BookingRecord[];
+  onShowGuestBookings?: (phone: string, name: string) => void;
 };
 
 function initialManualVars(): ManualVarsMap {
@@ -115,7 +119,18 @@ async function adminSmsFetch(path: string, init?: RequestInit): Promise<Response
 }
 
 function formatMoney(value: number): string {
-  return `${value.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")} грн`;
+  return `${value.toFixed(2).replace(".", ",").replace(/,00$/, "")} грн`;
+}
+
+function formatJournalMeta(entry: SmsJournalEntry): string {
+  const parts: string[] = [];
+  if (entry.costEstimate != null) {
+    parts.push(`Вартість: ${formatMoney(entry.costEstimate)}`);
+  }
+  if (entry.deliveryTime) {
+    parts.push(`Оновлено ${entry.deliveryTime}`);
+  }
+  return parts.join("   ");
 }
 
 function formatJournalTime(iso: string): string {
@@ -146,6 +161,8 @@ export function SmsSettingsPanel({
   settings,
   onSettingsChange,
   isActive = true,
+  bookings = [],
+  onShowGuestBookings,
 }: SmsSettingsPanelProps) {
   const [form, setForm] = useState(() =>
     editableSlice(normalizeSmsSettings(settings.smsSettings)),
@@ -725,27 +742,29 @@ export function SmsSettingsPanel({
             </div>
           ) : (
             <ul className="sms-journal">
-              {filteredJournal.map((entry) => (
+              {filteredJournal.map((entry) => {
+                const meta = formatJournalMeta(entry);
+                return (
                 <li key={entry.id} className={`sms-journal__item ${entry.ok ? "is-ok" : "is-fail"}`}>
-                  <div className="sms-journal__top">
-                    <span className="sms-pill">{TYPE_LABELS[entry.type]}</span>
-                    <SmsJournalStatusBadge entry={entry} />
-                    <time dateTime={entry.at}>{formatJournalTime(entry.at)}</time>
-                    <span className="sms-journal__phone">{entry.phone}</span>
-                  </div>
-                  <p className="sms-journal__text">{entry.text}</p>
-                  <div className="sms-journal__foot">
-                    {entry.segments != null ? <span>{entry.segments} сегм.</span> : null}
-                    {entry.costEstimate != null ? (
-                      <span>{formatMoney(entry.costEstimate)}</span>
-                    ) : null}
-                    {entry.bookingId ? <span>#{entry.bookingId}</span> : null}
-                    {entry.deliveryTime ? (
-                      <span className="sms-journal__updated">оновлено {entry.deliveryTime}</span>
-                    ) : null}
+                  <div className="sms-journal__layout">
+                    <div className="sms-journal__main">
+                      <div className="sms-journal__top">
+                        <span className="sms-pill">{TYPE_LABELS[entry.type]}</span>
+                        <SmsJournalStatusBadge entry={entry} />
+                        <time dateTime={entry.at}>{formatJournalTime(entry.at)}</time>
+                      </div>
+                      <p className="sms-journal__text">{entry.text}</p>
+                      {meta ? <div className="sms-journal__meta">{meta}</div> : null}
+                    </div>
+                    <SmsJournalGuestCell
+                      phone={entry.phone}
+                      bookings={bookings}
+                      onShowGuestBookings={onShowGuestBookings}
+                    />
                   </div>
                 </li>
-              ))}
+              );
+              })}
             </ul>
           )}
         </section>

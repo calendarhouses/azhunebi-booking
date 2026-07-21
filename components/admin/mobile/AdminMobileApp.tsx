@@ -232,6 +232,11 @@ export function AdminMobileApp() {
                 priceTimelineBaseDateRef={priceTimelineBaseDateRef}
                 restrictionsTimelineBaseDateRef={restrictionsTimelineBaseDateRef}
                 adminUndo={adminUndo}
+                bookings={admin.bookings}
+                onShowGuestBookings={(phone, name) => {
+                  setGuestFilter({ phone, name });
+                  admin.switchView("list");
+                }}
               />
             ) : null}
           </div>

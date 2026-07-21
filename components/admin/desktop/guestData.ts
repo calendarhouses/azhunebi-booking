@@ -38,6 +38,17 @@ export function buildGuestsFromBookings(bookings: BookingRecord[], searchTerm = 
   return guests.sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
 }
 
+/** Find guest profile by phone digits (matches Guests section logic). */
+export function lookupGuestByPhone(
+  bookings: BookingRecord[],
+  rawPhone: string,
+): GuestRow | null {
+  const phoneKey = formatPhone(rawPhone);
+  if (!phoneKey) return null;
+  const guests = buildGuestsFromBookings(bookings);
+  return guests.find((g) => g.phone === phoneKey) ?? null;
+}
+
 export function formatGuestLastVisit(d: Date): string {
   return d.getFullYear() > 2000
     ? d.toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" })
