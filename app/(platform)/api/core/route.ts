@@ -60,7 +60,7 @@ const TG_CONFIG = {
   adminFinanceThreadId: process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID
     ? Number(process.env.TELEGRAM_ADMIN_FINANCE_THREAD_ID)
     : 189,
-  cleaningGroupId: process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || FAKE,
+  cleaningGroupId: process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || "-5577418097",
   isTestMode: process.env.TELEGRAM_TEST_MODE === "true",
 };
 

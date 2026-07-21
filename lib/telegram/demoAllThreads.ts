@@ -171,6 +171,10 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
       cleaning.threadId
     );
     results.cleaningArrival = res.ok;
+    results.cleaningChatId = cleaning.chatId;
+    if (!res.ok) {
+      results.cleaningArrivalError = await res.text().catch(() => "unknown");
+    }
   }
 
   // ── ФІНАНСИ / ЗВІТИ ──

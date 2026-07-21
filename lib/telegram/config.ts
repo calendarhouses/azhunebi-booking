@@ -58,7 +58,8 @@ export function getTelegramConfig(): TelegramConfig {
       process.env.TELEGRAM_THREAD_REQUESTS,
       TELEGRAM_TOPIC.requests
     ),
-    cleaningGroupId: process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || FAKE,
+    cleaningGroupId:
+      process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || "-5577418097",
     isTestMode: process.env.TELEGRAM_TEST_MODE === "true",
     testChatId: process.env.TELEGRAM_TEST_CHAT_ID?.trim() || FAKE,
     reviewWebhookSecret:
