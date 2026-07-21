@@ -221,11 +221,38 @@ export function useBookingDrawer({
     setIsInitialPriceLoad(initial);
   }, []);
 
+  const openedCustomColorRef = useRef("");
+  const drawerSessionSavedRef = useRef(false);
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  const revertColorPreview = useCallback(() => {
+    const editingKey = editingRowRef.current;
+    if (drawerSessionSavedRef.current || editingKey == null || !setBookings) return;
+    const originalColor = openedCustomColorRef.current;
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
+          return b;
+        }
+        if ((b.custom_color ?? "") === originalColor) return b;
+        return { ...b, custom_color: originalColor };
+      })
+    );
+  }, [editingRowRef, setBookings]);
+
   const closeDrawer = useCallback(() => {
+    revertColorPreview();
+    drawerSessionSavedRef.current = false;
     if (typeof document !== "undefined") {
       document.getElementById("bookingDrawer")?.classList.remove("active");
     }
     setDrawerOpen(false);
+  }, [revertColorPreview]);
+
+  const markDrawerSessionSaved = useCallback(() => {
+    drawerSessionSavedRef.current = true;
+    openedCustomColorRef.current = normalizeBookingCustomColor(formRef.current.customColor) || "";
   }, []);
 
   const openDrawerShell = useCallback(() => {
@@ -307,6 +334,8 @@ export function useBookingDrawer({
 
   const openNewBookingDrawer = useCallback(
     (prefillRoom: string | null = null, prefillDateStart: string | null = null, prefillDateEnd: string | null = null) => {
+      drawerSessionSavedRef.current = false;
+      openedCustomColorRef.current = "";
       editingRowRef.current = null;
       setEditingRow(null);
       setEditingBookingId(null);
@@ -442,6 +471,10 @@ export function useBookingDrawer({
         roomsList
       );
 
+      const openedColor = normalizeBookingCustomColor(booking.custom_color) || "";
+      openedCustomColorRef.current = openedColor;
+      drawerSessionSavedRef.current = false;
+
       setForm({
         ...defaultBookingDrawerForm(),
         name: String(booking.name).replace(" (Ручна бронь)", ""),
@@ -467,7 +500,7 @@ export function useBookingDrawer({
         status: displayedStatus,
         earlyCardActive: !!parsed.earlyTime,
         lateCardActive: !!parsed.lateTime,
-        customColor: normalizeBookingCustomColor(booking.custom_color) || "",
+        customColor: openedColor,
       });
 
       setEarlyTime(parsed.earlyTime);
@@ -583,10 +616,6 @@ export function useBookingDrawer({
     patchForm({ status });
   }, [patchForm]);
 
-  const colorPersistSeqRef = useRef(0);
-  const formRef = useRef(form);
-  formRef.current = form;
-
   const setCustomColor = useCallback(
     (color: string | null) => {
       const next = normalizeBookingCustomColor(color) || "";
@@ -595,6 +624,7 @@ export function useBookingDrawer({
       const editingKey = editingRowRef.current;
       if (editingKey == null) return;
 
+      // Миттєвий превʼю на шаховатці; у БД — лише по «Зберегти».
       setBookings?.((prev) =>
         prev.map((b) => {
           if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
@@ -603,40 +633,8 @@ export function useBookingDrawer({
           return { ...b, custom_color: next };
         })
       );
-
-      const seq = ++colorPersistSeqRef.current;
-      void (async () => {
-        try {
-          const latest = { ...formRef.current, customColor: next };
-          syncFormFieldsToDom(latest);
-          const el = document.getElementById("adminCustomColor") as HTMLInputElement | null;
-          if (el) el.value = next;
-
-          const { collectBookingFromForm, buildPayloadForServer, isBookingSaveSuccessful } =
-            await import("./bookingForm");
-          const { postAdminBooking } = await import("./adminApi");
-
-          const bookingData = collectBookingFromForm(
-            editingKey,
-            earlyTimeRef.current,
-            lateTimeRef.current,
-            { checkIn: latest.checkIn, checkOut: latest.checkOut }
-          );
-          bookingData.custom_color = next;
-          const payload = buildPayloadForServer(bookingData, editingKey);
-          const json = await postAdminBooking(payload);
-          if (seq !== colorPersistSeqRef.current) return;
-          if (!isBookingSaveSuccessful(json)) {
-            showToast("Не вдалося зберегти колір");
-          }
-        } catch {
-          if (seq === colorPersistSeqRef.current) {
-            showToast("Не вдалося зберегти колір");
-          }
-        }
-      })();
     },
-    [patchForm, setBookings, editingRowRef, earlyTimeRef, lateTimeRef]
+    [patchForm, setBookings, editingRowRef]
   );
 
   const selectAdminTime = useCallback(
@@ -727,6 +725,7 @@ export function useBookingDrawer({
     if (typeof window === "undefined") return;
     const w = window as Window;
     w.closeDrawer = closeDrawer;
+    w.markDrawerSessionSaved = markDrawerSessionSaved;
     w.openNewBookingDrawer = openNewBookingDrawer;
     w.openDetailsByRow = openDetailsByRow;
     w.updatePricePreview = () => bumpPrice();
@@ -738,6 +737,7 @@ export function useBookingDrawer({
     w.toggleAdminService = toggleAdminService;
   }, [
     closeDrawer,
+    markDrawerSessionSaved,
     openNewBookingDrawer,
     openDetailsByRow,
     bumpPrice,
@@ -772,6 +772,7 @@ export function useBookingDrawer({
     initialPayment,
     bumpPrice,
     closeDrawer,
+    markDrawerSessionSaved,
     openNewBookingDrawer,
     openDetailsByRow,
     changeGuests,
@@ -819,5 +820,6 @@ declare global {
     selectAdminTime?: (type: "early" | "late", time: string, chipEl: HTMLElement) => void;
     toggleAdminService?: (type: "early" | "late") => void;
     recalculateFromManual?: (isDiscountEdited?: boolean) => void;
+    markDrawerSessionSaved?: () => void;
   }
 }

@@ -11,21 +11,24 @@ export const BOOKING_STATUS_ACCENT = {
   default: "#94A3B8",
 } as const;
 
-/** Палітра ручних кольорів броні на шаховатці (приглушені / нейтральні pastel). */
-export const BOOKING_COLOR_SWATCHES = [
-  "#E8C4C6", // dusty rose
-  "#E8CFB8", // soft peach
-  "#E6DFC2", // muted sand
-  "#C9D6C4", // sage
-  "#C2D4D1", // mist teal
-  "#C5D3E0", // soft slate-blue
-  "#CFCBDB", // dusty lavender
-  "#DBC8D4", // muted blush
-  "#D4D0CB", // warm stone
-  "#CED3D9", // cool gray
+/** Пара: насичений колір у пікері → приглушений на шаховатці. */
+export const BOOKING_COLOR_OPTIONS = [
+  { card: "#E8C4C6", picker: "#E11D48" },
+  { card: "#E8CFB8", picker: "#EA580C" },
+  { card: "#E6DFC2", picker: "#CA8A04" },
+  { card: "#C9D6C4", picker: "#16A34A" },
+  { card: "#C2D4D1", picker: "#0D9488" },
+  { card: "#C5D3E0", picker: "#2563EB" },
+  { card: "#CFCBDB", picker: "#7C3AED" },
+  { card: "#DBC8D4", picker: "#DB2777" },
+  { card: "#D4D0CB", picker: "#78716C" },
+  { card: "#CED3D9", picker: "#64748B" },
 ] as const;
 
-export type BookingColorSwatch = (typeof BOOKING_COLOR_SWATCHES)[number];
+/** Приглушені кольори карток на шаховатці (зберігаються в БД). */
+export const BOOKING_COLOR_SWATCHES = BOOKING_COLOR_OPTIONS.map((option) => option.card);
+
+export type BookingColorSwatch = (typeof BOOKING_COLOR_OPTIONS)[number]["card"];
 
 export function normalizeBookingCustomColor(
   value: unknown

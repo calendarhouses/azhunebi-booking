@@ -353,6 +353,7 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         editingRowRef.current
       );
       depsRef.current.adminUndo?.recordBookingSave(previousSnapshot, savedRecord);
+      window.markDrawerSessionSaved?.();
       closeDrawer();
       toastImpl("Збережено!");
     } catch (err) {

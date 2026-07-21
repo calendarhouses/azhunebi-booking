@@ -989,13 +989,11 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   padding: 14px 14px 12px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__list {
-  padding: 10px 10px 12px !important;
-  gap: 7px !important;
-  max-height: 240px !important;
+  padding: 0 !important;
+  gap: 0 !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__row {
-  padding: 11px 12px !important;
-  border-radius: 14px !important;
+  padding: 11px 14px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__total {
   padding: 14px 14px 16px !important;
@@ -6352,7 +6350,21 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   top: 0 !important;
   z-index: 15 !important;
   background: #fff !important;
-  overflow: hidden !important;
+  /* overflow:hidden ламає sticky month labels при горизонтальному скролі */
+  overflow: visible !important;
+}
+
+.boso-admin-android .timeline-mobile-dates .timeline-months,
+.boso-admin-android .timeline-mobile-dates .timeline-month-cell {
+  overflow: visible !important;
+}
+
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-month-cell__label {
+  position: sticky !important;
+  left: 88px !important;
+  z-index: 16 !important;
+  background: #F9FAFB !important;
+  padding-left: 10px !important;
 }
 
 /* Android: дати і сітка — однакова ширина колонок (без зсуву ліній) */
