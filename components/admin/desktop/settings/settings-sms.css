@@ -196,6 +196,17 @@
   gap: 12px;
 }
 
+.sms-journal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.sms-btn-icon--danger {
+  color: #b42318;
+}
+
 .sms-card__header h3 {
   margin: 0 0 4px;
   font-size: 16px;

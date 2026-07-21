@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Send,
   Smartphone,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import { getAdminTenantId, saveAdminSettings } from "../adminApi";
@@ -235,6 +236,35 @@ export function SmsSettingsPanel({
       setJournalLoading(false);
     }
   }, []);
+
+  const clearJournal = useCallback(async () => {
+    if (journal.length === 0) return;
+    if (!window.confirm("Очистити весь журнал SMS? Це не скасувати.")) return;
+    setJournalLoading(true);
+    try {
+      const res = await adminSmsFetch("/api/admin/sms/journal", { method: "DELETE" });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        showToast(data.error || "Не вдалося очистити журнал");
+        return;
+      }
+      setJournal([]);
+      onSettingsChange({
+        ...settings,
+        smsSettings: {
+          ...normalizeSmsSettings(settings.smsSettings),
+          ...form,
+          pricePerSegment,
+          journal: [],
+        },
+      });
+      showToast("Журнал SMS очищено");
+    } catch {
+      showToast("Немає зв'язку з сервером");
+    } finally {
+      setJournalLoading(false);
+    }
+  }, [form, journal.length, onSettingsChange, pricePerSegment, settings]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -698,15 +728,26 @@ export function SmsSettingsPanel({
               <h3>Журнал відправлених SMS</h3>
               <p>Останні відправки з вашого кабінету (до 100).</p>
             </div>
-            <button
-              type="button"
-              className="btn-secondary sms-btn-icon"
-              onClick={() => void loadJournal(true)}
-              disabled={journalLoading}
-            >
-              <RefreshCw size={16} className={journalLoading ? "sms-spin" : undefined} />
-              {hasPendingSmsDeliveries(journal) ? "Оновлюємо статуси…" : "Оновити статуси"}
-            </button>
+            <div className="sms-journal-actions">
+              <button
+                type="button"
+                className="btn-secondary sms-btn-icon"
+                onClick={() => void loadJournal(true)}
+                disabled={journalLoading}
+              >
+                <RefreshCw size={16} className={journalLoading ? "sms-spin" : undefined} />
+                {hasPendingSmsDeliveries(journal) ? "Оновлюємо статуси…" : "Оновити статуси"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary sms-btn-icon sms-btn-icon--danger"
+                onClick={() => void clearJournal()}
+                disabled={journalLoading || journal.length === 0}
+              >
+                <Trash2 size={16} />
+                Очистити
+              </button>
+            </div>
           </header>
 
           <div className="sms-journal-stats">

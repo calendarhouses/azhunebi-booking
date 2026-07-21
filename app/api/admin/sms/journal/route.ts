@@ -100,3 +100,20 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ ok: true, journal, pendingCount, statusesRefreshed });
 }
+
+export async function DELETE(request: Request) {
+  const tenantId = request.headers.get("x-tenant-id")?.trim() || null;
+  const auth = await verifyAdminRequest(request, tenantId);
+  if (auth instanceof NextResponse) return auth;
+
+  const authToken = extractBearerToken(request);
+  const saved = await persistSmsJournalBulk([], { authToken, tenantId });
+  if (!saved.ok) {
+    return NextResponse.json(
+      { ok: false, error: saved.error || "Не вдалося очистити журнал" },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, journal: [] as SmsJournalEntry[] });
+}
