@@ -165,6 +165,7 @@ export function useBookingDrawer({
       form.checkIn,
       form.checkOut,
       form.cottage,
+      form.roomId,
       form.guests,
       form.children,
       form.pets,

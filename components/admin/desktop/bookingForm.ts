@@ -178,10 +178,14 @@ export function collectBookingFromForm(
 
   if (editingRowNumber !== null && editingRowNumber !== undefined) {
     const editingKey = String(editingRowNumber).trim();
-    if (/^[AB]-\d+$/i.test(editingKey)) {
-      bookingData.id = editingKey;
+    if (!editingKey) {
+      // no-op
+    } else if (/^\d+$/.test(editingKey)) {
+      // Legacy: sheet row index
+      bookingData.row = Number(editingKey);
     } else {
-      bookingData.row = editingRowNumber;
+      // Display id: A-…, B-…, BMN-… тощо
+      bookingData.id = editingKey;
     }
   }
 

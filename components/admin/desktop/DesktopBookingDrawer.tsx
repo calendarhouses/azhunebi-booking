@@ -20,7 +20,7 @@ import {
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
 import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
-import { findBookingInList, resolveBookingAccentColor, resolveBookingOrderId } from "./bookingUtils";
+import { findBookingInList, findRoomForBooking, resolveBookingAccentColor, resolveBookingOrderId } from "./bookingUtils";
 import { ADMIN_SELECTABLE_SOURCES } from "./adminUiHelpers";
 import {
   BookingReviewActions,
@@ -62,11 +62,19 @@ export function DesktopBookingDrawer({
   const showReviewActions = Boolean(
     reviewOrderId && isPendingReviewStatus(activeBooking?.status ?? form.status)
   );
+  const resolvedRoomForPromo = useMemo(
+    () =>
+      findRoomForBooking(
+        { cottage: form.cottage, roomId: form.roomId },
+        settings.roomsList || []
+      ),
+    [form.cottage, form.roomId, settings.roomsList]
+  );
   const roomId =
     form.roomId != null
       ? String(form.roomId)
-      : settings.roomsList?.find((r) => r.name === form.cottage)?.id != null
-        ? String(settings.roomsList.find((r) => r.name === form.cottage)!.id)
+      : resolvedRoomForPromo?.id != null
+        ? String(resolvedRoomForPromo.id)
         : undefined;
   const showPromoCode = hasActivePromoCodeDiscounts(settings.discountsList, roomId);
   const promoStatus =
@@ -92,13 +100,8 @@ export function DesktopBookingDrawer({
   const drawerTintStyle = useMemo(() => bookingAccentTintStyle(accentColor), [accentColor]);
   const selectedRoom = useMemo(() => {
     if (!form.cottage || form.cottage === "Нерозподілені") return null;
-    const rooms = settings.roomsList || [];
-    if (form.roomId != null) {
-      const byId = rooms.find((r) => String(r.id) === String(form.roomId));
-      if (byId) return byId;
-    }
-    return rooms.find((r) => r.name === form.cottage) || null;
-  }, [form.cottage, form.roomId, settings.roomsList]);
+    return resolvedRoomForPromo || null;
+  }, [form.cottage, resolvedRoomForPromo]);
 
   const [nightlyPriceOverrides, setNightlyPriceOverrides] = useState<NightlyPriceOverrides>({});
 

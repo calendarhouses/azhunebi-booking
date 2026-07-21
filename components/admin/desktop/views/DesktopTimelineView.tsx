@@ -500,6 +500,21 @@ export function DesktopTimelineView({
   }, [days, isVirtualTimeline, startDate, virtualWindow.startIndex, virtualWindow.endIndex]);
   const monthBands = useMemo(() => buildMonthBands(days, cellWidth), [days, cellWidth]);
 
+  const todayLineLeftPx = useMemo(() => {
+    const todayIndex = days.findIndex((day) => day.isToday);
+    if (todayIndex < 0) return null;
+    return todayIndex * cellWidth + cellWidth / 2;
+  }, [days, cellWidth]);
+
+  const todayLineEl =
+    todayLineLeftPx == null ? null : (
+      <div
+        className="timeline-today-line"
+        style={{ left: todayLineLeftPx }}
+        aria-hidden
+      />
+    );
+
   const activeBookings = useMemo(
     () => bookings.filter((b) => !String(b.status).toLowerCase().includes("скас")),
     [bookings]
@@ -2367,6 +2382,7 @@ export function DesktopTimelineView({
                 ref={gridRowsRef}
                 style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
               >
+                {todayLineEl}
                 {timelineRows}
               </div>
             </div>
@@ -2413,6 +2429,7 @@ export function DesktopTimelineView({
                       : undefined
                   }
                 >
+                  {todayLineEl}
                   {timelineRows}
                 </div>
               </div>
@@ -2440,6 +2457,7 @@ export function DesktopTimelineView({
                   isVirtualTimeline ? { width: gridTotalWidth, minWidth: gridTotalWidth } : undefined
                 }
               >
+                {todayLineEl}
                 {timelineRows}
               </div>
             </div>

@@ -2013,36 +2013,37 @@
             text-transform: uppercase;
             line-height: 1;
         }
-        .timeline-date.today { color: var(--accent); background: #EFF6FF; }
-        .timeline-date.today span { color: var(--accent); }
+        .timeline-date.today { color: #DC2626; background: #FEF2F2; }
+        .timeline-date.today span { color: #DC2626; }
         .timeline-date.weekend { background: #F9FAFB; color: #EF4444; }
         .timeline-date.today::before {
             display: none;
         }
         .timeline-cell.today::before {
-            content: "";
+            display: none;
+        }
+        .timeline-today-line {
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
             top: 0;
             bottom: 0;
             width: 2px;
-            background: var(--accent);
+            margin-left: -1px;
+            background: #EF4444;
             pointer-events: none;
-            z-index: 3;
+            z-index: 180;
         }
         .timeline-cell.today {
             background-image: linear-gradient(
                 to right,
-                rgba(85, 107, 47, 0.06),
-                rgba(85, 107, 47, 0.06)
+                rgba(239, 68, 68, 0.06),
+                rgba(239, 68, 68, 0.06)
             );
         }
         .timeline-cell.today.weekend {
             background-image: linear-gradient(
                 to right,
-                rgba(85, 107, 47, 0.08),
-                rgba(85, 107, 47, 0.08)
+                rgba(239, 68, 68, 0.08),
+                rgba(239, 68, 68, 0.08)
             );
         }
 

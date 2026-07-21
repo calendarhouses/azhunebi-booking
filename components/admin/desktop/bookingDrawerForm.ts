@@ -118,6 +118,7 @@ export type BookingPriceFormInput = Pick<
   | "checkIn"
   | "checkOut"
   | "cottage"
+  | "roomId"
   | "guests"
   | "children"
   | "pets"
@@ -133,6 +134,7 @@ export function pickPriceFormInput(form: BookingDrawerFormState): BookingPriceFo
     checkIn: form.checkIn,
     checkOut: form.checkOut,
     cottage: form.cottage,
+    roomId: form.roomId,
     guests: form.guests,
     children: form.children,
     pets: form.pets,

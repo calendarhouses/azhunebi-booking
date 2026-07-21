@@ -8,6 +8,7 @@ import { useMobileUi } from "../mobile/MobileUiContext";
 import { HOLDING_ROOM } from "./timelineBookingMove";
 import { nightWord } from "./adminPlural";
 import { showToast } from "./adminGlobals";
+import { findRoomForBooking } from "./bookingUtils";
 import type {
   BookingPriceFormInput,
   SchedulePriceLabels,
@@ -160,13 +161,15 @@ export function BookingPriceCalculator({
   const [manualDiscountAmounts, setManualDiscountAmounts] = useState<Record<string, number>>({});
   const [editedDiscountIds, setEditedDiscountIds] = useState<Set<string>>(() => new Set());
 
-  const room = useMemo(
-    () =>
-      form.cottage === "Нерозподілені"
-        ? HOLDING_ROOM
-        : (settings.roomsList || []).find((r) => r.name === form.cottage),
-    [settings.roomsList, form.cottage]
-  );
+  const room = useMemo(() => {
+    if (form.cottage === "Нерозподілені") return HOLDING_ROOM;
+    return (
+      findRoomForBooking(
+        { cottage: form.cottage, roomId: form.roomId },
+        settings.roomsList || []
+      ) ?? undefined
+    );
+  }, [settings.roomsList, form.cottage, form.roomId]);
 
   const guestsForCalc = useMemo(() => {
     if (!room) return form.guests;
