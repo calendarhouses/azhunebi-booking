@@ -987,10 +987,46 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   border-radius: 18px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
   padding: 0 2px !important;
   margin-bottom: 12px !important;
   background: transparent !important;
   border-bottom: none !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__title {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #6B7280 !important;
+  line-height: 1.2 !important;
+}
+/* :where(*) reset ставить padding:0 — бейдж «8 ночей» має бути як на ПК */
+.boso-admin-mobile .booking-nightly-breakdown__count {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  min-height: 26px !important;
+  padding: 5px 12px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+  color: var(--accent, #556B2F) !important;
+  background: rgba(85, 107, 47, 0.1) !important;
+  border: 1px solid rgba(85, 107, 47, 0.16) !important;
+  border-radius: 999px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__weekday {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 3px 7px !important;
+  line-height: 1.2 !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__list {
   padding: 0 !important;
