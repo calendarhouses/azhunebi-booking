@@ -3,6 +3,7 @@ import { showToast } from "./adminGlobals";
 import {
   findRoomForBooking as findRoomForBookingCore,
   normalizeRoomLabel as normalizeRoomLabelCore,
+  type BookingLike,
 } from "@/lib/admin/roomBookingMatch";
 import type { SpecialTariffToggle, YesNo } from "@/lib/admin/specialTariffBooking";
 import {
@@ -89,7 +90,7 @@ export function formatRoomDisplayLabel(name: string, desc?: string | null): stri
 
 /** Знайти рядок шахматки для броні — roomId має пріоритет над назвою cottage */
 export function findRoomForBooking(
-  booking: BookingRecord,
+  booking: BookingLike,
   rooms: RoomConfig[]
 ): RoomConfig | null {
   return findRoomForBookingCore(booking, rooms) as RoomConfig | null;
@@ -111,7 +112,7 @@ export function createOrphanTimelineRoom(cottageName: string, index: number): Ro
 }
 
 /** Прив’язка броні до рядка шахматки */
-export function bookingMatchesRoom(booking: BookingRecord, room: RoomConfig): boolean {
+export function bookingMatchesRoom(booking: BookingLike, room: RoomConfig): boolean {
   return findRoomForBooking(booking, [room])?.id === room.id;
 }
 
