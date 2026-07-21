@@ -2087,6 +2087,16 @@
             color: #374151;
             white-space: nowrap;
         }
+        .booking-nightly-breakdown__price-edit {
+            flex-shrink: 0;
+            font-size: 13px;
+            margin: 0;
+        }
+        .booking-nightly-breakdown__price-edit .price-edit-suffix {
+            font-weight: 600;
+            color: #9CA3AF;
+            font-size: 12px;
+        }
         .booking-nightly-breakdown__currency {
             font-weight: 600;
             color: #9CA3AF;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MobileSheetHeader } from "../mobile/MobileSheetHeader";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import { BookingPriceCalculator } from "./BookingPriceCalculator";
@@ -10,7 +10,13 @@ import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 import { BookingColorPicker } from "./BookingColorPicker";
 import { BookingStayRangeCalendar } from "./BookingStayRangeCalendar";
-import { BookingNightlyBreakdown } from "./BookingNightlyBreakdown";
+import { BookingNightlyBreakdown, buildNightlyPriceLines } from "./BookingNightlyBreakdown";
+import {
+  applyNightlyPriceOverrides,
+  hasNightlyPriceOverrides,
+  sumNightlyPrices,
+  type NightlyPriceOverrides,
+} from "@/lib/admin/bookingNightlyPrices";
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
 import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
@@ -93,6 +99,44 @@ export function DesktopBookingDrawer({
     }
     return rooms.find((r) => r.name === form.cottage) || null;
   }, [form.cottage, form.roomId, settings.roomsList]);
+
+  const [nightlyPriceOverrides, setNightlyPriceOverrides] = useState<NightlyPriceOverrides>({});
+
+  const defaultNightlyLines = useMemo(
+    () => buildNightlyPriceLines(form.checkIn, form.checkOut, selectedRoom, settings.customPrices),
+    [form.checkIn, form.checkOut, selectedRoom, settings.customPrices]
+  );
+
+  const effectiveNightlyLines = useMemo(
+    () => applyNightlyPriceOverrides(defaultNightlyLines, nightlyPriceOverrides),
+    [defaultNightlyLines, nightlyPriceOverrides]
+  );
+
+  const nightlyBaseSum = useMemo(
+    () => sumNightlyPrices(effectiveNightlyLines),
+    [effectiveNightlyLines]
+  );
+
+  const nightlyOverridesActive = hasNightlyPriceOverrides(nightlyPriceOverrides);
+
+  useEffect(() => {
+    setNightlyPriceOverrides({});
+  }, [form.checkIn, form.checkOut, form.cottage, form.roomId]);
+
+  useEffect(() => {
+    setNightlyPriceOverrides({});
+  }, [editingRow, editingBookingId]);
+
+  const handleNightlyPriceChange = useCallback((dateKey: string, price: number) => {
+    setNightlyPriceOverrides((prev) => ({
+      ...prev,
+      [dateKey]: Math.max(0, Math.round(price)),
+    }));
+  }, []);
+
+  const clearNightlyPriceOverrides = useCallback(() => {
+    setNightlyPriceOverrides({});
+  }, []);
 
   return (
     <div id="bookingDrawer" className="drawer-overlay">
@@ -274,6 +318,8 @@ export function DesktopBookingDrawer({
                   checkOut={form.checkOut}
                   room={selectedRoom}
                   customPrices={settings.customPrices}
+                  priceOverrides={nightlyPriceOverrides}
+                  onPriceChange={handleNightlyPriceChange}
                 />
               </div>
               <div className="form-grid">
@@ -391,6 +437,8 @@ export function DesktopBookingDrawer({
                 initialSurcharge={drawer.initialPayment.surcharge}
                 initialPrepayMethod={drawer.initialPayment.prepayMethod}
                 initialSurchargeMethod={drawer.initialPayment.surchargeMethod}
+                nightlyBaseSum={nightlyOverridesActive ? nightlyBaseSum : null}
+                onClearNightlyPriceOverrides={clearNightlyPriceOverrides}
               />
               )}
             </div>

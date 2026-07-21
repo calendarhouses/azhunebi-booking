@@ -21,6 +21,7 @@ import { formatFlexibleScheduleCardLabel } from "@/lib/admin/flexibleSchedule";
 import type { AdminSettingsPayload, BookingPayment, BookingRecord } from "./types";
 import { PaymentJournalSection } from "./PaymentJournalSection";
 import { IntegerAmountInput } from "../shared/IntegerAmountInput";
+import { PriceLineInput } from "../shared/PriceLineInput";
 import {
   applyManualDiscountOverrides,
   calculateTotal,
@@ -77,6 +78,9 @@ export interface BookingPriceCalculatorProps {
   initialPrepayMethod?: string;
   initialSurchargeMethod?: string;
   bookingStatus?: string;
+  /** Сума базової вартості з розбивки по ночах (коли адмін редагує окремі дати). */
+  nightlyBaseSum?: number | null;
+  onClearNightlyPriceOverrides?: () => void;
 }
 
 type ManualLineKey = keyof Pick<
@@ -114,6 +118,8 @@ export function BookingPriceCalculator({
   initialPrepayMethod = "ФОП",
   initialSurchargeMethod = "Готівка",
   bookingStatus = "Очікує оплату",
+  nightlyBaseSum = null,
+  onClearNightlyPriceOverrides,
 }: BookingPriceCalculatorProps) {
   const isMobile = useMobileUi();
   const prevFormRef = useRef<FormStateSnapshot | null>(null);
@@ -250,9 +256,11 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (computed.empty) return;
+    const baseFromNights =
+      nightlyBaseSum != null && Number.isFinite(nightlyBaseSum) ? nightlyBaseSum : null;
     setManualLines((prev) => ({
       ...prev,
-      base: computed.basePriceTotal,
+      base: baseFromNights ?? computed.basePriceTotal,
       extra: computed.extraGuestFee,
       pet: computed.petFee,
       dayGuest: computed.dayGuestFee,
@@ -267,7 +275,7 @@ export function BookingPriceCalculator({
     computed.dayGuestFee,
     computed.earlyFee,
     computed.lateFee,
-    isInitialLoad,
+    nightlyBaseSum,
   ]);
 
   useEffect(() => {
@@ -652,6 +660,11 @@ export function BookingPriceCalculator({
     };
   }, [onManualRecalc]);
 
+  useEffect(() => {
+    if (nightlyBaseSum == null || !Number.isFinite(nightlyBaseSum)) return;
+    onManualRecalc(false, { base: nightlyBaseSum });
+  }, [nightlyBaseSum, onManualRecalc]);
+
   if (!form.checkIn || !form.checkOut || !form.cottage || !room) {
     return null;
   }
@@ -718,6 +731,7 @@ export function BookingPriceCalculator({
         isMobile={isMobile}
         onOpenQuickEdit={setQuickEdit}
         onChange={(v) => {
+          onClearNightlyPriceOverrides?.();
           setManualLines((m) => ({ ...m, base: v }));
           onManualRecalc(false, { base: v });
         }}
@@ -1183,53 +1197,6 @@ function PriceLine({
         </div>
       )}
     </div>
-  );
-}
-
-function PriceLineInput({
-  value,
-  onChange,
-  danger,
-  maxAmount,
-}: {
-  value: number;
-  onChange: (value: number) => void;
-  danger?: boolean;
-  maxAmount?: number;
-}) {
-  const safeValue = String(Math.max(0, Math.round(Number(value) || 0)));
-  const inputWidthCh = Math.max(2, safeValue.length);
-  const cap =
-    maxAmount !== undefined && Number.isFinite(maxAmount)
-      ? Math.max(0, Math.round(maxAmount))
-      : undefined;
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      autoComplete="off"
-      className="editable-number"
-      value={safeValue}
-      aria-label="Сума"
-      size={inputWidthCh}
-      onChange={(e) => {
-        const digitsOnly = e.target.value.replace(/[^\d]/g, "").slice(0, 9);
-        onChange(Number(digitsOnly) || 0);
-      }}
-      onBlur={(e) => {
-        if (cap === undefined) return;
-        const n = Number(e.currentTarget.value.replace(/[^\d]/g, "")) || 0;
-        const clamped = Math.min(Math.max(0, Math.round(n)), cap);
-        if (clamped !== Math.round(Number(value) || 0)) onChange(clamped);
-      }}
-      onKeyDown={(e) => {
-        if (e.key.length === 1 && !/[0-9]/.test(e.key)) {
-          e.preventDefault();
-        }
-      }}
-      onFocus={(e) => e.currentTarget.select()}
-      style={{ width: `${inputWidthCh}ch` }}
-    />
   );
 }
 

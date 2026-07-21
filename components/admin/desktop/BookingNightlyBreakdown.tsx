@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getDayPrice } from "./bookingPriceEngine";
 import { formatDateKey } from "./bookingUtils";
 import { parseSafeDate } from "./adminDates";
 import { nightWord } from "./adminPlural";
+import { PriceLineInput } from "../shared/PriceLineInput";
+import { BookingQuickEditDrawer } from "../mobile/BookingQuickEditDrawer";
+import { useMobileUi } from "../mobile/MobileUiContext";
 import type { AdminSettingsPayload, RoomConfig } from "./types";
 
 const WEEKDAY_SHORT = ["нд", "пн", "вт", "ср", "чт", "пт", "сб"] as const;
@@ -14,6 +17,7 @@ export type NightlyPriceLine = {
   label: string;
   weekday: string;
   price: number;
+  defaultPrice: number;
   isWeekend: boolean;
 };
 
@@ -46,11 +50,13 @@ export function buildNightlyPriceLines(
         : 2900;
     const dd = String(cursor.getDate()).padStart(2, "0");
     const mm = String(cursor.getMonth() + 1).padStart(2, "0");
+    const rounded = Math.round(price);
     lines.push({
       dateKey,
       label: `${dd}.${mm}`,
       weekday: WEEKDAY_SHORT[day],
-      price,
+      price: rounded,
+      defaultPrice: rounded,
       isWeekend,
     });
     cursor.setDate(cursor.getDate() + 1);
@@ -63,6 +69,8 @@ type BookingNightlyBreakdownProps = {
   checkOut: string;
   room: RoomConfig | null | undefined;
   customPrices?: AdminSettingsPayload["customPrices"];
+  priceOverrides?: Record<string, number>;
+  onPriceChange?: (dateKey: string, price: number) => void;
 };
 
 export function BookingNightlyBreakdown({
@@ -70,50 +78,122 @@ export function BookingNightlyBreakdown({
   checkOut,
   room,
   customPrices,
+  priceOverrides = {},
+  onPriceChange,
 }: BookingNightlyBreakdownProps) {
-  const lines = useMemo(
+  const isMobile = useMobileUi();
+  const [quickEdit, setQuickEdit] = useState<{
+    dateKey: string;
+    title: string;
+    value: number;
+    defaultValue: number;
+  } | null>(null);
+
+  const defaultLines = useMemo(
     () => buildNightlyPriceLines(checkIn, checkOut, room, customPrices),
     [checkIn, checkOut, room, customPrices]
+  );
+
+  const lines = useMemo(
+    () =>
+      defaultLines.map((line) => ({
+        ...line,
+        price:
+          priceOverrides[line.dateKey] !== undefined
+            ? Math.max(0, Math.round(priceOverrides[line.dateKey]!))
+            : line.price,
+      })),
+    [defaultLines, priceOverrides]
   );
 
   if (lines.length === 0) return null;
 
   const total = lines.reduce((sum, line) => sum + line.price, 0);
   const nights = lines.length;
+  const editable = Boolean(onPriceChange);
+
+  const handlePriceChange = (dateKey: string, price: number) => {
+    onPriceChange?.(dateKey, Math.max(0, Math.round(price)));
+  };
 
   return (
-    <div className="booking-nightly-breakdown">
-      <div className="booking-nightly-breakdown__head">
-        <div className="booking-nightly-breakdown__title">Розбивка по датах</div>
-        <div className="booking-nightly-breakdown__count">
-          {nights} {nightWord(nights)}
+    <>
+      <div className="booking-nightly-breakdown">
+        <div className="booking-nightly-breakdown__head">
+          <div className="booking-nightly-breakdown__title">Розбивка по датах</div>
+          <div className="booking-nightly-breakdown__count">
+            {nights} {nightWord(nights)}
+          </div>
+        </div>
+        <ul className="booking-nightly-breakdown__list">
+          {lines.map((line) => (
+            <li
+              key={line.dateKey}
+              className={`booking-nightly-breakdown__row${
+                line.isWeekend ? " booking-nightly-breakdown__row--weekend" : ""
+              }`}
+            >
+              <span className="booking-nightly-breakdown__date-wrap">
+                <span className="booking-nightly-breakdown__date">{line.label}</span>
+                <span className="booking-nightly-breakdown__weekday">{line.weekday}</span>
+              </span>
+              {editable ? (
+                isMobile ? (
+                  <button
+                    type="button"
+                    className="price-edit-wrapper booking-nightly-breakdown__price-edit"
+                    onClick={() =>
+                      setQuickEdit({
+                        dateKey: line.dateKey,
+                        title: `${line.label} · ${line.weekday}`,
+                        value: line.price,
+                        defaultValue: line.defaultPrice,
+                      })
+                    }
+                  >
+                    <span className="editable-number">{line.price.toLocaleString("uk-UA")}</span>
+                    <span className="price-edit-suffix">грн</span>
+                  </button>
+                ) : (
+                  <div className="price-edit-wrapper booking-nightly-breakdown__price-edit">
+                    <PriceLineInput
+                      value={line.price}
+                      onChange={(value) => handlePriceChange(line.dateKey, value)}
+                      ariaLabel={`Ціна за ${line.label}`}
+                    />
+                    <span className="price-edit-suffix">грн</span>
+                  </div>
+                )
+              ) : (
+                <span className="booking-nightly-breakdown__price">
+                  {line.price.toLocaleString("uk-UA")}
+                  <span className="booking-nightly-breakdown__currency"> грн</span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+        <div className="booking-nightly-breakdown__total">
+          <span className="booking-nightly-breakdown__total-label">Загальна сума</span>
+          <strong className="booking-nightly-breakdown__total-value">
+            {Math.round(total).toLocaleString("uk-UA")} грн
+          </strong>
         </div>
       </div>
-      <ul className="booking-nightly-breakdown__list">
-        {lines.map((line) => (
-          <li
-            key={line.dateKey}
-            className={`booking-nightly-breakdown__row${
-              line.isWeekend ? " booking-nightly-breakdown__row--weekend" : ""
-            }`}
-          >
-            <span className="booking-nightly-breakdown__date-wrap">
-              <span className="booking-nightly-breakdown__date">{line.label}</span>
-              <span className="booking-nightly-breakdown__weekday">{line.weekday}</span>
-            </span>
-            <span className="booking-nightly-breakdown__price">
-              {Math.round(line.price).toLocaleString("uk-UA")}
-              <span className="booking-nightly-breakdown__currency"> грн</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="booking-nightly-breakdown__total">
-        <span className="booking-nightly-breakdown__total-label">Загальна сума</span>
-        <strong className="booking-nightly-breakdown__total-value">
-          {Math.round(total).toLocaleString("uk-UA")} грн
-        </strong>
-      </div>
-    </div>
+
+      {isMobile && quickEdit && onPriceChange ? (
+        <BookingQuickEditDrawer
+          open
+          title={quickEdit.title}
+          value={quickEdit.value}
+          defaultValue={quickEdit.defaultValue}
+          onClose={() => setQuickEdit(null)}
+          onSave={(value) => {
+            handlePriceChange(quickEdit.dateKey, value);
+            setQuickEdit(null);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

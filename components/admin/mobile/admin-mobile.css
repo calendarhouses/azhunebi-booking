@@ -1036,6 +1036,14 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .boso-admin-mobile .booking-nightly-breakdown__row {
   padding: 11px 14px !important;
 }
+.boso-admin-mobile .booking-nightly-breakdown__price-edit {
+  padding: 4px 8px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__price-edit .editable-number {
+  line-height: 1.2 !important;
+}
 .boso-admin-mobile .booking-nightly-breakdown__total {
   margin-top: 12px !important;
   padding: 14px 2px 16px !important;
