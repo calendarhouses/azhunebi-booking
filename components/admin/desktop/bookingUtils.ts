@@ -148,12 +148,12 @@ export function getTimelineFinBadge(
   }
   if (paid === 0) {
     const advanceAmount = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
-    return { text: `${advanceAmount} грн`, bg: "#E8CFB8", color: "#1A1A1A" };
+    return { text: `${advanceAmount} грн`, bg: "#C9A97A", color: "#FFFFFF" };
   }
   if (balance <= 0) {
-    return { text: `${Math.round(total)} грн`, bg: "#A8BFA8", color: "#1A1A1A" };
+    return { text: `${Math.round(total)} грн`, bg: "#4F8A6A", color: "#FFFFFF" };
   }
-  return { text: `${Math.round(balance)} грн`, bg: "#E8C4C6", color: "#1A1A1A" };
+  return { text: `${Math.round(balance)} грн`, bg: "#B87176", color: "#FFFFFF" };
 }
 
 export type TimelineOneNightFinKind = "pending" | "debt" | "paid" | "neutral";
@@ -260,6 +260,11 @@ export function resolveBookingAccentColor(
 export function getTimelineBookingBlockStyle(booking: BookingRecord): CSSProperties {
   const color = normalizeBookingCustomColor(booking.custom_color);
   const fg = bookingColorForeground(color ?? resolveBookingAccentColor(booking));
+  const depth = {
+    boxShadow:
+      "0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 14px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.42)",
+    border: "1px solid rgba(15, 23, 42, 0.06)",
+  } as const;
 
   if (color) {
     return {
@@ -268,6 +273,7 @@ export function getTimelineBookingBlockStyle(booking: BookingRecord): CSSPropert
       color: fg,
       ["--booking-card-fg" as string]: fg,
       borderColor: "transparent",
+      ...depth,
       transition: "background-color 0.2s ease-in-out, color 0.2s ease-in-out",
     };
   }

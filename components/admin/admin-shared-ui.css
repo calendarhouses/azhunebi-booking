@@ -1271,22 +1271,24 @@
         }
 
         .booking-block.status-new .booking-guest-chip {
-            background: rgba(26, 26, 26, 0.08);
-            border-color: rgba(26, 26, 26, 0.12);
-            color: rgba(26, 26, 26, 0.88);
-            box-shadow: none;
+            background: rgba(255, 255, 255, 0.38);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: rgba(58, 42, 22, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
         .booking-block.status-confirmed .booking-guest-chip {
-            background: rgba(26, 26, 26, 0.08);
-            border-color: rgba(26, 26, 26, 0.12);
-            color: rgba(26, 26, 26, 0.88);
+            background: rgba(255, 255, 255, 0.38);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: rgba(18, 40, 58, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
         .booking-block.status-paid .booking-guest-chip {
-            background: rgba(26, 26, 26, 0.08);
-            border-color: rgba(26, 26, 26, 0.12);
-            color: rgba(26, 26, 26, 0.88);
+            background: rgba(255, 255, 255, 0.38);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: rgba(16, 42, 30, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
         .booking-block.status-hutshub .booking-guest-chip {
@@ -1520,25 +1522,37 @@
 
         /* 1. НОВА / ОЧІКУЄ ОПЛАТУ: преміум синій */
         .booking-block.status-new {
-            background: #CED3D9;
-            color: #1A1A1A;
-            border-color: transparent;
+            background: linear-gradient(145deg, #E0C8A0 0%, #C9A97A 58%, #B99768 100%);
+            color: #3A2A16;
+            border: 1px solid rgba(58, 42, 22, 0.1);
+            box-shadow:
+              0 1px 2px rgba(58, 42, 22, 0.07),
+              0 6px 14px rgba(58, 42, 22, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
             transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
         }
         
-        /* 2. ПІДТВЕРДЖЕНА: приглушений блакитний */
+        /* 2. ПІДТВЕРДЖЕНА: ocean slate */
         .booking-block.status-confirmed {
-            background: #C5D3E0;
-            color: #1A1A1A;
-            border-color: transparent;
+            background: linear-gradient(145deg, #A3C6DE 0%, #7EABCA 58%, #6D9BBA 100%);
+            color: #12283A;
+            border: 1px solid rgba(18, 40, 58, 0.1);
+            box-shadow:
+              0 1px 2px rgba(18, 40, 58, 0.07),
+              0 6px 14px rgba(18, 40, 58, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
             transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
         }
 
-        /* 2a. ОПЛАЧЕНО ПОВНІСТЮ: приглушений зелений */
+        /* 2a. ОПЛАЧЕНО ПОВНІСТЮ: forest sage */
         .booking-block.status-paid {
-            background: #C9D6C4;
-            color: #1A1A1A;
-            border-color: transparent;
+            background: linear-gradient(145deg, #A3CDB5 0%, #7EAF93 58%, #6B9B82 100%);
+            color: #10241A;
+            border: 1px solid rgba(16, 36, 26, 0.1);
+            box-shadow:
+              0 1px 2px rgba(16, 36, 26, 0.07),
+              0 6px 14px rgba(16, 36, 26, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
             transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
         }
 

@@ -1,31 +1,34 @@
 import type { CSSProperties } from "react";
 
-/** Акцентні кольори за статусом (шахматка + tint модалки) — приглушені, як ручні картки. */
+/**
+ * Статусні акценти шахматки: м’які mid-tone (не неон, не «брудна» пастель).
+ * paid / confirmed / new — різні hue, щоб не зливались в один тон.
+ */
 export const BOOKING_STATUS_ACCENT = {
-  paid: "#C9D6C4",
-  confirmed: "#C5D3E0",
-  new: "#CED3D9",
+  paid: "#7EAF93",
+  confirmed: "#7EABCA",
+  new: "#C9A97A",
   cancelled: "#9CA3AF",
   pendingReview: "#9CA3AF",
   hutshub: "#7FA896",
   default: "#94A3B8",
 } as const;
 
-/** Пара: насичений колір у пікері → приглушений на шаховатці. */
+/** Пара: насичений колір у пікері → преміум mid-tone на шаховатці. */
 export const BOOKING_COLOR_OPTIONS = [
-  { card: "#E8C4C6", picker: "#E11D48" },
-  { card: "#E8CFB8", picker: "#EA580C" },
-  { card: "#E6DFC2", picker: "#CA8A04" },
-  { card: "#C9D6C4", picker: "#16A34A" },
-  { card: "#C2D4D1", picker: "#0D9488" },
-  { card: "#C5D3E0", picker: "#2563EB" },
-  { card: "#CFCBDB", picker: "#7C3AED" },
-  { card: "#DBC8D4", picker: "#DB2777" },
-  { card: "#D4D0CB", picker: "#78716C" },
-  { card: "#CED3D9", picker: "#64748B" },
+  { card: "#D4A5A9", picker: "#E11D48" },
+  { card: "#D4B08F", picker: "#EA580C" },
+  { card: "#D2C28A", picker: "#CA8A04" },
+  { card: "#7EAF93", picker: "#16A34A" },
+  { card: "#7AADB0", picker: "#0D9488" },
+  { card: "#7EABCA", picker: "#2563EB" },
+  { card: "#A79BC4", picker: "#7C3AED" },
+  { card: "#C49AB0", picker: "#DB2777" },
+  { card: "#B5AFA6", picker: "#78716C" },
+  { card: "#9AA6B5", picker: "#64748B" },
 ] as const;
 
-/** Приглушені кольори карток на шаховатці (зберігаються в БД). */
+/** Кольори карток на шаховатці (зберігаються в БД). */
 export const BOOKING_COLOR_SWATCHES = BOOKING_COLOR_OPTIONS.map((option) => option.card);
 
 export type BookingColorSwatch = (typeof BOOKING_COLOR_OPTIONS)[number]["card"];
@@ -48,10 +51,10 @@ export function bookingColorForeground(hex: string): "#FFFFFF" | "#1A1A1A" {
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.62 ? "#1A1A1A" : "#FFFFFF";
+  return luminance > 0.58 ? "#1A1A1A" : "#FFFFFF";
 }
 
-/** Непрозорий pastel: змішування акценту з білим (без просвічування). */
+/** Непрозорий soft-tint: змішування акценту з білим. */
 function mixHexWithWhite(hex: string, whiteRatio: number): string {
   const h = hex.replace("#", "");
   const r = parseInt(h.slice(0, 2), 16);
@@ -63,7 +66,7 @@ function mixHexWithWhite(hex: string, whiteRatio: number): string {
   return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
 }
 
-/** Легкий pastel-tint для drawer/modal під обраний або статусний колір. */
+/** Легкий tint для drawer/modal під обраний або статусний колір. */
 export function bookingAccentTintStyle(accentHex: string): CSSProperties {
   return {
     ["--booking-accent" as string]: accentHex,
