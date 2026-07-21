@@ -191,6 +191,7 @@ export async function sendEveningCashSummary(
 export type DebtBooking = {
   cottage?: string;
   checkIn?: string;
+  checkOut?: string;
   status?: string;
   totalPrice?: number | string;
   paidAmount?: number | string;
@@ -204,6 +205,7 @@ export function buildDebtCaption(cottage: string, debt: number): string {
   );
 }
 
+/** Reminder on checkout day for unpaid balance (confirmed bookings only). */
 export async function sendDebtReminders(bookings: DebtBooking[]): Promise<number> {
   if (!isTelegramConfigured()) return 0;
   const today = todayKeyKyiv();
@@ -212,7 +214,7 @@ export async function sendDebtReminders(bookings: DebtBooking[]): Promise<number
 
   for (const b of bookings) {
     if (!isConfirmedBookingStatus(b.status)) continue;
-    if (toDateKeyKyiv(b.checkIn) !== today) continue;
+    if (toDateKeyKyiv(b.checkOut) !== today) continue;
     const debt = Math.round(Number(b.totalPrice) || 0) - Math.round(Number(b.paidAmount) || 0);
     if (debt <= 0) continue;
     const res = await sendTelegramMessage(

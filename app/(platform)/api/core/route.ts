@@ -2142,8 +2142,8 @@ async function sendDebtReminders() {
     const row = data[i] as unknown[];
     if (!row[0]) continue;
     if (!isActiveBookingStatus(row[4])) continue;
-    const checkIn = formatBookingDateKyiv(row[1]);
-    if (!checkIn || checkIn !== todayString) continue;
+    const checkOut = formatBookingDateKyiv(row[2]);
+    if (!checkOut || checkOut !== todayString) continue;
     const totalPrice = Number(row[13]) || 0;
     const paidAmount = Number(row[14]) || 0;
     const debt = totalPrice - paidAmount;
