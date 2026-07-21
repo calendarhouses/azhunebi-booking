@@ -480,7 +480,9 @@ export function useBookingDrawer({
       const savedRoom =
         booking.assignmentState === "holding"
           ? "Нерозподілені"
-          : matchedRoom?.name || String(booking.cottage || "");
+          : matchedRoom
+            ? String(matchedRoom.short || matchedRoom.name || "")
+            : String(booking.cottage || "");
       const room = matchedRoom ?? roomsList.find((r) => r.name === savedRoom);
       const cottageLabel =
         booking.assignmentState === "holding"

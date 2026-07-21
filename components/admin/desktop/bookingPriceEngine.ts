@@ -21,6 +21,7 @@ import {
   formatDiscountLineForGuest,
   resolveApplicableBookingDiscounts,
 } from "@/lib/admin/bookingDiscountCalc";
+import { bookingsShareSameRoom } from "@/lib/admin/roomBookingMatch";
 
 export type ManualPriceSnapshot = {
   base: number | null;
@@ -136,6 +137,8 @@ export function parseFormDates(checkInStr: string, checkOutStr: string): { d1: D
 
 export function checkBookingOverlap(params: {
   roomName: string;
+  roomId?: number | string | null;
+  roomsList?: RoomConfig[];
   checkIn: Date;
   checkOut: Date;
   nights: number;
@@ -147,6 +150,8 @@ export function checkBookingOverlap(params: {
 }): { isOverlap: boolean; overlapReason: string } {
   const {
     roomName,
+    roomId,
+    roomsList = [],
     checkIn,
     checkOut,
     selectedEarlyTime,
@@ -164,12 +169,19 @@ export function checkBookingOverlap(params: {
 
   const currentHasEarly = !!selectedEarlyTime;
   const currentHasLate = !!selectedLateTime;
+  const currentRoom = { cottage: roomName, roomId: roomId ?? null };
 
   for (const b of allBookings) {
     if (editingId && String(b.id) === String(editingId)) continue;
     if (editingRow != null && String(b.row) === String(editingRow)) continue;
     if (String(b.status).toLowerCase().includes("скас")) continue;
-    if (b.cottage !== roomName) continue;
+
+    // roomId має пріоритет: однакова site-name («Будиночок 1-12») ≠ той самий будинок
+    if (roomsList.length > 0) {
+      if (!bookingsShareSameRoom(currentRoom, b, roomsList)) continue;
+    } else if (b.cottage !== roomName) {
+      continue;
+    }
 
     const exIn = parseSafeDate(b.checkIn);
     exIn.setHours(0, 0, 0, 0);
@@ -322,6 +334,8 @@ export function computeBookingPrice(params: {
 
   const overlap = checkBookingOverlap({
     roomName: params.roomName,
+    roomId: params.room?.id ?? null,
+    roomsList: params.settings.roomsList || [],
     checkIn: d1,
     checkOut: d2,
     nights,

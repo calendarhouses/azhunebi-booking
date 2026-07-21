@@ -126,7 +126,7 @@ export function getBookingBadgeClass(booking: BookingRecord): string {
   return "new";
 }
 
-/** Сума на картці шахматки в кольоровому бейджі (без підписів «Борг», «Оплачено» тощо). */
+/** Сума на картці шахматки: жовтий «очікує», зелений «оплачено», червоний «борг». */
 export function getTimelineFinBadge(
   booking: BookingRecord
 ): { text: string; bg: string; color: string } {
@@ -141,19 +141,19 @@ export function getTimelineFinBadge(
   }
   if (statusClass === "status-pending-review") {
     const prepay = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
-    return { text: prepay > 0 ? `${prepay} грн` : "—", bg: "#9CA3AF", color: "#FFFFFF" };
+    return { text: prepay > 0 ? `${prepay} грн` : "—", bg: "#F59E0B", color: "#78350F" };
   }
   if (total === 0) {
     return { text: "—", bg: "rgba(255,255,255,0.3)", color: "#4B5563" };
   }
   if (paid === 0) {
     const advanceAmount = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
-    return { text: `${advanceAmount} грн`, bg: "#C9A97A", color: "#FFFFFF" };
+    return { text: `${advanceAmount} грн`, bg: "#F59E0B", color: "#78350F" };
   }
   if (balance <= 0) {
-    return { text: `${Math.round(total)} грн`, bg: "#4F8A6A", color: "#FFFFFF" };
+    return { text: `${Math.round(total)} грн`, bg: "#16A34A", color: "#FFFFFF" };
   }
-  return { text: `${Math.round(balance)} грн`, bg: "#B87176", color: "#FFFFFF" };
+  return { text: `${Math.round(balance)} грн`, bg: "#EF4444", color: "#FFFFFF" };
 }
 
 export type TimelineOneNightFinKind = "pending" | "debt" | "paid" | "neutral";
@@ -186,7 +186,7 @@ export function formatTimelineGuestChip(booking: BookingRecord): string {
   return String(adults);
 }
 
-/** Компактний текст суми для вузьких карток (1 ніч). */
+/** Компактний текст суми для вузьких карток. */
 export function formatTimelineFinText(
   finBadge: { text: string },
   contentWidth: number
