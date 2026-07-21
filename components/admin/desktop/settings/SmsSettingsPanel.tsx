@@ -33,6 +33,7 @@ import {
   type SmsTemplateId,
 } from "@/lib/sms/smsSettings";
 import { countSmsSegments, estimateSmsCost } from "@/lib/sms/smsSegments";
+import { copyTurboSmsClientId, openEasyPayTurboSmsTopUp, TURBOSMS_CLIENT_ID } from "@/lib/sms/turbosmsTopup";
 import {
   SmsJournalStatusBadge,
   hasPendingSmsDeliveries,
@@ -41,7 +42,6 @@ import { SmsJournalGuestCell } from "./SmsJournalGuestCell";
 import type { BookingRecord } from "../types";
 import "./settings-sms.css";
 
-const TURBOSMS_CABINET_URL = "https://turbosms.ua/";
 const TEMPLATE_ORDER: SmsTemplateId[] = [
   "payment_link",
   "success",
@@ -377,6 +377,16 @@ export function SmsSettingsPanel({
     balance != null &&
     balance < (form.lowBalanceThreshold || DEFAULT_SMS_SETTINGS.lowBalanceThreshold);
 
+  const handleEasyPayTopUp = useCallback(async () => {
+    const copied = await copyTurboSmsClientId();
+    openEasyPayTurboSmsTopUp();
+    showToast(
+      copied
+        ? "ID скопійовано — вставте на EasyPay і введіть суму"
+        : `ID: ${TURBOSMS_CLIENT_ID} — введіть вручну на EasyPay`,
+    );
+  }, []);
+
   const templateStats = useMemo(() => {
     const map = {} as Record<
       SmsTemplateId,
@@ -476,15 +486,14 @@ export function SmsSettingsPanel({
                 <RefreshCw size={16} className={balanceLoading ? "sms-spin" : undefined} />
                 Оновити
               </button>
-              <a
+              <button
+                type="button"
                 className="btn-primary sms-topup"
-                href={TURBOSMS_CABINET_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={() => void handleEasyPayTopUp()}
               >
-                Поповнити
+                Поповнити через EasyPay
                 <ExternalLink size={15} aria-hidden />
-              </a>
+              </button>
             </div>
           </section>
 
