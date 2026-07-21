@@ -491,7 +491,7 @@ export function SmsSettingsPanel({
                 className="btn-primary sms-topup"
                 onClick={() => void handleEasyPayTopUp()}
               >
-                Поповнити через EasyPay
+                Поповнити
                 <ExternalLink size={15} aria-hidden />
               </button>
             </div>
