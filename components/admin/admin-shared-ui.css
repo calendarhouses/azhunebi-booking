@@ -2179,14 +2179,21 @@
         }
         .booking-nightly-breakdown__discount-chip {
             flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 28px;
             font-size: 12px;
             font-weight: 800;
+            line-height: 1.2;
             color: #B45309;
             background: rgba(251, 191, 36, 0.16);
             border: 1px solid rgba(217, 119, 6, 0.22);
             border-radius: 999px;
-            padding: 6px 10px;
+            padding: 6px 12px;
+            white-space: nowrap;
             font-variant-numeric: tabular-nums;
+            box-sizing: border-box;
         }
         .booking-nightly-breakdown__discount-grid {
             display: grid;

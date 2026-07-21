@@ -1061,6 +1061,25 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   gap: 10px !important;
   margin-bottom: 14px !important;
 }
+.boso-admin-mobile .booking-nightly-breakdown__discount-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  min-height: 28px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  color: #B45309 !important;
+  background: rgba(251, 191, 36, 0.16) !important;
+  border: 1px solid rgba(217, 119, 6, 0.22) !important;
+  border-radius: 999px !important;
+  font-variant-numeric: tabular-nums !important;
+  box-sizing: border-box !important;
+}
 .boso-admin-mobile .booking-nightly-breakdown__discount-brand {
   display: flex !important;
   align-items: center !important;
