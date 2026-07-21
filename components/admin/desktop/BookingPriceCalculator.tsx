@@ -165,7 +165,7 @@ export function BookingPriceCalculator({
     if (form.cottage === "Нерозподілені") return HOLDING_ROOM;
     return (
       findRoomForBooking(
-        { cottage: form.cottage, roomId: form.roomId },
+        { cottage: form.cottage, roomId: form.roomId ?? undefined },
         settings.roomsList || []
       ) ?? undefined
     );

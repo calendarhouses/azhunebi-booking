@@ -65,7 +65,7 @@ export function DesktopBookingDrawer({
   const resolvedRoomForPromo = useMemo(
     () =>
       findRoomForBooking(
-        { cottage: form.cottage, roomId: form.roomId },
+        { cottage: form.cottage, roomId: form.roomId ?? undefined },
         settings.roomsList || []
       ),
     [form.cottage, form.roomId, settings.roomsList]
