@@ -47,7 +47,9 @@ export type RoomAvailabilityStatus = "enabled" | "disabled" | "maintenance";
 
 export interface RoomConfig {
   id: number;
+  /** Публічна назва на сайті */
   name: string;
+  /** Назва в шахматці / адмінці */
   short: string;
   desc: string;
   capacity: number;

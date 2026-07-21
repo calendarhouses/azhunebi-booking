@@ -71,6 +71,9 @@ export function RoomSettingsAccordion({
   const initialMax = resolvedRoom?.maxCapacity ?? initialCap;
 
   const [name, setName] = useState(resolvedRoom?.name ?? "");
+  const [chessboardName, setChessboardName] = useState(
+    () => resolvedRoom?.short?.trim() || resolvedRoom?.name || ""
+  );
   const [siteDescription, setSiteDescription] = useState(
     resolvedRoom?.detailedDescription ?? ""
   );
@@ -136,6 +139,7 @@ export function RoomSettingsAccordion({
     const cap = draft ? (resolvedRoom.capacity ?? 0) : Math.max(1, resolvedRoom.capacity || 2);
     const max = draft ? (resolvedRoom.maxCapacity ?? cap) : (resolvedRoom.maxCapacity ?? cap);
     setName(resolvedRoom.name);
+    setChessboardName(resolvedRoom.short?.trim() || resolvedRoom.name || "");
     setSiteDescription(resolvedRoom.detailedDescription ?? "");
     setMainPlaces(String(cap));
     setExtraPlaces(String(Math.max(0, max - cap)));
@@ -158,11 +162,15 @@ export function RoomSettingsAccordion({
   useEffect(() => {
     if (!isDraft || effectiveRoomId == null) return;
     const timer = window.setTimeout(() => {
-      const trimmed = name.trim();
-      modals.patchRoomQuickEdit(effectiveRoomId, { name: trimmed, short: trimmed });
+      const siteName = name.trim();
+      const boardName = chessboardName.trim() || siteName;
+      modals.patchRoomQuickEdit(effectiveRoomId, {
+        name: siteName,
+        short: boardName,
+      });
     }, 200);
     return () => window.clearTimeout(timer);
-  }, [effectiveRoomId, isDraft, modals, name]);
+  }, [chessboardName, effectiveRoomId, isDraft, modals, name]);
 
   useEffect(() => {
     if (!resolvedRoom) return;
@@ -252,10 +260,11 @@ export function RoomSettingsAccordion({
   const handleSaveAll = async () => {
     const roomName = name.trim();
     if (!roomName) {
-      showToast("Вкажи назву житла");
+      showToast("Вкажи назву житла на сайті");
       setActiveStepId("info");
       return;
     }
+    const boardName = chessboardName.trim() || roomName;
     if (selectedAmenities.length === 0) {
       showToast("Обери хоча б одну зручність");
       setActiveStepId("amenities");
@@ -278,7 +287,7 @@ export function RoomSettingsAccordion({
     try {
       const resolvedId = await modals.saveRoomSettings(saveKey, {
         name: roomName,
-        short: roomName,
+        short: boardName,
         detailedDescription: siteDescription.trim(),
         capacity,
         maxCapacity: capacity + extra,
@@ -370,12 +379,22 @@ export function RoomSettingsAccordion({
                   {step.id === "info" ? (
                     <div className="khata-room-step__content">
                       <label className="khata-room-field">
-                        <span className="khata-room-field__label">Назва житла</span>
+                        <span className="khata-room-field__label">Назва житла на сайті</span>
                         <input
                           className="khata-room-field__input"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Котедж 1"
+                          placeholder="Напр. Будиночок біля озера"
+                        />
+                      </label>
+
+                      <label className="khata-room-field">
+                        <span className="khata-room-field__label">Назва житла в шахматці</span>
+                        <input
+                          className="khata-room-field__input"
+                          value={chessboardName}
+                          onChange={(e) => setChessboardName(e.target.value)}
+                          placeholder="Напр. Будиночок 1"
                         />
                       </label>
 

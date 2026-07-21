@@ -12,9 +12,9 @@ export function timelineRoomsHeading(): "Будинки" {
 }
 
 export function roomSidebarDisplayName(room: Pick<RoomConfig, "name" | "short">): string {
-  const name = room.name?.trim();
-  if (name) return name;
-  return room.short?.trim() || "Назва житла";
+  const chessboard = room.short?.trim();
+  if (chessboard) return chessboard;
+  return room.name?.trim() || "Назва житла";
 }
 
 export function TimelineSidebarHeader({

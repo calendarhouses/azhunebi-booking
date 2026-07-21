@@ -168,8 +168,14 @@ export function useAdminModals({
     }
 
     const next: RoomConfig = { ...room, ...patch };
-    if (patch.name !== undefined) {
-      next.short = patch.name;
+    if (patch.availabilityStatus !== undefined) {
+      Object.assign(
+        next,
+        patchFromAvailabilityStatus(patch.availabilityStatus as "enabled" | "disabled")
+      );
+    }
+    if (!String(next.short || "").trim() && String(next.name || "").trim()) {
+      next.short = next.name;
     }
     return applyPublishingAvailability(next);
   }, []);
@@ -886,9 +892,10 @@ export function useAdminModals({
     const rooms = [...(settings.roomsList || [])];
     const roomId = roomDrawerId ?? Date.now();
     const name = roomForm.name.trim();
+    const short = roomForm.short.trim() || name;
     const basePatch: Omit<RoomConfig, "id"> = {
       name,
-      short: name,
+      short,
       desc: roomForm.desc,
       capacity: roomForm.capacity,
       maxCapacity: roomForm.maxCapacity,
@@ -992,10 +999,11 @@ export function useAdminModals({
 
     if (editType === "room") {
       const name = roomForm.name || "Новий котедж";
+      const short = roomForm.short.trim() || name;
       const rooms = [...(settings.roomsList || [])];
       const roomPatch: Omit<RoomConfig, "id"> = {
         name,
-        short: name,
+        short,
         desc: roomForm.desc,
         capacity: roomForm.capacity,
         maxCapacity: roomForm.maxCapacity,
@@ -1146,10 +1154,11 @@ export function useAdminModals({
     (photos: string[]) => {
       if (roomDrawerId == null) return { ...settings };
       const name = roomForm.name || "Новий котедж";
+      const short = roomForm.short.trim() || name;
       const rooms = [...(settings.roomsList || [])];
       const roomPatch: Omit<RoomConfig, "id" | "priceWeekday" | "priceWeekend"> = {
         name,
-        short: name,
+        short,
         desc: roomForm.desc,
         capacity: roomForm.capacity,
         maxCapacity: roomForm.maxCapacity,

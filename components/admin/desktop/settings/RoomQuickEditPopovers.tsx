@@ -99,7 +99,7 @@ export function RoomNameQuickEditPopover({
 
   return (
     <QuickEditPopover open={open} onClose={onClose} anchorRef={anchorRef}>
-      <p className={QUICK_EDIT_POPOVER_TITLE_CLASS}>Назва</p>
+      <p className={QUICK_EDIT_POPOVER_TITLE_CLASS}>Назва в шахматці</p>
       <div className="flex flex-col gap-3">
         <input
           type="text"

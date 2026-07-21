@@ -21,7 +21,7 @@ export const ROOM_SETTINGS_STEPS: RoomSettingsStep[] = [
   {
     id: "info",
     title: "Основна інформація",
-    description: "Назва, місткість та головні фішки для сайту",
+    description: "Назви для сайту і шахматки, місткість, фішки",
     Icon: Info,
   },
   {
@@ -79,7 +79,7 @@ export function createDefaultRoomConfig(id: number, partial?: Partial<RoomConfig
     siteHighlights: [],
   };
   const merged = { ...base, ...partial, id, name: partial?.name?.trim() || name };
-  merged.short = merged.name;
+  if (!merged.short?.trim()) merged.short = merged.name;
   merged.maxCapacity = merged.maxCapacity ?? Math.max(merged.capacity, merged.capacity + 2);
   return merged;
 }

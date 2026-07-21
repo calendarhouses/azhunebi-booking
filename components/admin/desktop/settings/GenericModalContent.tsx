@@ -41,6 +41,8 @@ export type PendingRestrictionModal = {
 
 export type RoomFormState = {
   name: string;
+  /** Назва в шахматці / адмінці (окремо від публічної) */
+  short: string;
   desc: string;
   capacity: number;
   maxCapacity: number;
@@ -173,6 +175,7 @@ export function buildRoomForm(room: Partial<RoomConfig>): RoomFormState {
 
   return {
     name: room.name || "",
+    short: room.short?.trim() || room.name || "",
     desc: room.desc || "",
     capacity: room.capacity ?? 2,
     maxCapacity: room.maxCapacity ?? room.capacity ?? 4,
@@ -745,12 +748,21 @@ function RoomModalTabs({
       {tab === "main" ? (
         <>
           <div className="form-group">
-            <label>Назва котеджу:</label>
+            <label>Назва житла на сайті:</label>
             <input
               type="text"
               value={roomForm.name}
               onChange={(e) => setRoomForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Напр. Котедж 5"
+              placeholder="Напр. Будиночок біля озера"
+            />
+          </div>
+          <div className="form-group">
+            <label>Назва житла в шахматці:</label>
+            <input
+              type="text"
+              value={roomForm.short}
+              onChange={(e) => setRoomForm((f) => ({ ...f, short: e.target.value }))}
+              placeholder="Напр. Будиночок 1"
             />
           </div>
           <div className="form-group">

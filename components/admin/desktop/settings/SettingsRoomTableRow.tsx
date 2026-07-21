@@ -28,6 +28,7 @@ import {
   ROOM_NAME_CHIP_ICON_CLASS,
   ROOM_NAME_CHIP_TABLE_TEXT,
 } from "./roomChipStyles";
+import { roomSidebarDisplayName } from "../TimelineSidebarRooms";
 
 type QuickEditField = "name" | "capacity" | "status" | null;
 
@@ -43,8 +44,8 @@ const ROOM_CHIP_ICON_CLASS = {
   capacity: "text-stone-400 shrink-0 inline-flex",
 } as const;
 
-function roomNameDisplay(name: string): string {
-  return name.trim() || "Назва житла";
+function roomNameDisplay(room: Pick<RoomConfig, "name" | "short">): string {
+  return roomSidebarDisplayName(room);
 }
 
 function openRoomFromRow(
@@ -106,7 +107,8 @@ export function SettingsRoomTableRow({
   }, [isExpanded]);
 
   const isDraft = isRoomDraftId(room.id);
-  const nameIsEmpty = !room.name.trim();
+  const displayName = roomSidebarDisplayName(room);
+  const nameIsEmpty = displayName === "Назва житла";
 
   const patchRoom = (patch: Partial<RoomConfig>, options?: { debounceMs?: number }) => {
     setRoom((prev) => {
@@ -116,8 +118,8 @@ export function SettingsRoomTableRow({
           patch.availabilityStatus === "enabled" ? "enabled" : "disabled";
         Object.assign(next, patchFromAvailabilityStatus(uiStatus));
       }
-      if (patch.name !== undefined) {
-        next.short = patch.name;
+      if (!String(next.short || "").trim() && String(next.name || "").trim()) {
+        next.short = next.name;
       }
       return next;
     });
@@ -178,7 +180,7 @@ export function SettingsRoomTableRow({
             <span
               className={`settings-rooms-row__name${nameIsEmpty ? " settings-rooms-row__name--placeholder" : ""}`}
             >
-              {roomNameDisplay(room.name)}
+              {roomNameDisplay(room)}
             </span>
           </button>
           <RoomAvailabilityBadge
@@ -190,8 +192,8 @@ export function SettingsRoomTableRow({
             open={quickEdit === "name"}
             onClose={() => setQuickEdit(null)}
             anchorRef={nameAnchorRef}
-            initialName={room.name}
-            onSave={(name) => patchRoom({ name, short: name })}
+            initialName={room.short?.trim() || room.name}
+            onSave={(short) => patchRoom({ short: short.trim() || room.name })}
           />
           <RoomStatusQuickEditPopover
             open={quickEdit === "status"}
@@ -263,7 +265,7 @@ export function SettingsRoomTableRow({
           <span
             className={`settings-rooms-row__name${nameIsEmpty ? " settings-rooms-row__name--placeholder" : ""}`}
           >
-            {roomNameDisplay(room.name)}
+            {roomNameDisplay(room)}
           </span>
         </button>
         {onToggleExpand ? (
@@ -274,8 +276,8 @@ export function SettingsRoomTableRow({
           open={quickEdit === "name"}
           onClose={() => setQuickEdit(null)}
           anchorRef={nameAnchorRef}
-          initialName={room.name}
-          onSave={(name) => patchRoom({ name, short: name })}
+          initialName={room.short?.trim() || room.name}
+          onSave={(short) => patchRoom({ short: short.trim() || room.name })}
         />
       </td>
       <td>
