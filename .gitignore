@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+.env.bookmenow.local
+
+# BookMeNow local backups (PII)
+/scripts/bookmenow-backup/data/
 
 # vercel
 .vercel

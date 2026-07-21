@@ -1,0 +1,437 @@
+{
+  "howToFill": [
+    "Найпростіше: відкрий картку будинку на go.bookmenow.pro і скопіюй roomId з URL.",
+    "Приклад: https://go.bookmenow.pro/t/azh-u-nebi/room/<ROOM_ID>?adults=2",
+    "Впиши azhunebiChessboardName = «Будиночок N» для цього roomId.",
+    "Сайт для всіх: Будиночок 1-12.",
+    "azhunebiRoomId можна заповнити пізніше (id з наших налаштувань)."
+  ],
+  "rooms": [
+    {
+      "bookmenowRoomId": "69f1e0d5e0fe2c07c7ec7ecc",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 32,
+      "examples": [
+        {
+          "orderNumber": 73,
+          "guest": "Наталя",
+          "phone": "+380994209418",
+          "checkIn": "2026-06-05",
+          "checkOut": "2026-06-07",
+          "status": "checkedIn"
+        },
+        {
+          "orderNumber": 102,
+          "guest": "Альона",
+          "phone": "+380988877299",
+          "checkIn": "2026-06-12",
+          "checkOut": "2026-06-14",
+          "status": "done"
+        },
+        {
+          "orderNumber": 8,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 10",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1e0c7564c9b3df2c056f8",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 28,
+      "examples": [
+        {
+          "orderNumber": 32,
+          "guest": "",
+          "phone": "",
+          "checkIn": "2026-05-08",
+          "checkOut": "2026-05-09",
+          "status": "new"
+        },
+        {
+          "orderNumber": 50,
+          "guest": "Павел",
+          "phone": "",
+          "checkIn": "2026-05-23",
+          "checkOut": "2026-05-24",
+          "status": "done"
+        },
+        {
+          "orderNumber": 97,
+          "guest": "Вадим Грушка",
+          "phone": "+380952144416",
+          "checkIn": "2026-05-31",
+          "checkOut": "2026-06-02",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 7",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f4781319dd6c46d3911872",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 28,
+      "examples": [
+        {
+          "orderNumber": 5,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        },
+        {
+          "orderNumber": 242,
+          "guest": "Марія",
+          "phone": "+380953635502",
+          "checkIn": "2026-06-20",
+          "checkOut": "2026-06-21",
+          "status": "done"
+        },
+        {
+          "orderNumber": 181,
+          "guest": "Юлія",
+          "phone": "+380663578361",
+          "checkIn": "2026-06-21",
+          "checkOut": "2026-06-23",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 12",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1e0d0564c9b3df2c0580d",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 27,
+      "examples": [
+        {
+          "orderNumber": 72,
+          "guest": "Наталя",
+          "phone": "+380994209418",
+          "checkIn": "2026-06-05",
+          "checkOut": "2026-06-07",
+          "status": "checkedIn"
+        },
+        {
+          "orderNumber": 116,
+          "guest": "",
+          "phone": "",
+          "checkIn": "2026-06-12",
+          "checkOut": "2026-06-14",
+          "status": "done"
+        },
+        {
+          "orderNumber": 9,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 9",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1df91564c9b3df2c00d69",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 26,
+      "examples": [
+        {
+          "orderNumber": 82,
+          "guest": "Роксолана Богак",
+          "phone": "+380666167990",
+          "checkIn": "2026-05-31",
+          "checkOut": "2026-06-02",
+          "status": "done"
+        },
+        {
+          "orderNumber": 99,
+          "guest": "Максим",
+          "phone": "+380962643063",
+          "checkIn": "2026-06-05",
+          "checkOut": "2026-06-06",
+          "status": "done"
+        },
+        {
+          "orderNumber": 69,
+          "guest": "Світлана Кравцова",
+          "phone": "+380975527713",
+          "checkIn": "2026-06-10",
+          "checkOut": "2026-06-16",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 6",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1b892564c9b3df2b7c012",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 26,
+      "examples": [
+        {
+          "orderNumber": 90,
+          "guest": "Любомир Мелько",
+          "phone": "+380986366644",
+          "checkIn": "2026-06-01",
+          "checkOut": "2026-06-06",
+          "status": "done"
+        },
+        {
+          "orderNumber": 171,
+          "guest": "",
+          "phone": "",
+          "checkIn": "2026-06-13",
+          "checkOut": "2026-06-14",
+          "status": "done"
+        },
+        {
+          "orderNumber": 7,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 1",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1df6fe0fe2c07c7ec4096",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 26,
+      "examples": [
+        {
+          "orderNumber": 78,
+          "guest": "Любов",
+          "phone": "+380986544946",
+          "checkIn": "2026-06-06",
+          "checkOut": "2026-06-09",
+          "status": "done"
+        },
+        {
+          "orderNumber": 124,
+          "guest": "Вікрорія",
+          "phone": "+380633614031",
+          "checkIn": "2026-06-09",
+          "checkOut": "2026-06-11",
+          "status": "checkedIn"
+        },
+        {
+          "orderNumber": 4,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 2",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1df84e0fe2c07c7ec4415",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 25,
+      "examples": [
+        {
+          "orderNumber": 57,
+          "guest": "Денис  Нерода",
+          "phone": "+380992527267",
+          "checkIn": "2026-06-02",
+          "checkOut": "2026-06-12",
+          "status": "checkedIn"
+        },
+        {
+          "orderNumber": 89,
+          "guest": "Леся  Чапліна",
+          "phone": "",
+          "checkIn": "2026-06-12",
+          "checkOut": "2026-06-15",
+          "status": "checkedIn"
+        },
+        {
+          "orderNumber": 113,
+          "guest": "Сергій Каменчук",
+          "phone": "+380971544435",
+          "checkIn": "2026-06-15",
+          "checkOut": "2026-06-17",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 5",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1e139564c9b3df2c07168",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 25,
+      "examples": [
+        {
+          "orderNumber": 170,
+          "guest": "Антоніна",
+          "phone": "",
+          "checkIn": "2026-06-12",
+          "checkOut": "2026-06-13",
+          "status": "checkedIn"
+        },
+        {
+          "orderNumber": 10,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        },
+        {
+          "orderNumber": 165,
+          "guest": "Миколай Держак",
+          "phone": "+380502223606",
+          "checkIn": "2026-06-20",
+          "checkOut": "2026-06-22",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 11",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1e0cce0fe2c07c7ec7e0f",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 21,
+      "examples": [
+        {
+          "orderNumber": 88,
+          "guest": "Карина",
+          "phone": "+380664297427",
+          "checkIn": "2026-05-30",
+          "checkOut": "2026-06-01",
+          "status": "done"
+        },
+        {
+          "orderNumber": 87,
+          "guest": "Наталя Столяр",
+          "phone": "+380973023866",
+          "checkIn": "2026-06-12",
+          "checkOut": "2026-06-15",
+          "status": "done"
+        },
+        {
+          "orderNumber": 18,
+          "guest": "Олексій Абдал",
+          "phone": "+380636001635",
+          "checkIn": "2026-06-16",
+          "checkOut": "2026-06-18",
+          "status": "checkedIn"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 8",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1df79564c9b3df2c00a4b",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 17,
+      "examples": [
+        {
+          "orderNumber": 101,
+          "guest": "Юлія",
+          "phone": "+380993884047",
+          "checkIn": "2026-06-11",
+          "checkOut": "2026-06-13",
+          "status": "done"
+        },
+        {
+          "orderNumber": 20,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        },
+        {
+          "orderNumber": 75,
+          "guest": "Юлія",
+          "phone": "+380673722078",
+          "checkIn": "2026-06-19",
+          "checkOut": "2026-06-20",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 3",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1df7e564c9b3df2c00bf1",
+      "bookmenowRoomName": "Будинок (1-12)",
+      "bookingsCount": 14,
+      "examples": [
+        {
+          "orderNumber": 19,
+          "guest": "Ліндочка",
+          "phone": "",
+          "checkIn": "2026-06-01",
+          "checkOut": "2026-06-20",
+          "status": "new"
+        },
+        {
+          "orderNumber": 188,
+          "guest": "Павло",
+          "phone": "+380975646716",
+          "checkIn": "2026-06-20",
+          "checkOut": "2026-06-21",
+          "status": "done"
+        },
+        {
+          "orderNumber": 218,
+          "guest": "Ліндочка",
+          "phone": "",
+          "checkIn": "2026-06-21",
+          "checkOut": "2026-06-29",
+          "status": "new"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 4",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    },
+    {
+      "bookmenowRoomId": "69f1e13fe0fe2c07c7ec9611",
+      "bookmenowRoomName": "Будинок 12",
+      "bookingsCount": 1,
+      "examples": [
+        {
+          "orderNumber": 11,
+          "guest": "Поліна",
+          "phone": "+380664179974",
+          "checkIn": "2026-06-14",
+          "checkOut": "2026-06-19",
+          "status": "done"
+        }
+      ],
+      "azhunebiChessboardName": "Будиночок 12",
+      "azhunebiSiteName": "Будиночок 1-12",
+      "azhunebiRoomId": null
+    }
+  ]
+}
