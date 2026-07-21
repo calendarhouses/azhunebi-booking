@@ -70,9 +70,13 @@ export function defaultBookingDrawerForm(): BookingDrawerFormState {
 
 export function getRoomMaxCapacity(
   roomName: string,
-  roomsList: { name: string; maxCapacity?: number; capacity?: number }[]
+  roomsList: { id?: number | string; name: string; maxCapacity?: number; capacity?: number }[],
+  roomId?: number | string | null
 ): number {
-  const room = roomsList.find((r) => r.name === roomName);
+  const room =
+    (roomId != null && roomId !== ""
+      ? roomsList.find((r) => String(r.id) === String(roomId))
+      : undefined) || roomsList.find((r) => r.name === roomName);
   return room ? room.maxCapacity || room.capacity || 10 : 10;
 }
 
@@ -80,9 +84,10 @@ export function clampOccupantsForRoom(
   adults: number,
   children: number,
   roomName: string,
-  roomsList: { name: string; maxCapacity?: number; capacity?: number }[]
+  roomsList: { id?: number | string; name: string; maxCapacity?: number; capacity?: number }[],
+  roomId?: number | string | null
 ): { adults: number; children: number } {
-  const maxCap = getRoomMaxCapacity(roomName, roomsList);
+  const maxCap = getRoomMaxCapacity(roomName, roomsList, roomId);
   let nextAdults = Math.max(1, adults);
   let nextChildren = Math.max(0, children);
   if (nextAdults + nextChildren > maxCap) {

@@ -26,6 +26,11 @@ export function isHoldingRoom(room: RoomConfig): boolean {
   return room.id === HOLDING_ROOM_ID;
 }
 
+/** Стабільний ключ рядка шахматки (id), не публічна назва. */
+export function timelineRoomKey(room: Pick<RoomConfig, "id">): string {
+  return String(room.id);
+}
+
 export type BookingMoveSession = {
   booking: BookingRecord;
   blockLeft: number;

@@ -158,7 +158,7 @@ export function buildTimelineConstraintsByRoom(
   const map = new Map<string, RoomTimelineConstraints>();
   for (const room of activeRooms) {
     map.set(
-      room.name,
+      String(room.id),
       buildRoomTimelineConstraints(
         byRoomId.get(Number(room.id)) || [],
         excludeBookingKey

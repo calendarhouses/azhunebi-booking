@@ -2,16 +2,17 @@
 
 import { memo } from "react";
 import type { PointerEvent, ReactNode } from "react";
+import { HOLDING_ROOM_ID } from "./timelineBookingMove";
 
 export type TimelineGridCellProps = {
   dateString: string;
   isWeekend: boolean;
   isToday: boolean;
-  roomName: string;
+  roomKey: string;
   selectedClass: string;
   hoverClass: string;
   isDraggingOver: boolean;
-  onMouseEnter: (roomName: string, dateString: string) => void;
+  onMouseEnter: (roomKey: string, dateString: string) => void;
 };
 
 function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps): boolean {
@@ -19,7 +20,7 @@ function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps
     prev.dateString === next.dateString &&
     prev.isWeekend === next.isWeekend &&
     prev.isToday === next.isToday &&
-    prev.roomName === next.roomName &&
+    prev.roomKey === next.roomKey &&
     prev.selectedClass === next.selectedClass &&
     prev.hoverClass === next.hoverClass &&
     prev.isDraggingOver === next.isDraggingOver &&
@@ -31,7 +32,7 @@ export const TimelineGridCell = memo(function TimelineGridCell({
   dateString,
   isWeekend,
   isToday,
-  roomName,
+  roomKey,
   selectedClass,
   hoverClass,
   isDraggingOver,
@@ -40,9 +41,9 @@ export const TimelineGridCell = memo(function TimelineGridCell({
   return (
     <div
       className={`timeline-cell${isWeekend ? " weekend" : ""}${isToday ? " today" : ""}${isDraggingOver ? " timeline-cell--drag-hover" : ""} ${selectedClass} ${hoverClass}`.trim()}
-      data-room={roomName}
+      data-room={roomKey}
       data-date={dateString}
-      onMouseEnter={() => onMouseEnter(roomName, dateString)}
+      onMouseEnter={() => onMouseEnter(roomKey, dateString)}
     />
   );
 }, cellPropsEqual);
@@ -56,15 +57,15 @@ export type TimelineGridRowProps = {
   renderDays: { dateString: string; isWeekend: boolean; isToday: boolean }[];
   selectionKey: string;
   hoverPreviewKey: string;
-  selectedClassForDate: (roomName: string, dateString: string) => string;
-  hoverClassForDate: (roomName: string, dateString: string) => string;
+  selectedClassForDate: (roomKey: string, dateString: string) => string;
+  hoverClassForDate: (roomKey: string, dateString: string) => string;
   bookingDragHoverKey: string | null;
-  onCellMouseEnter: (roomName: string, dateString: string) => void;
+  onCellMouseEnter: (roomKey: string, dateString: string) => void;
   isPointerSelecting: boolean;
-  onTrackPointerDown: (roomName: string, event: PointerEvent<HTMLDivElement>) => void;
-  onTrackPointerMove: (roomName: string, event: PointerEvent<HTMLDivElement>) => void;
-  onTrackPointerLeave: (roomName: string) => void;
-  roomName: string;
+  onTrackPointerDown: (roomKey: string, event: PointerEvent<HTMLDivElement>) => void;
+  onTrackPointerMove: (roomKey: string, event: PointerEvent<HTMLDivElement>) => void;
+  onTrackPointerLeave: (roomKey: string) => void;
+  roomKey: string;
   blocksSignature: string;
   children: ReactNode;
 };
@@ -77,7 +78,7 @@ function rowPropsEqual(prev: TimelineGridRowProps, next: TimelineGridRowProps): 
     prev.gridTotalWidth === next.gridTotalWidth &&
     prev.virtualOffsetPx === next.virtualOffsetPx &&
     prev.renderDays === next.renderDays &&
-    prev.roomName === next.roomName &&
+    prev.roomKey === next.roomKey &&
     prev.blocksSignature === next.blocksSignature &&
     prev.bookingDragHoverKey === next.bookingDragHoverKey &&
     prev.selectionKey === next.selectionKey &&
@@ -107,12 +108,13 @@ export const TimelineGridRow = memo(function TimelineGridRow({
   onTrackPointerDown,
   onTrackPointerMove,
   onTrackPointerLeave,
-  roomName,
+  roomKey,
   children,
 }: TimelineGridRowProps) {
+  const isHolding = roomKey === String(HOLDING_ROOM_ID);
   return (
     <div
-      className={`timeline-row-bg${isVirtualTimeline ? " timeline-row-bg--virtual" : ""}${roomName === "Нерозподілені" ? " timeline-row-bg--holding" : ""}`}
+      className={`timeline-row-bg${isVirtualTimeline ? " timeline-row-bg--virtual" : ""}${isHolding ? " timeline-row-bg--holding" : ""}`}
       id={`grid-row-${rowIndex}`}
       style={{
         position: "relative",
@@ -123,9 +125,9 @@ export const TimelineGridRow = memo(function TimelineGridRow({
       <div
         className={`timeline-track-window${isPointerSelecting ? " timeline-track-window--selecting" : ""}`}
         style={isVirtualTimeline ? { marginLeft: virtualOffsetPx } : undefined}
-        onPointerDown={(event) => onTrackPointerDown(roomName, event)}
-        onPointerMove={(event) => onTrackPointerMove(roomName, event)}
-        onPointerLeave={() => onTrackPointerLeave(roomName)}
+        onPointerDown={(event) => onTrackPointerDown(roomKey, event)}
+        onPointerMove={(event) => onTrackPointerMove(roomKey, event)}
+        onPointerLeave={() => onTrackPointerLeave(roomKey)}
       >
         {renderDays.map((day) => (
           <TimelineGridCell
@@ -133,10 +135,10 @@ export const TimelineGridRow = memo(function TimelineGridRow({
             dateString={day.dateString}
             isWeekend={day.isWeekend}
             isToday={day.isToday}
-            roomName={roomName}
-            selectedClass={selectedClassForDate(roomName, day.dateString)}
-            hoverClass={hoverClassForDate(roomName, day.dateString)}
-            isDraggingOver={bookingDragHoverKey === `${roomName}:${day.dateString}`}
+            roomKey={roomKey}
+            selectedClass={selectedClassForDate(roomKey, day.dateString)}
+            hoverClass={hoverClassForDate(roomKey, day.dateString)}
+            isDraggingOver={bookingDragHoverKey === `${roomKey}:${day.dateString}`}
             onMouseEnter={onCellMouseEnter}
           />
         ))}

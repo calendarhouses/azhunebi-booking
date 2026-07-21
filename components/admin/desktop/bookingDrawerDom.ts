@@ -100,8 +100,8 @@ export function setHalfPrepayment(): void {
 }
 
 export function renderCottageOptions(
-  rooms: { name: string; desc: string }[],
-  onSelect: (name: string, display: string) => void
+  rooms: { id: string; name: string; label: string; desc: string }[],
+  onSelect: (roomKey: string, display: string) => void
 ): void {
   const cottageOptions = document.getElementById("cottageOptions");
   if (!cottageOptions) return;
@@ -111,14 +111,15 @@ export function renderCottageOptions(
       const descHtml = desc
         ? ` <span style="font-size:12px; color:#9CA3AF;">${desc}</span>`
         : "";
-      return `<div class="custom-option" data-room="${r.name}">${r.name}${descHtml}</div>`;
+      const label = r.label || r.name;
+      return `<div class="custom-option" data-room="${r.id}">${label}${descHtml}</div>`;
     })
     .join("");
   cottageOptions.querySelectorAll(".custom-option").forEach((el) => {
     el.addEventListener("click", () => {
-      const name = (el as HTMLElement).getAttribute("data-room") || "";
-      const room = rooms.find((x) => x.name === name);
-      onSelect(name, formatRoomDisplayLabel(name, room?.desc));
+      const roomKey = (el as HTMLElement).getAttribute("data-room") || "";
+      const room = rooms.find((x) => x.id === roomKey);
+      onSelect(roomKey, formatRoomDisplayLabel(room?.label || room?.name || roomKey, room?.desc));
     });
   });
 }

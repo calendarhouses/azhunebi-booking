@@ -33,6 +33,7 @@ import {
   resolveActiveRoomIndex,
   resolveTargetRoomIndex,
   getTimelineRowHeight,
+  timelineRoomKey,
   type BookingMoveSession,
 } from "../timelineBookingMove";
 import { isAndroidUserAgent } from "@/lib/isMobileUserAgent";
@@ -131,7 +132,7 @@ type TimelineSelectionPointerSession = {
   pointerType: string;
   /** Touch.identifier — null for mouse. */
   touchId: number | null;
-  roomName: string;
+  roomKey: string;
   startX: number;
   startY: number;
   startCell: HTMLElement;
@@ -981,7 +982,7 @@ export function DesktopTimelineView({
   );
 
   const updateTimelineSelectionRef = useRef<
-    (roomName: string, clientX: number, clientY: number) => void
+    (roomKey: string, clientX: number, clientY: number) => void
   >(() => {});
 
   const stopDragAutoScroll = useCallback(() => {
@@ -1044,7 +1045,7 @@ export function DesktopTimelineView({
     } else if (selecting) {
       const session = selectionPointerSessionRef.current;
       if (session?.selecting) {
-        updateTimelineSelectionRef.current(session.roomName, x, y);
+        updateTimelineSelectionRef.current(session.roomKey, x, y);
       }
     }
 
@@ -1073,7 +1074,7 @@ export function DesktopTimelineView({
         if (ev.cancelable) ev.preventDefault();
         lastPointerRef.current = { x: ev.clientX, y: ev.clientY };
         ensureDragFrame();
-        updateTimelineSelectionRef.current(session.roomName, ev.clientX, ev.clientY);
+        updateTimelineSelectionRef.current(session.roomKey, ev.clientX, ev.clientY);
       };
       const onTouchMove = (ev: TouchEvent) => {
         const session = selectionPointerSessionRef.current;
@@ -1083,7 +1084,7 @@ export function DesktopTimelineView({
         if (ev.cancelable) ev.preventDefault();
         lastPointerRef.current = { x: t.clientX, y: t.clientY };
         ensureDragFrame();
-        updateTimelineSelectionRef.current(session.roomName, t.clientX, t.clientY);
+        updateTimelineSelectionRef.current(session.roomKey, t.clientX, t.clientY);
       };
       document.addEventListener("pointermove", onMove, { passive: false });
       document.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
@@ -1469,9 +1470,9 @@ export function DesktopTimelineView({
   const selectionKey =
     dragRoom && dragStart && dragEnd ? `${dragRoom}:${dragStart}:${dragEnd}` : "";
 
-  const selectedClassForDate = useCallback((roomName: string, dateStr: string): string => {
+  const selectedClassForDate = useCallback((roomKey: string, dateStr: string): string => {
     const { dragRoom: room, dragStart: start, dragEnd: end } = gridSelectionRef.current;
-    if (!room || room !== roomName || !start || !end) return "";
+    if (!room || room !== roomKey || !start || !end) return "";
     const sorted = [start, end].sort();
     const rangeStart = sorted[0];
     const rangeEnd = sorted[sorted.length - 1];
@@ -1489,14 +1490,14 @@ export function DesktopTimelineView({
   }, []);
 
   const startTimelineSelection = useCallback(
-    (roomName: string, cell: HTMLElement, clientX: number, useHoverPreview: boolean) => {
+    (roomKey: string, cell: HTMLElement, clientX: number, useHoverPreview: boolean) => {
       const date = cell.dataset.date;
       if (!date) return false;
 
-      const constraints = constraintsByRoom.get(roomName);
+      const constraints = constraintsByRoom.get(roomKey);
       const activePreview = useHoverPreview ? cellHoverPreviewRef.current : null;
       const start =
-        activePreview?.room === roomName
+        activePreview?.room === roomKey
           ? activePreview.checkIn
           : resolveSelectionStartFromPointer(
               date,
@@ -1511,20 +1512,20 @@ export function DesktopTimelineView({
         (window as Window & { isGridDragging?: boolean }).isGridDragging = true;
       }
       dragAnchorRef.current = start;
-      gridSelectionRef.current = { dragRoom: roomName, dragStart: start, dragEnd: start };
-      setDragRoom(roomName);
+      gridSelectionRef.current = { dragRoom: roomKey, dragStart: start, dragEnd: start };
+      setDragRoom(roomKey);
       setDragStart(start);
       setDragEnd(start);
-      setPointerSelectingRoom(roomName);
+      setPointerSelectingRoom(roomKey);
       return true;
     },
     [constraintsByRoom]
   );
 
   const updateTimelineSelection = useCallback(
-    (roomName: string, clientX: number, _clientY: number) => {
+    (roomKey: string, clientX: number, _clientY: number) => {
       const session = selectionPointerSessionRef.current;
-      if (!session || session.roomName !== roomName) return;
+      if (!session || session.roomKey !== roomKey) return;
 
       const hit = resolveTimelineCellFromClientX(
         session.track,
@@ -1542,7 +1543,7 @@ export function DesktopTimelineView({
         clientX,
         hit.cellRect
       );
-      const constraints = constraintsByRoom.get(roomName);
+      const constraints = constraintsByRoom.get(roomKey);
       const next = constraints
         ? clampSelectionWithAnchor(anchor, movingNight, constraints)
         : {
@@ -1551,7 +1552,7 @@ export function DesktopTimelineView({
           };
 
       gridSelectionRef.current = {
-        dragRoom: roomName,
+        dragRoom: roomKey,
         dragStart: next.start,
         dragEnd: next.end,
       };
@@ -1563,7 +1564,7 @@ export function DesktopTimelineView({
   updateTimelineSelectionRef.current = updateTimelineSelection;
 
   const onTrackPointerDown = useCallback(
-    (roomName: string, event: ReactPointerEvent<HTMLDivElement>) => {
+    (roomKey: string, event: ReactPointerEvent<HTMLDivElement>) => {
       if (isBookingDraggingRef.current || moveSessionRef.current) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
@@ -1571,7 +1572,7 @@ export function DesktopTimelineView({
       const cell = (event.target as HTMLElement).closest(
         ".timeline-cell[data-date][data-room]"
       ) as HTMLElement | null;
-      if (!cell || cell.dataset.room !== roomName || !cell.dataset.date) return;
+      if (!cell || cell.dataset.room !== roomKey || !cell.dataset.date) return;
 
       // Android/WebView sometimes reports "" instead of "touch".
       ensureChessboardTouchTracking();
@@ -1586,7 +1587,7 @@ export function DesktopTimelineView({
         pointerId: event.pointerId,
         pointerType: event.pointerType,
         touchId,
-        roomName,
+        roomKey,
         startX: event.clientX,
         startY: event.clientY,
         startCell: cell,
@@ -1604,7 +1605,7 @@ export function DesktopTimelineView({
 
       if (!isTouch) {
         lastPointerRef.current = { x: event.clientX, y: event.clientY };
-        startTimelineSelection(roomName, cell, event.clientX, true);
+        startTimelineSelection(roomKey, cell, event.clientX, true);
         attachSelectionMoveListeners(event.pointerId, null);
         ensureDragFrame();
         return;
@@ -1629,7 +1630,7 @@ export function DesktopTimelineView({
           /* Pointer capture is best-effort on older mobile browsers. */
         }
         lastPointerRef.current = { x: session.startX, y: session.startY };
-        startTimelineSelection(roomName, session.startCell, session.startX, false);
+        startTimelineSelection(roomKey, session.startCell, session.startX, false);
         attachSelectionMoveListeners(session.pointerId, session.touchId);
         ensureDragFrame();
       }, holdMs);
@@ -1643,7 +1644,7 @@ export function DesktopTimelineView({
     ]
   );
 
-  const onCellMouseEnter = useCallback((_roomName: string, _dateString: string) => {
+  const onCellMouseEnter = useCallback((_roomKey: string, _dateString: string) => {
     // Виділення оновлюється через рух вказівника (half-cell), не через enter цілої клітинки.
   }, []);
 
@@ -1657,9 +1658,9 @@ export function DesktopTimelineView({
     : "";
 
   const hoverClassForDate = useCallback(
-    (roomName: string, dateStr: string): string => {
+    (roomKey: string, dateStr: string): string => {
       const preview = cellHoverPreview;
-      if (!preview || preview.room !== roomName) return "";
+      if (!preview || preview.room !== roomKey) return "";
 
       const checkInVisible = visibleDateSet.has(preview.checkIn);
       const checkOutVisible = visibleDateSet.has(preview.checkOut);
@@ -1686,7 +1687,7 @@ export function DesktopTimelineView({
     [cellHoverPreview, visibleDateSet]
   );
 
-  const onTrackPointerMove = useCallback((roomName: string, event: ReactPointerEvent<HTMLDivElement>) => {
+  const onTrackPointerMove = useCallback((roomKey: string, event: ReactPointerEvent<HTMLDivElement>) => {
     if (isBookingDraggingRef.current || moveSessionRef.current) return;
 
     const session = selectionPointerSessionRef.current;
@@ -1713,7 +1714,7 @@ export function DesktopTimelineView({
         event.preventDefault();
         lastPointerRef.current = { x: event.clientX, y: event.clientY };
         ensureDragFrame();
-        updateTimelineSelection(session.roomName, event.clientX, event.clientY);
+        updateTimelineSelection(session.roomKey, event.clientX, event.clientY);
         return;
       }
     }
@@ -1724,7 +1725,7 @@ export function DesktopTimelineView({
       ".timeline-cell[data-date][data-room]"
     ) as HTMLElement | null;
 
-    if (!cell || cell.dataset.room !== roomName) {
+    if (!cell || cell.dataset.room !== roomKey) {
       setCellHoverPreview(null);
       return;
     }
@@ -1734,7 +1735,7 @@ export function DesktopTimelineView({
 
     const rect = cell.getBoundingClientRect();
     const isRightHalf = event.clientX - rect.left >= rect.width / 2;
-    const constraints = constraintsByRoom.get(roomName);
+    const constraints = constraintsByRoom.get(roomKey);
     const preview = constraints
       ? resolveHoverPreviewRange(date, isRightHalf, constraints)
       : {
@@ -1749,13 +1750,13 @@ export function DesktopTimelineView({
 
     setCellHoverPreview((prev) => {
       if (
-        prev?.room === roomName &&
+        prev?.room === roomKey &&
         prev.checkIn === preview.checkIn &&
         prev.checkOut === preview.checkOut
       ) {
         return prev;
       }
-      return { room: roomName, checkIn: preview.checkIn, checkOut: preview.checkOut };
+      return { room: roomKey, checkIn: preview.checkIn, checkOut: preview.checkOut };
     });
   }, [
     constraintsByRoom,
@@ -1766,8 +1767,8 @@ export function DesktopTimelineView({
     ensureDragFrame,
   ]);
 
-  const onTrackPointerLeave = useCallback((roomName: string) => {
-    setCellHoverPreview((prev) => (prev?.room === roomName ? null : prev));
+  const onTrackPointerLeave = useCallback((roomKey: string) => {
+    setCellHoverPreview((prev) => (prev?.room === roomKey ? null : prev));
   }, []);
 
   const iconClock = (
@@ -1882,12 +1883,12 @@ export function DesktopTimelineView({
           selectedClassForDate={selectedClassForDate}
           hoverClassForDate={hoverClassForDate}
           bookingDragHoverKey={bookingDragHoverKey}
-          isPointerSelecting={pointerSelectingRoom === room.name}
+          isPointerSelecting={pointerSelectingRoom === timelineRoomKey(room)}
           onTrackPointerDown={onTrackPointerDown}
           onCellMouseEnter={onCellMouseEnter}
           onTrackPointerMove={onTrackPointerMove}
           onTrackPointerLeave={onTrackPointerLeave}
-          roomName={room.name}
+          roomKey={timelineRoomKey(room)}
           blocksSignature={`${room.id}:${draggingBookingKey}:${denseRows ? "d" : "n"}:${rowHeight}:${blocks
             .map((b) => `${b.booking.row}:${b.guestChip}:${b.finText}:${b.nights}`)
             .join(",")}`}

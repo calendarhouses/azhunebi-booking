@@ -24,6 +24,8 @@ import {
   toggleVat,
 } from "./bookingDrawerDom";
 import { findRoomForBooking, formatRoomDisplayLabel, parseBookingComment } from "./bookingUtils";
+import { roomSidebarDisplayName } from "./TimelineSidebarRooms";
+import { HOLDING_ROOM_ID } from "./timelineBookingMove";
 import {
   childrenPolicyViolationMessage,
   DEFAULT_YOUNGEST_CHILD_AGE,
@@ -176,22 +178,24 @@ export function useBookingDrawer({
 
   const availableServices = useMemo(() => {
     const room =
-      roomsList.find((r) => r.name === form.cottage) ||
-      (form.roomId != null ? roomsList.find((r) => String(r.id) === String(form.roomId)) : undefined);
+      (form.roomId != null
+        ? roomsList.find((r) => String(r.id) === String(form.roomId))
+        : undefined) || roomsList.find((r) => r.name === form.cottage);
     return listServicesForRoom(settings.customServicesList, room);
   }, [form.cottage, form.roomId, roomsList, settings.customServicesList]);
 
   const maxOccupants = useMemo(
-    () => getRoomMaxCapacity(form.cottage, roomsList),
-    [form.cottage, roomsList]
+    () => getRoomMaxCapacity(form.cottage, roomsList, form.roomId),
+    [form.cottage, form.roomId, roomsList]
   );
 
   const showChildren = true;
 
   const selectedRoomForPolicy = useMemo(() => {
     return (
-      roomsList.find((r) => r.name === form.cottage) ||
-      (form.roomId != null ? roomsList.find((r) => String(r.id) === String(form.roomId)) : undefined)
+      (form.roomId != null
+        ? roomsList.find((r) => String(r.id) === String(form.roomId))
+        : undefined) || roomsList.find((r) => r.name === form.cottage)
     );
   }, [form.cottage, form.roomId, roomsList]);
 
@@ -271,29 +275,50 @@ export function useBookingDrawer({
     }
   }, []);
 
+  const resolveRoomPrefill = useCallback(
+    (prefill: string | null | undefined): RoomConfig | null => {
+      if (!prefill) return null;
+      if (prefill === "Нерозподілені" || prefill === String(HOLDING_ROOM_ID)) return null;
+      return (
+        roomsList.find((r) => String(r.id) === prefill) ||
+        roomsList.find((r) => r.name === prefill) ||
+        roomsList.find((r) => r.short === prefill) ||
+        null
+      );
+    },
+    [roomsList]
+  );
+
   const syncCottageUi = useCallback(
-    (roomName: string) => {
-      const holding = roomName === "Нерозподілені";
+    (roomKey: string) => {
+      const holding = roomKey === "Нерозподілені" || roomKey === String(HOLDING_ROOM_ID);
       window._bookingAssignmentState = holding ? "holding" : "assigned";
-      const room = roomsList.find((r) => r.name === roomName);
+      const room = holding ? null : resolveRoomPrefill(roomKey);
+      const cottageName = holding ? "Нерозподілені" : room?.name || roomKey;
+      const label = holding
+        ? "Нерозподілені"
+        : room
+          ? roomSidebarDisplayName(room)
+          : cottageName;
       setForm((prev) => {
         const { adults, children: rawChildren } = clampOccupantsForRoom(
           prev.guests,
           prev.children,
-          roomName,
-          roomsList
+          cottageName,
+          roomsList,
+          room?.id
         );
         return {
           ...prev,
-          cottage: roomName,
-          cottageLabel: roomName ? formatRoomDisplayLabel(roomName, room?.desc) : "Оберіть котедж",
+          cottage: cottageName,
+          cottageLabel: label ? formatRoomDisplayLabel(label, room?.desc) : "Оберіть котедж",
           roomId: holding ? null : room?.id ?? null,
           guests: adults,
           children: rawChildren,
         };
       });
     },
-    [roomsList]
+    [resolveRoomPrefill, roomsList]
   );
 
   const populateCottageOptions = useCallback(
@@ -306,14 +331,32 @@ export function useBookingDrawer({
             ? active
             : roomsList;
       renderCottageOptions(
-        [...list.map((r) => ({ name: r.name, desc: r.desc })), { name: "Нерозподілені", desc: "Без будинку" }],
-        (name, display) => {
-          selectOption("cottageWrapper", "adminCottage", name, null, display);
-          syncCottageUi(name);
+        [
+          ...list.map((r) => ({
+            id: String(r.id),
+            name: r.name,
+            label: roomSidebarDisplayName(r),
+            desc: r.desc,
+          })),
+          {
+            id: String(HOLDING_ROOM_ID),
+            name: "Нерозподілені",
+            label: "Нерозподілені",
+            desc: "Без будинку",
+          },
+        ],
+        (roomKey, display) => {
+          const room = resolveRoomPrefill(roomKey);
+          const cottageName =
+            roomKey === String(HOLDING_ROOM_ID) || roomKey === "Нерозподілені"
+              ? "Нерозподілені"
+              : room?.name || roomKey;
+          selectOption("cottageWrapper", "adminCottage", cottageName, null, display);
+          syncCottageUi(roomKey);
         }
       );
     },
-    [roomsList, syncCottageUi]
+    [resolveRoomPrefill, roomsList, syncCottageUi]
   );
 
   const setEarlyTime = useCallback(
@@ -350,13 +393,27 @@ export function useBookingDrawer({
       window._bookingOpenPayments = { prepay: 0, surcharge: 0 };
       window._bookingExpectedPrepay = 0;
       window._bookingAssignmentState =
-        prefillRoom === "Нерозподілені" ? "holding" : "assigned";
+        prefillRoom === "Нерозподілені" || prefillRoom === String(HOLDING_ROOM_ID)
+          ? "holding"
+          : "assigned";
 
       const activeRooms = roomsList.filter((r) => r.active);
-      const defaultRoom = prefillRoom || activeRooms[0]?.name || "";
-      const isHolding = defaultRoom === "Нерозподілені";
-      const defaultRoomConfig =
-        activeRooms.find((r) => r.name === defaultRoom) ?? activeRooms[0] ?? null;
+      const isHolding =
+        prefillRoom === "Нерозподілені" || prefillRoom === String(HOLDING_ROOM_ID);
+      const defaultRoomConfig = isHolding
+        ? null
+        : resolveRoomPrefill(prefillRoom) || activeRooms[0] || null;
+      const defaultRoom = isHolding
+        ? "Нерозподілені"
+        : defaultRoomConfig?.name || "";
+      const cottageLabel = isHolding
+        ? "Нерозподілені"
+        : defaultRoomConfig
+          ? formatRoomDisplayLabel(
+              roomSidebarDisplayName(defaultRoomConfig),
+              defaultRoomConfig.desc
+            )
+          : "Оберіть котедж";
 
       const checkIn = prefillDateStart ? normalizeDateToIso(prefillDateStart) : "";
       const checkOut = prefillDateEnd
@@ -371,9 +428,7 @@ export function useBookingDrawer({
       setForm({
         ...defaultBookingDrawerForm(),
         cottage: defaultRoom,
-        cottageLabel: defaultRoom
-          ? formatRoomDisplayLabel(defaultRoom, defaultRoomConfig?.desc)
-          : "Оберіть котедж",
+        cottageLabel,
         roomId: isHolding ? null : defaultRoomConfig?.id ?? null,
         checkIn,
         checkOut,
@@ -392,6 +447,7 @@ export function useBookingDrawer({
       earlyTimeRef,
       lateTimeRef,
       roomsList,
+      resolveRoomPrefill,
       populateCottageOptions,
       openDrawerShell,
       bumpPrice,
@@ -426,6 +482,14 @@ export function useBookingDrawer({
           ? "Нерозподілені"
           : matchedRoom?.name || String(booking.cottage || "");
       const room = matchedRoom ?? roomsList.find((r) => r.name === savedRoom);
+      const cottageLabel =
+        booking.assignmentState === "holding"
+          ? "Нерозподілені"
+          : room
+            ? formatRoomDisplayLabel(roomSidebarDisplayName(room), room.desc)
+            : savedRoom
+              ? formatRoomDisplayLabel(savedRoom)
+              : "Оберіть котедж";
       const legacyServices = migrateLegacyServiceSelection(
         settings.customServicesList || [],
         { dayGuests: parsed.dayGuests, vat: parsed.vat }
@@ -468,7 +532,8 @@ export function useBookingDrawer({
         Number(booking.guests) || 2,
         parsed.children,
         savedRoom,
-        roomsList
+        roomsList,
+        matchedRoom?.id ?? booking.roomId
       );
 
       const openedColor = normalizeBookingCustomColor(booking.custom_color) || "";
@@ -482,7 +547,7 @@ export function useBookingDrawer({
         source: booking.source || "Адмінка",
         comment: parsed.guestComment,
         cottage: savedRoom,
-        cottageLabel: savedRoom ? formatRoomDisplayLabel(savedRoom, room?.desc) : "Оберіть котедж",
+        cottageLabel,
         roomId: matchedRoom?.id ?? booking.roomId ?? null,
         checkIn: normalizeDateToIso(booking.checkIn || ""),
         checkOut: normalizeDateToIso(booking.checkOut || ""),
