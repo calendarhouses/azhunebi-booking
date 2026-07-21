@@ -28,7 +28,7 @@ import type { GasBookingRecord } from "@/lib/gas-api";
  * Text only — no static images. Finance report screenshot is not included here
  * (that comes from admin «Звіт у Telegram»).
  */
-export async function sendTelegramDemoAllThreads(): Promise<Record<string, boolean>> {
+export async function sendTelegramDemoAllThreads(): Promise<Record<string, boolean | string>> {
   if (!isTelegramConfigured()) {
     throw new Error("Telegram is not configured");
   }
@@ -39,7 +39,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
   const cleaning = getCleaningTargets();
   const finance = getFinanceTargets();
   const keyboard = chessboardKeyboard();
-  const results: Record<string, boolean> = {};
+  const results: Record<string, boolean | string> = {};
 
   const demoBooking = {
     name: "Назар Тест",
