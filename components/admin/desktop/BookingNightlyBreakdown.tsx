@@ -5,7 +5,9 @@ import { getDayPrice } from "./bookingPriceEngine";
 import { formatDateKey } from "./bookingUtils";
 import { parseSafeDate } from "./adminDates";
 import { nightWord } from "./adminPlural";
+import { Percent } from "lucide-react";
 import { PriceLineInput } from "../shared/PriceLineInput";
+import { IntegerAmountInput } from "../shared/IntegerAmountInput";
 import { BookingQuickEditDrawer } from "../mobile/BookingQuickEditDrawer";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import type { AdminSettingsPayload, RoomConfig } from "./types";
@@ -187,40 +189,50 @@ export function BookingNightlyBreakdown({
         {discountEditable ? (
           <div className="booking-nightly-breakdown__discount">
             <div className="booking-nightly-breakdown__discount-head">
-              <span className="booking-nightly-breakdown__discount-head-left">
-                <span className="booking-nightly-breakdown__discount-iconWrap" aria-hidden>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
+              <div className="booking-nightly-breakdown__discount-brand">
+                <span className="booking-nightly-breakdown__discount-icon" aria-hidden>
+                  <Percent size={15} strokeWidth={2.4} />
                 </span>
-                <span className="booking-nightly-breakdown__discount-title">Знижка</span>
-              </span>
-              <span className="booking-nightly-breakdown__discount-subtitle">Швидке ручне коригування</span>
+                <div className="booking-nightly-breakdown__discount-copy">
+                  <div className="booking-nightly-breakdown__discount-title">Знижка</div>
+                  <div className="booking-nightly-breakdown__discount-subtitle">
+                    Швидке ручне коригування
+                  </div>
+                </div>
+              </div>
+              {safeDiscountAmount > 0 ? (
+                <div className="booking-nightly-breakdown__discount-chip">
+                  −{safeDiscountAmount.toLocaleString("uk-UA")} грн
+                </div>
+              ) : null}
             </div>
             <div className="booking-nightly-breakdown__discount-grid">
               <label className="booking-nightly-breakdown__discount-field">
                 <span className="booking-nightly-breakdown__discount-label">Сума</span>
-                <div className="price-edit-wrapper booking-nightly-breakdown__discount-input">
-                  <PriceLineInput
+                <div className="booking-nightly-breakdown__discount-control">
+                  <IntegerAmountInput
+                    className="booking-nightly-breakdown__discount-native"
                     value={safeDiscountAmount}
-                    onChange={(value) => onDiscountAmountChange?.(value)}
-                    maxAmount={subtotal}
-                    ariaLabel="Знижка сума"
+                    onValueChange={(value) =>
+                      onDiscountAmountChange?.(Math.min(Math.max(0, value), subtotal))
+                    }
+                    aria-label="Знижка сума"
                   />
-                  <span className="price-edit-suffix">грн</span>
+                  <span className="booking-nightly-breakdown__discount-unit">грн</span>
                 </div>
               </label>
               <label className="booking-nightly-breakdown__discount-field">
                 <span className="booking-nightly-breakdown__discount-label">Відсоток</span>
-                <div className="price-edit-wrapper booking-nightly-breakdown__discount-input">
-                  <PriceLineInput
+                <div className="booking-nightly-breakdown__discount-control">
+                  <IntegerAmountInput
+                    className="booking-nightly-breakdown__discount-native"
                     value={Math.max(0, Math.round(discountPercent))}
-                    onChange={(value) => onDiscountPercentChange?.(Math.min(100, value))}
-                    maxAmount={100}
-                    ariaLabel="Знижка відсоток"
+                    onValueChange={(value) =>
+                      onDiscountPercentChange?.(Math.min(100, Math.max(0, value)))
+                    }
+                    aria-label="Знижка відсоток"
                   />
-                  <span className="price-edit-suffix">%</span>
+                  <span className="booking-nightly-breakdown__discount-unit">%</span>
                 </div>
               </label>
             </div>

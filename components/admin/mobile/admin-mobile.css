@@ -1049,37 +1049,123 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   padding: 14px 2px 16px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__discount {
-  margin-top: 12px !important;
-  padding: 12px !important;
-  border-radius: 14px !important;
+  margin-top: 14px !important;
+  padding: 14px !important;
+  border-radius: 16px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__discount-head {
   display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  gap: 4px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
 }
-.boso-admin-mobile .booking-nightly-breakdown__discount-head-left {
-  display: inline-flex !important;
+.boso-admin-mobile .booking-nightly-breakdown__discount-brand {
+  display: flex !important;
   align-items: center !important;
   gap: 10px !important;
+  min-width: 0 !important;
 }
-.boso-admin-mobile .booking-nightly-breakdown__discount-iconWrap {
-  width: 32px !important;
-  height: 32px !important;
+.boso-admin-mobile .booking-nightly-breakdown__discount-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
   border-radius: 12px !important;
 }
+.boso-admin-mobile .booking-nightly-breakdown__discount-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-title {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  color: #1F2937 !important;
+}
 .boso-admin-mobile .booking-nightly-breakdown__discount-subtitle {
-  align-self: flex-start !important;
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  color: #78716C !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__discount-grid {
+  display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 10px !important;
 }
-.boso-admin-mobile .booking-nightly-breakdown__discount-input {
+.boso-admin-mobile .booking-nightly-breakdown__discount-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   margin: 0 !important;
-  padding: 6px 10px !important;
-  border-radius: 12px !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-label {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-control {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  max-height: 48px !important;
+  padding: 0 12px 0 14px !important;
+  margin: 0 !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  border: 1px solid rgba(85, 107, 47, 0.18) !important;
+  box-sizing: border-box !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-native {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  color: #1C1917 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+.boso-admin-mobile .form-group .booking-nightly-breakdown__discount-native,
+.boso-admin-mobile .form-group .booking-nightly-breakdown__discount-control input {
+  width: 100% !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+.boso-admin-mobile .booking-nightly-breakdown__discount-unit {
+  flex-shrink: 0 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #9CA3AF !important;
+  line-height: 1 !important;
 }
 .boso-admin-mobile .booking-discount-breakdown {
   margin-top: 18px !important;
