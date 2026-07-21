@@ -20,6 +20,22 @@ import { makeSmsJournalEntry, recordSmsJournalEntry } from "./smsJournal";
 
 export type BookingLifecycleSmsType = "payment_link" | "success" | "expiry";
 
+/** TurboSMS statuses that mean "do not retry" — treat as terminal for our marker. */
+const NON_RETRYABLE_SMS_STATUSES = new Set([
+  "NOT_ALLOWED_MESSAGE_DUPLICATE",
+  "NOT_ALLOWED_RECIPIENTS_NUMBER",
+  "NOT_ALLOWED_RECIPIENT_COUNTRY",
+  "NOT_ALLOWED_RECIPIENTS_LIMIT",
+  "NOT_ALLOWED_MESSAGE_TEXT_EMPTY",
+  "NOT_ALLOWED_MESSAGE_TEXT",
+  "NOT_ALLOWED_SENDER_ID",
+]);
+
+function isNonRetryableSmsResult(result: TurboSmsSendResult): boolean {
+  const status = String(result.responseStatus || result.error || "").trim();
+  return NON_RETRYABLE_SMS_STATUSES.has(status);
+}
+
 function journalWebhookSecret(): string {
   return (
     process.env.TELEGRAM_REVIEW_WEBHOOK_SECRET?.trim() ||
@@ -100,6 +116,23 @@ export async function sendBookingLifecycleSms(
     const marked = await markBookingSmsSent(orderId, type);
     if (!marked.ok) {
       console.error("[SMS] Sent but marker update failed", { orderId, type, marked });
+    }
+  } else if (!result.ok && orderId && isNonRetryableSmsResult(result)) {
+    // Stop the 1-min lifecycle loop: duplicate / rejected sends must not retry forever.
+    const marked = await markBookingSmsSent(orderId, type);
+    if (!marked.ok) {
+      console.error("[SMS] Non-retryable send; marker update failed", {
+        orderId,
+        type,
+        status: result.responseStatus || result.error,
+        marked,
+      });
+    } else {
+      console.warn("[SMS] Marked as sent after non-retryable TurboSMS status", {
+        orderId,
+        type,
+        status: result.responseStatus || result.error,
+      });
     }
   }
   return result;
