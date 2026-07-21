@@ -982,21 +982,27 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 
 /* Premium nightly breakdown + breathing room for discount rows */
 .boso-admin-mobile .booking-nightly-breakdown {
-  margin-top: 14px !important;
+  margin-top: 20px !important;
+  padding: 14px 14px 0 !important;
   border-radius: 18px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__head {
-  padding: 14px 14px 12px !important;
+  padding: 0 2px !important;
+  margin-bottom: 12px !important;
+  background: transparent !important;
+  border-bottom: none !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__list {
   padding: 0 !important;
   gap: 0 !important;
+  border-radius: 14px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__row {
   padding: 11px 14px !important;
 }
 .boso-admin-mobile .booking-nightly-breakdown__total {
-  padding: 14px 14px 16px !important;
+  margin-top: 12px !important;
+  padding: 14px 2px 16px !important;
 }
 .boso-admin-mobile .booking-discount-breakdown {
   margin-top: 18px !important;

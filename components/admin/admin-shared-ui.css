@@ -1978,8 +1978,8 @@
         }
 
         .booking-nightly-breakdown {
-            margin-top: 16px;
-            padding: 0;
+            margin-top: 22px;
+            padding: 14px 14px 0;
             border-radius: 16px;
             background: linear-gradient(165deg, #F7F8F4 0%, #FFFFFF 42%, #FAFBF0 100%);
             border: 1px solid rgba(85, 107, 47, 0.16);
@@ -1991,9 +1991,10 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 14px 16px 12px;
-            background: linear-gradient(135deg, rgba(85, 107, 47, 0.08), rgba(85, 107, 47, 0.02));
-            border-bottom: 1px solid rgba(85, 107, 47, 0.1);
+            padding: 0 2px;
+            margin-bottom: 12px;
+            background: transparent;
+            border-bottom: none;
         }
         .booking-nightly-breakdown__title {
             font-size: 11px;
@@ -2021,6 +2022,11 @@
             display: flex;
             flex-direction: column;
             gap: 0;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid rgba(226, 232, 240, 0.85);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            overflow: hidden;
         }
         .booking-nightly-breakdown__row {
             display: flex;
@@ -2086,10 +2092,10 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin: 0;
-            padding: 14px 16px 16px;
-            border-top: 1px solid rgba(85, 107, 47, 0.12);
-            background: linear-gradient(180deg, rgba(85, 107, 47, 0.04), rgba(85, 107, 47, 0.08));
+            margin: 12px 0 0;
+            padding: 14px 2px 16px;
+            border-top: none;
+            background: transparent;
             font-size: 14px;
             color: #57534E;
         }
