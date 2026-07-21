@@ -4,6 +4,7 @@ import { gasFetch } from "@/lib/gas-api";
 import { extractBearerToken } from "@/lib/admin/adminDbClient";
 import { normalizeSmsSettings, type SmsSettings } from "@/lib/sms/smsSettings";
 import { fetchTurboSmsMessageDetails } from "@/lib/sms/turbosms";
+import { mergeSmsJournal } from "@/lib/sms/persistSmsJournal";
 
 export const runtime = "nodejs";
 

@@ -25,6 +25,7 @@ import {
   DEFAULT_SMS_SETTINGS,
   SMS_TEMPLATE_META,
   SMS_TEMPLATE_VARIABLES,
+  mergeSmsJournal,
   normalizeSmsSettings,
   renderSmsTemplate,
   type SmsJournalEntry,
@@ -63,12 +64,19 @@ const TYPE_LABELS: Record<SmsJournalEntry["type"], string> = {
 
 type SmsSubView = "settings" | "journal";
 type JournalFilter = "all" | SmsJournalEntry["type"];
+type ManualVarsMap = Record<SmsTemplateId, Record<string, string>>;
 
 type SmsSettingsPanelProps = {
   settings: AdminSettingsPayload;
   onSettingsChange: (next: AdminSettingsPayload) => void;
   isActive?: boolean;
 };
+
+function initialManualVars(): ManualVarsMap {
+  return Object.fromEntries(
+    TEMPLATE_ORDER.map((id) => [id, { ...SAMPLE_VARS }]),
+  ) as ManualVarsMap;
+}
 
 function editableSlice(settings: SmsSettings): Omit<SmsSettings, "journal"> {
   return {
@@ -138,6 +146,7 @@ export function SmsSettingsPanel({
   const [form, setForm] = useState(() =>
     editableSlice(normalizeSmsSettings(settings.smsSettings)),
   );
+  const [manualVars, setManualVars] = useState<ManualVarsMap>(initialManualVars);
   const [saving, setSaving] = useState(false);
   const [subView, setSubView] = useState<SmsSubView>("settings");
   const [balance, setBalance] = useState<number | null>(null);
@@ -148,8 +157,7 @@ export function SmsSettingsPanel({
   );
   const [journalLoading, setJournalLoading] = useState(false);
   const [journalFilter, setJournalFilter] = useState<JournalFilter>("all");
-  const [testSending, setTestSending] = useState(false);
-  const [templateTestId, setTemplateTestId] = useState<SmsTemplateId | null>(null);
+  const [sendingTemplateId, setSendingTemplateId] = useState<SmsTemplateId | null>(null);
   const [openTemplate, setOpenTemplate] = useState<SmsTemplateId | null>("payment_link");
   const textareaRefs = useRef<Partial<Record<SmsTemplateId, HTMLTextAreaElement | null>>>({});
   const serverKeyRef = useRef("");
@@ -162,7 +170,7 @@ export function SmsSettingsPanel({
     serverKeyRef.current = key;
     const next = normalizeSmsSettings(settings.smsSettings);
     setForm(editableSlice(next));
-    setJournal(next.journal);
+    setJournal((prev) => mergeSmsJournal(prev, next.journal));
   }, [settings.smsSettings]);
 
   const pricePerSegment = useMemo(() => derivePricePerSegment(journal), [journal]);
@@ -187,7 +195,7 @@ export function SmsSettingsPanel({
     }
   }, []);
 
-  const loadJournal = useCallback(async (refresh = true) => {
+  const loadJournal = useCallback(async (refresh = false) => {
     setJournalLoading(true);
     try {
       const res = await adminSmsFetch(
@@ -198,7 +206,7 @@ export function SmsSettingsPanel({
         journal?: SmsJournalEntry[];
       };
       if (res.ok && data.ok && Array.isArray(data.journal)) {
-        setJournal(data.journal);
+        setJournal((prev) => mergeSmsJournal(prev, data.journal!));
       }
     } catch {
       /* keep local journal */
@@ -210,7 +218,8 @@ export function SmsSettingsPanel({
   useEffect(() => {
     if (!isActive) return;
     void loadBalance();
-  }, [isActive, loadBalance]);
+    void loadJournal(false);
+  }, [isActive, loadBalance, loadJournal]);
 
   useEffect(() => {
     if (!isActive || subView !== "journal") return;
@@ -236,13 +245,26 @@ export function SmsSettingsPanel({
     [],
   );
 
+  const patchManualVar = useCallback((id: SmsTemplateId, key: string, value: string) => {
+    setManualVars((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], [key]: value },
+    }));
+  }, []);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
+      const journalRes = await adminSmsFetch("/api/admin/sms/journal");
+      const journalData = (await journalRes.json()) as { journal?: SmsJournalEntry[] };
+      const currentJournal = Array.isArray(journalData.journal)
+        ? mergeSmsJournal(journal, journalData.journal)
+        : journal;
+
       const nextSettings: SmsSettings = {
         ...form,
         pricePerSegment,
-        journal,
+        journal: currentJournal,
       };
       const next: AdminSettingsPayload = {
         ...settings,
@@ -252,6 +274,7 @@ export function SmsSettingsPanel({
       dirtyRef.current = false;
       onSettingsChange(next);
       await saveAdminSettings(next, { keys: ["smsSettings"] });
+      setJournal(currentJournal);
       showToast("SMS-налаштування збережено");
     } catch (e) {
       console.error("sms settings save:", e);
@@ -261,48 +284,59 @@ export function SmsSettingsPanel({
     }
   }, [form, journal, onSettingsChange, pricePerSegment, settings]);
 
-  const sendTest = useCallback(
-    async (opts: { text?: string; templateId?: SmsTemplateId }) => {
+  const sendFromTemplate = useCallback(
+    async (templateId: SmsTemplateId) => {
       const phoneDraft = form.testPhone || "";
       const parsed = parseStoredGuestPhone(phoneDraft);
       if (!isValidGuestPhone(parsed.iso, parsed.dial, parsed.national)) {
-        showToast("Вкажіть коректний тестовий номер");
+        showToast("Вкажіть коректний номер отримувача");
         return;
       }
       const phone = formatGuestPhoneForSave(parsed.iso, parsed.dial, parsed.national);
-      if (opts.templateId) setTemplateTestId(opts.templateId);
-      else setTestSending(true);
+      const text = renderSmsTemplate(form.templates[templateId].text, manualVars[templateId]);
 
+      setSendingTemplateId(templateId);
       try {
         const res = await adminSmsFetch("/api/admin/sms/test", {
           method: "POST",
           body: JSON.stringify({
             phone,
-            text: opts.text,
-            templateId: opts.templateId,
-            smsSettings: { ...form, pricePerSegment, journal: [] },
+            text,
+            templateId,
+            smsSettings: { ...form, pricePerSegment },
           }),
         });
         const data = (await res.json()) as {
           ok?: boolean;
           error?: string;
           journal?: SmsJournalEntry;
+          journalAll?: SmsJournalEntry[];
+          journalPersisted?: boolean;
         };
         if (!res.ok || !data.ok) {
-          showToast(data.error || "Тестове SMS не надіслано");
+          showToast(data.error || "SMS не надіслано");
+          if (data.journal) {
+            setJournal((prev) => mergeSmsJournal(prev, [data.journal!]));
+          }
           return;
         }
-        showToast("Тестове SMS надіслано");
-        if (data.journal) setJournal((prev) => [data.journal!, ...prev].slice(0, 100));
+        showToast("SMS надіслано");
+        if (Array.isArray(data.journalAll) && data.journalAll.length) {
+          setJournal(data.journalAll);
+        } else if (data.journal) {
+          setJournal((prev) => mergeSmsJournal(prev, [data.journal!]));
+        }
+        if (data.journalPersisted === false) {
+          showToast("SMS надіслано, але журнал не збережено — спробуйте ще раз");
+        }
         void loadBalance();
       } catch {
-        showToast("Помилка відправки тестового SMS");
+        showToast("Помилка відправки SMS");
       } finally {
-        setTestSending(false);
-        setTemplateTestId(null);
+        setSendingTemplateId(null);
       }
     },
-    [form, loadBalance, pricePerSegment],
+    [form, loadBalance, manualVars, pricePerSegment],
   );
 
   const balanceLow =
@@ -316,15 +350,16 @@ export function SmsSettingsPanel({
     >;
     for (const id of TEMPLATE_ORDER) {
       const text = form.templates[id].text;
-      const seg = countSmsSegments(text);
+      const preview = renderSmsTemplate(text, manualVars[id]);
+      const seg = countSmsSegments(preview);
       map[id] = {
         ...seg,
         cost: estimateSmsCost(seg.segments, pricePerSegment),
-        preview: renderSmsTemplate(text, SAMPLE_VARS),
+        preview,
       };
     }
     return map;
-  }, [form.templates, pricePerSegment]);
+  }, [form.templates, manualVars, pricePerSegment]);
 
   const filteredJournal = useMemo(() => {
     if (journalFilter === "all") return journal;
@@ -342,7 +377,7 @@ export function SmsSettingsPanel({
     <div className="sms-page">
       <div className="sms-page__top">
         <p className="sms-page__intro">
-          Автоматичні SMS гостям через TurboSMS. Тариф рахується з реальних відправок.
+          Автоматичні SMS гостям через TurboSMS. Відправляйте вручну з будь-якого шаблону.
         </p>
         <div className="reports-tabs sms-subtabs">
           <button
@@ -422,7 +457,7 @@ export function SmsSettingsPanel({
           <section className="sms-card">
             <header className="sms-card__header">
               <h3>Шаблони</h3>
-              <p>Чотири автоматичні повідомлення. Кирилиця: до 70 символів у 1 SMS.</p>
+              <p>Редагуйте текст, заповніть підстановки і надішліть SMS прямо з шаблону.</p>
             </header>
             <div className="sms-templates">
               {TEMPLATE_ORDER.map((id) => {
@@ -430,7 +465,7 @@ export function SmsSettingsPanel({
                 const tpl = form.templates[id];
                 const stats = templateStats[id];
                 const open = openTemplate === id;
-                const testingThis = templateTestId === id;
+                const sending = sendingTemplateId === id;
                 return (
                   <article
                     key={id}
@@ -470,29 +505,22 @@ export function SmsSettingsPanel({
                             />
                             <span>Надсилати автоматично</span>
                           </label>
-                          <div className="sms-template__toolbar-actions">
-                            <button
-                              type="button"
-                              className="btn-secondary sms-btn-icon sms-btn-sm"
-                              onClick={() =>
-                                patchTemplate(id, {
-                                  text: DEFAULT_SMS_SETTINGS.templates[id].text,
-                                })
-                              }
-                            >
-                              <RotateCcw size={14} />
-                              Скинути
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary sms-btn-icon sms-btn-sm"
-                              onClick={() => void sendTest({ templateId: id })}
-                              disabled={testingThis || testSending}
-                            >
-                              <Send size={14} />
-                              {testingThis ? "…" : "Тест"}
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            className="btn-secondary sms-btn-icon sms-btn-sm"
+                            onClick={() => {
+                              patchTemplate(id, {
+                                text: DEFAULT_SMS_SETTINGS.templates[id].text,
+                              });
+                              setManualVars((prev) => ({
+                                ...prev,
+                                [id]: { ...SAMPLE_VARS },
+                              }));
+                            }}
+                          >
+                            <RotateCcw size={14} />
+                            Скинути
+                          </button>
                         </div>
 
                         <div className="sms-template__editor">
@@ -512,7 +540,7 @@ export function SmsSettingsPanel({
                           <div className="sms-preview">
                             <div className="sms-preview__label">
                               <Smartphone size={14} aria-hidden />
-                              Попередній перегляд
+                              Як побачить гість
                             </div>
                             <div className="sms-preview__bubble">{stats.preview}</div>
                           </div>
@@ -538,7 +566,7 @@ export function SmsSettingsPanel({
                         </div>
 
                         <div className="sms-vars-section">
-                          <span className="sms-vars-section__label">Змінні — натисніть, щоб вставити</span>
+                          <span className="sms-vars-section__label">Змінні — натисніть, щоб вставити в текст</span>
                           <div className="sms-vars">
                             {SMS_TEMPLATE_VARIABLES.map((v) => (
                               <button
@@ -561,40 +589,51 @@ export function SmsSettingsPanel({
                             ))}
                           </div>
                         </div>
+
+                        <div className="sms-manual-vars">
+                          <span className="sms-vars-section__label">Підстановки для відправки</span>
+                          <div className="sms-manual-vars__grid">
+                            {SMS_TEMPLATE_VARIABLES.map((v) => (
+                              <label key={v.key} className="sms-manual-var">
+                                <span className="sms-manual-var__label">{v.label}</span>
+                                <input
+                                  className="sms-manual-var__input"
+                                  type="text"
+                                  value={manualVars[id][v.key] || ""}
+                                  onChange={(e) => patchManualVar(id, v.key, e.target.value)}
+                                  placeholder={`{${v.key}}`}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="sms-template__send">
+                          <span className="sms-vars-section__label">Відправити SMS</span>
+                          <div className="sms-test-row">
+                            <div className="sms-field sms-field--grow">
+                              <span className="sms-field__label">Номер отримувача</span>
+                              <GuestPhoneField
+                                value={form.testPhone || ""}
+                                onChange={(value) => patchForm({ testPhone: value })}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-primary sms-test-btn"
+                              onClick={() => void sendFromTemplate(id)}
+                              disabled={sending}
+                            >
+                              <Send size={16} />
+                              {sending ? "Надсилаємо…" : "Надіслати SMS"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ) : null}
                   </article>
                 );
               })}
-            </div>
-          </section>
-
-          <section className="sms-card">
-            <header className="sms-card__header">
-              <h3>Тестова відправка</h3>
-              <p>Перевірте TurboSMS на свій номер перед запуском для гостей.</p>
-            </header>
-            <div className="sms-test-row">
-              <div className="sms-field sms-field--grow">
-                <span className="sms-field__label">Номер для тестів</span>
-                <GuestPhoneField
-                  value={form.testPhone || ""}
-                  onChange={(value) => patchForm({ testPhone: value })}
-                />
-              </div>
-              <button
-                type="button"
-                className="btn-secondary sms-test-btn"
-                onClick={() =>
-                  void sendTest({
-                    text: "Тест SMS з кабінету АЖ У НЕБІ. Якщо ви отримали це — TurboSMS працює.",
-                  })
-                }
-                disabled={testSending}
-              >
-                <Send size={16} />
-                {testSending ? "Надсилаємо…" : "Надіслати тест"}
-              </button>
             </div>
           </section>
 

@@ -186,3 +186,16 @@ export function appendSmsJournalEntry(
 ): SmsJournalEntry[] {
   return [entry, ...journal].slice(0, 100);
 }
+
+/** Merge journal lists by id, newest first, max 100. */
+export function mergeSmsJournal(...lists: SmsJournalEntry[][]): SmsJournalEntry[] {
+  const byId = new Map<string, SmsJournalEntry>();
+  for (const list of lists) {
+    for (const entry of list) {
+      if (entry?.id) byId.set(entry.id, entry);
+    }
+  }
+  return [...byId.values()]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 100);
+}

@@ -8,37 +8,35 @@ import {
   renderSmsTemplate,
   SMS_TEMPLATE_META,
 } from "@/lib/sms/smsSettings";
-import { makeSmsJournalEntry, recordSmsJournalEntry } from "@/lib/sms/smsJournal";
+import { makeSmsJournalEntry } from "@/lib/sms/smsJournal";
+import { persistSmsJournalEntryAdmin } from "@/lib/sms/persistSmsJournal";
+import { extractBearerToken } from "@/lib/admin/adminDbClient";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 
 export const runtime = "nodejs";
 
-type TestSmsBody = {
+type SendSmsBody = {
   phone?: string;
+  /** Ready-to-send text (preferred for manual sends) */
   text?: string;
   templateId?: SmsTemplateId;
+  vars?: Record<string, string>;
   smsSettings?: unknown;
 };
-
-const LIFECYCLE_SECRET = () =>
-  process.env.TELEGRAM_REVIEW_WEBHOOK_SECRET?.trim() ||
-  process.env.TELEGRAM_BOT_TOKEN?.trim() ||
-  "";
 
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id")?.trim() || null;
   const auth = await verifyAdminRequest(request, tenantId);
   if (auth instanceof NextResponse) return auth;
 
-  let body: TestSmsBody;
+  let body: SendSmsBody;
   try {
-    body = (await request.json()) as TestSmsBody;
+    body = (await request.json()) as SendSmsBody;
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
 
   const settings = normalizeSmsSettings(body.smsSettings);
-
   const rawPhone = body.phone || settings.testPhone || "";
   const phone = normalizeGuestPhone(rawPhone);
   if (!phone) {
@@ -49,16 +47,11 @@ export async function POST(request: Request) {
   }
 
   let text: string;
-  if (body.text) {
+  if (body.text?.trim()) {
     text = body.text.trim();
   } else if (body.templateId && SMS_TEMPLATE_META[body.templateId]) {
     const tpl = settings.templates[body.templateId];
-    // Render with placeholder values for preview
-    const placeholderVars: Record<string, string> = {};
-    for (const { key } of SMS_TEMPLATE_META[body.templateId].variables) {
-      placeholderVars[key] = `[${key}]`;
-    }
-    text = renderSmsTemplate(tpl.text, placeholderVars);
+    text = renderSmsTemplate(tpl.text, body.vars || {});
   } else {
     return NextResponse.json(
       { ok: false, error: "missing_text_or_templateId" },
@@ -77,10 +70,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await sendTurboSms({ phone, text, sequenceId: "test" });
+  const journalType = body.templateId || "test";
+  const result = await sendTurboSms({
+    phone,
+    text,
+    sequenceId: body.templateId ? `manual-${body.templateId}-${Date.now()}` : "test",
+  });
 
   const entry = makeSmsJournalEntry({
-    type: "test",
+    type: journalType,
     phone,
     text,
     ok: result.ok,
@@ -89,17 +87,33 @@ export async function POST(request: Request) {
     pricePerSegment: settings.pricePerSegment,
   });
 
-  // Fire-and-forget journal persistence
-  const secret = LIFECYCLE_SECRET();
-  if (secret) {
-    void recordSmsJournalEntry(entry, secret);
+  const persisted = await persistSmsJournalEntryAdmin(entry, {
+    authToken: extractBearerToken(request),
+    tenantId,
+  });
+
+  if (!persisted.ok) {
+    console.error("[SMS send] journal persist failed", persisted.error);
+  }
+
+  if (!result.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: result.error || result.responseStatus,
+        journal: entry,
+        journalPersisted: persisted.ok,
+      },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({
-    ok: result.ok,
+    ok: true,
     messageId: result.messageId,
     responseStatus: result.responseStatus,
-    error: result.error,
     journal: entry,
+    journalPersisted: persisted.ok,
+    journalAll: persisted.journal,
   });
 }
