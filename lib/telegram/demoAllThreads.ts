@@ -2,6 +2,7 @@ import "server-only";
 
 import { buildPendingReviewCaption } from "./bookingReviewNotify";
 import { buildArrivalDepartureCaption } from "./arrivalDepartureNotify";
+import { buildCleaningArrivalCaption } from "./cleaningArrivalNotify";
 import {
   buildDebtCaption,
   buildEveningCashCaption,
@@ -14,6 +15,7 @@ import {
   chessboardKeyboard,
   getArrivalsTargets,
   getBookingsTargets,
+  getCleaningTargets,
   getFinanceTargets,
   getRequestsTargets,
   isTelegramConfigured,
@@ -34,6 +36,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
   const bookings = getBookingsTargets();
   const requests = getRequestsTargets();
   const arrivals = getArrivalsTargets();
+  const cleaning = getCleaningTargets();
   const finance = getFinanceTargets();
   const keyboard = chessboardKeyboard();
   const results: Record<string, boolean> = {};
@@ -150,6 +153,24 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
       arrivals.threadId
     );
     results.departure = res.ok;
+  }
+
+  // ── КЛІНІНГ — заїзд ──
+  {
+    const res = await sendTelegramMessage(
+      "🧪 <b>ТЕСТ</b>\n\n" +
+        buildCleaningArrivalCaption({
+          ...demoBooking,
+          cottage: "Будиночок 11",
+          guests: 2,
+          comment: "👶 Діти: 1",
+          status: "Підтверджено",
+        }),
+      undefined,
+      cleaning.chatId,
+      cleaning.threadId
+    );
+    results.cleaningArrival = res.ok;
   }
 
   // ── ФІНАНСИ / ЗВІТИ ──

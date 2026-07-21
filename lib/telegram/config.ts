@@ -23,7 +23,7 @@ export type TelegramConfig = {
   threadFinance: number;
   threadArrivals: number;
   threadRequests: number;
-  /** @deprecated optional legacy cleaning chat — unused when forum topics are set */
+  /** Окрема група клінінгу (без forum topic) */
   cleaningGroupId: string;
   isTestMode: boolean;
   testChatId: string;
@@ -106,6 +106,18 @@ export function getArrivalsTargets(): TelegramTarget {
 /** ФІНАНСИ / ЗВІТИ */
 export function getFinanceTargets(): TelegramTarget {
   return targetForThread(getTelegramConfig().threadFinance);
+}
+
+/** Група клінінгу — сповіщення про заїзди */
+export function getCleaningTargets(): TelegramTarget {
+  const cfg = getTelegramConfig();
+  if (cfg.isTestMode) return { chatId: cfg.testChatId, threadId: null };
+  return { chatId: cfg.cleaningGroupId, threadId: null };
+}
+
+export function isCleaningConfigured(): boolean {
+  const id = getTelegramConfig().cleaningGroupId;
+  return id !== FAKE && !id.includes("FAKE") && id.length > 0;
 }
 
 /** @deprecated use getBookingsTargets */

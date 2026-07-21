@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { notifyTodayArrivalsAndDepartures } from "@/lib/telegram/arrivalDepartureNotify";
+import { notifyCleaningTodayArrivals } from "@/lib/telegram/cleaningArrivalNotify";
 import { fetchCronTelegramDigest } from "@/lib/telegram/cronDigest";
 import {
   sendDebtReminders,
@@ -167,9 +168,10 @@ async function runJobs(force?: string | null) {
   const now = kyivParts();
 
   if (!force || force === "arrivals") {
-    results.arrivals = await notifyTodayArrivalsAndDepartures(
-      bookings as Parameters<typeof notifyTodayArrivalsAndDepartures>[0]
-    );
+    const arrivalBookings =
+      bookings as Parameters<typeof notifyTodayArrivalsAndDepartures>[0];
+    results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
+    results.cleaningArrivals = await notifyCleaningTodayArrivals(arrivalBookings);
   }
   if (!force || force === "debt") {
     results.debt = await sendDebtReminders(
