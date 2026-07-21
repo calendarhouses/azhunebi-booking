@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchBookingByDisplayId } from "@/lib/gas-api";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
+import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "NOT_AWAITING_PAYMENT" }, { status: 409 });
   }
 
-  const sms = await sendBookingLifecycleSms(result.booking, "payment_link");
+  const smsSettings = await loadSmsSettingsSystem();
+  const sms = await sendBookingLifecycleSms(result.booking, "payment_link", smsSettings);
   if (!sms.ok) {
     console.error("[Payment link SMS] Send failed", {
       orderId,

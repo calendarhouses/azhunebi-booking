@@ -2,6 +2,53 @@ import { getTurboSmsConfig, isTurboSmsConfigured } from "./config";
 
 const API_BASE = "https://api.turbosms.ua";
 
+export type TurboSmsMessageDetail = {
+  message_id: string;
+  phone?: string;
+  status?: string;
+  status_time?: string;
+  cost?: number;
+  parts?: number;
+};
+
+export async function fetchTurboSmsMessageDetails(messageIds: string[]): Promise<{
+  ok: boolean;
+  details?: TurboSmsMessageDetail[];
+  error?: string;
+}> {
+  if (!messageIds.length) return { ok: true, details: [] };
+  if (!isTurboSmsConfigured()) {
+    return { ok: false, error: "TURBOSMS_TOKEN not configured" };
+  }
+
+  const { token } = getTurboSmsConfig();
+  const res = await fetch(`${API_BASE}/message/details.json`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messages: messageIds }),
+    cache: "no-store",
+  });
+
+  const data = (await res.json().catch(() => null)) as {
+    response_code?: number;
+    response_result?: TurboSmsMessageDetail[] | null;
+  } | null;
+
+  if (!data || data.response_code !== 0) {
+    return {
+      ok: false,
+      error: data?.response_code
+        ? `details error ${data.response_code}`
+        : "invalid response",
+    };
+  }
+
+  return { ok: true, details: data.response_result ?? [] };
+}
+
 export type TurboSmsSendResult = {
   ok: boolean;
   messageId?: string | null;

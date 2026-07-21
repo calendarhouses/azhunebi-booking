@@ -12,6 +12,7 @@ import {
   sendBookingLifecycleSms,
   type BookingLifecycleSmsType,
 } from "@/lib/sms/bookingLifecycleSms";
+import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
 import { notifyPaidBooking } from "@/lib/telegram/paidBookingNotify";
 
 export const runtime = "nodejs";
@@ -102,10 +103,11 @@ export async function POST(request: Request) {
   const refreshed = await listPaymentLifecycle();
   let smsSent = 0;
   let smsFailed = 0;
+  const smsSettings = await loadSmsSettingsSystem();
   for (const booking of refreshed.pendingSms || []) {
     const type = pendingSmsType(booking);
     if (!type) continue;
-    const result = await sendBookingLifecycleSms(booking, type);
+    const result = await sendBookingLifecycleSms(booking, type, smsSettings);
     if (result.ok) smsSent += 1;
     else smsFailed += 1;
   }

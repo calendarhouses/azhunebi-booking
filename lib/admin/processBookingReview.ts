@@ -5,6 +5,7 @@ import {
   notifyGuestBookingRejected,
 } from "@/lib/sms/notifyGuestBookingApproved";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
+import { loadSmsSettings, loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
 
 export type BookingReviewDecision = "approve" | "reject";
 
@@ -94,16 +95,24 @@ export async function processBookingReview(params: {
   const guestBooking = toGuestBooking(orderId, bookingRaw);
 
   try {
+    const smsSettings = params.adminAuth
+      ? await loadSmsSettings({
+          authToken: params.adminAuth.token,
+          tenantId: params.adminAuth.tenantId,
+        })
+      : await loadSmsSettingsSystem();
+
     const notifyResult =
       params.decision === "approve"
         ? {
             sms: await sendBookingLifecycleSms(
               { ...bookingRaw, id: orderId },
-              "payment_link"
+              "payment_link",
+              smsSettings,
             ),
             smsSkipped: false,
           }
-        : await notifyGuestBookingRejected(guestBooking);
+        : await notifyGuestBookingRejected(guestBooking, smsSettings);
     return {
       ok: true,
       orderId,

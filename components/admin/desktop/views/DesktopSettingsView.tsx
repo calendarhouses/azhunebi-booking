@@ -10,6 +10,7 @@ import {
 import { BrandingSettingsPanel } from "../settings/BrandingSettingsPanel";
 import { DiscountTemplateGallery } from "../settings/DiscountTemplateGallery";
 import { AdditionalServicesSettingsPage } from "../settings/AdditionalServicesSettingsPage";
+import { SmsSettingsPanel } from "../settings/SmsSettingsPanel";
 import { SettingsRoomsTable } from "../settings/DesktopSettingsTables";
 import { SIDEBAR_SETTINGS_ITEMS } from "../sidebarSettingsItems";
 import type { AdminModalsApi } from "../useAdminModals";
@@ -39,6 +40,7 @@ const MOBILE_SETTINGS_DESCRIPTIONS: Record<SettingsTabName, string> = {
   services: "Гнучкий графік і пропозиції для гостей",
   discounts: "Акції, промокоди та спеціальні умови",
   restrictions: "Мінімальні ночі та закриті дати",
+  sms: "Шаблони, баланс TurboSMS і журнал відправок",
 };
 
 export interface DesktopSettingsViewProps {
@@ -278,6 +280,22 @@ export function DesktopSettingsView({
             layout={layout}
             isTabActive={activeTab === "restrictions"}
             adminUndo={adminUndo}
+          />
+        </div>
+        ) : null}
+
+        {showTab("sms") ? (
+        <div
+          id="set-sms"
+          className={tabContentClass(activeTab, "sms")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-sms" : undefined}
+          style={isMobile ? undefined : tabDisplay(activeTab, "sms")}
+        >
+          <SmsSettingsPanel
+            settings={settings}
+            onSettingsChange={onSettingsChange ?? (() => {})}
+            isActive={activeTab === "sms"}
           />
         </div>
         ) : null}

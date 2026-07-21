@@ -17,6 +17,8 @@ const VALID_TABS: SettingsTabName[] = [
   "prices",
   "discounts",
   "restrictions",
+  "services",
+  "sms",
 ];
 
 function storageKey(tenantId: string) {

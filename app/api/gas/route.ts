@@ -291,14 +291,16 @@ export async function POST(request: Request) {
     ) {
       after(async () => {
         try {
-          const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }] =
+          const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }, { loadSmsSettingsSystem }] =
             await Promise.all([
               import("@/lib/gas-api"),
               import("@/lib/sms/bookingLifecycleSms"),
+              import("@/lib/sms/loadSmsSettings"),
             ]);
           const bookingResult = await fetchBookingByDisplayId(String(result.orderId));
           if (bookingResult.ok && bookingResult.booking) {
-            await sendBookingLifecycleSms(bookingResult.booking, "payment_link");
+            const smsSettings = await loadSmsSettingsSystem();
+            await sendBookingLifecycleSms(bookingResult.booking, "payment_link", smsSettings);
           }
         } catch (err) {
           console.error("[GAS proxy] payment link SMS:", err);

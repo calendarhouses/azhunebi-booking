@@ -66,4 +66,14 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
       </>
     ),
   },
+  {
+    tab: "sms",
+    label: "SMS",
+    icon: (
+      <>
+        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H10l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" />
+        <path d="M8 9h8M8 12h5" />
+      </>
+    ),
+  },
 ];

@@ -9,7 +9,7 @@ export type SettingsTabMeta = {
 };
 
 /** Вкладки, де білий блок вужчий за шириною форми */
-export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding"];
+export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding", "sms"];
 
 /** Вкладки: повна ширина як шапка, висота за контентом */
 export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = ["rooms", "prices", "restrictions"];
@@ -39,6 +39,10 @@ export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
   services: {
     title: "Додаткові послуги",
     icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3" /><path stroke-linecap="round" stroke-linejoin="round" d="M8 6h8" /><rect x="5" y="9" width="14" height="10" rx="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6" />',
+  },
+  sms: {
+    title: "SMS",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H10l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M8 9h8M8 12h5" />',
   },
 };
 

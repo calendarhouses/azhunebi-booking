@@ -11,6 +11,7 @@ import { verifyMonoWebhookSignature } from "@/lib/monopay/signature";
 import type { MonoWebhookPayload } from "@/lib/monopay/types";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
+import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
 import { notifyPaidBooking } from "@/lib/telegram/paidBookingNotify";
 
 export const runtime = "nodejs";
@@ -113,7 +114,12 @@ export async function POST(request: Request) {
   });
   const confirmedBooking = await fetchBookingByDisplayId(reference);
   if (confirmedBooking.ok && confirmedBooking.booking) {
-    const sms = await sendBookingLifecycleSms(confirmedBooking.booking, "success");
+    const smsSettings = await loadSmsSettingsSystem();
+    const sms = await sendBookingLifecycleSms(
+      confirmedBooking.booking,
+      "success",
+      smsSettings,
+    );
     if (!sms.ok) {
       console.error("[MonoPay Webhook] Success SMS failed", {
         reference,

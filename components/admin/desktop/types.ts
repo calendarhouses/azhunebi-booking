@@ -8,7 +8,8 @@ export type SettingsTabName =
   | "prices"
   | "discounts"
   | "restrictions"
-  | "services";
+  | "services"
+  | "sms";
 
 export type RoomPricingModel = "per_house" | "per_guest";
 
@@ -207,6 +208,7 @@ export interface AdminSettingsPayload {
   transactions?: TransactionConfig[];
   branding?: Record<string, unknown>;
   flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
+  smsSettings?: import("@/lib/sms/smsSettings").SmsSettings;
 }
 
 export interface AdminInitResponse {
