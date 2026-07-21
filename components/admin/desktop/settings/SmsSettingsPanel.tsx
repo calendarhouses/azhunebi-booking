@@ -209,12 +209,11 @@ export function SmsSettingsPanel({
   const handleTestSend = useCallback(async () => {
     const phoneDraft = form.testPhone || "";
     const parsed = parseStoredGuestPhone(phoneDraft);
-    const national = parsed.national;
-    if (!isValidGuestPhone(national, parsed.iso)) {
+    if (!isValidGuestPhone(parsed.iso, parsed.dial, parsed.national)) {
       showToast("Вкажіть коректний тестовий номер");
       return;
     }
-    const phone = formatGuestPhoneForSave(national, parsed.iso);
+    const phone = formatGuestPhoneForSave(parsed.iso, parsed.dial, parsed.national);
     setTestSending(true);
     try {
       const res = await adminSmsFetch("/api/admin/sms/test", {
