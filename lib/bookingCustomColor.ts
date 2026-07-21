@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 
-/** Акцентні кольори за статусом (шахматка + tint модалки). */
+/** Акцентні кольори за статусом (шахматка + tint модалки) — приглушені, як ручні картки. */
 export const BOOKING_STATUS_ACCENT = {
-  paid: "#22C55E",
-  confirmed: "#38BDF8",
-  new: "#60A5FA",
+  paid: "#C9D6C4",
+  confirmed: "#C5D3E0",
+  new: "#CED3D9",
   cancelled: "#9CA3AF",
   pendingReview: "#9CA3AF",
   hutshub: "#7FA896",

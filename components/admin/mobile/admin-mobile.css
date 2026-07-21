@@ -810,9 +810,9 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     filter: brightness(1.03);
 }
 
-.booking-block.status-new { background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%); color: #FFFFFF; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
-.booking-block.status-confirmed { background: linear-gradient(135deg, #7DD3FC 0%, #38BDF8 100%); color: #FFFFFF; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
-.booking-block.status-paid { background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%); color: #FFFFFF; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
+.booking-block.status-new { background: #CED3D9; color: #1A1A1A; border-color: transparent; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
+.booking-block.status-confirmed { background: #C5D3E0; color: #1A1A1A; border-color: transparent; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
+.booking-block.status-paid { background: #C9D6C4; color: #1A1A1A; border-color: transparent; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
 .booking-block.status-custom { border-color: transparent; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
 .booking-block.status-cancelled { background: #F9FAFB; color: #9CA3AF; border: 1px dashed #D1D5DB; }
 .booking-block.status-pending-review {

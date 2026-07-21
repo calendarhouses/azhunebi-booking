@@ -148,12 +148,12 @@ export function getTimelineFinBadge(
   }
   if (paid === 0) {
     const advanceAmount = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
-    return { text: `${advanceAmount} грн`, bg: "#F59E0B", color: "#FFFFFF" };
+    return { text: `${advanceAmount} грн`, bg: "#E8CFB8", color: "#1A1A1A" };
   }
   if (balance <= 0) {
-    return { text: `${Math.round(total)} грн`, bg: "#10B981", color: "#FFFFFF" };
+    return { text: `${Math.round(total)} грн`, bg: "#A8BFA8", color: "#1A1A1A" };
   }
-  return { text: `${Math.round(balance)} грн`, bg: "#EF4444", color: "#FFFFFF" };
+  return { text: `${Math.round(balance)} грн`, bg: "#E8C4C6", color: "#1A1A1A" };
 }
 
 export type TimelineOneNightFinKind = "pending" | "debt" | "paid" | "neutral";
