@@ -29,34 +29,49 @@ export function SmsJournalGuestCell({
   const initial = (guest?.name || "?").charAt(0).toUpperCase();
 
   return (
-    <aside className="sms-journal-guest">
-      {showProfile ? (
-        <div className="sms-journal-guest__profile">
-          <div className="sms-journal-guest__avatar" aria-hidden>
-            {initial}
-          </div>
-          <div className="sms-journal-guest__name">{guest!.name}</div>
-        </div>
-      ) : null}
-
-      <button
-        type="button"
-        className="sms-journal-guest__phone tap-btn"
-        title="Скопіювати номер"
-        onClick={(e) => void copyToClipboard(phoneDisplay, e)}
-      >
-        <Phone size={14} strokeWidth={2} aria-hidden />
-        <span>{phoneDisplay}</span>
-      </button>
+    <aside className={`sms-journal-guest${showProfile ? " has-profile" : ""}`}>
+      <div className="sms-journal-guest__main">
+        {showProfile ? (
+          <>
+            <div className="sms-journal-guest__avatar" aria-hidden>
+              {initial}
+            </div>
+            <div className="sms-journal-guest__identity">
+              <div className="sms-journal-guest__name">{guest!.name}</div>
+              <button
+                type="button"
+                className="sms-journal-guest__phone tap-btn"
+                title="Скопіювати номер"
+                onClick={(e) => void copyToClipboard(phoneDisplay, e)}
+              >
+                <Phone size={14} strokeWidth={2} aria-hidden />
+                <span>{phoneDisplay}</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="sms-journal-guest__phone tap-btn"
+            title="Скопіювати номер"
+            onClick={(e) => void copyToClipboard(phoneDisplay, e)}
+          >
+            <Phone size={14} strokeWidth={2} aria-hidden />
+            <span>{phoneDisplay}</span>
+          </button>
+        )}
+      </div>
 
       {showProfile && onShowGuestBookings ? (
-        <button
-          type="button"
-          className="sms-journal-guest__bookings tap-btn"
-          onClick={() => onShowGuestBookings(cleanPhone, guest!.name)}
-        >
-          {guest!.count} {getVisitWord(guest!.count)}
-        </button>
+        <div className="sms-journal-guest__footer">
+          <button
+            type="button"
+            className="sms-journal-guest__bookings tap-btn"
+            onClick={() => onShowGuestBookings(cleanPhone, guest!.name)}
+          >
+            {guest!.count} {getVisitWord(guest!.count)}
+          </button>
+        </div>
       ) : null}
     </aside>
   );
