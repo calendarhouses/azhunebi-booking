@@ -3418,8 +3418,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   .booking-inner-content--mobile-premium
   .booking-mobile-meta-row
   .booking-fin-badge {
-  flex: 1 1 auto !important;
-  max-width: calc(100% - 24px) !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none !important;
   min-width: 0 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -6770,10 +6771,11 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   padding: 0 4px !important;
   border-radius: 6px !important;
   line-height: 1 !important;
-  flex: 0 1 auto !important;
-  flex-shrink: 1 !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  width: auto !important;
   min-width: 0 !important;
-  max-width: 100% !important;
+  max-width: none !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
@@ -6782,8 +6784,9 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   .booking-inner-content--android-premium
   .booking-mobile-meta-row
   .booking-fin-badge {
-  flex: 0 1 auto !important;
-  max-width: 100% !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none !important;
   min-width: 0 !important;
 }
 
