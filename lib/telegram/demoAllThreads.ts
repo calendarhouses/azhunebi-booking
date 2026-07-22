@@ -2,7 +2,7 @@ import "server-only";
 
 import { buildPendingReviewCaption } from "./bookingReviewNotify";
 import { buildArrivalDepartureCaption } from "./arrivalDepartureNotify";
-import { buildCleaningArrivalCaption } from "./cleaningArrivalNotify";
+import { buildCleaningTurnoverCaption } from "./cleaningArrivalNotify";
 import {
   buildDebtCaption,
   buildEveningCashCaption,
@@ -155,25 +155,75 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
     results.departure = res.ok;
   }
 
-  // ── КЛІНІНГ — заїзд ──
+  // ── ПРИБИРАННЯ — turnover (виїзд + заїзд / лише виїзд / лише заїзд) ──
   {
+    const departureBooking = {
+      ...demoBooking,
+      cottage: "Будиночок 11",
+      guests: 2,
+      comment: "👶 Діти: 1",
+      status: "Підтверджено",
+    };
+    const arrivalBooking = {
+      ...demoBooking,
+      cottage: "Будиночок 11",
+      guests: 2,
+      comment: "",
+      status: "Підтверджено",
+    };
     const res = await sendTelegramMessage(
-      "🧪 <b>ТЕСТ</b>\n\n" +
-        buildCleaningArrivalCaption({
-          ...demoBooking,
+      "🧪 <b>ТЕСТ turnover</b>\n\n" +
+        buildCleaningTurnoverCaption({
           cottage: "Будиночок 11",
-          guests: 2,
-          comment: "👶 Діти: 1",
-          status: "Підтверджено",
+          departure: departureBooking,
+          arrival: arrivalBooking,
         }),
       undefined,
       cleaning.chatId,
       cleaning.threadId
     );
-    results.cleaningArrival = res.ok;
+    results.cleaningTurnoverBoth = res.ok;
+  }
+  {
+    const res = await sendTelegramMessage(
+      "🧪 <b>ТЕСТ turnover</b>\n\n" +
+        buildCleaningTurnoverCaption({
+          cottage: "Будиночок 11",
+          departure: {
+            ...demoBooking,
+            cottage: "Будиночок 11",
+            guests: 2,
+            comment: "👶 Діти: 1",
+            status: "Підтверджено",
+          },
+        }),
+      undefined,
+      cleaning.chatId,
+      cleaning.threadId
+    );
+    results.cleaningTurnoverDepartureOnly = res.ok;
+  }
+  {
+    const res = await sendTelegramMessage(
+      "🧪 <b>ТЕСТ turnover</b>\n\n" +
+        buildCleaningTurnoverCaption({
+          cottage: "Будиночок 11",
+          arrival: {
+            ...demoBooking,
+            cottage: "Будиночок 11",
+            guests: 2,
+            comment: "",
+            status: "Підтверджено",
+          },
+        }),
+      undefined,
+      cleaning.chatId,
+      cleaning.threadId
+    );
+    results.cleaningTurnoverArrivalOnly = res.ok;
     results.cleaningChatId = cleaning.chatId;
     if (!res.ok) {
-      results.cleaningArrivalError = await res.text().catch(() => "unknown");
+      results.cleaningTurnoverError = await res.text().catch(() => "unknown");
     }
   }
 

@@ -8,53 +8,145 @@ import { escapeHtml, isConfirmedBookingStatus, toDateKeyKyiv, todayKeyKyiv } fro
 import { sendTelegramMessage } from "./sendMessage";
 import type { ArrivalDepartureBooking } from "./arrivalDepartureNotify";
 
-function formatCleaningGuestsLabel(adults: number, children: number): string {
+function cottageKey(cottage: string | undefined): string {
+  return String(cottage || "").trim().toLowerCase();
+}
+
+function formatCleaningGuestsJoined(adults: number, children: number): string {
   const a = Math.max(0, Math.round(Number(adults) || 0));
   const c = Math.max(0, Math.round(Number(children) || 0));
   const parts: string[] = [];
   if (a > 0) parts.push(`${a} ${a === 1 ? "дорослий" : "дорослих"}`);
   if (c > 0) parts.push(`${c} ${c === 1 ? "дитина" : "дітей"}`);
-  return parts.join(" + ") || "—";
+  return parts.join(" і ") || "—";
 }
 
-export function buildCleaningArrivalCaption(booking: ArrivalDepartureBooking): string {
-  const adults = Number(booking.guests) || 0;
-  const children = parseChildrenFromComment(booking.comment || "");
-  const guestsLabel = formatCleaningGuestsLabel(adults, children);
+function guestsFromBooking(booking: ArrivalDepartureBooking): { adults: number; children: number } {
+  return {
+    adults: Number(booking.guests) || 0,
+    children: parseChildrenFromComment(booking.comment || ""),
+  };
+}
+
+export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
+  const cottage = booking.cottage || "Котедж";
+  const { adults, children } = guestsFromBooking(booking);
+  const guestsLabel = formatCleaningGuestsJoined(adults, children);
 
   return [
-    `🛎 <b>СЬОГОДНІ ЗАЇЗД | ${escapeHtml(booking.cottage || "Котедж")}</b>`,
+    `🛎 <b>СЬОГОДНІ ВИЇЗД | ${escapeHtml(cottage)}</b>`,
     "",
     "<b>ДЕТАЛІ:</b>",
-    `👥 ${escapeHtml(guestsLabel)}`,
+    `👥 Було ${escapeHtml(guestsLabel)}`,
   ].join("\n");
 }
 
-export async function notifyCleaningTodayArrivals(
+export function buildCleaningArrivalSection(booking: ArrivalDepartureBooking): string {
+  const cottage = booking.cottage || "Котедж";
+  const { adults, children } = guestsFromBooking(booking);
+  const guestsLabel = formatCleaningGuestsJoined(adults, children);
+
+  return [
+    `🛎 <b>СЬОГОДНІ ЗАЇЗД | ${escapeHtml(cottage)}</b>`,
+    "",
+    "<b>ДЕТАЛІ:</b>",
+    `👥 буде ${escapeHtml(guestsLabel)}`,
+  ].join("\n");
+}
+
+export function buildCleaningNoArrivalSection(cottage: string): string {
+  return `🛎 <b>СЬОГОДНІ ЗАЇЗДУ НЕМАЄ | ${escapeHtml(cottage)}</b>`;
+}
+
+/** Одне сповіщення для чату прибирання на будинок (виїзд / заїзд / обидва). */
+export function buildCleaningTurnoverCaption(params: {
+  cottage: string;
+  departure?: ArrivalDepartureBooking | null;
+  arrival?: ArrivalDepartureBooking | null;
+}): string {
+  const cottage = params.cottage || "Котедж";
+  const departure = params.departure ?? null;
+  const arrival = params.arrival ?? null;
+
+  if (departure && arrival) {
+    return [buildCleaningDepartureSection(departure), buildCleaningArrivalSection(arrival)].join("\n\n");
+  }
+  if (departure) {
+    return [buildCleaningDepartureSection(departure), buildCleaningNoArrivalSection(cottage)].join("\n\n");
+  }
+  if (arrival) {
+    return buildCleaningArrivalSection(arrival);
+  }
+  return "";
+}
+
+/** @deprecated Use buildCleaningArrivalSection — kept for demo imports */
+export function buildCleaningArrivalCaption(booking: ArrivalDepartureBooking): string {
+  return buildCleaningArrivalSection(booking);
+}
+
+type CottageTurnover = {
+  cottage: string;
+  departure?: ArrivalDepartureBooking;
+  arrival?: ArrivalDepartureBooking;
+};
+
+export function groupCleaningTurnoversByCottage(
+  bookings: ArrivalDepartureBooking[],
+  today: string
+): CottageTurnover[] {
+  const map = new Map<string, CottageTurnover>();
+
+  for (const booking of bookings) {
+    if (!isConfirmedBookingStatus(booking.status)) continue;
+    const key = cottageKey(booking.cottage);
+    if (!key) continue;
+
+    const checkIn = toDateKeyKyiv(booking.checkIn);
+    const checkOut = toDateKeyKyiv(booking.checkOut);
+    const isArrival = checkIn === today;
+    const isDeparture = checkOut === today;
+    if (!isArrival && !isDeparture) continue;
+
+    const entry = map.get(key) ?? { cottage: String(booking.cottage || "").trim() || "Котедж" };
+    if (isDeparture && !entry.departure) entry.departure = booking;
+    if (isArrival && !entry.arrival) entry.arrival = booking;
+    map.set(key, entry);
+  }
+
+  return [...map.values()].sort((a, b) =>
+    a.cottage.localeCompare(b.cottage, "uk", { numeric: true, sensitivity: "base" })
+  );
+}
+
+export async function notifyCleaningTodayTurnovers(
   bookings: ArrivalDepartureBooking[]
 ): Promise<number> {
   if (!isTelegramConfigured() || !isCleaningConfigured()) {
-    console.warn("[TG] Skipping cleaning arrival notify — Telegram or cleaning chat not configured");
+    console.warn("[TG] Skipping cleaning turnover notify — Telegram or cleaning chat not configured");
     return 0;
   }
 
   const today = todayKeyKyiv();
   const target = getCleaningTargets();
+  const turnovers = groupCleaningTurnoversByCottage(bookings, today);
   let sent = 0;
 
-  for (const booking of bookings) {
-    if (!isConfirmedBookingStatus(booking.status)) continue;
-    if (toDateKeyKyiv(booking.checkIn) !== today) continue;
+  for (const turnover of turnovers) {
+    const caption = buildCleaningTurnoverCaption(turnover);
+    if (!caption) continue;
 
-    const res = await sendTelegramMessage(
-      buildCleaningArrivalCaption(booking),
-      undefined,
-      target.chatId,
-      target.threadId
-    );
+    const res = await sendTelegramMessage(caption, undefined, target.chatId, target.threadId);
     if (res.ok) sent += 1;
-    else console.error("[TG] cleaning arrival notify failed", await res.text().catch(() => ""));
+    else console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
   }
 
   return sent;
+}
+
+/** @deprecated Use notifyCleaningTodayTurnovers */
+export async function notifyCleaningTodayArrivals(
+  bookings: ArrivalDepartureBooking[]
+): Promise<number> {
+  return notifyCleaningTodayTurnovers(bookings);
 }
