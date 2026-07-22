@@ -36,7 +36,7 @@ function initialVirtualWindow(daysCount: number, cellWidth: number): TimelineVir
     return { startIndex: 0, endIndex: 0, offsetPx: 0 };
   }
   const todayIndex = Math.min(daysCount - 1, Math.max(0, APPROX_TODAY_INDEX));
-  const scrollLeft = Math.max(0, (todayIndex - 3) * cellWidth);
+  const scrollLeft = Math.max(0, (todayIndex - 1) * cellWidth);
   return computeVirtualWindow(scrollLeft, 400, daysCount, cellWidth);
 }
 

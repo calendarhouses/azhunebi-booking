@@ -33,6 +33,7 @@ import {
   formatDateKey,
   getBookedRanges,
   getNextFreeDateLabel,
+  isListSearchDateAvailable,
 } from "@/lib/public-booking/bookedRanges";
 import {
   createMonoPayment,
@@ -579,6 +580,23 @@ export function PublicBookingProvider({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (d < today) return;
+      if (!runtime?.rooms.length) return;
+
+      const opts = {
+        checkIn,
+        checkOut,
+        adults: guestCount,
+        children: childCount,
+        youngestAge: childCount > 0 ? youngestChildAge : null,
+        bookings: runtime.bookings,
+        closedDates: runtime.closedDates,
+        restrictions: runtime.restrictions,
+      };
+
+      if (!isListSearchDateAvailable(d, runtime.rooms, opts)) {
+        showPublicToast("На цю дату немає вільних будинків");
+        return;
+      }
 
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
         setCheckIn(d);
@@ -588,7 +606,7 @@ export function PublicBookingProvider({
       }
       setCalKey((k) => k + 1);
     },
-    [checkIn, checkOut]
+    [checkIn, checkOut, runtime, guestCount, childCount, youngestChildAge]
   );
 
   const listGuestMax = useMemo(() => {

@@ -84,6 +84,7 @@ body.public-booking-page.boso-public-mobile.ready {
 }
 
 /* ── КОНТЕЙНЕР КАРТОК (MOBILE) ── */
+/* Brand header — fixed at top while cabin list scrolls */
 .public-mobile-brand {
     position: fixed;
     top: 0;
@@ -126,7 +127,7 @@ body.public-booking-page.boso-public-mobile.ready {
     font-weight: 500;
 }
 
-/* Відступ під фіксований хедер: safe-top + padding + logo row */
+/* Offset under fixed header: safe-top + padding + logo row */
 .public-mobile-list-body {
     padding-top: calc(12px + var(--safe-top) + 12px + 48px + 12px);
 }
@@ -988,6 +989,13 @@ body.ready .bottom-nav,
   opacity: 0.28;
   color: var(--text) !important;
   -webkit-text-fill-color: var(--text);
+}
+
+.stay-filter--mobile .stay-cal-day.is-blocked {
+  opacity: 0.32;
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted);
+  text-decoration: line-through;
 }
 
 .stay-filter--mobile .stay-cal-day.is-in-range {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { formatDateKey } from "@/lib/public-booking/bookedRanges";
+import { formatDateKey, isListSearchDateAvailable } from "@/lib/public-booking/bookedRanges";
 import { usePublicBooking } from "./PublicBookingProvider";
 
 const MONTH_NAMES = [
@@ -36,8 +36,18 @@ function formatStayLabel(checkIn: Date | null, checkOut: Date | null): string {
 }
 
 function StayRangeCalendar() {
-  const { calBase, shiftCal, checkIn, checkOut, selectStayDate, calKey } =
-    usePublicBooking();
+  const {
+    calBase,
+    shiftCal,
+    checkIn,
+    checkOut,
+    selectStayDate,
+    calKey,
+    runtime,
+    guestCount,
+    childCount,
+    youngestChildAge,
+  } = usePublicBooking();
 
   const base = new Date(calBase.getFullYear(), calBase.getMonth(), 1);
   const year = base.getFullYear();
@@ -46,6 +56,18 @@ function StayRangeCalendar() {
   const firstDay = (base.getDay() + 6) % 7;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const rooms = runtime?.rooms || [];
+  const availabilityOpts = {
+    checkIn,
+    checkOut,
+    adults: guestCount,
+    children: childCount,
+    youngestAge: childCount > 0 ? youngestChildAge : null,
+    bookings: runtime?.bookings || [],
+    closedDates: runtime?.closedDates,
+    restrictions: runtime?.restrictions,
+  };
 
   const days: React.ReactNode[] = [];
   for (let i = 0; i < firstDay; i++) {
@@ -57,8 +79,13 @@ function StayRangeCalendar() {
     d.setHours(0, 0, 0, 0);
     const ds = formatDateKey(d);
     const isPast = d < today;
+    const isAvailable =
+      !isPast &&
+      Boolean(runtime) &&
+      isListSearchDateAvailable(d, rooms, availabilityOpts);
     let cls = "stay-cal-day";
     if (isPast) cls += " is-past";
+    else if (!isAvailable) cls += " is-blocked";
     if (d.toDateString() === today.toDateString()) cls += " is-today";
     if (checkIn && ds === formatDateKey(checkIn)) cls += " is-start";
     if (checkOut && ds === formatDateKey(checkOut)) cls += " is-end";
@@ -69,7 +96,7 @@ function StayRangeCalendar() {
         key={ds}
         type="button"
         className={cls}
-        disabled={isPast}
+        disabled={isPast || !isAvailable}
         onClick={() => selectStayDate(ds)}
       >
         {day}
@@ -106,7 +133,9 @@ function StayRangeCalendar() {
         ))}
       </div>
       <div className="stay-cal__grid">{days}</div>
-      <p className="stay-cal__hint">Спочатку заїзд, потім виїзд</p>
+      <p className="stay-cal__hint">
+        Підсвічені лише дати, вільні хоча б в одному будинку. Спочатку заїзд, потім виїзд.
+      </p>
     </div>
   );
 }

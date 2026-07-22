@@ -126,6 +126,115 @@ export function roomFitsGuestParty(
   return adults + children <= max;
 }
 
+function isRoomNightOccupied(day: Date, ranges: BookedRange[]): boolean {
+  const d = new Date(day);
+  d.setHours(0, 0, 0, 0);
+  return ranges.some((r) => d >= r.start && d < r.end);
+}
+
+/**
+ * Search calendar: a check-in day is selectable if at least one room has that night free
+ * (and fits guest party / is not closed).
+ */
+export function isListSearchCheckInFree(
+  day: Date,
+  rooms: RoomConfig[],
+  opts: {
+    adults: number;
+    children: number;
+    youngestAge?: number | null;
+    bookings: BookingRecord[];
+    closedDates?: AdminSettingsPayload["closedDates"];
+    restrictions?: AdminSettingsPayload["restrictions"];
+  }
+): boolean {
+  const d = new Date(day);
+  d.setHours(0, 0, 0, 0);
+  const partyActive = opts.children > 0;
+  for (const room of rooms) {
+    if (partyActive && !roomFitsGuestParty(room, opts.adults, opts.children, opts.youngestAge)) {
+      continue;
+    }
+    const next = new Date(d);
+    next.setDate(next.getDate() + 1);
+    if (hasClosedDateInStay(opts.closedDates, room, d, next, opts.restrictions)) continue;
+    const ranges = getBookedRanges(opts.bookings, room);
+    if (!isRoomNightOccupied(d, ranges)) return true;
+  }
+  return false;
+}
+
+/**
+ * Search calendar: checkout day is selectable if at least one room is free for [checkIn, checkOut).
+ */
+export function isListSearchCheckOutFree(
+  checkIn: Date,
+  checkOut: Date,
+  rooms: RoomConfig[],
+  opts: {
+    adults: number;
+    children: number;
+    youngestAge?: number | null;
+    bookings: BookingRecord[];
+    closedDates?: AdminSettingsPayload["closedDates"];
+    restrictions?: AdminSettingsPayload["restrictions"];
+  }
+): boolean {
+  const start = new Date(checkIn);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(checkOut);
+  end.setHours(0, 0, 0, 0);
+  if (!(end > start)) return false;
+
+  const partyActive = opts.children > 0;
+  for (const room of rooms) {
+    if (partyActive && !roomFitsGuestParty(room, opts.adults, opts.children, opts.youngestAge)) {
+      continue;
+    }
+    if (
+      isRoomFreeForRange(
+        room,
+        start,
+        end,
+        opts.bookings,
+        opts.closedDates,
+        opts.restrictions
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Unified day availability for list search calendar (check-in or check-out phase). */
+export function isListSearchDateAvailable(
+  day: Date,
+  rooms: RoomConfig[],
+  opts: {
+    checkIn: Date | null;
+    checkOut: Date | null;
+    adults: number;
+    children: number;
+    youngestAge?: number | null;
+    bookings: BookingRecord[];
+    closedDates?: AdminSettingsPayload["closedDates"];
+    restrictions?: AdminSettingsPayload["restrictions"];
+  }
+): boolean {
+  const d = new Date(day);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (d < today) return false;
+
+  const pickingCheckOut = Boolean(opts.checkIn && !opts.checkOut && d > opts.checkIn);
+  if (pickingCheckOut && opts.checkIn) {
+    return isListSearchCheckOutFree(opts.checkIn, d, rooms, opts);
+  }
+  return isListSearchCheckInFree(d, rooms, opts);
+}
+
 export function filterRoomsForStay(
   rooms: RoomConfig[],
   opts: {

@@ -509,12 +509,14 @@ export function DesktopTimelineView({
         startDate.getMonth() === today.getMonth() &&
         startDate.getFullYear() === today.getFullYear()
       ) {
-        return Math.max(0, (today.getDate() - 3) * cellWidth);
+        // One day before today visible (today sits second).
+        return Math.max(0, (today.getDate() - 2) * cellWidth);
       }
       return 0;
     }
     const todayIndex = Math.round((today.getTime() - startDate.getTime()) / 86400000);
-    return Math.max(0, (todayIndex - 3) * cellWidth);
+    // Continuous: show [today-1, today, today+1, today+2…]
+    return Math.max(0, (todayIndex - 1) * cellWidth);
   }, [mode, startDate, cellWidth]);
 
   const { window: virtualWindow, scheduleRecompute, recomputeNow } = useTimelineVirtualWindow(
@@ -733,6 +735,8 @@ export function DesktopTimelineView({
       setInfiniteAnchor(new Date());
       if (isMobile) setMobileNavAnchor(new Date());
     }
+    // Force re-apply today scroll even if already near today.
+    scrollInitKeyRef.current = "";
   }, [mode, isMobile]);
 
   const syncMobileNavAnchorFromScroll = useCallback(() => {
