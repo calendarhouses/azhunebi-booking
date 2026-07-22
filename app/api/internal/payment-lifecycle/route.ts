@@ -84,59 +84,96 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const lifecycle = await listPaymentLifecycle();
-  if (!lifecycle.ok) {
-    return NextResponse.json(
-      { error: lifecycle.reason || "GAS lifecycle unavailable" },
-      { status: 502 }
-    );
-  }
-
-  let paid = 0;
-  let expired = 0;
-  for (const booking of lifecycle.due || []) {
-    const outcome = await settleOrExpire(booking);
-    if (outcome === "paid") paid += 1;
-    if (outcome === "expired") expired += 1;
-  }
-
-  const refreshed = await listPaymentLifecycle();
-  let smsSent = 0;
-  let smsFailed = 0;
-  const smsSettings = await loadSmsSettingsSystem();
-  for (const booking of refreshed.pendingSms || []) {
-    const type = pendingSmsType(booking);
-    if (!type) continue;
-    const result = await sendBookingLifecycleSms(booking, type, smsSettings);
-    if (result.ok) smsSent += 1;
-    else smsFailed += 1;
-  }
-  let telegramSent = 0;
-  let telegramFailed = 0;
-  for (const booking of refreshed.pendingTelegram || []) {
-    const sent = await notifyPaidBooking(booking);
-    if (sent && booking.id) {
-      const marked = await markPaidBookingTelegramSent(booking.id);
-      if (marked.ok) telegramSent += 1;
-      else telegramFailed += 1;
-    } else {
-      telegramFailed += 1;
+  try {
+    const lifecycle = await listPaymentLifecycle();
+    if (!lifecycle.ok) {
+      const reason = lifecycle.reason || "GAS lifecycle unavailable";
+      const timedOut = /timeout|aborted/i.test(reason);
+      console.error("[Payment lifecycle] list failed", { reason, timedOut });
+      return NextResponse.json(
+        { error: reason, timedOut },
+        { status: timedOut ? 504 : 502 }
+      );
     }
-  }
 
-  return NextResponse.json(
-    {
-      ok: true,
-      checked: lifecycle.due?.length || 0,
-      paid,
-      expired,
-      smsSent,
-      smsFailed,
-      telegramSent,
-      telegramFailed,
-    },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+    let paid = 0;
+    let expired = 0;
+    for (const booking of lifecycle.due || []) {
+      try {
+        const outcome = await settleOrExpire(booking);
+        if (outcome === "paid") paid += 1;
+        if (outcome === "expired") expired += 1;
+      } catch (error) {
+        console.error("[Payment lifecycle] settleOrExpire failed", {
+          orderId: booking.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const refreshed = await listPaymentLifecycle();
+    let smsSent = 0;
+    let smsFailed = 0;
+    let telegramSent = 0;
+    let telegramFailed = 0;
+
+    if (refreshed.ok) {
+      const smsSettings = await loadSmsSettingsSystem();
+      for (const booking of refreshed.pendingSms || []) {
+        const type = pendingSmsType(booking);
+        if (!type) continue;
+        try {
+          const result = await sendBookingLifecycleSms(booking, type, smsSettings);
+          if (result.ok) smsSent += 1;
+          else smsFailed += 1;
+        } catch (error) {
+          smsFailed += 1;
+          console.error("[Payment lifecycle] SMS failed", {
+            orderId: booking.id,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      for (const booking of refreshed.pendingTelegram || []) {
+        try {
+          const sent = await notifyPaidBooking(booking);
+          if (sent && booking.id) {
+            const marked = await markPaidBookingTelegramSent(booking.id);
+            if (marked.ok) telegramSent += 1;
+            else telegramFailed += 1;
+          } else {
+            telegramFailed += 1;
+          }
+        } catch (error) {
+          telegramFailed += 1;
+          console.error("[Payment lifecycle] Telegram failed", {
+            orderId: booking.id,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    } else {
+      console.warn("[Payment lifecycle] refresh list failed", refreshed.reason);
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        checked: lifecycle.due?.length || 0,
+        paid,
+        expired,
+        smsSent,
+        smsFailed,
+        telegramSent,
+        telegramFailed,
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Payment lifecycle] unhandled", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function GET() {

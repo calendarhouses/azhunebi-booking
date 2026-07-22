@@ -592,10 +592,17 @@ export async function listPaymentLifecycle(): Promise<{
   pendingTelegram?: GasBookingRecord[];
   reason?: string;
 }> {
-  return gasPost({
-    action: "listPaymentLifecycle",
-    webhookSecret: paymentLifecycleSecret(),
-  });
+  try {
+    return await gasPost({
+      action: "listPaymentLifecycle",
+      webhookSecret: paymentLifecycleSecret(),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 export async function expireBookingPayment(orderId: string): Promise<{
@@ -604,11 +611,18 @@ export async function expireBookingPayment(orderId: string): Promise<{
   booking?: GasBookingRecord;
   reason?: string;
 }> {
-  return gasPost({
-    action: "expireBookingPayment",
-    orderId,
-    webhookSecret: paymentLifecycleSecret(),
-  });
+  try {
+    return await gasPost({
+      action: "expireBookingPayment",
+      orderId,
+      webhookSecret: paymentLifecycleSecret(),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 export async function markBookingSmsSent(
