@@ -1,19 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type RefObject,
-} from "react";
-import { INFINITE_YEARS_BACK } from "./timelineInfiniteRange";
+import { useMemo } from "react";
 
 const VIRTUAL_BUFFER_DAYS = 45;
-/** ~days from range start to "today" for the default ±3y infinite scale. */
-const APPROX_TODAY_INDEX = Math.round(INFINITE_YEARS_BACK * 365.25);
 
 export type TimelineVirtualWindow = {
   startIndex: number;
@@ -31,96 +20,27 @@ export function computeVirtualWindow(
     return { startIndex: 0, endIndex: 0, offsetPx: 0 };
   }
 
-  const safeViewport = Math.max(viewportWidth, cellWidth);
-  const firstVisible = Math.floor(scrollLeft / cellWidth);
-  const lastVisible = Math.ceil((scrollLeft + safeViewport) / cellWidth);
+  const safeViewport = Math.max(viewportWidth, cellWidth * 4);
+  const firstVisible = Math.floor(Math.max(0, scrollLeft) / cellWidth);
+  const lastVisible = Math.ceil((Math.max(0, scrollLeft) + safeViewport) / cellWidth);
   const startIndex = Math.max(0, firstVisible - VIRTUAL_BUFFER_DAYS);
-  const endIndex = Math.min(daysCount - 1, lastVisible + VIRTUAL_BUFFER_DAYS);
+  const endIndex = Math.min(daysCount - 1, Math.max(startIndex, lastVisible + VIRTUAL_BUFFER_DAYS));
 
   return { startIndex, endIndex, offsetPx: startIndex * cellWidth };
 }
 
-function initialVirtualWindow(daysCount: number, cellWidth: number): TimelineVirtualWindow {
-  if (daysCount <= 0 || cellWidth <= 0) {
-    return { startIndex: 0, endIndex: 0, offsetPx: 0 };
-  }
-  // Seed around today so the first paint isn't at range start (empty near "today").
-  const todayIndex = Math.min(daysCount - 1, Math.max(0, APPROX_TODAY_INDEX));
-  const scrollLeft = Math.max(0, (todayIndex - 3) * cellWidth);
-  return computeVirtualWindow(scrollLeft, 400, daysCount, cellWidth);
-}
-
-/** Рендерить лише видимі (+ буфер) колонки днів у режимі безкінечної шкали. */
+/**
+ * Virtual day window from an explicit scroll position (not raw DOM).
+ * Avoids the empty board when scrollLeft is still 0 before layout finishes.
+ */
 export function useTimelineVirtualWindow(
-  scrollRef: RefObject<HTMLElement | null>,
+  scrollLeft: number,
+  viewportWidth: number,
   daysCount: number,
   cellWidth: number,
-  enabled: boolean,
-  pausedRef: RefObject<boolean>
-): { window: TimelineVirtualWindow; scheduleRecompute: () => void; recomputeNow: () => void } {
-  const [windowRange, setWindowRange] = useState<TimelineVirtualWindow>(() =>
-    initialVirtualWindow(daysCount, cellWidth)
-  );
-  const rafRef = useRef<number | null>(null);
-
-  const applyWindow = useCallback((next: TimelineVirtualWindow) => {
-    setWindowRange((prev) => {
-      if (prev.startIndex === next.startIndex && prev.endIndex === next.endIndex) return prev;
-      return next;
-    });
-  }, []);
-
-  const recomputeNow = useCallback(() => {
-    if (!enabled || pausedRef.current) return;
-
-    const el = scrollRef.current;
-    if (!el) return;
-
-    if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-
-    applyWindow(computeVirtualWindow(el.scrollLeft, el.clientWidth, daysCount, cellWidth));
-  }, [scrollRef, daysCount, cellWidth, enabled, pausedRef, applyWindow]);
-
-  const scheduleRecompute = useCallback(() => {
-    if (!enabled || pausedRef.current) return;
-    if (rafRef.current != null) return;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      recomputeNow();
-    });
-  }, [enabled, recomputeNow, pausedRef]);
-
-  useLayoutEffect(() => {
-    if (!enabled) return;
-    recomputeNow();
-  }, [enabled, recomputeNow, daysCount, cellWidth]);
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    const grid = scrollRef.current;
-    if (!grid) return;
-
-    const onScroll = () => scheduleRecompute();
-    grid.addEventListener("scroll", onScroll, { passive: true });
-
-    const ro = new ResizeObserver(() => scheduleRecompute());
-    ro.observe(grid);
-
-    return () => {
-      grid.removeEventListener("scroll", onScroll);
-      ro.disconnect();
-      if (rafRef.current != null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-  }, [enabled, scrollRef, scheduleRecompute]);
-
-  const window = useMemo(() => {
+  enabled: boolean
+): TimelineVirtualWindow {
+  return useMemo(() => {
     if (!enabled) {
       return {
         startIndex: 0,
@@ -128,8 +48,6 @@ export function useTimelineVirtualWindow(
         offsetPx: 0,
       };
     }
-    return windowRange;
-  }, [enabled, daysCount, windowRange]);
-
-  return { window, scheduleRecompute, recomputeNow };
+    return computeVirtualWindow(scrollLeft, viewportWidth, daysCount, cellWidth);
+  }, [scrollLeft, viewportWidth, daysCount, cellWidth, enabled]);
 }

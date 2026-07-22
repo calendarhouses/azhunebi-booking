@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { PointerEvent, ReactNode } from "react";
+import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import { HOLDING_ROOM_ID } from "./timelineBookingMove";
 
 export type TimelineGridCellProps = {
@@ -12,6 +12,7 @@ export type TimelineGridCellProps = {
   selectedClass: string;
   hoverClass: string;
   isDraggingOver: boolean;
+  cellWidth: number;
   onMouseEnter: (roomKey: string, dateString: string) => void;
 };
 
@@ -24,6 +25,7 @@ function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps
     prev.selectedClass === next.selectedClass &&
     prev.hoverClass === next.hoverClass &&
     prev.isDraggingOver === next.isDraggingOver &&
+    prev.cellWidth === next.cellWidth &&
     prev.onMouseEnter === next.onMouseEnter
   );
 }
@@ -36,13 +38,22 @@ export const TimelineGridCell = memo(function TimelineGridCell({
   selectedClass,
   hoverClass,
   isDraggingOver,
+  cellWidth,
   onMouseEnter,
 }: TimelineGridCellProps) {
+  const style: CSSProperties = {
+    flex: `0 0 ${cellWidth}px`,
+    width: cellWidth,
+    minWidth: cellWidth,
+    maxWidth: cellWidth,
+    boxSizing: "border-box",
+  };
   return (
     <div
       className={`timeline-cell${isWeekend ? " weekend" : ""}${isToday ? " today" : ""}${isDraggingOver ? " timeline-cell--drag-hover" : ""} ${selectedClass} ${hoverClass}`.trim()}
       data-room={roomKey}
       data-date={dateString}
+      style={style}
       onMouseEnter={() => onMouseEnter(roomKey, dateString)}
     />
   );
@@ -54,6 +65,7 @@ export type TimelineGridRowProps = {
   isVirtualTimeline: boolean;
   gridTotalWidth: number;
   virtualOffsetPx: number;
+  cellWidth: number;
   renderDays: { dateString: string; isWeekend: boolean; isToday: boolean }[];
   selectionKey: string;
   hoverPreviewKey: string;
@@ -77,6 +89,7 @@ function rowPropsEqual(prev: TimelineGridRowProps, next: TimelineGridRowProps): 
     prev.isVirtualTimeline === next.isVirtualTimeline &&
     prev.gridTotalWidth === next.gridTotalWidth &&
     prev.virtualOffsetPx === next.virtualOffsetPx &&
+    prev.cellWidth === next.cellWidth &&
     prev.renderDays === next.renderDays &&
     prev.roomKey === next.roomKey &&
     prev.blocksSignature === next.blocksSignature &&
@@ -99,6 +112,7 @@ export const TimelineGridRow = memo(function TimelineGridRow({
   isVirtualTimeline,
   gridTotalWidth,
   virtualOffsetPx,
+  cellWidth,
   renderDays,
   selectedClassForDate,
   hoverClassForDate,
@@ -124,11 +138,27 @@ export const TimelineGridRow = memo(function TimelineGridRow({
     >
       <div
         className={`timeline-track-window${isPointerSelecting ? " timeline-track-window--selecting" : ""}`}
-        style={isVirtualTimeline ? { marginLeft: virtualOffsetPx } : undefined}
+        style={
+          isVirtualTimeline
+            ? { display: "flex", width: gridTotalWidth, minWidth: gridTotalWidth }
+            : undefined
+        }
         onPointerDown={(event) => onTrackPointerDown(roomKey, event)}
         onPointerMove={(event) => onTrackPointerMove(roomKey, event)}
         onPointerLeave={() => onTrackPointerLeave(roomKey)}
       >
+        {isVirtualTimeline ? (
+          <div
+            aria-hidden
+            className="timeline-track-spacer"
+            style={{
+              flex: `0 0 ${virtualOffsetPx}px`,
+              width: virtualOffsetPx,
+              minWidth: virtualOffsetPx,
+              maxWidth: virtualOffsetPx,
+            }}
+          />
+        ) : null}
         {renderDays.map((day) => (
           <TimelineGridCell
             key={day.dateString}
@@ -136,6 +166,7 @@ export const TimelineGridRow = memo(function TimelineGridRow({
             isWeekend={day.isWeekend}
             isToday={day.isToday}
             roomKey={roomKey}
+            cellWidth={cellWidth}
             selectedClass={selectedClassForDate(roomKey, day.dateString)}
             hoverClass={hoverClassForDate(roomKey, day.dateString)}
             isDraggingOver={bookingDragHoverKey === `${roomKey}:${day.dateString}`}
