@@ -581,10 +581,10 @@ export function DesktopTimelineView({
   const dragRooms = useMemo(() => gridByRoom.map(({ room }) => room), [gridByRoom]);
 
   const monthLabel = startDate.toLocaleString("uk-UA", { month: "long", year: "numeric" });
-  const mobileMonthLabel = mobileNavAnchor.toLocaleString("uk-UA", {
-    month: "long",
-    year: "numeric",
-  });
+  const mobileMonthLabel = (() => {
+    const raw = mobileNavAnchor.toLocaleString("uk-UA", { month: "long" }).trim();
+    return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw;
+  })();
 
   const timelineNavLabel =
     mode === "continuous" && !isMobile ? (
