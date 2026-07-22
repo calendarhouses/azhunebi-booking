@@ -2973,13 +2973,16 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   max-height: 34px !important;
   flex: 0 0 34px !important;
   border-bottom: none !important;
-  width: 100% !important;
+  width: var(--timeline-grid-width, max-content) !important;
+  min-width: var(--timeline-grid-width, max-content) !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date {
   width: var(--timeline-cell-width, 60px) !important;
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
+  flex: 0 0 var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
 }
 
@@ -2998,9 +3001,31 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: var(--timeline-cell-width, 60px) !important;
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
+  flex: 0 0 var(--timeline-cell-width, 60px) !important;
   border-right: 1px solid #F3F4F6 !important;
   box-sizing: border-box !important;
   position: relative !important;
+}
+
+/* Keep date header track and grid track identically positioned (virtual marginLeft) */
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates,
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates.timeline-track--virtual {
+  display: block !important;
+  width: var(--timeline-grid-width, max-content) !important;
+  min-width: var(--timeline-grid-width, max-content) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window,
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg .timeline-track-window {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.weekend {
@@ -6596,15 +6621,29 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 }
 
 /* Android: дати і сітка — однакова ширина колонок (без зсуву ліній) */
-.boso-admin-android .timeline-mobile-dates .timeline-months,
-.boso-admin-android .timeline-mobile-dates .timeline-dates,
-.boso-admin-android .timeline-mobile-dates .timeline-track-window,
-.boso-admin-android .timeline-mobile-cells .timeline-row-bg,
-.boso-admin-android .timeline-mobile-cells .timeline-track-window {
+.boso-admin-android .timeline-mobile-dates .timeline-months {
   width: var(--timeline-grid-width) !important;
   min-width: var(--timeline-grid-width) !important;
   max-width: var(--timeline-grid-width) !important;
   flex: 0 0 var(--timeline-grid-width) !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-android .timeline-mobile-dates .timeline-dates,
+.boso-admin-android .timeline-mobile-cells .timeline-row-bg {
+  width: var(--timeline-grid-width) !important;
+  min-width: var(--timeline-grid-width) !important;
+  max-width: var(--timeline-grid-width) !important;
+  box-sizing: border-box !important;
+}
+
+/* Virtual track: width = rendered days only; position via marginLeft (do NOT force full grid width) */
+.boso-admin-android .timeline-mobile-dates .timeline-dates .timeline-track-window,
+.boso-admin-android .timeline-mobile-cells .timeline-track-window {
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
   box-sizing: border-box !important;
 }
 
@@ -6621,6 +6660,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 .boso-admin-android .timeline-mobile-cells .timeline-track-window {
   display: flex !important;
   flex-wrap: nowrap !important;
+  align-items: stretch !important;
 }
 
 .boso-admin-ios .timeline-mobile-dates {

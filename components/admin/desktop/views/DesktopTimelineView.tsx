@@ -470,7 +470,7 @@ export function DesktopTimelineView({
   const isVirtualTimeline = mode === "continuous";
   const gridTotalWidth = daysCount * cellWidth;
 
-  const { window: virtualWindow, scheduleRecompute } = useTimelineVirtualWindow(
+  const { window: virtualWindow, scheduleRecompute, recomputeNow } = useTimelineVirtualWindow(
     scrollRef,
     daysCount,
     cellWidth,
@@ -651,7 +651,7 @@ export function DesktopTimelineView({
         if (stickyChrome && !mobileBoard) {
           syncFocusHeadTrack(grid.scrollLeft);
         }
-        scheduleRecompute();
+        recomputeNow();
         return;
       }
       setBaseDate((prev) => {
@@ -661,7 +661,7 @@ export function DesktopTimelineView({
         return d;
       });
     },
-    [mode, cellWidth, stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, isMobile, mobileNavAnchor, startDate]
+    [mode, cellWidth, stickyChrome, mobileBoard, recomputeNow, syncFocusHeadTrack, isMobile, mobileNavAnchor, startDate]
   );
 
   const setTimelineMode = useCallback((m: TimelineMode) => {
@@ -894,7 +894,8 @@ export function DesktopTimelineView({
     verticalPageRef.current = document.querySelector(".main-content");
   }, [compactGrid]);
 
-  useEffect(() => {
+  // Position to "today" before paint so continuous mode doesn't flash an empty viewport.
+  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const today = new Date();
@@ -916,13 +917,18 @@ export function DesktopTimelineView({
       syncFocusHeadTrack(scrollLeft);
     }
     if (isMobile && mode === "continuous") {
-      const centerX = scrollLeft + el.clientWidth / 2;
-      const dayIndex = Math.max(0, Math.floor(centerX / cellWidth));
-      const next = new Date(startDate);
-      next.setDate(next.getDate() + dayIndex);
-      setMobileNavAnchor(next);
+      setMobileNavAnchor((prev) => {
+        if (
+          prev.getFullYear() === today.getFullYear() &&
+          prev.getMonth() === today.getMonth() &&
+          prev.getDate() === today.getDate()
+        ) {
+          return prev;
+        }
+        return today;
+      });
     }
-    scheduleRecompute();
+    recomputeNow();
   }, [
     mode,
     infiniteAnchor,
@@ -931,7 +937,7 @@ export function DesktopTimelineView({
     cellWidth,
     stickyChrome,
     mobileBoard,
-    scheduleRecompute,
+    recomputeNow,
     syncFocusHeadTrack,
     isMobile,
   ]);
