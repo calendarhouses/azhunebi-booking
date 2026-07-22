@@ -484,7 +484,7 @@ export function SmsSettingsPanel({
                 <Wallet size={22} strokeWidth={1.75} />
               </div>
               <div className="sms-balance__copy">
-                <span className="sms-balance__label">Баланс TurboSMS</span>
+                <span className="sms-balance__label">Баланс</span>
                 <strong className="sms-balance__value">
                   {balanceLoading && balance == null
                     ? "…"
@@ -498,11 +498,7 @@ export function SmsSettingsPanel({
                   <span className="sms-balance__hint sms-balance__hint--warn">
                     Баланс нижче {formatMoney(form.lowBalanceThreshold)} — поповніть рахунок
                   </span>
-                ) : (
-                  <span className="sms-balance__hint">
-                    ~{formatMoney(pricePerSegment)}/сегмент · з TurboSMS API
-                  </span>
-                )}
+                ) : null}
               </div>
             </div>
             <div className="sms-balance__actions">
