@@ -13,6 +13,7 @@ export type TimelineGridCellProps = {
   hoverClass: string;
   isDraggingOver: boolean;
   cellWidth: number;
+  leftPx: number;
   onMouseEnter: (roomKey: string, dateString: string) => void;
 };
 
@@ -26,6 +27,7 @@ function cellPropsEqual(prev: TimelineGridCellProps, next: TimelineGridCellProps
     prev.hoverClass === next.hoverClass &&
     prev.isDraggingOver === next.isDraggingOver &&
     prev.cellWidth === next.cellWidth &&
+    prev.leftPx === next.leftPx &&
     prev.onMouseEnter === next.onMouseEnter
   );
 }
@@ -39,14 +41,19 @@ export const TimelineGridCell = memo(function TimelineGridCell({
   hoverClass,
   isDraggingOver,
   cellWidth,
+  leftPx,
   onMouseEnter,
 }: TimelineGridCellProps) {
   const style: CSSProperties = {
-    flex: `0 0 ${cellWidth}px`,
+    position: "absolute",
+    left: leftPx,
+    top: 0,
+    bottom: 0,
     width: cellWidth,
     minWidth: cellWidth,
     maxWidth: cellWidth,
     boxSizing: "border-box",
+    borderRight: "none",
   };
   return (
     <div
@@ -64,7 +71,7 @@ export type TimelineGridRowProps = {
   rowIndex: number;
   isVirtualTimeline: boolean;
   gridTotalWidth: number;
-  virtualOffsetPx: number;
+  virtualStartIndex: number;
   cellWidth: number;
   renderDays: { dateString: string; isWeekend: boolean; isToday: boolean }[];
   selectionKey: string;
@@ -88,7 +95,7 @@ function rowPropsEqual(prev: TimelineGridRowProps, next: TimelineGridRowProps): 
     prev.rowIndex === next.rowIndex &&
     prev.isVirtualTimeline === next.isVirtualTimeline &&
     prev.gridTotalWidth === next.gridTotalWidth &&
-    prev.virtualOffsetPx === next.virtualOffsetPx &&
+    prev.virtualStartIndex === next.virtualStartIndex &&
     prev.cellWidth === next.cellWidth &&
     prev.renderDays === next.renderDays &&
     prev.roomKey === next.roomKey &&
@@ -111,7 +118,7 @@ export const TimelineGridRow = memo(function TimelineGridRow({
   rowIndex,
   isVirtualTimeline,
   gridTotalWidth,
-  virtualOffsetPx,
+  virtualStartIndex,
   cellWidth,
   renderDays,
   selectedClassForDate,
@@ -138,41 +145,35 @@ export const TimelineGridRow = memo(function TimelineGridRow({
     >
       <div
         className={`timeline-track-window${isPointerSelecting ? " timeline-track-window--selecting" : ""}`}
-        style={
-          isVirtualTimeline
-            ? { display: "flex", width: gridTotalWidth, minWidth: gridTotalWidth }
-            : undefined
-        }
+        style={{
+          position: "relative",
+          display: "block",
+          width: gridTotalWidth,
+          minWidth: gridTotalWidth,
+          height: "100%",
+        }}
         onPointerDown={(event) => onTrackPointerDown(roomKey, event)}
         onPointerMove={(event) => onTrackPointerMove(roomKey, event)}
         onPointerLeave={() => onTrackPointerLeave(roomKey)}
       >
-        {isVirtualTimeline ? (
-          <div
-            aria-hidden
-            className="timeline-track-spacer"
-            style={{
-              flex: `0 0 ${virtualOffsetPx}px`,
-              width: virtualOffsetPx,
-              minWidth: virtualOffsetPx,
-              maxWidth: virtualOffsetPx,
-            }}
-          />
-        ) : null}
-        {renderDays.map((day) => (
-          <TimelineGridCell
-            key={day.dateString}
-            dateString={day.dateString}
-            isWeekend={day.isWeekend}
-            isToday={day.isToday}
-            roomKey={roomKey}
-            cellWidth={cellWidth}
-            selectedClass={selectedClassForDate(roomKey, day.dateString)}
-            hoverClass={hoverClassForDate(roomKey, day.dateString)}
-            isDraggingOver={bookingDragHoverKey === `${roomKey}:${day.dateString}`}
-            onMouseEnter={onCellMouseEnter}
-          />
-        ))}
+        {renderDays.map((day, i) => {
+          const dayIndex = isVirtualTimeline ? virtualStartIndex + i : i;
+          return (
+            <TimelineGridCell
+              key={day.dateString}
+              dateString={day.dateString}
+              isWeekend={day.isWeekend}
+              isToday={day.isToday}
+              roomKey={roomKey}
+              cellWidth={cellWidth}
+              leftPx={dayIndex * cellWidth}
+              selectedClass={selectedClassForDate(roomKey, day.dateString)}
+              hoverClass={hoverClassForDate(roomKey, day.dateString)}
+              isDraggingOver={bookingDragHoverKey === `${roomKey}:${day.dateString}`}
+              onMouseEnter={onCellMouseEnter}
+            />
+          );
+        })}
       </div>
       {children}
     </div>

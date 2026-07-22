@@ -517,26 +517,12 @@ export function DesktopTimelineView({
     return Math.max(0, (todayIndex - 3) * cellWidth);
   }, [mode, startDate, cellWidth]);
 
-  const [viewScrollLeft, setViewScrollLeft] = useState(todayScrollLeft);
-  const [viewportWidth, setViewportWidth] = useState(390);
-  const viewScrollLeftRef = useRef(viewScrollLeft);
-  viewScrollLeftRef.current = viewScrollLeft;
-  /** When true, layout effect may force DOM scrollLeft (initial load / Today / month jump). */
-  const isProgrammaticScrollRef = useRef(true);
-
-  const jumpToScrollLeft = useCallback((left: number) => {
-    const next = Math.max(0, left);
-    isProgrammaticScrollRef.current = true;
-    viewScrollLeftRef.current = next;
-    setViewScrollLeft(next);
-  }, []);
-
-  const virtualWindow = useTimelineVirtualWindow(
-    viewScrollLeft,
-    viewportWidth,
+  const { window: virtualWindow, scheduleRecompute, recomputeNow } = useTimelineVirtualWindow(
+    scrollRef,
     daysCount,
     cellWidth,
-    isVirtualTimeline
+    isVirtualTimeline,
+    isBookingDraggingRef
   );
 
   gridSelectionRef.current = { dragRoom, dragStart, dragEnd };
@@ -552,53 +538,44 @@ export function DesktopTimelineView({
     }
     const track = headTrackRef.current;
     if (track) {
-      // Keep transform cleared — sticky month labels need a real scrollport, not translate3d.
       track.style.transform = "";
     }
   }, []);
 
-  // Jump to today whenever the continuous range / mode changes.
+  // One-shot jump to today when mode/range changes. Never fights user scroll afterwards.
+  const scrollInitKeyRef = useRef("");
+  const recomputeNowRef = useRef(recomputeNow);
+  recomputeNowRef.current = recomputeNow;
   useLayoutEffect(() => {
-    jumpToScrollLeft(todayScrollLeft);
-    if (isMobile && mode === "continuous") {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      setMobileNavAnchor(today);
-    }
-  }, [todayScrollLeft, mode, infiniteAnchor, isMobile, jumpToScrollLeft]);
+    const key = `${mode}:${infiniteAnchor.getTime()}:${daysCount}:${cellWidth}`;
+    if (scrollInitKeyRef.current === key) return;
 
-  // Keep the DOM scrollport in sync; retry until content width is ready.
-  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
+    let cancelled = false;
     const apply = () => {
-      if (el.clientWidth > 0) {
-        setViewportWidth((prev) => (prev === el.clientWidth ? prev : el.clientWidth));
-      }
-      const target = viewScrollLeftRef.current;
-      if (
-        !isProgrammaticScrollRef.current &&
-        Math.abs(el.scrollLeft - target) < 2
-      ) {
+      if (cancelled) return true;
+      if (el.scrollWidth <= el.clientWidth + 8) return false;
+      el.scrollLeft = todayScrollLeft;
+      if (stickyChrome && !mobileBoard) syncFocusHeadTrack(el.scrollLeft);
+      recomputeNowRef.current();
+      if (Math.abs(el.scrollLeft - todayScrollLeft) <= cellWidth) {
+        scrollInitKeyRef.current = key;
+        if (isMobile && mode === "continuous") {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          setMobileNavAnchor(today);
+        }
         return true;
       }
-      if (el.scrollWidth <= el.clientWidth + 1) return false;
-      if (Math.abs(el.scrollLeft - target) > 1) {
-        el.scrollLeft = target;
-      }
-      if (stickyChrome && !mobileBoard) {
-        syncFocusHeadTrack(el.scrollLeft);
-      }
-      const ok = Math.abs(el.scrollLeft - target) <= cellWidth;
-      if (ok) isProgrammaticScrollRef.current = false;
-      return ok;
+      return false;
     };
 
-    apply();
+    if (apply()) return;
 
     const ro = new ResizeObserver(() => {
-      apply();
+      if (apply()) ro.disconnect();
     });
     ro.observe(el);
     if (el.firstElementChild) ro.observe(el.firstElementChild);
@@ -606,17 +583,29 @@ export function DesktopTimelineView({
     let frames = 0;
     let raf = 0;
     const tick = () => {
+      if (cancelled) return;
       frames += 1;
-      if (apply() || frames > 45) return;
+      if (apply() || frames > 60) return;
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
 
     return () => {
+      cancelled = true;
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [viewScrollLeft, gridTotalWidth, cellWidth, stickyChrome, mobileBoard, syncFocusHeadTrack]);
+  }, [
+    mode,
+    infiniteAnchor,
+    daysCount,
+    cellWidth,
+    todayScrollLeft,
+    stickyChrome,
+    mobileBoard,
+    syncFocusHeadTrack,
+    isMobile,
+  ]);
 
   const days = useMemo(
     () => (isVirtualTimeline ? [] : buildDays(startDate, daysCount)),
@@ -769,21 +758,22 @@ export function DesktopTimelineView({
     (dir: number) => {
       if (mode === "continuous") {
         const grid = scrollRef.current;
+        if (!grid) return;
         if (isMobile) {
           const ref = new Date(mobileNavAnchor);
           ref.setDate(1);
           ref.setHours(0, 0, 0, 0);
           ref.setMonth(ref.getMonth() + dir);
           const dayIndex = Math.round((ref.getTime() - startDate.getTime()) / 86400000);
-          jumpToScrollLeft(dayIndex * cellWidth);
+          grid.scrollLeft = Math.max(0, dayIndex * cellWidth);
           setMobileNavAnchor(ref);
         } else {
-          const current = grid?.scrollLeft ?? viewScrollLeftRef.current;
-          jumpToScrollLeft(current + dir * 7 * cellWidth);
+          grid.scrollLeft += dir * 7 * cellWidth;
           if (stickyChrome && !mobileBoard) {
-            syncFocusHeadTrack(viewScrollLeftRef.current);
+            syncFocusHeadTrack(grid.scrollLeft);
           }
         }
+        recomputeNow();
         return;
       }
       setBaseDate((prev) => {
@@ -793,7 +783,7 @@ export function DesktopTimelineView({
         return d;
       });
     },
-    [mode, cellWidth, stickyChrome, mobileBoard, syncFocusHeadTrack, isMobile, mobileNavAnchor, startDate, jumpToScrollLeft]
+    [mode, cellWidth, stickyChrome, mobileBoard, syncFocusHeadTrack, isMobile, mobileNavAnchor, startDate, recomputeNow]
   );
 
   const setTimelineMode = useCallback((m: TimelineMode) => {
@@ -1034,16 +1024,13 @@ export function DesktopTimelineView({
 
     if (mobileBoard) {
       if (!isBookingDraggingRef.current) {
-        setViewScrollLeft(grid.scrollLeft);
+        scheduleRecompute();
       }
       syncMobileNavAnchorFromScroll();
       return;
     }
 
     scrollSyncRef.current = true;
-    if (!isBookingDraggingRef.current) {
-      setViewScrollLeft(grid.scrollLeft);
-    }
     if (stickyChrome) {
       syncFocusHeadTrack(grid.scrollLeft);
     }
@@ -1051,7 +1038,10 @@ export function DesktopTimelineView({
       sidebar.scrollTop = grid.scrollTop;
     }
     scrollSyncRef.current = false;
-  }, [stickyChrome, mobileBoard, syncFocusHeadTrack, syncMobileNavAnchorFromScroll]);
+    if (!isBookingDraggingRef.current) {
+      scheduleRecompute();
+    }
+  }, [stickyChrome, mobileBoard, syncFocusHeadTrack, syncMobileNavAnchorFromScroll, scheduleRecompute]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (mobileBoard || scrollSyncRef.current) return;
@@ -1300,8 +1290,7 @@ export function DesktopTimelineView({
       clearDragUiState();
       releaseTouchScrollLock();
       unlockBoardTouchPan();
-      const el = scrollRef.current;
-      if (el) setViewScrollLeft(el.scrollLeft);
+      scheduleRecompute();
     },
     [
       activeBookings,
@@ -1312,6 +1301,7 @@ export function DesktopTimelineView({
       onMoveBooking,
       releaseTouchScrollLock,
       unlockBoardTouchPan,
+      scheduleRecompute,
       stopDragAutoScroll,
     ]
   );
@@ -1958,53 +1948,48 @@ export function DesktopTimelineView({
     </div>
   );
 
-  const cellSizeStyle = useMemo(
-    () =>
-      ({
-        flex: `0 0 ${cellWidth}px`,
-        width: cellWidth,
-        minWidth: cellWidth,
-        maxWidth: cellWidth,
-        boxSizing: "border-box",
-      }) as CSSProperties,
-    [cellWidth]
-  );
-
   const timelineDates = (
     <div
       className={`timeline-dates${isVirtualTimeline ? " timeline-track--virtual" : ""}`}
       id="timelineDates"
-      style={isVirtualTimeline ? { width: gridTotalWidth, minWidth: gridTotalWidth } : undefined}
+      style={{
+        width: gridTotalWidth,
+        minWidth: gridTotalWidth,
+        position: "relative",
+      }}
     >
       <div
         className="timeline-track-window"
-        style={
-          isVirtualTimeline
-            ? { display: "flex", width: gridTotalWidth, minWidth: gridTotalWidth }
-            : undefined
-        }
+        style={{
+          position: "relative",
+          display: "block",
+          width: gridTotalWidth,
+          minWidth: gridTotalWidth,
+          height: "100%",
+        }}
       >
-        {isVirtualTimeline ? (
-          <div
-            aria-hidden
-            className="timeline-track-spacer"
-            style={{
-              flex: `0 0 ${virtualWindow.offsetPx}px`,
-              width: virtualWindow.offsetPx,
-              minWidth: virtualWindow.offsetPx,
-              maxWidth: virtualWindow.offsetPx,
-            }}
-          />
-        ) : null}
-        {renderDays.map((day) => (
-          <div
-            key={day.dateString}
-            className={`timeline-date${day.isToday ? " today" : ""}${day.isWeekend ? " weekend" : ""}`}
-            style={cellSizeStyle}
-          >
-            {day.date.getDate()} <span>{DAYS_LABELS[day.date.getDay()]}</span>
-          </div>
-        ))}
+        {renderDays.map((day, i) => {
+          const dayIndex = isVirtualTimeline ? virtualWindow.startIndex + i : i;
+          return (
+            <div
+              key={day.dateString}
+              className={`timeline-date${day.isToday ? " today" : ""}${day.isWeekend ? " weekend" : ""}`}
+              style={{
+                position: "absolute",
+                left: dayIndex * cellWidth,
+                top: 0,
+                bottom: 0,
+                width: cellWidth,
+                minWidth: cellWidth,
+                maxWidth: cellWidth,
+                boxSizing: "border-box",
+                borderRight: "none",
+              }}
+            >
+              {day.date.getDate()} <span>{DAYS_LABELS[day.date.getDay()]}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -2058,7 +2043,7 @@ export function DesktopTimelineView({
           rowIndex={roomIndex}
           isVirtualTimeline={isVirtualTimeline}
           gridTotalWidth={gridTotalWidth}
-          virtualOffsetPx={virtualWindow.offsetPx}
+          virtualStartIndex={virtualWindow.startIndex}
           cellWidth={cellWidth}
           renderDays={renderDaysForCells}
           selectionKey={selectionKey}
