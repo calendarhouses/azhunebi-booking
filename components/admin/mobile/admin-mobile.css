@@ -3048,9 +3048,44 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-grid-width, max-content) !important;
   max-width: var(--timeline-grid-width, max-content) !important;
   height: 100% !important;
+  min-height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   box-sizing: border-box !important;
+}
+
+/* iOS: absolute dates need an explicit track height (%, auto collapses with abs children) */
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window {
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+.boso-admin-ios .timeline-wrapper--mobile-dense .timeline-dates .timeline-track-window {
+  height: 22px !important;
+  min-height: 22px !important;
+}
+
+.boso-admin-ios .timeline-mobile-dates {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 15 !important;
+  background: #fff !important;
+  overflow: visible !important;
+}
+
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-dates {
+  overflow: hidden !important;
+}
+
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-right: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.weekend {
@@ -3077,7 +3112,11 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date {
-  position: relative !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  height: auto !important;
+  z-index: 1 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-month-cell__label {
