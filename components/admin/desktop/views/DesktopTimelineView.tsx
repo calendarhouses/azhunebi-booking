@@ -1,6 +1,6 @@
 "use client";
 
-import { Infinity as InfinityIcon, Maximize2, Minimize2, Undo2 } from "lucide-react";
+import { Infinity as InfinityIcon, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
@@ -330,10 +330,10 @@ export function DesktopTimelineView({
   const isAndroid = isMobile && isAndroidUserAgent(
     typeof navigator !== "undefined" ? navigator.userAgent : ""
   );
-  const { isCompactMode, toggleCompactMode } = useGridFocusModeOptional();
-  /** Desktop: focus layout. Mobile: denser rows only (same toggle). */
+  const { isCompactMode } = useGridFocusModeOptional();
+  /** Desktop: focus layout. Mobile: always expanded/dense rows. */
   const compactGrid = !isMobile && isCompactMode;
-  const mobileDense = isMobile && isCompactMode;
+  const mobileDense = isMobile;
   const denseRows = compactGrid || mobileDense;
   /** Desktop focus layout: sticky dates via transform sync. Mobile uses unified board scroll. */
   const stickyChrome = compactGrid;
@@ -360,8 +360,11 @@ export function DesktopTimelineView({
   const mobileDateHeadHeight = isAndroid ? (mobileDense ? 36 : 56) : mobileDense ? 48 : 56;
   const [androidRowHeight, setAndroidRowHeight] = useState(mobileDense ? 38 : 44);
 
-  const [mode, setMode] = useState<TimelineMode>("month");
+  const [mode, setMode] = useState<TimelineMode>(() =>
+    layout === "mobile" ? "continuous" : "month"
+  );
   const [infiniteAnchor, setInfiniteAnchor] = useState(() => new Date());
+  const [mobileNavAnchor, setMobileNavAnchor] = useState(() => new Date());
   const [baseDate, setBaseDate] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -578,10 +581,16 @@ export function DesktopTimelineView({
   const dragRooms = useMemo(() => gridByRoom.map(({ room }) => room), [gridByRoom]);
 
   const monthLabel = startDate.toLocaleString("uk-UA", { month: "long", year: "numeric" });
+  const mobileMonthLabel = mobileNavAnchor.toLocaleString("uk-UA", {
+    month: "long",
+    year: "numeric",
+  });
 
   const timelineNavLabel =
-    mode === "continuous" ? (
+    mode === "continuous" && !isMobile ? (
       <InfinityIcon className="timeline-nav-infinite-icon" strokeWidth={2.25} aria-hidden />
+    ) : mode === "continuous" ? (
+      mobileMonthLabel
     ) : (
       monthLabel
     );
@@ -600,15 +609,45 @@ export function DesktopTimelineView({
       setBaseDate(d);
     } else {
       setInfiniteAnchor(new Date());
+      if (isMobile) setMobileNavAnchor(new Date());
     }
-  }, [mode]);
+  }, [mode, isMobile]);
+
+  const syncMobileNavAnchorFromScroll = useCallback(() => {
+    if (!isMobile || mode !== "continuous") return;
+    const grid = scrollRef.current;
+    if (!grid) return;
+    const centerX = grid.scrollLeft + grid.clientWidth / 2;
+    const dayIndex = Math.max(0, Math.floor(centerX / cellWidth));
+    const next = new Date(startDate);
+    next.setDate(next.getDate() + dayIndex);
+    setMobileNavAnchor((prev) => {
+      if (
+        prev.getFullYear() === next.getFullYear() &&
+        prev.getMonth() === next.getMonth()
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [isMobile, mode, cellWidth, startDate]);
 
   const shiftTimeline = useCallback(
     (dir: number) => {
       if (mode === "continuous") {
         const grid = scrollRef.current;
         if (!grid) return;
-        grid.scrollLeft += dir * 7 * cellWidth;
+        if (isMobile) {
+          const ref = new Date(mobileNavAnchor);
+          ref.setDate(1);
+          ref.setHours(0, 0, 0, 0);
+          ref.setMonth(ref.getMonth() + dir);
+          const dayIndex = Math.round((ref.getTime() - startDate.getTime()) / 86400000);
+          grid.scrollLeft = Math.max(0, dayIndex * cellWidth);
+          setMobileNavAnchor(ref);
+        } else {
+          grid.scrollLeft += dir * 7 * cellWidth;
+        }
         if (stickyChrome && !mobileBoard) {
           syncFocusHeadTrack(grid.scrollLeft);
         }
@@ -622,7 +661,7 @@ export function DesktopTimelineView({
         return d;
       });
     },
-    [mode, cellWidth, stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack]
+    [mode, cellWidth, stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, isMobile, mobileNavAnchor, startDate]
   );
 
   const setTimelineMode = useCallback((m: TimelineMode) => {
@@ -876,6 +915,13 @@ export function DesktopTimelineView({
     if (stickyChrome && !mobileBoard) {
       syncFocusHeadTrack(scrollLeft);
     }
+    if (isMobile && mode === "continuous") {
+      const centerX = scrollLeft + el.clientWidth / 2;
+      const dayIndex = Math.max(0, Math.floor(centerX / cellWidth));
+      const next = new Date(startDate);
+      next.setDate(next.getDate() + dayIndex);
+      setMobileNavAnchor(next);
+    }
     scheduleRecompute();
   }, [
     mode,
@@ -887,6 +933,7 @@ export function DesktopTimelineView({
     mobileBoard,
     scheduleRecompute,
     syncFocusHeadTrack,
+    isMobile,
   ]);
 
   const handleGridContainerScroll = useCallback(() => {
@@ -896,6 +943,7 @@ export function DesktopTimelineView({
     if (!grid) return;
 
     if (mobileBoard) {
+      syncMobileNavAnchorFromScroll();
       if (!isBookingDraggingRef.current) {
         scheduleRecompute();
       }
@@ -913,7 +961,7 @@ export function DesktopTimelineView({
     if (!isBookingDraggingRef.current) {
       scheduleRecompute();
     }
-  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack]);
+  }, [stickyChrome, mobileBoard, scheduleRecompute, syncFocusHeadTrack, syncMobileNavAnchorFromScroll]);
 
   const handleSidebarBodyScroll = useCallback(() => {
     if (mobileBoard || scrollSyncRef.current) return;
@@ -2158,26 +2206,10 @@ export function DesktopTimelineView({
       </button>
     ) : null;
 
-  const timelineDensityButton = isMobile ? (
-    <button
-      type="button"
-      className={`timeline-focus-toggle timeline-focus-toggle--toolbar tap-btn${mobileDense ? " is-active" : ""}`}
-      onClick={toggleCompactMode}
-      aria-pressed={mobileDense}
-      aria-label={mobileDense ? "Звичайний розмір шахматки" : "Розгорнути шахматку"}
-      title={mobileDense ? "Звичайний розмір" : "Розгорнути шахматку"}
-    >
-      {mobileDense ? (
-        <Minimize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
-      ) : (
-        <Maximize2 className="timeline-focus-toggle__icon" strokeWidth={2} aria-hidden />
-      )}
-    </button>
-  ) : null;
 
   const timelineMonthNav = (
     <div
-      className={`timeline-nav${mode === "continuous" ? " timeline-nav--infinite" : ""}`}
+      className={`timeline-nav${mode === "continuous" && !isMobile ? " timeline-nav--infinite" : ""}`}
       style={
         isMobile
           ? { height: 40, minHeight: 40, maxHeight: 40, padding: "0 6px", boxSizing: "border-box" }
@@ -2200,7 +2232,7 @@ export function DesktopTimelineView({
         </svg>
       </button>
       <span
-        className={`timeline-month-label${mode === "continuous" ? " timeline-month-label--infinite" : ""}`}
+        className={`timeline-month-label${mode === "continuous" && !isMobile ? " timeline-month-label--infinite" : ""}`}
         id="timelineMonthLabel"
       >
         {timelineNavLabel}
@@ -2297,19 +2329,13 @@ export function DesktopTimelineView({
       </div>
     </div>
   ) : (
-    <div className={`timeline-toolbar${mobileDense ? " timeline-toolbar--dense-focus" : ""}`}>
+    <div className="timeline-toolbar">
       {isMobile ? (
-        <>
-          <div className="timeline-nav-row" aria-hidden={mobileDense || undefined}>
-            {timelineMonthNav}
-            {timelineTodayButton}
-          </div>
-          <div className="timeline-toolbar-actions">
-            {timelineUndoButton}
-            {timelineModeToggle}
-            {timelineDensityButton}
-          </div>
-        </>
+        <div className="timeline-nav-row">
+          {timelineUndoButton}
+          {timelineMonthNav}
+          {timelineTodayButton}
+        </div>
       ) : (
         <>
           {timelineMonthNav}

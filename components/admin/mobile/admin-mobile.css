@@ -496,11 +496,9 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .tap-btn:active { transform: scale(0.95); opacity: 0.8; }
      
 /* --- МОБІЛЬНА ШАХМАТКА --- */
-.timeline-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.timeline-nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; flex-wrap: nowrap; }
-.timeline-toolbar-actions { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: flex-start; }
-.timeline-toolbar-actions .mode-toggle { flex: 0 0 auto; width: auto; min-width: 0; }
-.timeline-toolbar-actions .timeline-undo-btn--toolbar {
+.timeline-toolbar { display: flex; flex-direction: row; gap: 0; margin-bottom: 8px; }
+.timeline-nav-row { display: flex; justify-content: flex-start; align-items: center; width: 100%; gap: 8px; flex-wrap: nowrap; }
+.timeline-nav-row .timeline-undo-btn--toolbar {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
@@ -516,14 +514,15 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     color: var(--text-main);
     box-shadow: var(--mobile-shadow);
 }
-.timeline-toolbar-actions .timeline-undo-btn--toolbar:disabled {
+.timeline-nav-row .timeline-undo-btn--toolbar:disabled {
     opacity: 0.45;
     box-shadow: none;
 }
-.timeline-toolbar-actions .timeline-undo-btn--toolbar .timeline-undo-btn__icon {
+.timeline-nav-row .timeline-undo-btn--toolbar .timeline-undo-btn__icon {
     width: 18px;
     height: 18px;
 }
+.timeline-toolbar-actions { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: flex-start; }
 .timeline-toolbar-actions .timeline-focus-toggle--toolbar {
     flex-shrink: 0;
     display: inline-flex;
@@ -3050,6 +3049,11 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
+  width: 100% !important;
+}
+
+.boso-admin-mobile .timeline-nav-row .timeline-undo-btn--toolbar {
+  flex: 0 0 auto !important;
 }
 
 .boso-admin-mobile .timeline-nav-row .timeline-nav,
@@ -3066,6 +3070,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   padding: 0 10px !important;
   display: flex !important;
   align-items: center !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
 }
 
 .boso-admin-mobile .timeline-nav-row .timeline-today-btn {
@@ -3529,37 +3535,40 @@ body.boso-grid-view .boso-admin-mobile .main-content {
   overscroll-behavior: none !important;
 }
 
-/* Dense focus: hide month/today, animate board up — fixed row height, scroll if needed */
+/* Mobile chessboard toolbar — single row: undo, month nav, today */
 .boso-admin-mobile .timeline-toolbar {
   transition: margin 0.32s cubic-bezier(0.22, 1, 0.36, 1), gap 0.32s ease;
 }
 
 .boso-admin-mobile .timeline-toolbar .timeline-nav-row {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: 1fr;
+  display: flex !important;
   align-items: center !important;
-  column-gap: 8px;
-  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.24s ease, margin 0.32s ease, max-height 0.32s ease;
-  overflow: hidden !important;
-  opacity: 1;
+  gap: 8px !important;
+  width: 100% !important;
+  overflow: visible !important;
+  opacity: 1 !important;
 }
 
 .boso-admin-mobile .timeline-toolbar .timeline-nav-row > * {
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+}
+
+.boso-admin-mobile .timeline-toolbar .timeline-nav-row .timeline-undo-btn--toolbar {
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .boso-admin-mobile .timeline-toolbar .timeline-nav-row .timeline-nav {
+  flex: 1 1 auto;
   width: auto !important;
   max-width: 100%;
-  justify-self: stretch;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .boso-admin-mobile .timeline-toolbar .timeline-nav-row .timeline-today-btn {
-  justify-self: end;
+  flex: 0 0 auto;
   overflow: visible;
 }
 
@@ -3690,8 +3699,8 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 }
 
 .boso-admin-mobile .timeline-toolbar {
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 0 !important;
+  margin-bottom: 8px !important;
   flex-shrink: 0;
 }
 
