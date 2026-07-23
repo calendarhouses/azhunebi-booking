@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 
 const AMENITY_LUCIDE_MAP: Record<string, LucideIcon> = {
-  lake_view: Waves,
+  lake_view: Mountain,
   forest_view: Trees,
   terrace: Sun,
   private_area: Fence,

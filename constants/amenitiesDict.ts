@@ -14,7 +14,7 @@ export const AMENITIES_CATEGORIES: AmenityDictCategory[] = [
     id: "view",
     title: "Вид / Локація",
     items: [
-      { id: "lake_view", label: "Панорамний вид на озеро" },
+      { id: "lake_view", label: "Вид на гори" },
       { id: "forest_view", label: "Вид на ліс" },
       { id: "terrace", label: "Тераса" },
       { id: "private_area", label: "Окрема приватна територія" },

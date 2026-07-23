@@ -1738,7 +1738,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   z-index: 6 !important;
   box-shadow: none !important;
   background: transparent !important;
-  border-right: 1px solid #D0D5DD !important;
+  border-right: none !important;
 }
 
 /* Premium mobile selection — soft sage pill; frame via background layers (not clipped like borders) */
@@ -3027,6 +3027,17 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background: #F9FAFB !important;
 }
 
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-corner,
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-rooms {
+  width: 88px !important;
+  min-width: 88px !important;
+  max-width: 88px !important;
+  box-sizing: border-box !important;
+  border-right: 1px solid #E5E7EB !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 .boso-admin-mobile .timeline-mobile-cells {
   grid-column: 2 !important;
   grid-row: 2 !important;
@@ -3037,6 +3048,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   max-width: var(--timeline-grid-width, none) !important;
   /* visible — overflow:hidden clips selection bottom frame */
   overflow: visible !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-dates,
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-cells {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-left: none !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .timeline-mobile-corner .timeline-sidebar-header {
@@ -3077,32 +3096,45 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
-  /* Same divider as .timeline-cell — do NOT also paint background-image at right
-     (that sits in the padding box and shifts the line ~1px left of the grid). */
-  border-right: 1px solid #D0D5DD !important;
+  /* Vertical lines come from parent repeating-linear-gradient — borders cause
+     subpixel drift vs grid cells on iOS/Android. */
+  border-right: none !important;
+  border-left: none !important;
   box-shadow: none !important;
   background-image: none !important;
   background-color: transparent !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 0 !important;
   padding: 0 !important;
+  line-height: 1.05 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date.weekend {
-  background-color: rgba(254, 242, 242, 0.55) !important;
-  background-image: none !important;
+  /* Leave 1px gap on the right so the shared column line stays visible */
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    rgba(254, 242, 242, 0.55),
+    rgba(254, 242, 242, 0.55)
+  ) !important;
+  background-size: calc(100% - 1px) 100% !important;
+  background-position: left top !important;
+  background-repeat: no-repeat !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date.today {
-  background-color: #FEF2F2 !important;
-  background-image: none !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(#FEF2F2, #FEF2F2) !important;
+  background-size: calc(100% - 1px) 100% !important;
+  background-position: left top !important;
+  background-repeat: no-repeat !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date::after {
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date::after,
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date::before {
   content: none !important;
   display: none !important;
 }
@@ -3112,9 +3144,20 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-grid-width, max-content) !important;
   max-width: var(--timeline-grid-width, max-content) !important;
   border-bottom: 1px solid #E8EAED !important;
-  background-color: #fff !important;
-  background-image: none !important;
   box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  /* Same column lattice as .timeline-dates */
+  background-color: #fff !important;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--timeline-cell-width, 60px) - 1px),
+    #D0D5DD calc(var(--timeline-cell-width, 60px) - 1px),
+    #D0D5DD var(--timeline-cell-width, 60px)
+  ) !important;
+  background-position: left top !important;
+  background-repeat: repeat !important;
   /* visible — otherwise selection bottom border is clipped */
   overflow: visible !important;
 }
@@ -3123,14 +3166,47 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: var(--timeline-cell-width, 60px) !important;
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
-  border-right: 1px solid #D0D5DD !important;
+  border-right: none !important;
+  border-left: none !important;
   box-shadow: none !important;
-  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
   box-sizing: border-box !important;
   position: absolute !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: visible !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.weekend {
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    rgba(248, 250, 252, 0.55),
+    rgba(248, 250, 252, 0.55)
+  ) !important;
+  background-size: calc(100% - 1px) 100% !important;
+  background-position: left top !important;
+  background-repeat: no-repeat !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.today {
+  background-image: linear-gradient(
+    rgba(239, 68, 68, 0.06),
+    rgba(239, 68, 68, 0.06)
+  ) !important;
+  background-size: calc(100% - 1px) 100% !important;
+  background-position: left top !important;
+  background-repeat: no-repeat !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.today.weekend {
+  background-image: linear-gradient(
+    rgba(239, 68, 68, 0.08),
+    rgba(239, 68, 68, 0.08)
+  ) !important;
+  background-size: calc(100% - 1px) 100% !important;
+  background-position: left top !important;
+  background-repeat: no-repeat !important;
 }
 
 /* Date header uses the same absolute grid + shared vertical lines */
@@ -3141,9 +3217,22 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: var(--timeline-grid-width, max-content) !important;
   min-width: var(--timeline-grid-width, max-content) !important;
   box-sizing: border-box !important;
-  overflow: visible !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  /* Same column lattice as .timeline-row-bg */
   background-color: #fff !important;
-  background-image: none !important;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--timeline-cell-width, 60px) - 1px),
+    #D0D5DD calc(var(--timeline-cell-width, 60px) - 1px),
+    #D0D5DD var(--timeline-cell-width, 60px)
+  ) !important;
+  background-position: left top !important;
+  background-repeat: repeat !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window,
@@ -3192,20 +3281,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  border-right: 1px solid #D0D5DD !important;
+  border-right: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.weekend {
-  background-color: rgba(248, 250, 252, 0.55) !important;
+  background-color: transparent !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.today {
-  background-image: linear-gradient(
-    to right,
-    rgba(239, 68, 68, 0.06),
-    rgba(239, 68, 68, 0.06)
-  ) !important;
-}
+/* today/weekend fills are defined with the shared lattice rules above */
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-today-line {
   position: absolute !important;
@@ -6829,23 +6912,23 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
-  border-right: 1px solid #D0D5DD !important;
-  background-image: none !important;
+  border-right: none !important;
   box-shadow: none !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: visible !important;
 }
 
-/* Keep day/grid dividers on the same paint path (border only) on iOS + Android */
+/* Keep day/grid dividers on the same paint path (parent lattice only) on iOS + Android */
 .boso-admin-ios .timeline-wrapper--mobile-board .timeline-date,
 .boso-admin-android .timeline-wrapper--mobile-board .timeline-date {
-  background-image: none !important;
-  border-right: 1px solid #D0D5DD !important;
+  border-right: none !important;
 }
 
 .boso-admin-ios .timeline-wrapper--mobile-board .timeline-date::after,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-date::after {
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-date::after,
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date::before,
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-date::before {
   content: none !important;
   display: none !important;
 }
