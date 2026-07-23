@@ -6852,24 +6852,35 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 }
 
 .boso-admin-android #view-grid .timeline-mobile-dates {
-  position: sticky !important;
-  top: 0 !important;
+  /* Sticky + z-index:15 paints over cells (z-index:1) and clips house-1 cards on Android Chrome.
+     Keep dates in normal grid flow — rooms still sticky-left for horizontal pan. */
+  position: relative !important;
+  top: auto !important;
   z-index: 15 !important;
   background: #fff !important;
-  /* Keep overflow visible for sticky month label; fit content inside head height to avoid bleed */
-  overflow: visible !important;
+  overflow: hidden !important;
   height: var(--timeline-mobile-head-height, 58px) !important;
   min-height: var(--timeline-mobile-head-height, 58px) !important;
   max-height: var(--timeline-mobile-head-height, 58px) !important;
   box-sizing: border-box !important;
   border-bottom: 1px solid #E5E7EB !important;
   box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-self: stretch !important;
+}
+
+.boso-admin-android #view-grid .timeline-mobile-corner {
+  position: relative !important;
+  top: auto !important;
+  z-index: 16 !important;
 }
 
 .boso-admin-android #view-grid .timeline-mobile-dates .timeline-months {
   height: 22px !important;
   min-height: 22px !important;
   max-height: 22px !important;
+  /* Column flex: basis must be height, never grid width */
   flex: 0 0 22px !important;
 }
 
@@ -6879,6 +6890,30 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   max-height: 34px !important;
   flex: 0 0 34px !important;
   overflow: hidden !important;
+}
+
+.boso-admin-android #view-grid .timeline-mobile-cells {
+  z-index: 2 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.boso-admin-android #view-grid .timeline-mobile-board {
+  grid-template-rows: var(--timeline-mobile-head-height, 58px) auto !important;
+}
+
+.boso-admin-android #view-grid .timeline-wrapper--mobile-dense .timeline-mobile-dates .timeline-months {
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
+  flex: 0 0 14px !important;
+}
+
+.boso-admin-android #view-grid .timeline-wrapper--mobile-dense .timeline-mobile-dates .timeline-dates {
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  flex: 0 0 24px !important;
 }
 
 .boso-admin-android .timeline-mobile-dates .timeline-months,
@@ -6899,7 +6934,9 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   width: var(--timeline-grid-width) !important;
   min-width: var(--timeline-grid-width) !important;
   max-width: var(--timeline-grid-width) !important;
-  flex: 0 0 var(--timeline-grid-width) !important;
+  /* Do NOT use grid-width as flex-basis — parent is column flex (basis = height) */
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
   box-sizing: border-box !important;
 }
 

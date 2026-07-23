@@ -204,7 +204,6 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
       </span>
       <span className="cal-legend__item">
         <i className="cal-legend__swatch cal-legend__swatch--turnover" /> Можливий виїзд
-        ОК
       </span>
     </div>
   );
