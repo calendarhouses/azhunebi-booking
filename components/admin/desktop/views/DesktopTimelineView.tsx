@@ -2011,8 +2011,9 @@ export function DesktopTimelineView({
                 minWidth: cellWidth,
                 maxWidth: cellWidth,
                 boxSizing: "border-box",
-                borderRight: "none",
+                borderRight: "1px solid #D0D5DD",
                 boxShadow: "none",
+                overflow: "visible",
               }}
             >
               {day.date.getDate()} <span>{DAYS_LABELS[day.date.getDay()]}</span>
