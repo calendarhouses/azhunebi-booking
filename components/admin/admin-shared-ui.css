@@ -924,12 +924,7 @@
             min-height: var(--timeline-dates-height, 60px);
             border-bottom: 1px solid #E5E7EB;
             background-color: #fff;
-            background-image: repeating-linear-gradient(
-                to right,
-                transparent calc(var(--timeline-cell-width, 60px) - 1px),
-                #D1D5DB calc(var(--timeline-cell-width, 60px) - 1px),
-                #D1D5DB var(--timeline-cell-width, 60px)
-            );
+            background-image: none;
             width: max-content;
             flex-shrink: 0;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
@@ -943,7 +938,7 @@
             justify-content: center;
             gap: 0;
             border-right: none;
-            box-shadow: inset -1px 0 0 #D1D5DB;
+            box-shadow: none;
             font-size: 14px;
             line-height: 1;
             font-weight: 600;
@@ -953,6 +948,18 @@
             box-sizing: border-box;
             position: relative;
             overflow: hidden;
+            background: transparent;
+        }
+        .timeline-date::after {
+            content: "";
+            position: absolute;
+            top: 10%;
+            right: 0;
+            bottom: 10%;
+            width: 1px;
+            background: #D0D5DD;
+            pointer-events: none;
+            z-index: 4;
         }
         .timeline-date span {
             font-size: 10px;
@@ -993,7 +1000,7 @@
                 rgba(239, 68, 68, 0.08)
             );
         }
-        .timeline-date.weekend { background: #F9FAFB; color: #EF4444; }
+        .timeline-date.weekend { background: rgba(254, 242, 242, 0.45); color: #EF4444; }
 
         .timeline-rows { position: relative; width: max-content; padding-bottom: 16px; }
         .timeline-rows--virtual {
@@ -1053,30 +1060,28 @@
             display: flex;
             height: var(--timeline-row-height, 70px);
             min-height: var(--timeline-row-height, 70px);
-            border-bottom: 1px solid #E5E7EB;
+            border-bottom: 1px solid #E8EAED;
             position: relative;
             flex-shrink: 0;
             align-items: stretch;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
             overflow: visible;
             background-color: #fff;
-            background-image: repeating-linear-gradient(
-                to right,
-                transparent calc(var(--timeline-cell-width, 60px) - 1px),
-                #D1D5DB calc(var(--timeline-cell-width, 60px) - 1px),
-                #D1D5DB var(--timeline-cell-width, 60px)
-            );
+            background-image: none;
         }
         .timeline-cell {
             position: relative;
             overflow: visible;
             width: var(--timeline-cell-width, 60px); flex-shrink: 0;
-            border-right: none;
-            box-shadow: inset -1px 0 0 #D1D5DB;
+            border-right: 1px solid #D0D5DD;
+            box-shadow: none;
+            background: transparent;
             height: 100%; min-height: var(--timeline-row-height, 70px); align-self: stretch; box-sizing: border-box;
             transition: min-height 300ms ease-in-out;
         }
-        .timeline-cell.weekend { background-color: rgba(249, 250, 251, 0.92); }
+        .timeline-cell.weekend {
+            background-color: rgba(248, 250, 252, 0.65);
+        }
 
         /* Забороняємо виділяти текст, коли тягнемо мишкою */
         .timeline-wrapper {
@@ -1088,9 +1093,9 @@
         #timelineGrid .timeline-cell.cell-selected {
             background-color: transparent !important;
             border: none !important;
-            border-right: none !important;
+            border-right: 1px solid #D0D5DD !important;
             border-radius: 0 !important;
-            box-shadow: inset -1px 0 0 #D1D5DB !important;
+            box-shadow: none !important;
             transform: none !important;
             z-index: 6;
         }
@@ -1104,12 +1109,17 @@
             position: absolute;
             top: var(--timeline-booking-block-inset, 7px);
             bottom: var(--timeline-booking-block-inset, 7px);
-            background-color: rgba(85, 107, 47, 0.14);
-            border-top: 2px solid var(--accent);
-            border-bottom: 2px solid var(--accent);
+            background: linear-gradient(
+              180deg,
+              rgba(92, 107, 75, 0.18) 0%,
+              rgba(92, 107, 75, 0.12) 100%
+            );
+            border-top: 2px solid var(--accent, #5c6b4b);
+            border-bottom: 2px solid var(--accent, #5c6b4b);
             pointer-events: none;
-            z-index: 1;
+            z-index: 5;
             box-sizing: border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
         #timelineGrid .timeline-cell.cell-selected:not(.cell-selected-start):not(.cell-selected-end)::before {
@@ -1160,14 +1170,19 @@
             bottom: var(--timeline-booking-block-inset, 7px);
             left: -1px;
             width: calc(50% + 1px);
-            background-color: rgba(85, 107, 47, 0.14);
-            border-top: 2px solid var(--accent);
-            border-bottom: 2px solid var(--accent);
-            border-right: 2px solid var(--accent);
+            background: linear-gradient(
+              180deg,
+              rgba(92, 107, 75, 0.18) 0%,
+              rgba(92, 107, 75, 0.12) 100%
+            );
+            border-top: 2px solid var(--accent, #5c6b4b);
+            border-bottom: 2px solid var(--accent, #5c6b4b);
+            border-right: 2px solid var(--accent, #5c6b4b);
             border-radius: 0 8px 8px 0;
             pointer-events: none;
-            z-index: 1;
+            z-index: 5;
             box-sizing: border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
         
         /* --- БЛОКИ БРОНЮВАННЯ НА ШАХМАТЦІ --- */

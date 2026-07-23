@@ -879,12 +879,9 @@ export function DesktopTimelineView({
       dragAutoScrollRafRef.current = null;
     }
     const selection = gridSelectionRef.current;
-    const session = selectionPointerSessionRef.current;
     if (selection.dragRoom && selection.dragStart && selection.dragEnd) {
-      // Tap without drag → exactly one night from the start cell.
-      const start = selection.dragStart;
-      const end = session?.rangeMoved ? selection.dragEnd : selection.dragStart;
-      const sorted = [start, end].sort();
+      // Always trust the live grid selection (session may already be cleared on pointerup).
+      const sorted = [selection.dragStart, selection.dragEnd].sort();
       const checkInStr = sorted[0];
       const checkOutStr = shiftDateKey(sorted[sorted.length - 1], 1);
       onCreateBooking(selection.dragRoom, checkInStr, checkOutStr);
@@ -959,13 +956,15 @@ export function DesktopTimelineView({
       }
       const session = selectionPointerSessionRef.current;
       const wasSelecting = Boolean(session?.selecting && isDraggingRef.current);
-      selectionPointerSessionRef.current = null;
-      setPointerSelectingRoom(null);
-      clearSelectionMoveListeners();
-      releaseTouchScrollLock();
-      unlockBoardTouchPan();
+      // Finish while session still exists is fine — finishDrag reads gridSelectionRef, not session.
       if (wasSelecting) {
         finishDrag();
+      } else {
+        selectionPointerSessionRef.current = null;
+        setPointerSelectingRoom(null);
+        clearSelectionMoveListeners();
+        releaseTouchScrollLock();
+        unlockBoardTouchPan();
       }
     };
 
@@ -2013,7 +2012,7 @@ export function DesktopTimelineView({
                 maxWidth: cellWidth,
                 boxSizing: "border-box",
                 borderRight: "none",
-                boxShadow: "inset -1px 0 0 #D1D5DB",
+                boxShadow: "none",
               }}
             >
               {day.date.getDate()} <span>{DAYS_LABELS[day.date.getDay()]}</span>
