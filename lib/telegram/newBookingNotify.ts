@@ -1,5 +1,8 @@
 import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
-import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
+import {
+  parseEarlyLateTimesFromComment,
+  stripFlexibleTokensFromComment,
+} from "@/lib/admin/flexibleSchedule";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { chessboardKeyboard, getBookingsTargets, isTelegramConfigured } from "./config";
 import {
@@ -26,15 +29,15 @@ export type NewBookingNotifyInput = {
   screenshotCleaning?: string;
 };
 
+/** Лише текст гостя — без службових токенів (ранній/пізній, діти, послуги…). */
 function guestCommentOnly(raw?: string): string {
   const comment = String(raw || "");
   const marker = "Коментар гостя:";
   const index = comment.indexOf(marker);
   if (index >= 0) return comment.slice(index + marker.length).trim();
-  return comment
+  return stripFlexibleTokensFromComment(comment)
     .replace(/👶\s*Діти[^|]+(\|\s*)?/g, "")
     .replace(/🛎️#[^|]+(\|\s*)?/g, "")
-    .replace(/🕒#[^|]+(\|\s*)?/g, "")
     .replace(/🇺🇦 УБД: Так\s*(\|\s*)?/g, "")
     .replace(/^[|\s]+|[|\s]+$/g, "")
     .trim();
