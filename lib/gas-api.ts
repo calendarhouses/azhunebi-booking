@@ -754,12 +754,25 @@ export async function listTeamMembers(): Promise<{
   };
 }
 
+export type ActivityChangeLine = {
+  label?: string;
+  from?: string;
+  to?: string;
+};
+
 export type ActivityLogEntry = {
   id: string;
   at: string;
   type: string;
   summary: string;
-  details?: Record<string, unknown>;
+  details?: {
+    orderId?: string;
+    name?: string;
+    cottage?: string;
+    saveKeys?: string[];
+    changes?: ActivityChangeLine[];
+    [key: string]: unknown;
+  };
   actor?: {
     userId?: string;
     name?: string;

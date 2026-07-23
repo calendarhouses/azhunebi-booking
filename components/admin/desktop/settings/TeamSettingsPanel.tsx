@@ -198,17 +198,40 @@ function activityKind(type: string): ActivityTypeFilter {
   return "other";
 }
 
-function kindMeta(kind: ActivityTypeFilter): { label: string; emoji: string; dot: string } {
+function kindMeta(kind: ActivityTypeFilter): {
+  label: string;
+  tone: string;
+  title: string;
+} {
   switch (kind) {
     case "booking":
-      return { label: "Бронь", emoji: "📅", dot: "team-log__dot--booking" };
+      return { label: "Бронь", tone: "booking", title: "Зміна броні" };
     case "settings":
-      return { label: "Налаштування", emoji: "⚙️", dot: "team-log__dot--settings" };
+      return { label: "Налаштування", tone: "settings", title: "Налаштування" };
     case "team":
-      return { label: "Команда", emoji: "👥", dot: "team-log__dot--team" };
+      return { label: "Команда", tone: "team", title: "Команда" };
     default:
-      return { label: "Дія", emoji: "📝", dot: "team-log__dot--other" };
+      return { label: "Дія", tone: "other", title: "Зміна" };
   }
+}
+
+function entryChanges(entry: ActivityLogEntry): { label?: string; from?: string; to?: string }[] {
+  const raw = entry.details?.changes;
+  return Array.isArray(raw) ? raw : [];
+}
+
+function changeDisplay(change: { label?: string; from?: string; to?: string }): {
+  label: string;
+  text: string;
+  hasDiff: boolean;
+} {
+  const label = String(change.label || "Поле");
+  const from = String(change.from || "").trim();
+  const to = String(change.to || "").trim();
+  if (from && to && from !== "—" && from !== to) {
+    return { label, text: `${from} → ${to}`, hasDiff: true };
+  }
+  return { label, text: to || from || "—", hasDiff: false };
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -735,19 +758,69 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
               {filteredActivity.map((entry) => {
                 const kind = activityKind(entry.type || "");
                 const meta = kindMeta(kind);
+                const changes = entryChanges(entry);
+                const context = [
+                  entry.details?.orderId,
+                  entry.details?.name,
+                  entry.details?.cottage,
+                ]
+                  .map((x) => String(x || "").trim())
+                  .filter(Boolean);
                 return (
                   <li key={entry.id || `${entry.at}-${entry.summary}`} className="team-log__item">
-                    <div className={`team-log__dot ${meta.dot}`} aria-hidden>
-                      {meta.emoji}
-                    </div>
-                    <div className="team-log__body">
-                      <div className="team-log__summary">{entry.summary || "Зміна"}</div>
-                      <div className="team-log__meta">
-                        <span className="team-log__badge">{meta.label}</span>
-                        <span>{actorLabel(entry)}</span>
-                        <span title={formatWhen(entry.at)}>{formatRelative(entry.at)}</span>
-                      </div>
-                    </div>
+                    <article className={`team-log-card team-log-card--${meta.tone}`}>
+                      <header className="team-log-card__head">
+                        <div className="team-log-card__badge-wrap">
+                          <span className={`team-log-card__badge team-log-card__badge--${meta.tone}`}>
+                            {meta.label}
+                          </span>
+                          {context.length ? (
+                            <span className="team-log-card__ctx">{context.join(" · ")}</span>
+                          ) : null}
+                        </div>
+                        <time className="team-log-card__time" title={formatWhen(entry.at)}>
+                          {formatRelative(entry.at)}
+                        </time>
+                      </header>
+                      <h4 className="team-log-card__title">{entry.summary || meta.title}</h4>
+                      {changes.length > 0 ? (
+                        <ul className="team-log-card__changes">
+                          {changes.slice(0, 8).map((change, idx) => {
+                            const row = changeDisplay(change);
+                            return (
+                              <li key={`${row.label}-${idx}`} className="team-log-card__change">
+                                <span className="team-log-card__change-label">{row.label}</span>
+                                <span
+                                  className={`team-log-card__change-value${
+                                    row.hasDiff ? " team-log-card__change-value--diff" : ""
+                                  }`}
+                                >
+                                  {row.hasDiff ? (
+                                    <>
+                                      <span className="team-log-card__from">
+                                        {String(change.from)}
+                                      </span>
+                                      <span className="team-log-card__arrow" aria-hidden>
+                                        →
+                                      </span>
+                                      <span className="team-log-card__to">{String(change.to)}</span>
+                                    </>
+                                  ) : (
+                                    row.text
+                                  )}
+                                </span>
+                              </li>
+                            );
+                          })}
+                          {changes.length > 8 ? (
+                            <li className="team-log-card__more">+{changes.length - 8} ще</li>
+                          ) : null}
+                        </ul>
+                      ) : null}
+                      <footer className="team-log-card__foot">
+                        <span className="team-log-card__actor">{actorLabel(entry)}</span>
+                      </footer>
+                    </article>
                   </li>
                 );
               })}

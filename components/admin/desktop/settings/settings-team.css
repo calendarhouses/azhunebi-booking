@@ -830,100 +830,210 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0;
-  position: relative;
-}
-
-.team-log::before {
-  content: "";
-  position: absolute;
-  left: 23px;
-  top: 18px;
-  bottom: 18px;
-  width: 2px;
-  background: linear-gradient(180deg, var(--team-accent-border), transparent);
-  pointer-events: none;
+  gap: 12px;
 }
 
 .team-log__item {
-  display: grid;
-  grid-template-columns: 48px 1fr;
+  margin: 0;
+  padding: 0;
+}
+
+.team-log-card {
+  border: 1px solid var(--team-stone-200);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, #fff 0%, var(--team-stone-50) 100%);
+  padding: 14px 16px 12px;
+  box-shadow: 0 8px 22px rgba(28, 25, 23, 0.04);
+  border-left: 3px solid var(--team-stone-300);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.team-log-card:hover {
+  border-color: var(--team-accent-border);
+  box-shadow: 0 12px 28px rgba(28, 25, 23, 0.06);
+}
+
+.team-log-card--booking {
+  border-left-color: #059669;
+}
+
+.team-log-card--settings {
+  border-left-color: #d97706;
+}
+
+.team-log-card--team {
+  border-left-color: var(--team-accent);
+}
+
+.team-log-card--other {
+  border-left-color: var(--team-stone-400);
+}
+
+.team-log-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
-  padding: 12px 4px;
-  position: relative;
+  margin-bottom: 8px;
 }
 
-.team-log__dot {
-  width: 36px;
-  height: 36px;
-  margin-left: 6px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  z-index: 1;
-  border: 1px solid transparent;
-}
-
-.team-log__dot--booking {
-  background: #e3f2fd;
-  color: #0d47a1;
-  border-color: #bbdefb;
-}
-
-.team-log__dot--settings {
-  background: #fff3e0;
-  color: #e65100;
-  border-color: #ffe0b2;
-}
-
-.team-log__dot--team {
-  background: #f3e5f5;
-  color: #6a1b9a;
-  border-color: #e1bee7;
-}
-
-.team-log__dot--other {
-  background: var(--team-stone-100);
-  color: var(--team-stone-700);
-  border-color: var(--team-stone-200);
-}
-
-.team-log__body {
-  min-width: 0;
-  padding: 2px 0 8px;
-  border-bottom: 1px solid var(--team-stone-100);
-}
-
-.team-log__item:last-child .team-log__body {
-  border-bottom: none;
-}
-
-.team-log__summary {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--team-stone-900);
-  line-height: 1.4;
-}
-
-.team-log__meta {
-  margin-top: 5px;
+.team-log-card__badge-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.team-log-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.team-log-card__badge--booking {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.team-log-card__badge--settings {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+
+.team-log-card__badge--team {
+  background: var(--team-accent-soft);
+  color: var(--team-accent);
+}
+
+.team-log-card__badge--other {
+  background: var(--team-stone-100);
+  color: var(--team-stone-700);
+}
+
+.team-log-card__ctx {
   font-size: 12px;
+  color: var(--team-stone-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.team-log-card__time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--team-stone-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.team-log-card__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--team-stone-900);
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+
+.team-log-card__changes {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--team-stone-200);
+}
+
+.team-log-card__change {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.team-log-card__change-label {
+  font-size: 12px;
+  font-weight: 650;
   color: var(--team-stone-500);
 }
 
-.team-log__badge {
+.team-log-card__change-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--team-stone-900);
+  word-break: break-word;
+}
+
+.team-log-card__change-value--diff {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 650;
-  background: var(--team-stone-100);
-  color: var(--team-stone-700);
+  gap: 6px;
+}
+
+.team-log-card__from {
+  color: var(--team-stone-500);
+  text-decoration: line-through;
+  text-decoration-color: rgba(120, 113, 108, 0.45);
+  font-weight: 550;
+}
+
+.team-log-card__arrow {
+  color: var(--team-stone-400);
+  font-weight: 700;
+}
+
+.team-log-card__to {
+  color: var(--team-accent);
+  font-weight: 700;
+}
+
+.team-log-card__more {
+  font-size: 12px;
+  color: var(--team-stone-500);
+  font-weight: 600;
+}
+
+.team-log-card__foot {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-log-card__actor {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--team-stone-500);
+}
+
+@media (max-width: 720px) {
+  .team-log-card__change {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .team-log-card__ctx {
+    max-width: 180px;
+  }
+}
+
+/* legacy timeline leftovers unused */
+.team-log__dot,
+.team-log__body,
+.team-log__summary,
+.team-log__meta,
+.team-log__badge {
+  display: none;
 }
 
 .team-empty {
@@ -997,9 +1107,5 @@
 
   .team-hero__meta {
     justify-content: flex-start;
-  }
-
-  .team-log::before {
-    left: 17px;
   }
 }
