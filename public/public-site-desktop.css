@@ -672,10 +672,89 @@ body {
 
 .cal-day.disabled { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
 .cal-day.past { opacity: 0.2; cursor: not-allowed; }
-.cal-day.booked { background: #FFF0F0 !important; color: #DC2626 !important; cursor: not-allowed; }
-.cal-day.booked .day-price { color: #DC2626 !important; opacity: 0.85; }
-.cal-day.booked.turnover-selectable { cursor: pointer; box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.35); }
-.cal-day.booked.turnover-selectable:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+/* Occupied nights — soft muted, not alarming red frames */
+.cal-day.booked {
+  background: #F3F1EE !important;
+  color: #9CA3AF !important;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  text-decoration-color: rgba(156, 163, 175, 0.55);
+}
+.cal-day.booked .day-price { color: #9CA3AF !important; opacity: 0.75; }
+/* Valid same-day turnover checkout — accent dashed ring, clearly selectable */
+.cal-day.turnover-checkout {
+  background: #fff !important;
+  color: var(--text) !important;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.cal-day.turnover-checkout:hover {
+  background: var(--accent-light) !important;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.cal-day.turnover-checkout .day-price { color: var(--accent) !important; }
+.cal-day.closed-date {
+  background: #F7F5F2 !important;
+  color: #B0B0A8 !important;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+.cal-day.closed-date .day-price { color: #B0B0A8 !important; }
+/* Selection always wins over occupancy styling */
+.cal-day.selected-start,
+.cal-day.selected-end {
+  background: var(--accent) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(85,107,47,0.3) !important;
+  cursor: pointer;
+}
+.cal-day.selected-start.booked,
+.cal-day.selected-end.booked,
+.cal-day.selected-start.turnover-checkout,
+.cal-day.selected-end.turnover-checkout,
+.cal-day.selected-start.closed-date,
+.cal-day.selected-end.closed-date {
+  background: var(--accent) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+}
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.cal-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-legend__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.cal-legend__swatch--free {
+  background: #fff;
+  border: 1px solid var(--border);
+}
+.cal-legend__swatch--booked {
+  background: #F3F1EE;
+  border: 1px solid #E5E1DC;
+}
+.cal-legend__swatch--turnover {
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
 
 @media (max-width: 768px) {
     .calendar-container { padding: 20px; }

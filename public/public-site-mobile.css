@@ -458,9 +458,80 @@ body.public-booking-page.boso-public-mobile.ready {
 .cal-day .day-price { font-size: 9px; color: var(--muted); font-weight: 500; margin-top: 2px; }
 .cal-day.selected-start .day-price, .cal-day.selected-end .day-price { color: rgba(255,255,255,0.9); }
 .cal-day.disabled, .cal-day.past { opacity: 0.3; text-decoration: line-through; pointer-events: none;}
-.cal-day.booked { background: #FFF0F0 !important; color: #DC2626 !important; pointer-events: none; }
-.cal-day.booked .day-price { color: #DC2626 !important; opacity: 0.85; }
-.cal-day.booked.turnover-selectable { pointer-events: auto; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.35); }
+.cal-day.booked {
+  background: #F3F1EE !important;
+  color: #9CA3AF !important;
+  pointer-events: none;
+  text-decoration: line-through;
+  text-decoration-color: rgba(156, 163, 175, 0.55);
+}
+.cal-day.booked .day-price { color: #9CA3AF !important; opacity: 0.75; }
+.cal-day.turnover-checkout {
+  background: #fff !important;
+  color: var(--text) !important;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.cal-day.turnover-checkout .day-price { color: var(--accent) !important; }
+.cal-day.closed-date {
+  background: #F7F5F2 !important;
+  color: #B0B0A8 !important;
+  pointer-events: none;
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+.cal-day.selected-start,
+.cal-day.selected-end {
+  background: var(--accent) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  box-shadow: none;
+}
+.cal-day.selected-start.booked,
+.cal-day.selected-end.booked,
+.cal-day.selected-start.turnover-checkout,
+.cal-day.selected-end.turnover-checkout {
+  background: var(--accent) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  pointer-events: auto;
+}
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.cal-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cal-legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.cal-legend__swatch--free {
+  background: #fff;
+  border: 1px solid var(--border);
+}
+.cal-legend__swatch--booked {
+  background: #F3F1EE;
+  border: 1px solid #E5E1DC;
+}
+.cal-legend__swatch--turnover {
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
 
 /* Гості та Форми */
 .guests-block, .form-block { background: var(--white); border-radius: 20px; border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; min-width: 0; overflow: hidden; }

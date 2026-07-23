@@ -519,10 +519,24 @@
         
         .cal-day.disabled { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
         .cal-day.past { opacity: 0.2; cursor: not-allowed; }
-        .cal-day.booked { background: #FFF0F0 !important; color: #DC2626 !important; cursor: not-allowed; }
-        .cal-day.booked .day-price { color: #DC2626 !important; opacity: 0.85; }
-        .cal-day.booked.turnover-selectable { cursor: pointer; box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.35); }
-        .cal-day.booked.turnover-selectable:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-day.booked { background: #F3F1EE !important; color: #9CA3AF !important; cursor: not-allowed; text-decoration: line-through; }
+.cal-day.booked .day-price { color: #9CA3AF !important; opacity: 0.75; }
+.cal-day.booked.turnover-selectable { cursor: pointer; box-shadow: inset 0 0 0 1.5px var(--accent); text-decoration: none; color: var(--text) !important; background: #fff !important; }
+.cal-day.booked.turnover-selectable:hover { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-day.turnover-checkout {
+  background: #fff !important;
+  color: var(--text) !important;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.cal-day.selected-start.booked,
+.cal-day.selected-end.booked,
+.cal-day.selected-start.turnover-checkout,
+.cal-day.selected-end.turnover-checkout {
+  background: var(--accent) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+}
 
         @media (max-width: 768px) {
             .calendar-container { padding: 20px; }

@@ -72,16 +72,16 @@ function stayConflictsWithRange(
   checkOut: Date,
   range: BookedRange
 ): boolean {
-  const cur = new Date(checkIn);
-  cur.setHours(0, 0, 0, 0);
+  const start = new Date(checkIn);
+  start.setHours(0, 0, 0, 0);
   const end = new Date(checkOut);
   end.setHours(0, 0, 0, 0);
-  while (cur < end) {
-    if (cur > range.start && cur < range.end) return true;
-    if (cur.getTime() === range.start.getTime() && range.hasEarly) return true;
-    if (cur.getTime() === range.end.getTime() && range.hasLate) return true;
-    cur.setDate(cur.getDate() + 1);
-  }
+
+  // Half-open nights [start, end) — same rule as checkBookingOverlap / isRoomNightOccupied.
+  if (start < range.end && end > range.start) return true;
+  // Same-day turnover edges
+  if (start.getTime() === range.end.getTime() && range.hasLate) return true;
+  if (end.getTime() === range.start.getTime() && range.hasEarly) return true;
   return false;
 }
 

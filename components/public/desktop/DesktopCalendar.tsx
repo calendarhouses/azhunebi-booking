@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   getDayPrice,
   getRestrictionMinNights,
@@ -32,6 +33,65 @@ type Props = {
   layout?: "desktop" | "mobile";
 };
 
+type DayKind =
+  | "past"
+  | "closed"
+  | "occupied"
+  | "turnover-checkout"
+  | "free";
+
+function classifyDay(params: {
+  day: Date;
+  today: Date;
+  ranges: ReturnType<typeof getBookedRanges>;
+  checkIn: Date | null;
+  checkOut: Date | null;
+  closed: boolean;
+}): { kind: DayKind; clickable: boolean } {
+  const { day, today, ranges, checkIn, checkOut, closed } = params;
+  const pickingCheckout = Boolean(checkIn && !checkOut);
+  const t = day.getTime();
+
+  if (day < today) return { kind: "past", clickable: false };
+  if (closed) return { kind: "closed", clickable: false };
+
+  let isOccupiedNight = false;
+  let isNextGuestCheckIn = false;
+  let nextGuestHasEarly = false;
+  let prevGuestHasLate = false;
+
+  for (const r of ranges) {
+    // Occupied nights: [start, end)
+    if (t >= r.start.getTime() && t < r.end.getTime()) {
+      isOccupiedNight = true;
+      if (t === r.start.getTime()) {
+        isNextGuestCheckIn = true;
+        nextGuestHasEarly = Boolean(r.hasEarly);
+      }
+    }
+    if (t === r.end.getTime() && r.hasLate) {
+      prevGuestHasLate = true;
+    }
+  }
+
+  // Valid checkout on next guest's check-in day (same-day turnover)
+  if (
+    pickingCheckout &&
+    checkIn &&
+    isNextGuestCheckIn &&
+    !nextGuestHasEarly &&
+    day > checkIn
+  ) {
+    return { kind: "turnover-checkout", clickable: true };
+  }
+
+  if (isOccupiedNight || prevGuestHasLate) {
+    return { kind: "occupied", clickable: false };
+  }
+
+  return { kind: "free", clickable: true };
+}
+
 export function DesktopCalendar({ room, layout = "desktop" }: Props) {
   const {
     runtime,
@@ -57,7 +117,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
   const restrictions = runtime.restrictions || {};
   const closedDates = runtime.closedDates || {};
 
-  const days: React.ReactNode[] = [];
+  const days: ReactNode[] = [];
   for (let i = 0; i < firstDay; i++) {
     days.push(<div key={`e-${i}`} />);
   }
@@ -65,46 +125,31 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
   for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, month, day);
     d.setHours(0, 0, 0, 0);
-    const isPast = d < today;
-    let isOccupied = false;
-    let clickBlocked = false;
-
-    for (const r of bookedRanges) {
-      if (d > r.start && d < r.end) {
-        isOccupied = true;
-        clickBlocked = true;
-      }
-      if (d.getTime() === r.start.getTime()) {
-        isOccupied = true;
-        if (r.hasEarly) clickBlocked = true;
-        else if (!checkIn || (checkIn && checkOut)) clickBlocked = true;
-        else if (checkIn && !checkOut && d <= checkIn) clickBlocked = true;
-      }
-      if (d.getTime() === r.end.getTime() && r.hasLate) {
-        isOccupied = true;
-        clickBlocked = true;
-      }
-    }
-
     const ds = formatDateKey(d);
+    const closed = isDateClosed(closedDates, room.id, d, restrictions);
+    const { kind, clickable } = classifyDay({
+      day: d,
+      today,
+      ranges: bookedRanges,
+      checkIn,
+      checkOut,
+      closed,
+    });
+
     let cls = "cal-day";
-    if (isPast) cls += " past";
-    else if (isOccupied) cls += " booked";
+    if (kind === "past") cls += " past";
+    if (kind === "closed") cls += " closed-date";
+    if (kind === "occupied") cls += " booked";
+    if (kind === "turnover-checkout") cls += " turnover-checkout";
     if (d.toDateString() === today.toDateString()) cls += " today";
-    if (isOccupied && !clickBlocked && !isPast) cls += " turnover-selectable";
     if (checkIn && ds === formatDateKey(checkIn)) cls += " selected-start";
     if (checkOut && ds === formatDateKey(checkOut)) cls += " selected-end";
     if (checkIn && checkOut && d > checkIn && d < checkOut) cls += " in-range";
 
     const price = getDayPrice(room, d, customPrices);
     const minN = getRestrictionMinNights(restrictions, room.id, d);
-    const closed = !isPast && isDateClosed(closedDates, room.id, d, restrictions);
-    if (closed) {
-      isOccupied = true;
-      clickBlocked = true;
-      cls += " closed-date";
-    }
-    const clickable = !isPast && !clickBlocked;
+    const showMin =
+      minN > 1 && !["past", "closed", "occupied"].includes(kind);
 
     days.push(
       <div
@@ -112,6 +157,15 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
         className={cls}
         role={clickable ? "button" : undefined}
         tabIndex={clickable ? 0 : undefined}
+        title={
+          kind === "turnover-checkout"
+            ? "Можна виїхати в цей день (заїзд наступного гостя)"
+            : kind === "occupied"
+              ? "Зайнято"
+              : kind === "closed"
+                ? "Закрито для бронювання"
+                : undefined
+        }
         onClick={clickable ? () => selectDate(ds) : undefined}
         onKeyDown={
           clickable
@@ -125,7 +179,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
         {price > 0 ? (
           <div className="day-price">{formatPriceUa(price)}</div>
         ) : null}
-        {minN > 1 && !isPast && !isOccupied ? (
+        {showMin ? (
           <div className="day-price" style={{ fontSize: 8, opacity: 0.7 }}>
             мін.{minN}
           </div>
@@ -133,6 +187,21 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
       </div>
     );
   }
+
+  const legend = (
+    <div className="cal-legend" aria-hidden="true">
+      <span className="cal-legend__item">
+        <i className="cal-legend__swatch cal-legend__swatch--free" /> Вільні
+      </span>
+      <span className="cal-legend__item">
+        <i className="cal-legend__swatch cal-legend__swatch--booked" /> Зайняті
+      </span>
+      <span className="cal-legend__item">
+        <i className="cal-legend__swatch cal-legend__swatch--turnover" /> Виїзд
+        ОК
+      </span>
+    </div>
+  );
 
   const header = (
     <div className="cal-header">
@@ -168,6 +237,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
       <div className="calendar-container" key={calKey}>
         {header}
         {grid}
+        {legend}
       </div>
     );
   }
@@ -243,6 +313,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
         </button>
       </div>
       {grid}
+      {legend}
     </div>
   );
 }

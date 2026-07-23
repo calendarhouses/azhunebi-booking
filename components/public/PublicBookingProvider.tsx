@@ -34,6 +34,7 @@ import {
   getBookedRanges,
   getNextFreeDateLabel,
   isListSearchDateAvailable,
+  isRoomFreeForRange,
 } from "@/lib/public-booking/bookedRanges";
 import {
   createMonoPayment,
@@ -447,12 +448,37 @@ export function PublicBookingProvider({
       setDrawerOpen(true);
       document.body.style.overflow = "hidden";
 
+      // If search dates don't fit this cottage, keep check-in and ask for a new checkout
+      if (checkIn && checkOut && runtime) {
+        const ok = isRoomFreeForRange(
+          room,
+          checkIn,
+          checkOut,
+          runtime.bookings,
+          runtime.closedDates,
+          runtime.restrictions
+        );
+        if (!ok) {
+          setCheckOut(null);
+          setCalKey((k) => k + 1);
+          showPublicToast("Для цього будинку оберіть іншу дату виїзду");
+        }
+      }
+
       const violation = childrenPolicyViolationMessage(room, kids, youngestChildAge);
       if (violation) {
         showPublicToast(violation);
       }
     },
-    [resetDrawerExtras, guestCount, childCount, youngestChildAge]
+    [
+      resetDrawerExtras,
+      guestCount,
+      childCount,
+      youngestChildAge,
+      checkIn,
+      checkOut,
+      runtime,
+    ]
   );
 
   const closeDrawer = useCallback(() => {
@@ -492,30 +518,61 @@ export function PublicBookingProvider({
       const d = new Date(ds);
       d.setHours(0, 0, 0, 0);
       const ranges = getBookedRanges(runtime.bookings, selectedRoom);
+      const pickingCheckout = Boolean(checkIn && !checkOut);
+      const t = d.getTime();
 
       let blocked = false;
       for (const r of ranges) {
-        if (d > r.start && d < r.end) blocked = true;
-        if (d.getTime() === r.end.getTime() && r.hasLate) blocked = true;
-        if (d.getTime() === r.start.getTime()) {
-          if (r.hasEarly) blocked = true;
-          else if (!checkIn || (checkIn && checkOut)) blocked = true;
-          else if (checkIn && !checkOut && d <= checkIn) blocked = true;
+        const isOccupiedNight = t >= r.start.getTime() && t < r.end.getTime();
+        const isNextCheckIn = t === r.start.getTime();
+        const isLateCheckoutDay = t === r.end.getTime() && r.hasLate;
+
+        if (isLateCheckoutDay) {
+          blocked = true;
+          break;
+        }
+        if (isOccupiedNight) {
+          // Same-day turnover: next guest's check-in can be OUR checkout
+          const validTurnoverCheckout =
+            pickingCheckout &&
+            checkIn &&
+            isNextCheckIn &&
+            !r.hasEarly &&
+            d > checkIn;
+          if (!validTurnoverCheckout) {
+            blocked = true;
+            break;
+          }
         }
       }
       if (blocked) {
-        setCheckIn(null);
-        setCheckOut(null);
+        // Clicking a blocked day starts a fresh check-in only if the night is free
+        const nightFree = !ranges.some((r) => t >= r.start.getTime() && t < r.end.getTime());
+        const lateBlock = ranges.some((r) => t === r.end.getTime() && r.hasLate);
+        if (nightFree && !lateBlock && !isDateClosed(runtime.closedDates, selectedRoom.id, d, runtime.restrictions)) {
+          setCheckIn(d);
+          setCheckOut(null);
+        } else {
+          showPublicToast("Ця дата недоступна");
+        }
         setCalKey((k) => k + 1);
         return;
       }
 
       if (isDateClosed(runtime.closedDates, selectedRoom.id, d, runtime.restrictions)) {
+        // Closed nights can't be check-in; checkout on a closed calendar day is still OK
+        // only when it is a turnover checkout (handled above as not closed nights).
+        // Closed-only days (no booking) block both.
         showPublicToast("Ця дата закрита для бронювання");
-        setCheckIn(null);
-        setCheckOut(null);
         setCalKey((k) => k + 1);
         return;
+      }
+
+      // Keep existing range when tapping the already-selected endpoints
+      if (checkIn && checkOut) {
+        if (t === checkIn.getTime() || t === checkOut.getTime()) {
+          return;
+        }
       }
 
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
@@ -525,24 +582,25 @@ export function PublicBookingProvider({
         let conflict = false;
         let closedConflict = false;
         const cur = new Date(checkIn);
-        cur.setDate(cur.getDate() + 1);
+        // Scan occupied nights in [checkIn, checkout)
         while (cur < d) {
           if (isDateClosed(runtime.closedDates, selectedRoom.id, cur, runtime.restrictions)) {
             conflict = true;
             closedConflict = true;
             break;
           }
-          if (
-            ranges.some(
-              (r) =>
-                (cur > r.start && cur < r.end) ||
-                (cur.getTime() === r.start.getTime() && r.hasEarly)
-            )
-          ) {
+          if (ranges.some((r) => cur.getTime() >= r.start.getTime() && cur.getTime() < r.end.getTime())) {
             conflict = true;
             break;
           }
           cur.setDate(cur.getDate() + 1);
+        }
+        // Next guest early on our checkout day
+        if (
+          !conflict &&
+          ranges.some((r) => d.getTime() === r.start.getTime() && r.hasEarly)
+        ) {
+          conflict = true;
         }
         if (conflict) {
           showPublicToast(
