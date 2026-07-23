@@ -2531,6 +2531,15 @@ export function DesktopTimelineView({
                 className="timeline-mobile-dates"
                 style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
               >
+                {/* Identical column lattice in header + body — same pixel stops */}
+                <div
+                  className="timeline-mobile-col-lines"
+                  aria-hidden="true"
+                  style={{
+                width: gridTotalWidth,
+                backgroundImage: `repeating-linear-gradient(to right, transparent 0px, transparent ${Math.max(0, cellWidth - 1)}px, #D0D5DD ${Math.max(0, cellWidth - 1)}px, #D0D5DD ${cellWidth}px)`,
+              }}
+                />
                 {timelineMonths}
                 {timelineDates}
               </div>
@@ -2543,6 +2552,14 @@ export function DesktopTimelineView({
                 ref={gridRowsRef}
                 style={{ width: gridTotalWidth, minWidth: gridTotalWidth }}
               >
+                <div
+                  className="timeline-mobile-col-lines"
+                  aria-hidden="true"
+                  style={{
+                    width: gridTotalWidth,
+                    backgroundImage: `repeating-linear-gradient(to right, transparent 0px, transparent ${Math.max(0, cellWidth - 1)}px, #D0D5DD ${Math.max(0, cellWidth - 1)}px, #D0D5DD ${cellWidth}px)`,
+                  }}
+                />
                 {todayLineEl}
                 {timelineRows}
               </div>

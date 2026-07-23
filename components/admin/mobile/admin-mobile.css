@@ -1735,7 +1735,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected,
 .boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-start,
 .boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-tail {
-  z-index: 6 !important;
+  z-index: 12 !important;
   box-shadow: none !important;
   background: transparent !important;
   border-right: none !important;
@@ -3002,8 +3002,28 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background: #fff !important;
   border-bottom: 1px solid #E5E7EB !important;
   box-sizing: border-box !important;
-  /* overflow:hidden breaks sticky month labels while scrolling horizontally */
   overflow: visible !important;
+}
+
+/* One shared vertical lattice — identical element in dates + cells */
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-col-lines {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  height: auto !important;
+  min-height: 100% !important;
+  pointer-events: none !important;
+  z-index: 4 !important;
+  background-color: transparent !important;
+  background-repeat: repeat !important;
+  background-position: left top !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-dates > .timeline-months,
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-dates > .timeline-dates {
+  position: relative !important;
+  z-index: 5 !important;
 }
 
 .boso-admin-mobile .timeline-mobile-rooms {
@@ -3046,7 +3066,6 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   z-index: 1 !important;
   isolation: isolate;
   max-width: var(--timeline-grid-width, none) !important;
-  /* visible — overflow:hidden clips selection bottom frame */
   overflow: visible !important;
 }
 
@@ -3078,6 +3097,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   max-height: 22px !important;
   flex: 0 0 22px !important;
   width: 100% !important;
+  background: transparent !important;
+  background-image: none !important;
+  border-bottom: 1px solid #E8EAED !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-month-cell {
+  border-right: none !important;
+  background: transparent !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates {
@@ -3096,8 +3123,6 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
-  /* Vertical lines come from parent repeating-linear-gradient — borders cause
-     subpixel drift vs grid cells on iOS/Android. */
   border-right: none !important;
   border-left: none !important;
   box-shadow: none !important;
@@ -3111,10 +3136,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   margin: 0 !important;
   padding: 0 !important;
   line-height: 1.05 !important;
+  z-index: 6 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date.weekend {
-  /* Leave 1px gap on the right so the shared column line stays visible */
   background-color: transparent !important;
   background-image: linear-gradient(
     rgba(254, 242, 242, 0.55),
@@ -3147,19 +3172,12 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   box-sizing: border-box !important;
   margin: 0 !important;
   padding: 0 !important;
-  /* Same column lattice as .timeline-dates */
-  background-color: #fff !important;
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent 0,
-    transparent calc(var(--timeline-cell-width, 60px) - 1px),
-    #D0D5DD calc(var(--timeline-cell-width, 60px) - 1px),
-    #D0D5DD var(--timeline-cell-width, 60px)
-  ) !important;
-  background-position: left top !important;
-  background-repeat: repeat !important;
-  /* visible — otherwise selection bottom border is clipped */
+  /* Transparent so shared .timeline-mobile-col-lines show through */
+  background-color: transparent !important;
+  background-image: none !important;
   overflow: visible !important;
+  position: relative !important;
+  z-index: 5 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell {
@@ -3176,6 +3194,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   margin: 0 !important;
   padding: 0 !important;
   overflow: visible !important;
+  z-index: 6 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.weekend {
@@ -3209,7 +3228,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background-repeat: no-repeat !important;
 }
 
-/* Date header uses the same absolute grid + shared vertical lines */
+/* Date header — transparent so shared col-lines show through */
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates,
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates.timeline-track--virtual {
   display: block !important;
@@ -3222,17 +3241,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   padding: 0 !important;
   border-left: none !important;
   border-right: none !important;
-  /* Same column lattice as .timeline-row-bg */
-  background-color: #fff !important;
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent 0,
-    transparent calc(var(--timeline-cell-width, 60px) - 1px),
-    #D0D5DD calc(var(--timeline-cell-width, 60px) - 1px),
-    #D0D5DD var(--timeline-cell-width, 60px)
-  ) !important;
-  background-position: left top !important;
-  background-repeat: repeat !important;
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window,
@@ -3370,7 +3380,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 /* Booking cards */
 .boso-admin-mobile .booking-block {
   overflow: hidden !important;
-  z-index: 2;
+  z-index: 20 !important;
   box-sizing: border-box !important;
   isolation: isolate;
   contain: paint;
