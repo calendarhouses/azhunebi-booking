@@ -3077,14 +3077,12 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
+  /* Same divider as .timeline-cell — do NOT also paint background-image at right
+     (that sits in the padding box and shifts the line ~1px left of the grid). */
   border-right: 1px solid #D0D5DD !important;
   box-shadow: none !important;
+  background-image: none !important;
   background-color: transparent !important;
-  /* Day divider as background — survives sticky/overflow quirks better than ::after alone */
-  background-image: linear-gradient(#D0D5DD, #D0D5DD) !important;
-  background-size: 1px 70% !important;
-  background-position: right center !important;
-  background-repeat: no-repeat !important;
   overflow: visible !important;
   display: flex !important;
   flex-direction: column !important;
@@ -3096,22 +3094,17 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date.weekend {
   background-color: rgba(254, 242, 242, 0.55) !important;
-  background-image: linear-gradient(#D0D5DD, #D0D5DD) !important;
-  background-size: 1px 70% !important;
-  background-position: right center !important;
-  background-repeat: no-repeat !important;
+  background-image: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date.today {
   background-color: #FEF2F2 !important;
-  background-image: linear-gradient(#D0D5DD, #D0D5DD) !important;
-  background-size: 1px 70% !important;
-  background-position: right center !important;
-  background-repeat: no-repeat !important;
+  background-image: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date::after {
   content: none !important;
+  display: none !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg {
@@ -6837,10 +6830,24 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
   border-right: 1px solid #D0D5DD !important;
+  background-image: none !important;
   box-shadow: none !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: visible !important;
+}
+
+/* Keep day/grid dividers on the same paint path (border only) on iOS + Android */
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date,
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-date {
+  background-image: none !important;
+  border-right: 1px solid #D0D5DD !important;
+}
+
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date::after,
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-date::after {
+  content: none !important;
+  display: none !important;
 }
 
 .boso-admin-ios .timeline-mobile-dates {
