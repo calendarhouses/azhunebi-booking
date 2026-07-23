@@ -3083,8 +3083,10 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background: transparent !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates,
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates.timeline-track--virtual {
+/* Absolute day columns — ONLY main booking board (#view-grid).
+   Price/restrictions boards keep flex cells; absolute here stacked all prices in col 1. */
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-dates,
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-dates.timeline-track--virtual {
   display: block !important;
   position: relative !important;
   height: 34px !important;
@@ -3101,8 +3103,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   padding: 0 !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window,
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg .timeline-track-window {
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window,
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-row-bg .timeline-track-window {
   display: block !important;
   position: absolute !important;
   left: 0 !important;
@@ -3118,8 +3120,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 /* Shared vertical divider: inset shadow = same paint on header + body, no width shift */
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date,
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell {
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-date,
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-cell {
   width: var(--timeline-cell-width, 60px) !important;
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
@@ -3133,7 +3135,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   box-shadow: inset -1px 0 0 #D0D5DD !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-date {
+.boso-admin-mobile #view-grid .timeline-wrapper--mobile-board .timeline-date {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -3245,14 +3247,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   overflow: hidden !important;
 }
 
-.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-date {
+.boso-admin-ios #view-grid .timeline-wrapper--mobile-board .timeline-date,
+.boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-date {
   box-shadow: inset -1px 0 0 #D0D5DD !important;
   border: none !important;
 }
 
-.boso-admin-ios .timeline-wrapper--mobile-board .timeline-cell,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-cell {
+.boso-admin-ios #view-grid .timeline-wrapper--mobile-board .timeline-cell,
+.boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-cell {
   box-shadow: inset -1px 0 0 #D0D5DD !important;
   border: none !important;
 }
@@ -5098,9 +5100,9 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-months,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-dates {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
+  width: var(--timeline-grid-width) !important;
+  min-width: var(--timeline-grid-width) !important;
+  max-width: var(--timeline-grid-width) !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
 }
@@ -5108,7 +5110,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-row-bg,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .price-grid-row {
   width: var(--timeline-grid-width) !important;
-  min-width: 0 !important;
+  min-width: var(--timeline-grid-width) !important;
   max-width: var(--timeline-grid-width) !important;
   background-image: repeating-linear-gradient(
     to right,
@@ -5139,12 +5141,43 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .price-cell,
-.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-date {
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .restriction-cell,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-date,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-cell {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
   width: var(--timeline-cell-width, 72px) !important;
   min-width: var(--timeline-cell-width, 72px) !important;
   max-width: var(--timeline-cell-width, 72px) !important;
   box-sizing: border-box !important;
   flex: 0 0 var(--timeline-cell-width, 72px) !important;
+  box-shadow: none !important;
+}
+
+/* Prices/rules: flex rows — never absolute stack (booking-board absolute rules must not win) */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-dates,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-row-bg,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .price-grid-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  position: relative !important;
+  align-items: stretch !important;
+}
+
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-dates .timeline-track-window,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-row-bg .timeline-track-window {
+  position: relative !important;
+  display: flex !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 /* Override main-board dense 52px rows — prices dense is 34px */
@@ -6818,13 +6851,34 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   background: #F9FAFB !important;
 }
 
-.boso-admin-android .timeline-mobile-dates {
+.boso-admin-android #view-grid .timeline-mobile-dates {
   position: sticky !important;
   top: 0 !important;
   z-index: 15 !important;
   background: #fff !important;
-  /* overflow:hidden ламає sticky month labels при горизонтальному скролі */
+  /* Keep overflow visible for sticky month label; fit content inside head height to avoid bleed */
   overflow: visible !important;
+  height: var(--timeline-mobile-head-height, 58px) !important;
+  min-height: var(--timeline-mobile-head-height, 58px) !important;
+  max-height: var(--timeline-mobile-head-height, 58px) !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  box-shadow: none !important;
+}
+
+.boso-admin-android #view-grid .timeline-mobile-dates .timeline-months {
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  flex: 0 0 22px !important;
+}
+
+.boso-admin-android #view-grid .timeline-mobile-dates .timeline-dates {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  flex: 0 0 34px !important;
+  overflow: hidden !important;
 }
 
 .boso-admin-android .timeline-mobile-dates .timeline-months,
@@ -6857,9 +6911,9 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   box-sizing: border-box !important;
 }
 
-/* Virtual track: absolute day columns — same origin as booking cards */
-.boso-admin-android .timeline-mobile-dates .timeline-dates .timeline-track-window,
-.boso-admin-android .timeline-mobile-cells .timeline-track-window {
+/* Virtual track: absolute day columns — booking board only */
+.boso-admin-android #view-grid .timeline-mobile-dates .timeline-dates .timeline-track-window,
+.boso-admin-android #view-grid .timeline-mobile-cells .timeline-track-window {
   display: block !important;
   position: absolute !important;
   left: 0 !important;
@@ -6873,8 +6927,8 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   box-sizing: border-box !important;
 }
 
-.boso-admin-android .timeline-mobile-dates .timeline-date,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-cell {
+.boso-admin-android #view-grid .timeline-mobile-dates .timeline-date,
+.boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-cell {
   position: absolute !important;
   width: var(--timeline-cell-width, 60px) !important;
   min-width: var(--timeline-cell-width, 60px) !important;
@@ -6887,16 +6941,16 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   overflow: visible !important;
 }
 
-.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-date {
+.boso-admin-ios #view-grid .timeline-wrapper--mobile-board .timeline-date,
+.boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-date {
   border: none !important;
   box-shadow: inset -1px 0 0 #D0D5DD !important;
 }
 
-.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date::after,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-date::after,
-.boso-admin-ios .timeline-wrapper--mobile-board .timeline-date::before,
-.boso-admin-android .timeline-wrapper--mobile-board .timeline-date::before {
+.boso-admin-ios #view-grid .timeline-wrapper--mobile-board .timeline-date::after,
+.boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-date::after,
+.boso-admin-ios #view-grid .timeline-wrapper--mobile-board .timeline-date::before,
+.boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-date::before {
   content: none !important;
   display: none !important;
 }
@@ -6908,14 +6962,14 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   background: #fff !important;
 }
 
-/* —— Android: booking cards fill the full row (same as drag float) —— */
+/* —— Android: booking cards with inset so sticky header never clips first row —— */
 .boso-admin-android #view-grid .booking-block:not(.booking-block--drag-float),
 .boso-admin-android .timeline-wrapper--android .booking-block:not(.booking-block--drag-float),
 .boso-admin-android .timeline-wrapper--android .booking-block.booking-block--drag-float {
-  top: 1px !important;
-  height: calc(var(--timeline-room-height, 44px) - 2px) !important;
-  min-height: calc(var(--timeline-room-height, 44px) - 2px) !important;
-  max-height: calc(var(--timeline-room-height, 44px) - 2px) !important;
+  top: 4px !important;
+  height: calc(var(--timeline-room-height, 44px) - 8px) !important;
+  min-height: calc(var(--timeline-room-height, 44px) - 8px) !important;
+  max-height: calc(var(--timeline-room-height, 44px) - 8px) !important;
   /* Horizontal padding comes from inline styles (reserves flexible-schedule stripes) */
   padding-top: 0 !important;
   padding-bottom: 0 !important;

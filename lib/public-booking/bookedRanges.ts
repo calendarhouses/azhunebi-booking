@@ -85,6 +85,18 @@ function stayConflictsWithRange(
   return false;
 }
 
+/** True when [checkIn, checkOut) does not overlap any booked range (incl. early/late edges). */
+export function isStayClearOfBookings(
+  checkIn: Date,
+  checkOut: Date,
+  ranges: BookedRange[]
+): boolean {
+  for (const range of ranges) {
+    if (stayConflictsWithRange(checkIn, checkOut, range)) return false;
+  }
+  return true;
+}
+
 /** Чи вільний котедж на період [checkIn, checkOut) з урахуванням closed/min nights. */
 export function isRoomFreeForRange(
   room: RoomConfig,

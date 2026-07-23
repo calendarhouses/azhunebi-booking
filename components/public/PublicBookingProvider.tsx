@@ -35,6 +35,7 @@ import {
   getNextFreeDateLabel,
   isListSearchDateAvailable,
   isRoomFreeForRange,
+  isStayClearOfBookings,
 } from "@/lib/public-booking/bookedRanges";
 import {
   createMonoPayment,
@@ -532,13 +533,14 @@ export function PublicBookingProvider({
           break;
         }
         if (isOccupiedNight) {
-          // Same-day turnover: next guest's check-in can be OUR checkout
+          // Same-day turnover: next guest's check-in can be OUR checkout only if reachable
           const validTurnoverCheckout =
             pickingCheckout &&
             checkIn &&
             isNextCheckIn &&
             !r.hasEarly &&
-            d > checkIn;
+            d > checkIn &&
+            isStayClearOfBookings(checkIn, d, ranges);
           if (!validTurnoverCheckout) {
             blocked = true;
             break;
@@ -579,30 +581,20 @@ export function PublicBookingProvider({
         setCheckIn(d);
         setCheckOut(null);
       } else {
-        let conflict = false;
+        // Prefer shared conflict helper (early/late edges + half-open nights)
+        const stayBlocked = !isStayClearOfBookings(checkIn, d, ranges);
         let closedConflict = false;
-        const cur = new Date(checkIn);
-        // Scan occupied nights in [checkIn, checkout)
-        while (cur < d) {
-          if (isDateClosed(runtime.closedDates, selectedRoom.id, cur, runtime.restrictions)) {
-            conflict = true;
-            closedConflict = true;
-            break;
+        if (!stayBlocked) {
+          const cur = new Date(checkIn);
+          while (cur < d) {
+            if (isDateClosed(runtime.closedDates, selectedRoom.id, cur, runtime.restrictions)) {
+              closedConflict = true;
+              break;
+            }
+            cur.setDate(cur.getDate() + 1);
           }
-          if (ranges.some((r) => cur.getTime() >= r.start.getTime() && cur.getTime() < r.end.getTime())) {
-            conflict = true;
-            break;
-          }
-          cur.setDate(cur.getDate() + 1);
         }
-        // Next guest early on our checkout day
-        if (
-          !conflict &&
-          ranges.some((r) => d.getTime() === r.start.getTime() && r.hasEarly)
-        ) {
-          conflict = true;
-        }
-        if (conflict) {
+        if (stayBlocked || closedConflict) {
           showPublicToast(
             closedConflict
               ? "У періоді є закриті дати"

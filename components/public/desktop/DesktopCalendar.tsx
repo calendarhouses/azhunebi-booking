@@ -7,7 +7,7 @@ import {
   isDateClosed,
 } from "@/components/admin/desktop/bookingPriceEngine";
 import type { RoomConfig } from "@/components/admin/desktop/types";
-import { formatDateKey, getBookedRanges } from "@/lib/public-booking/bookedRanges";
+import { formatDateKey, getBookedRanges, isStayClearOfBookings } from "@/lib/public-booking/bookedRanges";
 import { formatPriceUa } from "@/lib/public-booking/roomHelpers";
 import { usePublicBooking } from "../PublicBookingProvider";
 
@@ -74,18 +74,24 @@ function classifyDay(params: {
     }
   }
 
-  // Valid checkout on next guest's check-in day (same-day turnover)
+  // Valid checkout on next guest's check-in day (same-day turnover) — only if reachable
   if (
     pickingCheckout &&
     checkIn &&
     isNextGuestCheckIn &&
     !nextGuestHasEarly &&
-    day > checkIn
+    day > checkIn &&
+    isStayClearOfBookings(checkIn, day, ranges)
   ) {
     return { kind: "turnover-checkout", clickable: true };
   }
 
   if (isOccupiedNight || prevGuestHasLate) {
+    return { kind: "occupied", clickable: false };
+  }
+
+  // While picking checkout, block days past an intervening booking
+  if (pickingCheckout && checkIn && day > checkIn && !isStayClearOfBookings(checkIn, day, ranges)) {
     return { kind: "occupied", clickable: false };
   }
 
@@ -197,7 +203,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
         <i className="cal-legend__swatch cal-legend__swatch--booked" /> Зайняті
       </span>
       <span className="cal-legend__item">
-        <i className="cal-legend__swatch cal-legend__swatch--turnover" /> Виїзд
+        <i className="cal-legend__swatch cal-legend__swatch--turnover" /> Можливий виїзд
         ОК
       </span>
     </div>

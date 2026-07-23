@@ -392,7 +392,7 @@ export function DesktopTimelineView({
    * iOS: keep classic fixed row heights (52 / 60).
    */
   const cottageCount = Math.max(activeRooms.length, 1);
-  const mobileDateHeadHeight = isAndroid ? (mobileDense ? 36 : 56) : mobileDense ? 48 : 56;
+  const mobileDateHeadHeight = isAndroid ? (mobileDense ? 40 : 58) : mobileDense ? 48 : 56;
   const [androidRowHeight, setAndroidRowHeight] = useState(mobileDense ? 38 : 44);
 
   const [mode, setMode] = useState<TimelineMode>(() =>
