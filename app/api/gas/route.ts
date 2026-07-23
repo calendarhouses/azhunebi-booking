@@ -342,6 +342,13 @@ export async function POST(request: Request) {
                 email?: string;
                 role?: string;
               };
+              details?: {
+                orderId?: string;
+                name?: string;
+                cottage?: string;
+                saveKeys?: string[];
+                changes?: Array<{ label?: string; from?: string; to?: string }>;
+              };
             }
           );
         } catch (err) {

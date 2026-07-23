@@ -266,16 +266,20 @@ export function useAdminModals({
 
       if (isRoomDraftId(roomId)) return;
 
+      // Default debounce — rapid chip edits used to fire many identical TG “Збережено: Житло”.
+      const debounceMs =
+        options?.debounceMs != null && options.debounceMs >= 0 ? options.debounceMs : 450;
+
       const scheduleSave = () => {
         void flushQuickEditSave(settingsRef.current, ["roomsList"]);
       };
 
-      if (options?.debounceMs != null && options.debounceMs > 0) {
+      if (debounceMs > 0) {
         if (roomQuickEditSaveTimerRef.current) clearTimeout(roomQuickEditSaveTimerRef.current);
         roomQuickEditSaveTimerRef.current = setTimeout(() => {
           roomQuickEditSaveTimerRef.current = null;
           scheduleSave();
-        }, options.debounceMs);
+        }, debounceMs);
         return;
       }
 

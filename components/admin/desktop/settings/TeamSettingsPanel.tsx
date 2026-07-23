@@ -824,7 +824,7 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                       <h4 className="team-log-card__title">{entry.summary || meta.title}</h4>
                       {changes.length > 0 ? (
                         <ul className="team-log-card__changes">
-                          {changes.slice(0, 8).map((change, idx) => {
+                          {changes.slice(0, 16).map((change, idx) => {
                             const row = changeDisplay(change);
                             return (
                               <li key={`${row.label}-${idx}`} className="team-log-card__change">
@@ -851,8 +851,8 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                               </li>
                             );
                           })}
-                          {changes.length > 8 ? (
-                            <li className="team-log-card__more">+{changes.length - 8} ще</li>
+                          {changes.length > 16 ? (
+                            <li className="team-log-card__more">+{changes.length - 16} ще</li>
                           ) : null}
                         </ul>
                       ) : null}

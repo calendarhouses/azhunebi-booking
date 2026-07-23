@@ -83,7 +83,7 @@ export function buildActivityChangeCaption(entry: ActivityEntryNotify): string {
   const role = roleUk(entry.actor?.role);
   const summary = escapeHtml(String(entry.summary || "Зміна в адмінці"));
   const details = entry.details || {};
-  const changes = Array.isArray(details.changes) ? details.changes.slice(0, 12) : [];
+  const changes = Array.isArray(details.changes) ? details.changes.slice(0, 18) : [];
 
   const lines: string[] = [];
   lines.push(`${meta.emoji} <b>${escapeHtml(meta.title)}</b>`);
