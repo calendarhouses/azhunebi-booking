@@ -53,8 +53,8 @@ export const TimelineGridCell = memo(function TimelineGridCell({
     minWidth: cellWidth,
     maxWidth: cellWidth,
     boxSizing: "border-box",
-    borderRight: "1px solid #D0D5DD",
-    boxShadow: "none",
+    border: "none",
+    boxShadow: "inset -1px 0 0 #D0D5DD",
   };
   return (
     <div
