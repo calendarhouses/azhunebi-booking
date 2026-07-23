@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  ChevronDown,
   Copy,
   History,
   Link2,
@@ -28,6 +29,124 @@ import "./settings-team.css";
 type CreateMode = "password" | "invite";
 type TeamSubView = "team" | "activity";
 type ActivityTypeFilter = "all" | "booking" | "settings" | "team" | "other";
+
+type FancyOption = { value: string; label: string };
+
+function TeamRoleSeg({
+  value,
+  disabled,
+  size = "sm",
+  onChange,
+  "aria-label": ariaLabel,
+}: {
+  value: "owner" | "admin";
+  disabled?: boolean;
+  size?: "sm" | "lg";
+  onChange: (next: "owner" | "admin") => void;
+  "aria-label"?: string;
+}) {
+  return (
+    <div
+      className={`team-seg${size === "lg" ? " team-seg--lg" : " team-seg--sm"}`}
+      role="group"
+      aria-label={ariaLabel || "Роль"}
+    >
+      {(
+        [
+          { id: "owner" as const, label: "Власник" },
+          { id: "admin" as const, label: "Адмін" },
+        ] as const
+      ).map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          className={`team-seg__btn${value === opt.id ? " team-seg__btn--on" : ""}`}
+          disabled={disabled}
+          aria-pressed={value === opt.id}
+          onClick={() => {
+            if (value !== opt.id) onChange(opt.id);
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TeamFancySelect({
+  value,
+  options,
+  disabled,
+  onChange,
+  "aria-label": ariaLabel,
+}: {
+  value: string;
+  options: FancyOption[];
+  disabled?: boolean;
+  onChange: (next: string) => void;
+  "aria-label"?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const current = options.find((o) => o.value === value) || options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className={`team-dd${open ? " team-dd--open" : ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="team-dd__trigger"
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="team-dd__label">{current?.label || "—"}</span>
+        <ChevronDown size={14} className="team-dd__chev" aria-hidden />
+      </button>
+      {open ? (
+        <div className="team-dd__menu" role="listbox">
+          {options.map((opt) => {
+            const on = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="option"
+                aria-selected={on}
+                className={`team-dd__option${on ? " team-dd__option--on" : ""}`}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+              >
+                <span>{opt.label}</span>
+                {on ? <Check size={14} className="team-dd__check" aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function initialFrom(name: string, email: string): string {
   const s = (name || email || "?").trim();
@@ -405,18 +524,12 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                       </div>
                     </div>
                     <div className="team-member__actions">
-                      <select
-                        className="team-select"
+                      <TeamRoleSeg
                         value={m.role}
                         disabled={saving}
-                        onChange={(e) =>
-                          void setMemberRole(m, e.target.value as "owner" | "admin")
-                        }
                         aria-label={`Роль ${m.name || m.email}`}
-                      >
-                        <option value="owner">Власник</option>
-                        <option value="admin">Адміністратор</option>
-                      </select>
+                        onChange={(next) => void setMemberRole(m, next)}
+                      />
                       <button
                         type="button"
                         className={`team-btn ${
@@ -485,16 +598,13 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                   {label}
                 </button>
               ))}
-              <select
-                className="team-select"
+              <TeamRoleSeg
                 value={role}
-                onChange={(e) => setRole(e.target.value as "owner" | "admin")}
+                size="lg"
                 disabled={!canAdd}
                 aria-label="Роль нового учасника"
-              >
-                <option value="admin">Роль: Адміністратор</option>
-                <option value="owner">Роль: Власник</option>
-              </select>
+                onChange={setRole}
+              />
             </div>
 
             {mode === "password" ? (
@@ -589,31 +699,27 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                 placeholder="Пошук у журналі…"
               />
             </div>
-            <select
-              className="team-select"
+            <TeamFancySelect
               value={personFilter}
-              onChange={(e) => setPersonFilter(e.target.value)}
               aria-label="Фільтр по людині"
-            >
-              <option value="all">Усі люди</option>
-              {peopleOptions.map(([id, label]) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <select
-              className="team-select"
+              onChange={setPersonFilter}
+              options={[
+                { value: "all", label: "Усі люди" },
+                ...peopleOptions.map(([id, label]) => ({ value: id, label })),
+              ]}
+            />
+            <TeamFancySelect
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as ActivityTypeFilter)}
               aria-label="Фільтр по типу"
-            >
-              <option value="all">Усі типи</option>
-              <option value="booking">Броні</option>
-              <option value="settings">Налаштування</option>
-              <option value="team">Команда</option>
-              <option value="other">Інше</option>
-            </select>
+              onChange={(next) => setTypeFilter(next as ActivityTypeFilter)}
+              options={[
+                { value: "all", label: "Усі типи" },
+                { value: "booking", label: "Броні" },
+                { value: "settings", label: "Налаштування" },
+                { value: "team", label: "Команда" },
+                { value: "other", label: "Інше" },
+              ]}
+            />
           </div>
 
           {activityLoading && activityItems.length === 0 ? (
