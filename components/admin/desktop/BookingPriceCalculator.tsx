@@ -533,6 +533,7 @@ export function BookingPriceCalculator({
       totalPrice: Math.max(0, Math.round(displayTotal)),
       basePriceTotal: base > 0 ? base : Math.max(0, Math.round(displayTotal)),
       nights,
+      nightlyBasePrices: computed.nightlyBasePrices,
     });
   }, [
     prepayPolicy,
@@ -541,6 +542,7 @@ export function BookingPriceCalculator({
     manualLines.base,
     amountToDiscount,
     displayTotal,
+    computed.nightlyBasePrices,
   ]);
 
   useEffect(() => {

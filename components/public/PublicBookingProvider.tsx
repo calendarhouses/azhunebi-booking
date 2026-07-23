@@ -865,6 +865,7 @@ export function PublicBookingProvider({
       totalPrice: calc.totalPrice,
       basePriceTotal: calc.basePriceTotal,
       nights: calc.nights,
+      nightlyBasePrices: calc.nightlyBasePrices,
     });
     return {
       price: {

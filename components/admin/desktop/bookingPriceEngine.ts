@@ -236,6 +236,8 @@ export type BookingPriceResult = {
   requiredMinNights: number;
   restrWarningHtml: string;
   basePriceTotal: number;
+  /** Базова ціна кожної ночі (порядок заїзду) — для передплати «N діб». */
+  nightlyBasePrices: number[];
   extraGuestFee: number;
   petFee: number;
   dayGuestFee: number;
@@ -300,6 +302,7 @@ export function computeBookingPrice(params: {
     requiredMinNights: 0,
     restrWarningHtml: "",
     basePriceTotal: 0,
+    nightlyBasePrices: [],
     extraGuestFee: 0,
     petFee: 0,
     dayGuestFee: 0,
@@ -357,6 +360,7 @@ export function computeBookingPrice(params: {
     : "";
 
   let basePriceTotal = 0;
+  const nightlyBasePrices: number[] = [];
   const children = Math.max(0, params.children ?? 0);
   const pricingModel = roomPricingModel(room);
   const guestMultiplier = Math.max(1, pricingModel === "per_guest" ? params.guests + children : 0);
@@ -365,12 +369,13 @@ export function computeBookingPrice(params: {
     const curr = new Date(d1);
     curr.setDate(curr.getDate() + i);
     const dayPrice = getDayPrice(room, curr, customPrices);
+    let nightAmount = dayPrice;
     if (pricingModel === "per_guest") {
       const unit = room.pricePerGuest != null ? Number(room.pricePerGuest) : dayPrice;
-      basePriceTotal += unit * guestMultiplier;
-    } else {
-      basePriceTotal += dayPrice;
+      nightAmount = unit * guestMultiplier;
     }
+    nightlyBasePrices.push(Math.max(0, Math.round(nightAmount)));
+    basePriceTotal += nightAmount;
   }
 
   let guests = params.guests;
@@ -531,6 +536,7 @@ export function computeBookingPrice(params: {
     requiredMinNights,
     restrWarningHtml,
     basePriceTotal,
+    nightlyBasePrices,
     extraGuestFee,
     petFee,
     dayGuestFee,

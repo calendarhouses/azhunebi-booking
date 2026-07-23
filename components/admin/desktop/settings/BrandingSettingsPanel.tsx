@@ -31,7 +31,7 @@ import "../settings/settings-additional-services.css";
 
 const PREPAYMENT_MODES = [
   { mode: "percent" as const, label: "Відсоток", hint: "від суми броні", Icon: Percent },
-  { mode: "nights" as const, label: "Доби", hint: "проживання", Icon: Moon },
+  { mode: "nights" as const, label: "Доби", hint: "перші ночі за тарифом", Icon: Moon },
   { mode: "fixed" as const, label: "Фіксована", hint: "сума в ₴", Icon: Banknote },
 ];
 
@@ -369,7 +369,7 @@ export function BrandingSettingsPanel({
                     {prepaymentPolicy.mode === "percent"
                       ? "Відсоток від загальної суми"
                       : prepaymentPolicy.mode === "nights"
-                        ? "Кількість діб проживання"
+                        ? "Кількість перших ночей за тарифом"
                         : "Сума передплати"}
                   </span>
                   <div

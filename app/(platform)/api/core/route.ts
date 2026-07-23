@@ -1030,6 +1030,7 @@ async function calculateBookingMath(
   }
 
   let roomBasePriceTotal = 0;
+  const nightlyBasePrices: number[] = [];
   for (let i = 0; i < nights; i++) {
     const curr = new Date(d1);
     curr.setDate(curr.getDate() + i);
@@ -1039,6 +1040,8 @@ async function calculateBookingMath(
     let dayPrice = isWeekend ? roomConfig.priceWeekend : roomConfig.priceWeekday;
     const cp = customPrices[String(roomConfig.id)];
     if (cp?.[dateStr]) dayPrice = cp[dateStr];
+    dayPrice = Math.max(0, Math.round(Number(dayPrice) || 0));
+    nightlyBasePrices.push(dayPrice);
     roomBasePriceTotal += dayPrice;
   }
 
@@ -1073,6 +1076,7 @@ async function calculateBookingMath(
     totalPrice,
     basePriceTotal: roomBasePriceTotal,
     nights,
+    nightlyBasePrices,
   });
 
   return {

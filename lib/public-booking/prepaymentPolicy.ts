@@ -47,9 +47,59 @@ export function formatPrepaymentGuestLabel(policy: PrepaymentPolicy): string {
   return `Передплата ${formatPrepaymentLabel(policy)}`;
 }
 
+/** Сума перших N ночей з тарифу (не середнє по всій броні). */
+export function sumFirstNightsBase(
+  nightlyBasePrices: number[] | undefined,
+  nightCount: number
+): number {
+  if (!nightlyBasePrices?.length || nightCount <= 0) return 0;
+  const n = Math.min(Math.round(nightCount), nightlyBasePrices.length);
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    sum += Math.max(0, Math.round(Number(nightlyBasePrices[i]) || 0));
+  }
+  return sum;
+}
+
+/** Ціни ночей у порядку заїзду з weekday/weekend + customPrices. */
+export function buildStayNightlyBasePrices(opts: {
+  checkIn: Date;
+  nights: number;
+  priceWeekday: number;
+  priceWeekend: number;
+  roomId?: string | number | null;
+  customPrices?: Record<string, Record<string, number>> | null;
+}): number[] {
+  const nights = Math.max(0, Math.round(opts.nights));
+  if (nights <= 0 || isNaN(opts.checkIn.getTime())) return [];
+  const rid = opts.roomId != null ? String(opts.roomId) : "";
+  const roomPrices =
+    (rid && opts.customPrices?.[rid]) ||
+    (rid && opts.customPrices?.[String(Number(rid))]) ||
+    undefined;
+  const out: number[] = [];
+  for (let i = 0; i < nights; i++) {
+    const d = new Date(opts.checkIn);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + i);
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    let price = isWeekend ? opts.priceWeekend : opts.priceWeekday;
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (roomPrices?.[ds] != null) price = Number(roomPrices[ds]) || price;
+    out.push(Math.max(0, Math.round(Number(price) || 0)));
+  }
+  return out;
+}
+
 export function calculatePrepaymentAmount(
   policy: PrepaymentPolicy,
-  opts: { totalPrice: number; basePriceTotal: number; nights: number }
+  opts: {
+    totalPrice: number;
+    basePriceTotal: number;
+    nights: number;
+    /** Ціни ночей у порядку заїзду (з календаря тарифів). Для mode=nights — перші N ночей. */
+    nightlyBasePrices?: number[];
+  }
 ): number {
   if (policy.value <= 0) return 0;
 
@@ -61,9 +111,15 @@ export function calculatePrepaymentAmount(
   }
 
   if (policy.mode === "nights") {
-    const nights = Math.max(1, opts.nights);
-    const nightRate = Math.round(Math.max(0, opts.basePriceTotal) / nights);
-    return Math.min(total, nightRate * Math.round(policy.value));
+    const stayNights = Math.max(1, opts.nights);
+    const nightsWanted = Math.min(Math.round(policy.value), stayNights);
+    const fromNights = sumFirstNightsBase(opts.nightlyBasePrices, nightsWanted);
+    if (fromNights > 0) {
+      return Math.min(total, fromNights);
+    }
+    // Fallback лише коли немає розбивки по ночах.
+    const nightRate = Math.round(Math.max(0, opts.basePriceTotal) / stayNights);
+    return Math.min(total, nightRate * nightsWanted);
   }
 
   const pct = Math.min(100, Math.round(policy.value));

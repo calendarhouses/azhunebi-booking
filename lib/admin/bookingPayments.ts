@@ -5,10 +5,12 @@ import {
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
 import {
+  buildStayNightlyBasePrices,
   calculatePrepaymentAmount,
   readPrepaymentPolicy,
   type PrepaymentPolicy,
 } from "@/lib/public-booking/prepaymentPolicy";
+import type { PublicBranding } from "@/lib/public-booking/types";
 
 export type { BookingPayment };
 
@@ -278,7 +280,8 @@ export function resolveBookingPrepayPaid(b: BookingRecord): number {
 }
 
 /** Очікувана передплата: збережене поле броні → політика брендингу → 50%.
- *  Якщо ще нічого не сплачено і є політика — беремо її (щоб не тягнути застарілі 50%). */
+ *  Якщо ще нічого не сплачено і є політика — беремо її (щоб не тягнути застарілі 50%).
+ *  Для mode=nights — сума перших N ночей з тарифу, не середнє. */
 export function resolveBookingExpectedPrepay(
   b: BookingRecord,
   total?: number,
@@ -286,6 +289,7 @@ export function resolveBookingExpectedPrepay(
     policy?: PrepaymentPolicy;
     basePriceTotal?: number;
     nights?: number;
+    nightlyBasePrices?: number[];
   }
 ): number {
   const bookingTotal = total ?? Math.round(Number(b.totalPrice) || 0);
@@ -309,6 +313,7 @@ export function resolveBookingExpectedPrepay(
       totalPrice: bookingTotal,
       basePriceTotal,
       nights,
+      nightlyBasePrices: opts.nightlyBasePrices,
     });
   };
 
@@ -333,10 +338,55 @@ export type BookingFinanceSummary = {
 function readBrandingPolicyFromWindow(): PrepaymentPolicy | undefined {
   if (typeof window === "undefined") return undefined;
   const w = window as Window & {
-    branding?: Record<string, unknown>;
+    branding?: PublicBranding;
   };
   if (!w.branding) return undefined;
   return readPrepaymentPolicy(w.branding);
+}
+
+function nightlyBasePricesForBookingFromWindow(b: BookingRecord): number[] | undefined {
+  if (typeof window === "undefined") return undefined;
+  const w = window as Window & {
+    roomsList?: Array<{
+      id?: number | string;
+      name?: string;
+      short?: string;
+      priceWeekday?: number;
+      priceWeekend?: number;
+    }>;
+    customPrices?: Record<string, Record<string, number>>;
+  };
+  const rooms = w.roomsList || [];
+  const roomId = b.roomId;
+  const cottage = String(b.cottage || "");
+  const room =
+    (roomId != null
+      ? rooms.find((r) => String(r.id) === String(roomId))
+      : undefined) ||
+    rooms.find(
+      (r) =>
+        cottage &&
+        (String(r.name || "") === cottage ||
+          String(r.short || "") === cottage ||
+          cottage.includes(String(r.name || "")) ||
+          cottage.includes(String(r.short || "")))
+    );
+  if (!room) return undefined;
+  const checkIn = parseSafeDate(String(b.checkIn || ""));
+  const checkOut = parseSafeDate(String(b.checkOut || ""));
+  if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return undefined;
+  const nights = Math.max(
+    1,
+    Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000)
+  );
+  return buildStayNightlyBasePrices({
+    checkIn,
+    nights,
+    priceWeekday: Number(room.priceWeekday) || 0,
+    priceWeekend: Number(room.priceWeekend) || 0,
+    roomId: room.id,
+    customPrices: w.customPrices || null,
+  });
 }
 
 export function resolveBookingFinanceSummary(b: BookingRecord): BookingFinanceSummary {
@@ -347,7 +397,13 @@ export function resolveBookingFinanceSummary(b: BookingRecord): BookingFinanceSu
   const prepayExpected = resolveBookingExpectedPrepay(
     b,
     total,
-    policy ? { policy } : undefined
+    policy
+      ? {
+          policy,
+          basePriceTotal: Math.round(Number(b.basePrice) || 0) || undefined,
+          nightlyBasePrices: nightlyBasePricesForBookingFromWindow(b),
+        }
+      : undefined
   );
   return {
     total,

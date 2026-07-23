@@ -39,7 +39,7 @@ import {
   resolveBookingExpectedPrepay,
   syncJournalTotals,
 } from "@/lib/admin/bookingPayments";
-import { readPrepaymentPolicy } from "@/lib/public-booking/prepaymentPolicy";
+import { buildStayNightlyBasePrices, readPrepaymentPolicy } from "@/lib/public-booking/prepaymentPolicy";
 import type { PublicBranding } from "@/lib/public-booking/types";
 import {
   defaultSpecialTariffState,
@@ -525,14 +525,41 @@ export function useBookingDrawer({
         surchargeMethod: savedPaymentTotals.surchargeMethod,
       });
       window._bookingOpenPayments = { prepay: savedPrepay, surcharge: savedSurcharge };
-      window._bookingExpectedPrepay = resolveBookingExpectedPrepay(
-        booking,
-        Math.round(Number(booking.totalPrice) || 0),
-        {
-          policy: readPrepaymentPolicy((settings.branding || {}) as PublicBranding),
-          basePriceTotal: Math.round(Number(booking.basePrice) || 0) || undefined,
-        }
-      );
+      {
+        const policy = readPrepaymentPolicy((settings.branding || {}) as PublicBranding);
+        const checkIn = normalizeDateToIso(booking.checkIn || "");
+        const checkOut = normalizeDateToIso(booking.checkOut || "");
+        const inDate = checkIn ? new Date(`${checkIn}T00:00:00`) : null;
+        const outDate = checkOut ? new Date(`${checkOut}T00:00:00`) : null;
+        const nights =
+          inDate &&
+          outDate &&
+          !isNaN(inDate.getTime()) &&
+          !isNaN(outDate.getTime())
+            ? Math.max(1, Math.round((outDate.getTime() - inDate.getTime()) / 86400000))
+            : 1;
+        const nightlyBasePrices =
+          matchedRoom && inDate && !isNaN(inDate.getTime())
+            ? buildStayNightlyBasePrices({
+                checkIn: inDate,
+                nights,
+                priceWeekday: Number(matchedRoom.priceWeekday) || 0,
+                priceWeekend: Number(matchedRoom.priceWeekend) || 0,
+                roomId: matchedRoom.id,
+                customPrices: settings.customPrices || null,
+              })
+            : undefined;
+        window._bookingExpectedPrepay = resolveBookingExpectedPrepay(
+          booking,
+          Math.round(Number(booking.totalPrice) || 0),
+          {
+            policy,
+            basePriceTotal: Math.round(Number(booking.basePrice) || 0) || undefined,
+            nights,
+            nightlyBasePrices,
+          }
+        );
+      }
       window._bookingAssignmentState =
         booking.assignmentState === "holding" ? "holding" : "assigned";
       window._bookingPayments = savedPayments;
@@ -602,6 +629,7 @@ export function useBookingDrawer({
       setLateTime,
       specialTariffToggles,
       settings.branding,
+      settings.customPrices,
       settings.customServicesList,
     ]
   );
