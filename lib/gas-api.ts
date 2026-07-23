@@ -41,7 +41,7 @@ export type GasApiError = {
   message?: string;
 };
 
-const GAS_FETCH_TIMEOUT_MS = 25_000;
+const GAS_FETCH_TIMEOUT_MS = 45_000;
 
 function gasFetchSignal(): AbortSignal | undefined {
   if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
@@ -335,6 +335,62 @@ export async function getSession(): Promise<GasSession | null> {
   } catch {
     setStoredAuthToken(null);
     return null;
+  }
+}
+
+/** Session + membership in one GAS call (faster admin boot, less lock contention). */
+export async function fetchAdminBoot(
+  authToken?: string | null
+): Promise<{
+  session: GasSession | null;
+  membership: TenantMembership | null;
+  error: string | null;
+}> {
+  const token = authToken ?? getStoredAuthToken();
+  if (!token) {
+    return { session: null, membership: null, error: null };
+  }
+
+  try {
+    const data = await gasFetch<{
+      user?: GasUser;
+      accessToken?: string;
+      membership?: TenantMembership;
+      error?: string;
+      message?: string;
+    }>({ action: "adminBoot" }, { authToken: token });
+
+    if (data.error || !data.user) {
+      setStoredAuthToken(null);
+      return {
+        session: null,
+        membership: null,
+        error: data.message || data.error || "Сесія закінчилась",
+      };
+    }
+
+    const session: GasSession = {
+      user: data.user,
+      accessToken: data.accessToken || token,
+    };
+
+    if (!data.membership?.tenantId) {
+      return {
+        session,
+        membership: null,
+        error:
+          data.message ||
+          "Ваш обліковий запис не привʼязаний до комплексу. Зверніться до підтримки.",
+      };
+    }
+
+    return { session, membership: data.membership, error: null };
+  } catch (err) {
+    return {
+      session: null,
+      membership: null,
+      error: err instanceof Error ? err.message : "Помилка завантаження профілю",
+    };
   }
 }
 

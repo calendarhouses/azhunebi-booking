@@ -759,27 +759,29 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                 placeholder="Пошук у журналі…"
               />
             </div>
-            <TeamFancySelect
-              value={personFilter}
-              aria-label="Фільтр по людині"
-              onChange={setPersonFilter}
-              options={[
-                { value: "all", label: "Усі люди" },
-                ...peopleOptions.map(([id, label]) => ({ value: id, label })),
-              ]}
-            />
-            <TeamFancySelect
-              value={typeFilter}
-              aria-label="Фільтр по типу"
-              onChange={(next) => setTypeFilter(next as ActivityTypeFilter)}
-              options={[
-                { value: "all", label: "Усі типи" },
-                { value: "booking", label: "Броні" },
-                { value: "settings", label: "Налаштування" },
-                { value: "team", label: "Команда" },
-                { value: "other", label: "Інше" },
-              ]}
-            />
+            <div className="team-filters__row">
+              <TeamFancySelect
+                value={personFilter}
+                aria-label="Фільтр по людині"
+                onChange={setPersonFilter}
+                options={[
+                  { value: "all", label: "Усі люди" },
+                  ...peopleOptions.map(([id, label]) => ({ value: id, label })),
+                ]}
+              />
+              <TeamFancySelect
+                value={typeFilter}
+                aria-label="Фільтр по типу"
+                onChange={(next) => setTypeFilter(next as ActivityTypeFilter)}
+                options={[
+                  { value: "all", label: "Усі типи" },
+                  { value: "booking", label: "Броні" },
+                  { value: "settings", label: "Налаштування" },
+                  { value: "team", label: "Команда" },
+                  { value: "other", label: "Інше" },
+                ]}
+              />
+            </div>
           </div>
 
           {activityLoading && activityItems.length === 0 ? (

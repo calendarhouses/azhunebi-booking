@@ -10,8 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
-  fetchMembership,
-  getSession,
+  fetchAdminBoot,
   getStoredAuthToken,
   GAS_AUTH_TOKEN_KEY,
   signOut as gasSignOut,
@@ -101,26 +100,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshMembership = useCallback(async () => {
     const token = getStoredAuthToken();
-    const [session, membershipResult] = await Promise.all([
-      getSession(),
-      token
-        ? fetchMembership(token)
-        : Promise.resolve({ membership: null as TenantMembership | null, error: null as string | null }),
-    ]);
-    setUser(session?.user ?? null);
-    if (!session) {
+    if (!token) {
+      setUser(null);
       applyMembership(null);
       setError(null);
       return;
     }
-    const { membership: m, error: err } =
-      membershipResult.membership || membershipResult.error
-        ? membershipResult
-        : await fetchMembership(session.accessToken);
-    applyMembership(m);
-    setError(err);
-    if (session?.accessToken && m?.tenantId) {
-      void prefetchAdminInitData(m.tenantId, session.accessToken);
+    const boot = await fetchAdminBoot(token);
+    setUser(boot.session?.user ?? null);
+    if (!boot.session) {
+      applyMembership(null);
+      setError(boot.error);
+      return;
+    }
+    applyMembership(boot.membership);
+    setError(boot.error);
+    if (boot.session.accessToken && boot.membership?.tenantId) {
+      void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
     }
   }, [applyMembership]);
 
@@ -132,39 +128,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = getStoredAuthToken();
       const lastTenantId = getLastAdminTenantId();
+      // Start heavy init immediately in parallel with auth boot.
       if (token && lastTenantId) {
         setAdminTenantId(lastTenantId);
         void prefetchAdminInitData(lastTenantId, token);
       }
 
-      // Session + membership in parallel when token exists (was sequential waterfall).
-      const [session, membershipResult] = await Promise.all([
-        getSession(),
-        token
-          ? fetchMembership(token)
-          : Promise.resolve({ membership: null as TenantMembership | null, error: null as string | null }),
-      ]);
-
-      if (cancelled) return;
-
-      setUser(session?.user ?? null);
-
-      if (!session) {
+      if (!token) {
+        if (cancelled) return;
+        setUser(null);
         applyMembership(null);
         setError(null);
         setLoading(false);
         return;
       }
 
-      const { membership: m, error: err } =
-        membershipResult.membership || membershipResult.error
-          ? membershipResult
-          : await fetchMembership(session.accessToken);
+      const boot = await fetchAdminBoot(token);
       if (cancelled) return;
-      applyMembership(m);
-      setError(err);
-      if (m?.tenantId) {
-        void prefetchAdminInitData(m.tenantId, session.accessToken);
+
+      setUser(boot.session?.user ?? null);
+
+      if (!boot.session) {
+        applyMembership(null);
+        setError(boot.error);
+        setLoading(false);
+        return;
+      }
+
+      applyMembership(boot.membership);
+      setError(boot.error);
+      if (boot.membership?.tenantId) {
+        // Ensure prefetch is running for the confirmed tenant (may already be in flight).
+        void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
       }
       setLoading(false);
     };

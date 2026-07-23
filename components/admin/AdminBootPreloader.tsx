@@ -9,7 +9,7 @@ import {
 } from "@/lib/admin/adminPreloaderLogo";
 
 export function AdminBootPreloader() {
-  const { loading: authLoading, error, ready, membership } = useAuth();
+  const { loading: authLoading, error, ready, membership, preloaderLogoUrl } = useAuth();
   const boot = useAdminBootState();
 
   const authBlocked = !authLoading && (!ready || !!error);
@@ -20,6 +20,6 @@ export function AdminBootPreloader() {
   const alt = membership?.tenantName || ADMIN_PRELOADER_LOGO_ALT;
 
   return (
-    <AdminPreloader visible={visible} logoUrl={ADMIN_PRELOADER_LOGO_SRC} alt={alt} />
+    <AdminPreloader visible={visible} logoUrl={preloaderLogoUrl || ADMIN_PRELOADER_LOGO_SRC} alt={alt} />
   );
 }
