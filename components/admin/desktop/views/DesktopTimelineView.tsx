@@ -138,6 +138,8 @@ type TimelineSelectionPointerSession = {
   startCell: HTMLElement;
   track: HTMLDivElement;
   selecting: boolean;
+  /** True after finger/mouse moved enough to extend beyond the tap cell. */
+  rangeMoved?: boolean;
   /** Android: finger moved past threshold → treat as scroll. */
   scrolled?: boolean;
 };
@@ -146,6 +148,8 @@ type TimelineSelectionPointerSession = {
 const TOUCH_SELECT_HOLD_MS = 500;
 const ANDROID_TOUCH_SELECT_HOLD_MS = 1200;
 const TOUCH_SELECT_MOVE_CANCEL_PX = 10;
+/** Ignore tiny jitter — keep 1-night tap until a real drag. */
+const SELECTION_RANGE_MOVE_PX = 12;
 
 function buildDayAtIndex(startDate: Date, index: number, today: Date): TimelineDay {
   const d = new Date(startDate);
@@ -875,12 +879,17 @@ export function DesktopTimelineView({
       dragAutoScrollRafRef.current = null;
     }
     const selection = gridSelectionRef.current;
+    const session = selectionPointerSessionRef.current;
     if (selection.dragRoom && selection.dragStart && selection.dragEnd) {
-      const sorted = [selection.dragStart, selection.dragEnd].sort();
+      // Tap without drag → exactly one night from the start cell.
+      const start = selection.dragStart;
+      const end = session?.rangeMoved ? selection.dragEnd : selection.dragStart;
+      const sorted = [start, end].sort();
       const checkInStr = sorted[0];
       const checkOutStr = shiftDateKey(sorted[sorted.length - 1], 1);
       onCreateBooking(selection.dragRoom, checkInStr, checkOutStr);
     }
+    selectionPointerSessionRef.current = null;
     setTimeout(clearSelection, 300);
   }, [
     onCreateBooking,
@@ -1670,15 +1679,25 @@ export function DesktopTimelineView({
   );
 
   const updateTimelineSelection = useCallback(
-    (roomKey: string, clientX: number, _clientY: number) => {
+    (roomKey: string, clientX: number, clientY: number) => {
       const session = selectionPointerSessionRef.current;
       if (!session || session.roomKey !== roomKey) return;
+
+      const dist = Math.hypot(clientX - session.startX, clientY - session.startY);
+      if (!session.rangeMoved) {
+        if (dist < SELECTION_RANGE_MOVE_PX) {
+          // Keep exact tap range (1 night) — never expand from hit-test jitter.
+          return;
+        }
+        session.rangeMoved = true;
+      }
 
       const hit = resolveTimelineCellFromClientX(
         session.track,
         clientX,
         cellWidth,
-        renderDays
+        renderDays,
+        isVirtualTimeline ? virtualWindow.startIndex : 0
       );
       if (!hit) return;
 
@@ -1706,7 +1725,13 @@ export function DesktopTimelineView({
       setDragStart(next.start);
       setDragEnd(next.end);
     },
-    [constraintsByRoom, cellWidth, renderDays]
+    [
+      constraintsByRoom,
+      cellWidth,
+      renderDays,
+      isVirtualTimeline,
+      virtualWindow.startIndex,
+    ]
   );
   updateTimelineSelectionRef.current = updateTimelineSelection;
 
@@ -1988,6 +2013,7 @@ export function DesktopTimelineView({
                 maxWidth: cellWidth,
                 boxSizing: "border-box",
                 borderRight: "none",
+                boxShadow: "inset -1px 0 0 #D1D5DB",
               }}
             >
               {day.date.getDate()} <span>{DAYS_LABELS[day.date.getDay()]}</span>

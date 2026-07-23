@@ -241,21 +241,28 @@ export function resolveSelectionNightFromPointer(
   return isRightHalf ? cellDate : shiftDateKey(cellDate, -1);
 }
 
-/** Надійніший hit-test по X (без elementFromPoint — ламається на Android). */
+/** Надійніший hit-test по X (без elementFromPoint — ламається на Android).
+ *  `days` may be a virtual window slice — pass `virtualStartIndex` so X maps to absolute days. */
 export function resolveTimelineCellFromClientX(
   trackEl: HTMLElement,
   clientX: number,
   cellWidth: number,
-  days: { dateString: string }[]
+  days: { dateString: string }[],
+  virtualStartIndex = 0
 ): { date: string; cellRect: Pick<DOMRect, "left" | "width"> } | null {
   if (cellWidth <= 0 || days.length === 0) return null;
   const rect = trackEl.getBoundingClientRect();
   const x = clientX - rect.left;
   if (x < 0) return null;
-  const index = Math.min(days.length - 1, Math.floor(x / cellWidth));
-  const cellLeft = rect.left + index * cellWidth;
+  const absoluteIndex = Math.floor(x / cellWidth);
+  const localIndex = Math.max(
+    0,
+    Math.min(days.length - 1, absoluteIndex - virtualStartIndex)
+  );
+  const cellAbsoluteIndex = virtualStartIndex + localIndex;
+  const cellLeft = rect.left + cellAbsoluteIndex * cellWidth;
   return {
-    date: days[index].dateString,
+    date: days[localIndex].dateString,
     cellRect: { left: cellLeft, width: cellWidth },
   };
 }

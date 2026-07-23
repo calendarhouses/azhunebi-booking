@@ -923,7 +923,13 @@
             height: var(--timeline-dates-height, 60px);
             min-height: var(--timeline-dates-height, 60px);
             border-bottom: 1px solid #E5E7EB;
-            background: white;
+            background-color: #fff;
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent calc(var(--timeline-cell-width, 60px) - 1px),
+                #D1D5DB calc(var(--timeline-cell-width, 60px) - 1px),
+                #D1D5DB var(--timeline-cell-width, 60px)
+            );
             width: max-content;
             flex-shrink: 0;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
@@ -936,7 +942,8 @@
             align-items: center;
             justify-content: center;
             gap: 0;
-            border-right: 1px solid #F3F4F6;
+            border-right: none;
+            box-shadow: inset -1px 0 0 #D1D5DB;
             font-size: 14px;
             line-height: 1;
             font-weight: 600;
@@ -1052,15 +1059,24 @@
             align-items: stretch;
             transition: height 300ms ease-in-out, min-height 300ms ease-in-out;
             overflow: visible;
+            background-color: #fff;
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent calc(var(--timeline-cell-width, 60px) - 1px),
+                #D1D5DB calc(var(--timeline-cell-width, 60px) - 1px),
+                #D1D5DB var(--timeline-cell-width, 60px)
+            );
         }
         .timeline-cell {
             position: relative;
             overflow: visible;
-            width: var(--timeline-cell-width, 60px); flex-shrink: 0; border-right: 1px solid #F3F4F6;
+            width: var(--timeline-cell-width, 60px); flex-shrink: 0;
+            border-right: none;
+            box-shadow: inset -1px 0 0 #D1D5DB;
             height: 100%; min-height: var(--timeline-row-height, 70px); align-self: stretch; box-sizing: border-box;
             transition: min-height 300ms ease-in-out;
         }
-        .timeline-cell.weekend { background-color: #F9FAFB; }
+        .timeline-cell.weekend { background-color: rgba(249, 250, 251, 0.92); }
 
         /* Забороняємо виділяти текст, коли тягнемо мишкою */
         .timeline-wrapper {
@@ -1072,9 +1088,9 @@
         #timelineGrid .timeline-cell.cell-selected {
             background-color: transparent !important;
             border: none !important;
-            border-right: 1px solid #F3F4F6 !important;
+            border-right: none !important;
             border-radius: 0 !important;
-            box-shadow: none !important;
+            box-shadow: inset -1px 0 0 #D1D5DB !important;
             transform: none !important;
             z-index: 6;
         }

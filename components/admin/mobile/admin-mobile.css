@@ -656,7 +656,7 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .timeline-dates { display: flex; height: 56px; border-bottom: 1px solid #E5E7EB; background: white; width: max-content; }
 
 /* ЗБІЛЬШЕНО: Ширина клітинки 60px */
-.timeline-date { width: 60px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid #F3F4F6; font-size: 14px; font-weight: 700; position: relative; }
+.timeline-date { width: 60px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid #D1D5DB; font-size: 14px; font-weight: 700; position: relative; }
 .timeline-date span { font-size: 11px; font-weight: 500; color: #9CA3AF; margin-top: 2px;}
 .timeline-date.today { color: #DC2626; background: #FEF2F2; }
 .timeline-date.today span { color: #DC2626; }
@@ -680,7 +680,7 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 
 .timeline-rows { position: relative; width: max-content; }
 .timeline-row-bg { display: flex; height: 60px; border-bottom: 1px solid #E5E7EB; position: relative; }
-.timeline-cell { width: 60px; flex-shrink: 0; border-right: 1px solid #F3F4F6; position: relative; }
+.timeline-cell { width: 60px; flex-shrink: 0; border-right: 1px solid #D1D5DB; position: relative; }
 .timeline-cell.weekend { background-color: #F9FAFB; }
 .timeline-cell.today {
   background-image: linear-gradient(
@@ -1736,6 +1736,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-start,
 .boso-admin-mobile .timeline-wrapper--mobile-board #timelineGrid .timeline-cell.cell-selected-tail {
   z-index: 2 !important;
+  box-shadow: inset -1px 0 0 #D1D5DB !important;
 }
 
 /* Мобільна шахматка: виділення як картки (половинки клітинок) */
@@ -2986,6 +2987,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
   border-right: none !important;
+  box-shadow: inset -1px 0 0 #D1D5DB !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -3004,8 +3006,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background-image: repeating-linear-gradient(
     to right,
     transparent calc(var(--timeline-cell-width, 60px) - 1px),
-    #F3F4F6 calc(var(--timeline-cell-width, 60px) - 1px),
-    #F3F4F6 var(--timeline-cell-width, 60px)
+    #D1D5DB calc(var(--timeline-cell-width, 60px) - 1px),
+    #D1D5DB var(--timeline-cell-width, 60px)
   ) !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -3016,6 +3018,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   min-width: var(--timeline-cell-width, 60px) !important;
   max-width: var(--timeline-cell-width, 60px) !important;
   border-right: none !important;
+  box-shadow: inset -1px 0 0 #D1D5DB !important;
   box-sizing: border-box !important;
   position: absolute !important;
   margin: 0 !important;
@@ -3035,8 +3038,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   background-image: repeating-linear-gradient(
     to right,
     transparent calc(var(--timeline-cell-width, 60px) - 1px),
-    #F3F4F6 calc(var(--timeline-cell-width, 60px) - 1px),
-    #F3F4F6 var(--timeline-cell-width, 60px)
+    #D1D5DB calc(var(--timeline-cell-width, 60px) - 1px),
+    #D1D5DB var(--timeline-cell-width, 60px)
   ) !important;
 }
 
@@ -3089,7 +3092,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.weekend {
-  background-color: #F9FAFB !important;
+  background-color: rgba(249, 250, 251, 0.92) !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-cell.today {
@@ -6723,6 +6726,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   max-width: var(--timeline-cell-width, 60px) !important;
   box-sizing: border-box !important;
   border-right: none !important;
+  box-shadow: inset -1px 0 0 #D1D5DB !important;
   margin: 0 !important;
   padding: 0 !important;
 }
