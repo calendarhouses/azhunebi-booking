@@ -32,6 +32,43 @@ type ActivityTypeFilter = "all" | "booking" | "settings" | "team" | "other";
 
 type FancyOption = { value: string; label: string };
 
+function TeamLoader({
+  variant = "members",
+  label = "Завантажуємо",
+}: {
+  variant?: "members" | "journal";
+  label?: string;
+}) {
+  const rows = variant === "journal" ? 3 : 2;
+  return (
+    <div className="team-loader" role="status" aria-live="polite" aria-label={label}>
+      <div className="team-loader__head">
+        <span className="team-loader__ring" aria-hidden />
+        <span className="team-loader__label">
+          {label}
+          <span className="team-loader__dots" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </span>
+        </span>
+      </div>
+      <div className={`team-loader__skel team-loader__skel--${variant}`}>
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="team-loader__card" aria-hidden>
+            <div className="team-loader__avatar" />
+            <div className="team-loader__lines">
+              <span className="team-loader__line team-loader__line--lg" />
+              <span className="team-loader__line team-loader__line--md" />
+              <span className="team-loader__line team-loader__line--sm" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TeamRoleSeg({
   value,
   disabled,
@@ -509,7 +546,7 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
             </div>
 
             {loading ? (
-              <p className="team-loading">Завантаження…</p>
+              <TeamLoader variant="members" label="Завантажуємо команду" />
             ) : sorted.length === 0 ? (
               <p className="team-empty">Поки немає учасників</p>
             ) : (
@@ -746,7 +783,7 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
           </div>
 
           {activityLoading && activityItems.length === 0 ? (
-            <p className="team-loading">Завантаження…</p>
+            <TeamLoader variant="journal" label="Завантажуємо журнал" />
           ) : filteredActivity.length === 0 ? (
             <p className="team-empty">
               {activityItems.length === 0
