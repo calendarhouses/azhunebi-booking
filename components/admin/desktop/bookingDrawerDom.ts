@@ -95,7 +95,11 @@ export function fillSurcharge(): void {
 
 export function setHalfPrepayment(): void {
   const total = Number((document.getElementById("adminTotalPrice") as HTMLInputElement)?.value) || 0;
-  (document.getElementById("adminPrepayAmount") as HTMLInputElement).value = String(Math.round(total / 2));
+  const chip = document.getElementById("prepayBtnText");
+  const fromPolicy = Number(chip?.textContent?.replace(/\s/g, "") || "");
+  const amount =
+    Number.isFinite(fromPolicy) && fromPolicy > 0 ? fromPolicy : Math.round(total / 2);
+  (document.getElementById("adminPrepayAmount") as HTMLInputElement).value = String(amount);
   calculateBalanceLive();
 }
 

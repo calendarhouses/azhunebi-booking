@@ -188,6 +188,7 @@ export interface BookingRecord {
   earlyFee?: number | string;
   lateFee?: number | string;
   basePrice?: number | string;
+  discountAmount?: number | string;
   prepayAmount?: number | string;
   surchargeAmount?: number | string;
   prepayMethod?: string;

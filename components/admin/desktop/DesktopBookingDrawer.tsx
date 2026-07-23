@@ -139,6 +139,18 @@ export function DesktopBookingDrawer({
     setInstantDiscountMode("amount");
   }, [form.checkIn, form.checkOut, form.cottage, form.roomId, editingRow, editingBookingId]);
 
+  const hydrateInstantDiscount = useCallback(
+    (amount: number) => {
+      const clamped = Math.min(Math.max(0, Math.round(amount)), nightlyBaseSum || amount);
+      setInstantDiscountMode("amount");
+      setInstantDiscountAmount(clamped);
+      setInstantDiscountPercent(
+        nightlyBaseSum > 0 ? Math.round((clamped / nightlyBaseSum) * 100) : 0
+      );
+    },
+    [nightlyBaseSum]
+  );
+
   const handleNightlyPriceChange = useCallback((dateKey: string, price: number) => {
     setNightlyPriceOverrides((prev) => ({
       ...prev,
@@ -488,6 +500,7 @@ export function DesktopBookingDrawer({
                 nightlyBaseSum={nightlyOverridesActive ? nightlyBaseSum : null}
                 onClearNightlyPriceOverrides={clearNightlyPriceOverrides}
                 instantDiscountAmount={instantDiscountAmount}
+                onInstantDiscountHydrate={hydrateInstantDiscount}
               />
               )}
             </div>

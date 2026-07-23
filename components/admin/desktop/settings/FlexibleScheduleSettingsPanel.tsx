@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Clock3, ShieldCheck } from "lucide-react";
 import { showToast } from "../adminGlobals";
 import type { AdminModalsApi } from "../useAdminModals";
@@ -25,23 +25,30 @@ function formatFeeSummary(form: FlexibleScheduleSettings): string {
   return `${percentOfDayToDisplay(form.percentOfDay)}% від ціни дня`;
 }
 
-export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<FlexibleScheduleSettings>(() => ({
+function mergeFlexibleForm(settings: AdminSettingsPayload): FlexibleScheduleSettings {
+  return {
     ...DEFAULT_FLEXIBLE_SCHEDULE,
     ...(settings.flexibleScheduleSettings || {}),
-  }));
+  };
+}
+
+export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<FlexibleScheduleSettings>(() => mergeFlexibleForm(settings));
   const [saving, setSaving] = useState(false);
+
+  // Keep form in sync when settings arrive/refresh (avoid saving stale DEFAULT 1000 over 1500).
+  useEffect(() => {
+    if (open) return;
+    setForm(mergeFlexibleForm(settings));
+  }, [settings.flexibleScheduleSettings, open, settings]);
 
   const feeSummary = useMemo(() => formatFeeSummary(form), [form]);
   const percentDisplay = percentOfDayToDisplay(form.percentOfDay);
 
   const toggleOpen = () => {
     if (!open) {
-      setForm({
-        ...DEFAULT_FLEXIBLE_SCHEDULE,
-        ...(settings.flexibleScheduleSettings || {}),
-      });
+      setForm(mergeFlexibleForm(settings));
     }
     setOpen((value) => !value);
   };

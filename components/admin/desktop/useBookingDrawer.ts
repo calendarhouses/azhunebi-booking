@@ -36,8 +36,11 @@ import {
 } from "./settings/additionalServicesLogic";
 import {
   getBookingPayments,
+  resolveBookingExpectedPrepay,
   syncJournalTotals,
 } from "@/lib/admin/bookingPayments";
+import { readPrepaymentPolicy } from "@/lib/public-booking/prepaymentPolicy";
+import type { PublicBranding } from "@/lib/public-booking/types";
 import {
   defaultSpecialTariffState,
   enabledSpecialTariffIds,
@@ -522,7 +525,14 @@ export function useBookingDrawer({
         surchargeMethod: savedPaymentTotals.surchargeMethod,
       });
       window._bookingOpenPayments = { prepay: savedPrepay, surcharge: savedSurcharge };
-      window._bookingExpectedPrepay = Number(booking.prepayAmount) || 0;
+      window._bookingExpectedPrepay = resolveBookingExpectedPrepay(
+        booking,
+        Math.round(Number(booking.totalPrice) || 0),
+        {
+          policy: readPrepaymentPolicy((settings.branding || {}) as PublicBranding),
+          basePriceTotal: Math.round(Number(booking.basePrice) || 0) || undefined,
+        }
+      );
       window._bookingAssignmentState =
         booking.assignmentState === "holding" ? "holding" : "assigned";
       window._bookingPayments = savedPayments;
@@ -591,6 +601,7 @@ export function useBookingDrawer({
       setEarlyTime,
       setLateTime,
       specialTariffToggles,
+      settings.branding,
       settings.customServicesList,
     ]
   );

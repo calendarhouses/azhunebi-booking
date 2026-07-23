@@ -659,6 +659,7 @@ function mapBookingRowToApi(row: SupabaseBookingRow, listIndex: number) {
     earlyFee: financeFeeValue(fd.earlyFee),
     lateFee: financeFeeValue(fd.lateFee),
     basePrice: financeFeeValue(fd.basePrice),
+    discountAmount: financeFeeValue(fd.discountAmount),
     prepayAmount: financeFeeValue(fd.prepayAmount),
     prepayMethod: fd.prepayMethod ?? "",
     surchargeAmount: financeFeeValue(fd.surchargeAmount),

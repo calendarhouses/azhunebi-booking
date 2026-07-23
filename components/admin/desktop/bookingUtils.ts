@@ -127,12 +127,13 @@ export function getBookingBadgeClass(booking: BookingRecord): string {
   return "new";
 }
 
-/** Сума на картці шахматки: жовтий «очікує», зелений «оплачено», червоний «борг». */
+/** Сума на картці шахматки: жовтий «не оплачено», зелений «оплачено», червоний «борг».
+ *  Неоплачена бронь показує ПОВНУ вартість (не суму передплати). */
 export function getTimelineFinBadge(
   booking: BookingRecord
 ): { text: string; bg: string; color: string } {
   const statusClass = getTimelineStatusClass(booking);
-  const { total, paid, balance, prepayExpected } = resolveBookingFinanceSummary(booking);
+  const { total, paid, balance } = resolveBookingFinanceSummary(booking);
 
   if (statusClass === "status-cancelled") {
     return { text: "—", bg: "rgba(0,0,0,0.05)", color: "#9CA3AF" };
@@ -141,15 +142,13 @@ export function getTimelineFinBadge(
     return { text: total > 0 ? `${Math.round(total)} грн` : "—", bg: "rgba(255,255,255,0.3)", color: "#1A332A" };
   }
   if (statusClass === "status-pending-review") {
-    const prepay = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
-    return { text: prepay > 0 ? `${prepay} грн` : "—", bg: "#F59E0B", color: "#78350F" };
+    return { text: total > 0 ? `${Math.round(total)} грн` : "—", bg: "#F59E0B", color: "#78350F" };
   }
   if (total === 0) {
     return { text: "—", bg: "rgba(255,255,255,0.3)", color: "#4B5563" };
   }
   if (paid === 0) {
-    const advanceAmount = prepayExpected > 0 ? prepayExpected : Math.round(total / 2);
-    return { text: `${advanceAmount} грн`, bg: "#F59E0B", color: "#78350F" };
+    return { text: `${Math.round(total)} грн`, bg: "#F59E0B", color: "#78350F" };
   }
   if (balance <= 0) {
     return { text: `${Math.round(total)} грн`, bg: "#16A34A", color: "#FFFFFF" };

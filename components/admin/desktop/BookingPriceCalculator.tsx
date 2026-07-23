@@ -40,6 +40,11 @@ import {
   mergeTopFieldsIntoJournal,
   syncJournalTotals,
 } from "@/lib/admin/bookingPayments";
+import {
+  calculatePrepaymentAmount,
+  readPrepaymentPolicy,
+} from "@/lib/public-booking/prepaymentPolicy";
+import type { PublicBranding } from "@/lib/public-booking/types";
 
 export type BookingPricingSnapshot = {
   totalPrice: number;
@@ -83,6 +88,7 @@ export interface BookingPriceCalculatorProps {
   nightlyBaseSum?: number | null;
   onClearNightlyPriceOverrides?: () => void;
   instantDiscountAmount?: number;
+  onInstantDiscountHydrate?: (amount: number) => void;
 }
 
 type ManualLineKey = keyof Pick<
@@ -123,6 +129,7 @@ export function BookingPriceCalculator({
   nightlyBaseSum = null,
   onClearNightlyPriceOverrides,
   instantDiscountAmount = 0,
+  onInstantDiscountHydrate,
 }: BookingPriceCalculatorProps) {
   const isMobile = useMobileUi();
   const prevFormRef = useRef<FormStateSnapshot | null>(null);
@@ -424,6 +431,39 @@ export function BookingPriceCalculator({
   const instantDiscount = Math.max(0, Math.round(instantDiscountAmount));
   const autoTotal = Math.max(0, discountBreakdown.total - instantDiscount + extrasTotal);
 
+  const discountHydratedRef = useRef<string | null>(null);
+  useEffect(() => {
+    discountHydratedRef.current = null;
+  }, [editingBookingId, editingRow, form.checkIn, form.checkOut, form.cottage, form.roomId]);
+
+  useEffect(() => {
+    const key = `${editingBookingId ?? ""}:${editingRow ?? ""}`;
+    if (discountHydratedRef.current === key) return;
+    if (isInitialLoad) return;
+    if (!savedBooking || !onInstantDiscountHydrate) {
+      discountHydratedRef.current = key;
+      return;
+    }
+    const savedDisc = Math.round(Number(savedBooking.discountAmount) || 0);
+    const residual = Math.max(0, savedDisc - discountBreakdown.discountSum);
+    discountHydratedRef.current = key;
+    if (residual > 0 && instantDiscountAmount <= 0) {
+      onInstantDiscountHydrate(residual);
+    }
+  }, [
+    discountBreakdown.discountSum,
+    editingBookingId,
+    editingRow,
+    form.checkIn,
+    form.checkOut,
+    form.cottage,
+    form.roomId,
+    instantDiscountAmount,
+    isInitialLoad,
+    onInstantDiscountHydrate,
+    savedBooking,
+  ]);
+
   const handleDiscountAmountChange = useCallback(
     (discountId: string, amount: number) => {
       const nextEdited = new Set(editedDiscountIds);
@@ -476,6 +516,36 @@ export function BookingPriceCalculator({
       : isInitialLoad && !hasManualDiscountEdits
         ? computed.totalPrice
         : autoTotal;
+
+  const prepayPolicy = useMemo(
+    () => readPrepaymentPolicy((settings.branding || {}) as PublicBranding),
+    [settings.branding]
+  );
+
+  const policyPrepayAmount = useMemo(() => {
+    const checkIn = form.checkIn ? new Date(form.checkIn) : null;
+    const checkOut = form.checkOut ? new Date(form.checkOut) : null;
+    const nights =
+      checkIn && checkOut && !isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())
+        ? Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000))
+        : 1;
+    const base = Math.max(
+      0,
+      Math.round(Number(manualLines.base) || amountToDiscount || displayTotal)
+    );
+    return calculatePrepaymentAmount(prepayPolicy, {
+      totalPrice: Math.max(0, Math.round(displayTotal)),
+      basePriceTotal: base > 0 ? base : Math.max(0, Math.round(displayTotal)),
+      nights,
+    });
+  }, [
+    prepayPolicy,
+    form.checkIn,
+    form.checkOut,
+    manualLines.base,
+    amountToDiscount,
+    displayTotal,
+  ]);
 
   useEffect(() => {
     if (computed.empty || computed.isOverlap) {
@@ -655,11 +725,16 @@ export function BookingPriceCalculator({
         lines.pet +
         lines.dayGuest +
         lines.early +
-        lines.late;
-      setManualLines((m) => ({ ...m, ...overrides, discount: discountResult.discountSum }));
+        lines.late -
+        instantDiscount;
+      setManualLines((m) => ({
+        ...m,
+        ...overrides,
+        discount: discountResult.discountSum + instantDiscount,
+      }));
       setTotalOverride(total);
     },
-    [autoDiscounts, editedDiscountIds, manualDiscountAmounts, manualLines]
+    [autoDiscounts, editedDiscountIds, instantDiscount, manualDiscountAmounts, manualLines]
   );
 
   useEffect(() => {
@@ -972,10 +1047,10 @@ export function BookingPriceCalculator({
                 <button
                   type="button"
                   className="pay-chip pay-quick-chip"
-                  onClick={() => onPrepayChange(Math.round(displayTotal / 2))}
-                  title="Внести 50%"
+                  onClick={() => onPrepayChange(policyPrepayAmount)}
+                  title="Передплата за правилами налаштувань"
                 >
-                  <span id="prepayBtnText">{Math.round(displayTotal / 2)}</span>
+                  <span id="prepayBtnText">{policyPrepayAmount}</span>
                 </button>
               </div>
               <PayMethods

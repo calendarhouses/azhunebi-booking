@@ -17,6 +17,7 @@ declare global {
     restrictions?: AdminSettingsPayload["restrictions"];
     closedDates?: AdminSettingsPayload["closedDates"];
     transactions?: AdminSettingsPayload["transactions"];
+    branding?: AdminSettingsPayload["branding"];
     switchView?: (view: string) => void;
     toggleSettingsMenu?: () => void;
     switchSettingsTab?: (tab: string, el?: HTMLElement) => void;
@@ -50,6 +51,7 @@ export function syncLegacyGlobals(payload: {
   if (payload.settings.restrictions) window.restrictions = payload.settings.restrictions;
   if (payload.settings.closedDates) window.closedDates = payload.settings.closedDates;
   if (payload.settings.transactions) window.transactions = payload.settings.transactions;
+  if (payload.settings.branding) window.branding = payload.settings.branding;
 }
 
 export function showToast(message: string) {

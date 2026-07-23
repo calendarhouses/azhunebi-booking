@@ -97,14 +97,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [syncPreloaderLogo]);
 
   const refreshMembership = useCallback(async () => {
-    const session = await getSession();
+    const token = getStoredAuthToken();
+    const [session, membershipResult] = await Promise.all([
+      getSession(),
+      token
+        ? fetchMembership(token)
+        : Promise.resolve({ membership: null as TenantMembership | null, error: null as string | null }),
+    ]);
     setUser(session?.user ?? null);
     if (!session) {
       applyMembership(null);
       setError(null);
       return;
     }
-    const { membership: m, error: err } = await fetchMembership(session.accessToken);
+    const { membership: m, error: err } =
+      membershipResult.membership || membershipResult.error
+        ? membershipResult
+        : await fetchMembership(session.accessToken);
     applyMembership(m);
     setError(err);
     if (session?.accessToken && m?.tenantId) {
@@ -125,7 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void prefetchAdminInitData(lastTenantId, token);
       }
 
-      const session = await getSession();
+      // Session + membership in parallel when token exists (was sequential waterfall).
+      const [session, membershipResult] = await Promise.all([
+        getSession(),
+        token
+          ? fetchMembership(token)
+          : Promise.resolve({ membership: null as TenantMembership | null, error: null as string | null }),
+      ]);
 
       if (cancelled) return;
 
@@ -138,7 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { membership: m, error: err } = await fetchMembership(session.accessToken);
+      const { membership: m, error: err } =
+        membershipResult.membership || membershipResult.error
+          ? membershipResult
+          : await fetchMembership(session.accessToken);
       if (cancelled) return;
       applyMembership(m);
       setError(err);

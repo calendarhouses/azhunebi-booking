@@ -332,6 +332,7 @@ export function buildBookingRecordFromSave(
     earlyFee: bookingData.earlyFee as number | string | undefined,
     lateFee: bookingData.lateFee as number | string | undefined,
     basePrice: bookingData.basePrice as number | string | undefined,
+    discountAmount: bookingData.discountAmount as number | string | undefined,
     prepayAmount: bookingData.prepayAmount as number | string | undefined,
     prepayMethod: String(bookingData.prepayMethod || ""),
     surchargeAmount: bookingData.surchargeAmount as number | string | undefined,

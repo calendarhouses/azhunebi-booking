@@ -86,8 +86,6 @@ import type {
   PublicTenantPayload,
 } from "@/lib/public-booking/types";
 
-const PRELOADER_MIN_MS = 1200;
-
 type DrawerStep = "info" | "calendar" | "checkout";
 
 type Ctx = {
@@ -202,7 +200,6 @@ export function PublicBookingProvider({
   const searchParams = useSearchParams();
   const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(null);
   const [initLoading, setInitLoading] = useState(true);
-  const [preloaderDone, setPreloaderDone] = useState(false);
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("info");
@@ -230,11 +227,6 @@ export function PublicBookingProvider({
   const [submitting, setSubmitting] = useState(false);
   const [successReceiptHtml, setSuccessReceiptHtml] = useState("");
   const [successFlow, setSuccessFlow] = useState<PublicBookingFlow>("instant");
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setPreloaderDone(true), PRELOADER_MIN_MS);
-    return () => window.clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -365,7 +357,7 @@ export function PublicBookingProvider({
     }
   }, [searchParams]);
 
-  const preloaderVisible = !preloaderDone || initLoading;
+  const preloaderVisible = initLoading;
 
   useEffect(() => {
     if (!preloaderVisible) {

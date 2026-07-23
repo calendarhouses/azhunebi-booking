@@ -4,6 +4,11 @@ import {
   isAwaitingPaymentStatus,
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
+import {
+  calculatePrepaymentAmount,
+  readPrepaymentPolicy,
+  type PrepaymentPolicy,
+} from "@/lib/public-booking/prepaymentPolicy";
 
 export type { BookingPayment };
 
@@ -272,10 +277,50 @@ export function resolveBookingPrepayPaid(b: BookingRecord): number {
   return sumPaymentsByBucket(getBookingPayments(b), "prepay");
 }
 
-export function resolveBookingExpectedPrepay(b: BookingRecord, total?: number): number {
+/** Очікувана передплата: збережене поле броні → політика брендингу → 50%.
+ *  Якщо ще нічого не сплачено і є політика — беремо її (щоб не тягнути застарілі 50%). */
+export function resolveBookingExpectedPrepay(
+  b: BookingRecord,
+  total?: number,
+  opts?: {
+    policy?: PrepaymentPolicy;
+    basePriceTotal?: number;
+    nights?: number;
+  }
+): number {
   const bookingTotal = total ?? Math.round(Number(b.totalPrice) || 0);
   const fromField = Math.round(Number(b.prepayAmount) || 0);
+  const paidSoFar = resolveBookingPaidTotal(b);
+
+  const fromPolicy = (): number => {
+    if (!opts?.policy) return 0;
+    const checkIn = parseSafeDate(String(b.checkIn || ""));
+    const checkOut = parseSafeDate(String(b.checkOut || ""));
+    const nightsFromDates =
+      !isNaN(checkIn.getTime()) && !isNaN(checkOut.getTime())
+        ? Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000))
+        : 1;
+    const nights = opts.nights && opts.nights > 0 ? opts.nights : nightsFromDates;
+    const basePriceTotal =
+      opts.basePriceTotal != null && opts.basePriceTotal > 0
+        ? opts.basePriceTotal
+        : Math.round(Number(b.basePrice) || bookingTotal);
+    return calculatePrepaymentAmount(opts.policy, {
+      totalPrice: bookingTotal,
+      basePriceTotal,
+      nights,
+    });
+  };
+
+  if (opts?.policy && paidSoFar === 0) {
+    const policyAmount = fromPolicy();
+    if (policyAmount > 0) return policyAmount;
+  }
   if (fromField > 0) return fromField;
+  if (opts?.policy) {
+    const policyAmount = fromPolicy();
+    if (policyAmount > 0) return policyAmount;
+  }
   if (bookingTotal > 0) return Math.round(bookingTotal / 2);
   return 0;
 }
@@ -288,11 +333,25 @@ export type BookingFinanceSummary = {
   prepayPaid: number;
 };
 
+function readBrandingPolicyFromWindow(): PrepaymentPolicy | undefined {
+  if (typeof window === "undefined") return undefined;
+  const w = window as Window & {
+    branding?: Record<string, unknown>;
+  };
+  if (!w.branding) return undefined;
+  return readPrepaymentPolicy(w.branding);
+}
+
 export function resolveBookingFinanceSummary(b: BookingRecord): BookingFinanceSummary {
   const total = Math.round(Number(b.totalPrice) || 0);
   const paid = resolveBookingPaidTotal(b);
   const prepayPaid = resolveBookingPrepayPaid(b);
-  const prepayExpected = resolveBookingExpectedPrepay(b, total);
+  const policy = readBrandingPolicyFromWindow();
+  const prepayExpected = resolveBookingExpectedPrepay(
+    b,
+    total,
+    policy ? { policy } : undefined
+  );
   return {
     total,
     paid,
