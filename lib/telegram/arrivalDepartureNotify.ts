@@ -7,10 +7,12 @@ import {
   isTelegramConfigured,
 } from "./config";
 import {
+  compareByCottageNumber,
   escapeHtml,
   formatDateUk,
   formatMoneyUa,
   formatPhoneDisplay,
+  formatTelegramDaySeparator,
   isConfirmedBookingStatus,
   toDateKeyKyiv,
   todayKeyKyiv,
@@ -89,6 +91,36 @@ export function buildArrivalDepartureCaption(
   ].join("\n");
 }
 
+type DayNotifyItem = {
+  booking: ArrivalDepartureBooking;
+  kind: "arrival" | "departure";
+};
+
+function collectTodayArrivalDepartureItems(
+  bookings: ArrivalDepartureBooking[],
+  today: string
+): DayNotifyItem[] {
+  const items: DayNotifyItem[] = [];
+  for (const booking of bookings) {
+    if (!isConfirmedBookingStatus(booking.status)) continue;
+    const checkIn = toDateKeyKyiv(booking.checkIn);
+    const checkOut = toDateKeyKyiv(booking.checkOut);
+    const isArrival = checkIn === today;
+    const isDeparture = checkOut === today;
+    if (!isArrival && !isDeparture) continue;
+    // Виїзд перед заїздом у тому ж будиночку (логіка обороту)
+    if (isDeparture) items.push({ booking, kind: "departure" });
+    if (isArrival) items.push({ booking, kind: "arrival" });
+  }
+  items.sort((a, b) => {
+    const byCottage = compareByCottageNumber(a.booking.cottage, b.booking.cottage);
+    if (byCottage !== 0) return byCottage;
+    if (a.kind === b.kind) return 0;
+    return a.kind === "departure" ? -1 : 1;
+  });
+  return items;
+}
+
 export async function notifyTodayArrivalsAndDepartures(
   bookings: ArrivalDepartureBooking[]
 ): Promise<{ arrivals: number; departures: number }> {
@@ -100,36 +132,42 @@ export async function notifyTodayArrivalsAndDepartures(
   const today = todayKeyKyiv();
   const target = getArrivalsTargets();
   const keyboard = chessboardKeyboard();
+  const items = collectTodayArrivalDepartureItems(bookings, today);
   let arrivals = 0;
   let departures = 0;
 
-  for (const booking of bookings) {
-    if (!isConfirmedBookingStatus(booking.status)) continue;
-    const checkIn = toDateKeyKyiv(booking.checkIn);
-    const checkOut = toDateKeyKyiv(booking.checkOut);
-    const isArrival = checkIn === today;
-    const isDeparture = checkOut === today;
-    if (!isArrival && !isDeparture) continue;
+  if (items.length === 0) {
+    return { arrivals: 0, departures: 0 };
+  }
 
-    if (isArrival) {
-      const res = await sendTelegramMessage(
-        buildArrivalDepartureCaption(booking, "arrival"),
-        keyboard,
-        target.chatId,
-        target.threadId
+  const separator = await sendTelegramMessage(
+    formatTelegramDaySeparator(),
+    null,
+    target.chatId,
+    target.threadId
+  );
+  if (!separator.ok) {
+    console.error(
+      "[TG] day separator failed",
+      await separator.text().catch(() => "")
+    );
+  }
+
+  for (const item of items) {
+    const res = await sendTelegramMessage(
+      buildArrivalDepartureCaption(item.booking, item.kind),
+      keyboard,
+      target.chatId,
+      target.threadId
+    );
+    if (res.ok) {
+      if (item.kind === "arrival") arrivals += 1;
+      else departures += 1;
+    } else {
+      console.error(
+        `[TG] ${item.kind} notify failed`,
+        await res.text().catch(() => "")
       );
-      if (res.ok) arrivals += 1;
-      else console.error("[TG] arrival notify failed", await res.text().catch(() => ""));
-    }
-    if (isDeparture) {
-      const res = await sendTelegramMessage(
-        buildArrivalDepartureCaption(booking, "departure"),
-        keyboard,
-        target.chatId,
-        target.threadId
-      );
-      if (res.ok) departures += 1;
-      else console.error("[TG] departure notify failed", await res.text().catch(() => ""));
     }
   }
 

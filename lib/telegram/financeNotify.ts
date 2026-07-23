@@ -4,8 +4,10 @@ import {
   isTelegramConfigured,
 } from "./config";
 import {
+  compareByCottageNumber,
   escapeHtml,
   formatMoneyUa,
+  formatTelegramDaySeparator,
   isConfirmedBookingStatus,
   toDateKeyKyiv,
   todayKeyKyiv,
@@ -210,15 +212,37 @@ export async function sendDebtReminders(bookings: DebtBooking[]): Promise<number
   if (!isTelegramConfigured()) return 0;
   const today = todayKeyKyiv();
   const target = getFinanceTargets();
-  let sent = 0;
 
-  for (const b of bookings) {
-    if (!isConfirmedBookingStatus(b.status)) continue;
-    if (toDateKeyKyiv(b.checkOut) !== today) continue;
-    const debt = Math.round(Number(b.totalPrice) || 0) - Math.round(Number(b.paidAmount) || 0);
-    if (debt <= 0) continue;
+  const due = bookings
+    .filter((b) => {
+      if (!isConfirmedBookingStatus(b.status)) return false;
+      if (toDateKeyKyiv(b.checkOut) !== today) return false;
+      const debt =
+        Math.round(Number(b.totalPrice) || 0) - Math.round(Number(b.paidAmount) || 0);
+      return debt > 0;
+    })
+    .map((b) => ({
+      booking: b,
+      debt: Math.round(Number(b.totalPrice) || 0) - Math.round(Number(b.paidAmount) || 0),
+    }))
+    .sort((a, b) => compareByCottageNumber(a.booking.cottage, b.booking.cottage));
+
+  if (due.length === 0) return 0;
+
+  const separator = await sendTelegramMessage(
+    formatTelegramDaySeparator(),
+    null,
+    target.chatId,
+    target.threadId
+  );
+  if (!separator.ok) {
+    console.error("[TG] debt day separator failed", await separator.text().catch(() => ""));
+  }
+
+  let sent = 0;
+  for (const item of due) {
     const res = await sendTelegramMessage(
-      buildDebtCaption(String(b.cottage || "Котедж"), debt),
+      buildDebtCaption(String(item.booking.cottage || "Котедж"), item.debt),
       null,
       target.chatId,
       target.threadId

@@ -58,6 +58,35 @@ export function todayKeyKyiv(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Kyiv" });
 }
 
+/** Extract cottage number from "Будиночок 7" / room id — for numeric sort. */
+export function cottageSortNumber(cottage: unknown): number {
+  const match = String(cottage || "").match(/(\d+)/);
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+}
+
+export function compareByCottageNumber(
+  aCottage: unknown,
+  bCottage: unknown
+): number {
+  const diff = cottageSortNumber(aCottage) - cottageSortNumber(bCottage);
+  if (diff !== 0) return diff;
+  return String(aCottage || "").localeCompare(String(bCottage || ""), "uk", {
+    sensitivity: "base",
+  });
+}
+
+/** Day banner before a batch of cottage Telegram notifications. */
+export function formatTelegramDaySeparator(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("uk-UA", {
+    timeZone: "Europe/Kyiv",
+    day: "numeric",
+    month: "long",
+  }).formatToParts(date);
+  const day = parts.find((p) => p.type === "day")?.value || "";
+  const month = (parts.find((p) => p.type === "month")?.value || "").toUpperCase();
+  return `📅 ➖➖➖➖ ${day} ${month} ➖➖➖➖ 📅`;
+}
+
 export function isActiveBookingStatus(status: unknown): boolean {
   const s = String(status || "").toLowerCase();
   return !s.includes("скас") && !s.includes("нов") && !s.includes("очікує");

@@ -4,7 +4,14 @@ import {
   isCleaningConfigured,
   isTelegramConfigured,
 } from "./config";
-import { escapeHtml, isConfirmedBookingStatus, toDateKeyKyiv, todayKeyKyiv } from "./formatters";
+import {
+  compareByCottageNumber,
+  escapeHtml,
+  formatTelegramDaySeparator,
+  isConfirmedBookingStatus,
+  toDateKeyKyiv,
+  todayKeyKyiv,
+} from "./formatters";
 import { sendTelegramMessage } from "./sendMessage";
 import type { ArrivalDepartureBooking } from "./arrivalDepartureNotify";
 
@@ -114,9 +121,7 @@ export function groupCleaningTurnoversByCottage(
     map.set(key, entry);
   }
 
-  return [...map.values()].sort((a, b) =>
-    a.cottage.localeCompare(b.cottage, "uk", { numeric: true, sensitivity: "base" })
-  );
+  return [...map.values()].sort((a, b) => compareByCottageNumber(a.cottage, b.cottage));
 }
 
 export async function notifyCleaningTodayTurnovers(
@@ -130,8 +135,22 @@ export async function notifyCleaningTodayTurnovers(
   const today = todayKeyKyiv();
   const target = getCleaningTargets();
   const turnovers = groupCleaningTurnoversByCottage(bookings, today);
-  let sent = 0;
+  if (turnovers.length === 0) return 0;
 
+  const separator = await sendTelegramMessage(
+    formatTelegramDaySeparator(),
+    undefined,
+    target.chatId,
+    target.threadId
+  );
+  if (!separator.ok) {
+    console.error(
+      "[TG] cleaning day separator failed",
+      await separator.text().catch(() => "")
+    );
+  }
+
+  let sent = 0;
   for (const turnover of turnovers) {
     const caption = buildCleaningTurnoverCaption(turnover);
     if (!caption) continue;
