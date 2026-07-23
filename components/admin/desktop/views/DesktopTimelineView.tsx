@@ -646,6 +646,9 @@ export function DesktopTimelineView({
       />
     );
 
+  /** Day edges above booking cards — hairline, non-interactive. */
+  const dayDividersEl = <div className="timeline-day-dividers" aria-hidden />;
+
   const activeBookings = useMemo(
     () => bookings.filter((b) => !String(b.status).toLowerCase().includes("скас")),
     [bookings]
@@ -2550,6 +2553,7 @@ export function DesktopTimelineView({
               >
                 {todayLineEl}
                 {timelineRows}
+                {dayDividersEl}
               </div>
             </div>
           </div>
@@ -2597,6 +2601,7 @@ export function DesktopTimelineView({
                 >
                   {todayLineEl}
                   {timelineRows}
+                  {dayDividersEl}
                 </div>
               </div>
             </div>
@@ -2625,6 +2630,7 @@ export function DesktopTimelineView({
               >
                 {todayLineEl}
                 {timelineRows}
+                {dayDividersEl}
               </div>
             </div>
           </>

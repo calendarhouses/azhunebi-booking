@@ -2046,6 +2046,33 @@
             pointer-events: none;
             z-index: 180;
         }
+        /* Day separators above bookings — soft hairlines, clicks pass through */
+        .timeline-day-dividers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            min-width: var(--timeline-grid-width, 100%);
+            pointer-events: none;
+            z-index: 160;
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent 0,
+                transparent calc(var(--timeline-cell-width, 60px) - 1px),
+                rgba(28, 25, 23, 0.055) calc(var(--timeline-cell-width, 60px) - 1px),
+                rgba(28, 25, 23, 0.055) var(--timeline-cell-width, 60px)
+            );
+        }
+        .timeline-wrapper--mobile-board .timeline-day-dividers {
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent 0,
+                transparent calc(var(--timeline-cell-width, 60px) - 1px),
+                rgba(28, 25, 23, 0.07) calc(var(--timeline-cell-width, 60px) - 1px),
+                rgba(28, 25, 23, 0.07) var(--timeline-cell-width, 60px)
+            );
+        }
         .timeline-cell.today {
             background-image: linear-gradient(
                 to right,
