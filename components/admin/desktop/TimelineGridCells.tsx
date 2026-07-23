@@ -142,16 +142,27 @@ export const TimelineGridRow = memo(function TimelineGridRow({
         position: "relative",
         width: gridTotalWidth,
         minWidth: gridTotalWidth,
+        padding: 0,
+        boxSizing: "border-box",
       }}
     >
+      {/*
+        Absolute track shares the same padding-box origin as booking cards.
+        In-flow track + row padding used to shift cell lines right of cards.
+      */}
       <div
         className={`timeline-track-window${isPointerSelecting ? " timeline-track-window--selecting" : ""}`}
         style={{
-          position: "relative",
-          display: "block",
+          position: "absolute",
+          left: 0,
+          top: 0,
           width: gridTotalWidth,
           minWidth: gridTotalWidth,
           height: "100%",
+          display: "block",
+          margin: 0,
+          padding: 0,
+          boxSizing: "border-box",
         }}
         onPointerDown={(event) => onTrackPointerDown(roomKey, event)}
         onPointerMove={(event) => onTrackPointerMove(roomKey, event)}

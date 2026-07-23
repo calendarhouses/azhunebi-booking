@@ -1989,11 +1989,16 @@ export function DesktopTimelineView({
       <div
         className="timeline-track-window"
         style={{
-          position: "relative",
+          position: "absolute",
+          left: 0,
+          top: 0,
           display: "block",
           width: gridTotalWidth,
           minWidth: gridTotalWidth,
           height: "100%",
+          margin: 0,
+          padding: 0,
+          boxSizing: "border-box",
         }}
       >
         {renderDays.map((day, i) => {

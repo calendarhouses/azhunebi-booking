@@ -3104,7 +3104,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-dates .timeline-track-window,
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg .timeline-track-window {
   display: block !important;
-  position: relative !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
   width: var(--timeline-grid-width, max-content) !important;
   min-width: var(--timeline-grid-width, max-content) !important;
   max-width: var(--timeline-grid-width, max-content) !important;
@@ -3180,13 +3182,17 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   display: none !important;
 }
 
-.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg {
+.boso-admin-mobile .timeline-wrapper--mobile-board .timeline-row-bg,
+.boso-admin-mobile .timeline-wrapper--mobile-board.timeline-wrapper--mobile-dense .timeline-row-bg,
+.boso-admin-ios .timeline-wrapper--mobile-board .timeline-row-bg,
+.boso-admin-android .timeline-wrapper--mobile-board .timeline-row-bg {
   width: var(--timeline-grid-width, max-content) !important;
   min-width: var(--timeline-grid-width, max-content) !important;
   max-width: var(--timeline-grid-width, max-content) !important;
   border-bottom: 1px solid #E8EAED !important;
   box-sizing: border-box !important;
   margin: 0 !important;
+  /* Critical: any horizontal padding shifts cell lines vs absolute booking cards */
   padding: 0 !important;
   background-color: #fff !important;
   background-image: none !important;
@@ -3436,13 +3442,20 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room,
-.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-rooms-list > *,
 .boso-admin-mobile #view-grid .timeline-wrapper--mobile-dense .timeline-room {
   height: var(--timeline-room-height, 36px) !important;
   min-height: var(--timeline-room-height, 36px) !important;
   max-height: var(--timeline-room-height, 36px) !important;
   padding: 1px 4px !important;
+}
+
+/* Row grid must stay padding-free: padding shifts in-flow cells vs absolute booking cards */
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg {
+  height: var(--timeline-room-height, 36px) !important;
+  min-height: var(--timeline-room-height, 36px) !important;
+  max-height: var(--timeline-room-height, 36px) !important;
+  padding: 0 !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room__label {
@@ -6844,11 +6857,13 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   box-sizing: border-box !important;
 }
 
-/* Virtual track: absolute day columns + shared gradient lines */
+/* Virtual track: absolute day columns — same origin as booking cards */
 .boso-admin-android .timeline-mobile-dates .timeline-dates .timeline-track-window,
 .boso-admin-android .timeline-mobile-cells .timeline-track-window {
   display: block !important;
-  position: relative !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
   width: var(--timeline-grid-width) !important;
   min-width: var(--timeline-grid-width) !important;
   max-width: var(--timeline-grid-width) !important;
@@ -7150,12 +7165,18 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 }
 
 .boso-admin-ios .timeline-wrapper--mobile-dense .timeline-room,
-.boso-admin-ios .timeline-wrapper--mobile-dense .timeline-row-bg,
 .boso-admin-ios #view-grid .timeline-wrapper--mobile-dense .timeline-room {
   height: 52px !important;
   min-height: 52px !important;
   max-height: 52px !important;
   padding: 4px 6px !important;
+}
+
+.boso-admin-ios .timeline-wrapper--mobile-dense .timeline-row-bg {
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  padding: 0 !important;
 }
 
 .boso-admin-ios .timeline-wrapper--mobile-dense .timeline-room-icon,
