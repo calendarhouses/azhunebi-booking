@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Clock3, ShieldCheck } from "lucide-react";
 import { showToast } from "../adminGlobals";
 import type { AdminModalsApi } from "../useAdminModals";
@@ -36,10 +36,15 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FlexibleScheduleSettings>(() => mergeFlexibleForm(settings));
   const [saving, setSaving] = useState(false);
+  const hadServerFlexRef = useRef(settings.flexibleScheduleSettings != null);
 
-  // Keep form in sync when settings arrive/refresh (avoid saving stale DEFAULT 1000 over 1500).
+  // Sync from server when closed; also adopt first server payload even if accordion is open
+  // (avoids saving DEFAULT 1000 over a real 1500 that arrived late).
   useEffect(() => {
-    if (open) return;
+    const hasServer = settings.flexibleScheduleSettings != null;
+    const firstServerArrival = hasServer && !hadServerFlexRef.current;
+    if (hasServer) hadServerFlexRef.current = true;
+    if (open && !firstServerArrival) return;
     setForm(mergeFlexibleForm(settings));
   }, [settings.flexibleScheduleSettings, open, settings]);
 

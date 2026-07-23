@@ -434,31 +434,27 @@ export function BookingPriceCalculator({
   const discountHydratedRef = useRef<string | null>(null);
   useEffect(() => {
     discountHydratedRef.current = null;
-  }, [editingBookingId, editingRow, form.checkIn, form.checkOut, form.cottage, form.roomId]);
+  }, [editingBookingId, editingRow]);
 
   useEffect(() => {
     const key = `${editingBookingId ?? ""}:${editingRow ?? ""}`;
     if (discountHydratedRef.current === key) return;
     if (isInitialLoad) return;
-    if (!savedBooking || !onInstantDiscountHydrate) {
+    if (!onInstantDiscountHydrate) {
       discountHydratedRef.current = key;
       return;
     }
-    const savedDisc = Math.round(Number(savedBooking.discountAmount) || 0);
-    const residual = Math.max(0, savedDisc - discountBreakdown.discountSum);
+    const savedDisc = savedBooking ? Math.round(Number(savedBooking.discountAmount) || 0) : 0;
+    const residual = savedBooking
+      ? Math.max(0, savedDisc - discountBreakdown.discountSum)
+      : 0;
     discountHydratedRef.current = key;
-    if (residual > 0 && instantDiscountAmount <= 0) {
-      onInstantDiscountHydrate(residual);
-    }
+    // Always overwrite — parent may still hold a stale instant from the previous booking.
+    onInstantDiscountHydrate(residual);
   }, [
     discountBreakdown.discountSum,
     editingBookingId,
     editingRow,
-    form.checkIn,
-    form.checkOut,
-    form.cottage,
-    form.roomId,
-    instantDiscountAmount,
     isInitialLoad,
     onInstantDiscountHydrate,
     savedBooking,

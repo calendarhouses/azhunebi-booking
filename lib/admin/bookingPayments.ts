@@ -313,14 +313,11 @@ export function resolveBookingExpectedPrepay(
   };
 
   if (opts?.policy && paidSoFar === 0) {
-    const policyAmount = fromPolicy();
-    if (policyAmount > 0) return policyAmount;
+    // Explicit policy wins for unpaid bookings (incl. 0 = без передплати).
+    return fromPolicy();
   }
   if (fromField > 0) return fromField;
-  if (opts?.policy) {
-    const policyAmount = fromPolicy();
-    if (policyAmount > 0) return policyAmount;
-  }
+  if (opts?.policy) return fromPolicy();
   if (bookingTotal > 0) return Math.round(bookingTotal / 2);
   return 0;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { MobileSheetHeader } from "../mobile/MobileSheetHeader";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import { BookingPriceCalculator } from "./BookingPriceCalculator";
@@ -133,15 +133,18 @@ export function DesktopBookingDrawer({
     setNightlyPriceOverrides({});
   }, [editingRow, editingBookingId]);
 
-  useEffect(() => {
+  // Reset instant discount when switching bookings (layout: before child hydrate effects).
+  useLayoutEffect(() => {
     setInstantDiscountAmount(0);
     setInstantDiscountPercent(0);
     setInstantDiscountMode("amount");
-  }, [form.checkIn, form.checkOut, form.cottage, form.roomId, editingRow, editingBookingId]);
+  }, [editingRow, editingBookingId]);
 
   const hydrateInstantDiscount = useCallback(
     (amount: number) => {
-      const clamped = Math.min(Math.max(0, Math.round(amount)), nightlyBaseSum || amount);
+      const rounded = Math.max(0, Math.round(amount));
+      const clamped =
+        nightlyBaseSum > 0 ? Math.min(rounded, nightlyBaseSum) : rounded;
       setInstantDiscountMode("amount");
       setInstantDiscountAmount(clamped);
       setInstantDiscountPercent(
