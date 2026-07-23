@@ -9,10 +9,16 @@ export type SettingsTabMeta = {
 };
 
 /** Вкладки, де білий блок вужчий за шириною форми */
-export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding", "team", "activity"];
+export const SETTINGS_FIT_CONTENT_TABS: SettingsTabName[] = ["branding"];
 
 /** Вкладки: повна ширина як шапка, висота за контентом */
-export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = ["rooms", "prices", "restrictions", "sms"];
+export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = [
+  "rooms",
+  "prices",
+  "restrictions",
+  "sms",
+  "team",
+];
 
 export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
   branding: {
@@ -49,8 +55,8 @@ export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
     icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path stroke-linecap="round" stroke-linejoin="round" d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />',
   },
   activity: {
-    title: "Журнал змін",
-    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5" /><circle cx="12" cy="12" r="8" />',
+    title: "Команда",
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path stroke-linecap="round" stroke-linejoin="round" d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />',
   },
 };
 

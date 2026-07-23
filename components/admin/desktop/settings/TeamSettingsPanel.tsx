@@ -1,20 +1,107 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Copy, Link2, Shield, UserPlus, Users } from "lucide-react";
+import {
+  Check,
+  Copy,
+  History,
+  Link2,
+  Plus,
+  RefreshCw,
+  Search,
+  Shield,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import {
   createTeamMember,
+  listActivityLog,
   listTeamMembers,
   updateTeamMember,
+  type ActivityLogEntry,
   type TeamMemberPublic,
 } from "@/lib/gas-api";
 import { roleLabelUk, TEAM_MAX_MEMBERS } from "@/lib/admin/permissions";
 import { showToast } from "../adminGlobals";
-import "./settings-additional-services.css";
+import "./settings-team.css";
 
 type CreateMode = "password" | "invite";
+type TeamSubView = "team" | "activity";
+type ActivityTypeFilter = "all" | "booking" | "settings" | "team" | "other";
+
+function initialFrom(name: string, email: string): string {
+  const s = (name || email || "?").trim();
+  return s.charAt(0).toUpperCase();
+}
+
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso || "—";
+  return d.toLocaleString("uk-UA", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatRelative(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "щойно";
+  if (mins < 60) return `${mins} хв тому`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} год тому`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} дн тому`;
+  return formatWhen(iso);
+}
+
+function actorKey(entry: ActivityLogEntry): string {
+  const a = entry.actor;
+  if (!a) return "";
+  return String(a.userId || a.email || a.name || "").trim();
+}
+
+function actorLabel(entry: ActivityLogEntry): string {
+  const a = entry.actor;
+  if (!a) return "Невідомо";
+  return String(a.name || a.email || "Користувач").trim();
+}
+
+function activityKind(type: string): ActivityTypeFilter {
+  if (type.startsWith("booking")) return "booking";
+  if (type.startsWith("settings")) return "settings";
+  if (type.startsWith("team")) return "team";
+  return "other";
+}
+
+function kindMeta(kind: ActivityTypeFilter): { label: string; emoji: string; dot: string } {
+  switch (kind) {
+    case "booking":
+      return { label: "Бронь", emoji: "📅", dot: "team-log__dot--booking" };
+    case "settings":
+      return { label: "Налаштування", emoji: "⚙️", dot: "team-log__dot--settings" };
+    case "team":
+      return { label: "Команда", emoji: "👥", dot: "team-log__dot--team" };
+    default:
+      return { label: "Дія", emoji: "📝", dot: "team-log__dot--other" };
+  }
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
 
 export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
+  const [subView, setSubView] = useState<TeamSubView>("team");
   const [members, setMembers] = useState<TeamMemberPublic[]>([]);
   const [maxMembers, setMaxMembers] = useState(TEAM_MAX_MEMBERS);
   const [loading, setLoading] = useState(true);
@@ -27,7 +114,14 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const load = useCallback(async () => {
+  const [activityItems, setActivityItems] = useState<ActivityLogEntry[]>([]);
+  const [activityTotal, setActivityTotal] = useState(0);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [personFilter, setPersonFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("all");
+  const [search, setSearch] = useState("");
+
+  const loadMembers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await listTeamMembers();
@@ -40,22 +134,84 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
     }
   }, []);
 
+  const loadActivity = useCallback(async () => {
+    setActivityLoading(true);
+    try {
+      const data = await listActivityLog();
+      setActivityItems(data.items);
+      setActivityTotal(data.total);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Не вдалося завантажити журнал");
+    } finally {
+      setActivityLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isActive) return;
-    void load();
-  }, [isActive, load]);
+    void loadMembers();
+  }, [isActive, loadMembers]);
+
+  useEffect(() => {
+    if (!isActive || subView !== "activity") return;
+    void loadActivity();
+  }, [isActive, subView, loadActivity]);
 
   const seatsLeft = Math.max(0, maxMembers - members.filter((m) => m.active).length);
   const canAdd = seatsLeft > 0 && !saving;
+  const activeOwners = members.filter((m) => m.active && m.role === "owner").length;
+  const activeAdmins = members.filter((m) => m.active && m.role === "admin").length;
 
   const sorted = useMemo(
     () =>
       [...members].sort((a, b) => {
         if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
+        if (a.active !== b.active) return a.active ? -1 : 1;
         return a.name.localeCompare(b.name, "uk");
       }),
     [members]
   );
+
+  const peopleOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of activityItems) {
+      const key = actorKey(entry);
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, actorLabel(entry));
+    }
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], "uk"));
+  }, [activityItems]);
+
+  const filteredActivity = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return activityItems.filter((entry) => {
+      const kind = activityKind(entry.type || "");
+      if (typeFilter !== "all" && kind !== typeFilter) return false;
+      if (personFilter !== "all" && actorKey(entry) !== personFilter) return false;
+      if (q) {
+        const hay = `${entry.summary || ""} ${actorLabel(entry)} ${entry.type || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [activityItems, typeFilter, personFilter, search]);
+
+  const activityStats = useMemo(() => {
+    const now = new Date();
+    let today = 0;
+    let bookings = 0;
+    let settings = 0;
+    let team = 0;
+    for (const entry of activityItems) {
+      const at = new Date(entry.at);
+      if (!Number.isNaN(at.getTime()) && isSameDay(at, now)) today += 1;
+      const kind = activityKind(entry.type || "");
+      if (kind === "booking") bookings += 1;
+      else if (kind === "settings") settings += 1;
+      else if (kind === "team") team += 1;
+    }
+    return { today, bookings, settings, team, total: activityTotal || activityItems.length };
+  }, [activityItems, activityTotal]);
 
   const handleCreate = async () => {
     if (!name.trim() || !email.trim()) {
@@ -83,7 +239,8 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
       setRole("admin");
       if (result.inviteUrl) setLastInviteUrl(result.inviteUrl);
       showToast(mode === "invite" ? "Запрошення створено" : "Акаунт додано");
-      await load();
+      await loadMembers();
+      if (subView === "activity") void loadActivity();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Помилка збереження");
     } finally {
@@ -106,7 +263,7 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
     setSaving(true);
     try {
       await updateTeamMember({ id: member.id, active: !member.active });
-      await load();
+      await loadMembers();
       showToast(member.active ? "Доступ вимкнено" : "Доступ увімкнено");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Помилка");
@@ -120,7 +277,7 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
     setSaving(true);
     try {
       await updateTeamMember({ id: member.id, role: next });
-      await load();
+      await loadMembers();
       showToast("Роль оновлено");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Помилка");
@@ -130,255 +287,368 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
   };
 
   return (
-    <section className="svc-accordion is-open" style={{ border: "none", boxShadow: "none" }}>
-      <div className="svc-accordion__panel" style={{ paddingTop: 8 }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 22 }}>
-          <span
-            aria-hidden
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              display: "grid",
-              placeItems: "center",
-              background: "linear-gradient(145deg, #1A332A, #2F5D4A)",
-              color: "#F4F7F5",
-              flexShrink: 0,
-            }}
+    <div className="team-page">
+      <div className="team-page__top">
+        <p className="team-page__intro">
+          До {maxMembers} акаунтів. Власники бачать усе; адміністратор — шахматку, броні та гостей.
+        </p>
+        <div className="reports-tabs team-subtabs">
+          <button
+            type="button"
+            className={`r-tab${subView === "team" ? " active" : ""}`}
+            onClick={() => setSubView("team")}
           >
-            <Users size={20} />
-          </span>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#14241E" }}>Команда</h3>
-            <p style={{ margin: "6px 0 0", fontSize: 14, color: "#5B6B64", lineHeight: 1.45 }}>
-              До {maxMembers} акаунтів. Власники бачать усе; адміністратор — шахматку, броні та гостей.
-              {seatsLeft >= 0 ? ` Вільних місць: ${seatsLeft}.` : null}
-            </p>
-          </div>
+            <Users size={16} strokeWidth={1.75} aria-hidden />
+            Команда
+          </button>
+          <button
+            type="button"
+            className={`r-tab${subView === "activity" ? " active" : ""}`}
+            onClick={() => setSubView("activity")}
+          >
+            <History size={16} strokeWidth={1.75} aria-hidden />
+            Журнал змін
+            {activityTotal > 0 || activityItems.length > 0 ? (
+              <span className="team-subtabs__count">
+                {activityTotal || activityItems.length}
+              </span>
+            ) : null}
+          </button>
         </div>
+      </div>
 
-        {loading ? (
-          <p style={{ color: "#78716c", fontSize: 14 }}>Завантаження…</p>
-        ) : (
-          <ul style={{ listStyle: "none", margin: "0 0 28px", padding: 0, display: "grid", gap: 10 }}>
-            {sorted.map((m) => (
-              <li
-                key={m.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "48px 1fr auto",
-                  gap: 12,
-                  alignItems: "center",
-                  padding: "14px 16px",
-                  borderRadius: 16,
-                  background: m.active ? "#F7F9F8" : "#F3F1EF",
-                  border: "1px solid #E4E9E6",
-                  opacity: m.active ? 1 : 0.72,
-                }}
-              >
-                <div
-                  aria-hidden
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
-                    background: m.role === "owner" ? "#1A332A" : "#DCE8E2",
-                    color: m.role === "owner" ? "#F4F7F5" : "#1A332A",
-                    display: "grid",
-                    placeItems: "center",
-                    fontWeight: 700,
-                    fontSize: 16,
-                  }}
-                >
-                  {(m.name || m.email || "?").trim().charAt(0).toUpperCase()}
+      {subView === "team" ? (
+        <>
+          <section className="team-hero">
+            <div className="team-hero__main">
+              <div className="team-hero__icon" aria-hidden>
+                <Users size={22} strokeWidth={1.75} />
+              </div>
+              <div className="team-hero__copy">
+                <span className="team-hero__label">Вільних місць</span>
+                <strong className="team-hero__value">
+                  {seatsLeft}{" "}
+                  <span style={{ fontSize: 15, fontWeight: 600, color: "var(--team-stone-500)" }}>
+                    / {maxMembers}
+                  </span>
+                </strong>
+                <span className="team-hero__hint">
+                  Активних: {members.filter((m) => m.active).length}
+                </span>
+              </div>
+            </div>
+            <div className="team-hero__meta">
+              <span className="team-chip team-chip--accent">Власників: {activeOwners}</span>
+              <span className="team-chip">Адмінів: {activeAdmins}</span>
+            </div>
+          </section>
+
+          <section className="team-card">
+            <div className="team-card__header team-card__header--row">
+              <div>
+                <div className="team-card__title-row">
+                  <span className="team-card__title-icon" aria-hidden>
+                    <Shield size={16} strokeWidth={1.75} />
+                  </span>
+                  <h3>Учасники</h3>
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, color: "#14241E", fontSize: 15 }}>{m.name || "Без імені"}</div>
-                  <div style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>{m.email}</div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        letterSpacing: "0.02em",
-                        padding: "3px 8px",
-                        borderRadius: 999,
-                        background: m.role === "owner" ? "#E8F0EC" : "#EEF2FF",
-                        color: m.role === "owner" ? "#1A332A" : "#3730A3",
-                      }}
-                    >
-                      {roleLabelUk(m.role)}
-                    </span>
-                    {m.hasPendingInvite ? (
-                      <span style={{ fontSize: 11, color: "#B45309", fontWeight: 600 }}>Очікує запрошення</span>
-                    ) : null}
-                    {!m.active ? (
-                      <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600 }}>Вимкнено</span>
-                    ) : null}
-                  </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "stretch" }}>
-                  <select
-                    value={m.role}
-                    disabled={saving}
-                    onChange={(e) => void setMemberRole(m, e.target.value as "owner" | "admin")}
-                    style={{
-                      border: "1px solid #D1D5DB",
-                      borderRadius: 10,
-                      padding: "6px 10px",
-                      fontSize: 12,
-                      background: "#fff",
-                    }}
-                  >
-                    <option value="owner">Власник</option>
-                    <option value="admin">Адміністратор</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="btn-outline-danger"
-                    style={{ fontSize: 12, padding: "6px 10px" }}
-                    disabled={saving}
-                    onClick={() => void toggleActive(m)}
-                  >
-                    {m.active ? "Вимкнути" : "Увімкнути"}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div
-          style={{
-            borderRadius: 20,
-            padding: 20,
-            background: "linear-gradient(160deg, #F8FAF9 0%, #EEF4F1 100%)",
-            border: "1px solid #D7E3DC",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <UserPlus size={18} color="#1A332A" />
-            <strong style={{ color: "#14241E" }}>Додати людину</strong>
-          </div>
-
-          <div className="svc-form-grid svc-form-grid--2" style={{ marginBottom: 12 }}>
-            <label className="svc-field">
-              <span className="svc-field__label">Імʼя</span>
-              <input
-                className="svc-input"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Юлія"
-                disabled={!canAdd}
-              />
-            </label>
-            <label className="svc-field">
-              <span className="svc-field__label">Логін / email</span>
-              <input
-                className="svc-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="yulia@…"
-                disabled={!canAdd}
-              />
-            </label>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-            {(
-              [
-                { id: "invite" as const, label: "Запрошення-лінк", Icon: Link2 },
-                { id: "password" as const, label: "Логін + пароль", Icon: Shield },
-              ] as const
-            ).map(({ id, label, Icon }) => (
+                <p>Ролі, доступ і запрошення в одному місці</p>
+              </div>
               <button
-                key={id}
                 type="button"
-                onClick={() => setMode(id)}
-                disabled={!canAdd}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "8px 12px",
-                  borderRadius: 999,
-                  border: mode === id ? "1px solid #1A332A" : "1px solid #D1D5DB",
-                  background: mode === id ? "#1A332A" : "#fff",
-                  color: mode === id ? "#F4F7F5" : "#374151",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                className="team-btn team-btn--ghost team-btn--icon"
+                disabled={loading || saving}
+                onClick={() => void loadMembers()}
+                aria-label="Оновити"
+                title="Оновити"
               >
-                <Icon size={14} />
-                {label}
+                <RefreshCw size={15} className={loading ? "team-spin" : undefined} />
               </button>
-            ))}
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as "owner" | "admin")}
+            </div>
+
+            {loading ? (
+              <p className="team-loading">Завантаження…</p>
+            ) : sorted.length === 0 ? (
+              <p className="team-empty">Поки немає учасників</p>
+            ) : (
+              <ul className="team-members">
+                {sorted.map((m) => (
+                  <li
+                    key={m.id}
+                    className={`team-member${!m.active ? " team-member--off" : ""}`}
+                  >
+                    <div
+                      className={`team-member__avatar team-member__avatar--${
+                        m.role === "owner" ? "owner" : "admin"
+                      }`}
+                      aria-hidden
+                    >
+                      {initialFrom(m.name, m.email)}
+                    </div>
+                    <div className="team-member__body">
+                      <div className="team-member__name">{m.name || "Без імені"}</div>
+                      <div className="team-member__email">{m.email}</div>
+                      <div className="team-member__tags">
+                        <span
+                          className={`team-tag team-tag--${
+                            m.role === "owner" ? "owner" : "admin"
+                          }`}
+                        >
+                          {roleLabelUk(m.role)}
+                        </span>
+                        {m.hasPendingInvite ? (
+                          <span className="team-tag team-tag--pending">Очікує запрошення</span>
+                        ) : null}
+                        {!m.active ? (
+                          <span className="team-tag team-tag--off">Вимкнено</span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="team-member__actions">
+                      <select
+                        className="team-select"
+                        value={m.role}
+                        disabled={saving}
+                        onChange={(e) =>
+                          void setMemberRole(m, e.target.value as "owner" | "admin")
+                        }
+                        aria-label={`Роль ${m.name || m.email}`}
+                      >
+                        <option value="owner">Власник</option>
+                        <option value="admin">Адміністратор</option>
+                      </select>
+                      <button
+                        type="button"
+                        className={`team-btn ${
+                          m.active ? "team-btn--danger" : "team-btn--ghost"
+                        }`}
+                        disabled={saving}
+                        onClick={() => void toggleActive(m)}
+                      >
+                        {m.active ? "Вимкнути" : "Увімкнути"}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="team-add">
+            <div className="team-add__head">
+              <span className="team-add__head-icon" aria-hidden>
+                <UserPlus size={16} strokeWidth={1.75} />
+              </span>
+              <strong>Додати людину</strong>
+            </div>
+
+            <div className="team-form-grid">
+              <label className="team-field">
+                <span className="team-field__label">Імʼя</span>
+                <input
+                  className="team-field__input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Юлія"
+                  disabled={!canAdd}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="team-field">
+                <span className="team-field__label">Логін / email</span>
+                <input
+                  className="team-field__input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="yulia@…"
+                  disabled={!canAdd}
+                  autoComplete="off"
+                />
+              </label>
+            </div>
+
+            <div className="team-mode-row">
+              {(
+                [
+                  { id: "invite" as const, label: "Запрошення-лінк", Icon: Link2 },
+                  { id: "password" as const, label: "Логін + пароль", Icon: Shield },
+                ] as const
+              ).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`team-mode${mode === id ? " team-mode--on" : ""}`}
+                  onClick={() => setMode(id)}
+                  disabled={!canAdd}
+                >
+                  <Icon size={14} strokeWidth={2} />
+                  {label}
+                </button>
+              ))}
+              <select
+                className="team-select"
+                value={role}
+                onChange={(e) => setRole(e.target.value as "owner" | "admin")}
+                disabled={!canAdd}
+                aria-label="Роль нового учасника"
+              >
+                <option value="admin">Роль: Адміністратор</option>
+                <option value="owner">Роль: Власник</option>
+              </select>
+            </div>
+
+            {mode === "password" ? (
+              <label className="team-field team-field--full" style={{ marginBottom: 14 }}>
+                <span className="team-field__label">Тимчасовий пароль</span>
+                <input
+                  className="team-field__input"
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="мін. 6 символів"
+                  disabled={!canAdd}
+                  autoComplete="new-password"
+                />
+              </label>
+            ) : null}
+
+            <button
+              type="button"
+              className="team-btn team-btn--primary"
               disabled={!canAdd}
-              style={{
-                marginLeft: "auto",
-                border: "1px solid #D1D5DB",
-                borderRadius: 999,
-                padding: "8px 12px",
-                fontSize: 13,
-                background: "#fff",
-              }}
+              onClick={() => void handleCreate()}
             >
-              <option value="admin">Роль: Адміністратор</option>
-              <option value="owner">Роль: Власник</option>
+              <Plus size={16} strokeWidth={2.2} />
+              {saving ? "Збереження…" : seatsLeft <= 0 ? "Ліміт акаунтів" : "Додати до команди"}
+            </button>
+
+            {lastInviteUrl ? (
+              <div className="team-invite">
+                <code>{lastInviteUrl}</code>
+                <button
+                  type="button"
+                  className="team-btn team-btn--ghost team-btn--icon"
+                  onClick={() => void copyInvite()}
+                  aria-label="Скопіювати запрошення"
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
+            ) : null}
+          </section>
+        </>
+      ) : (
+        <section className="team-card">
+          <div className="team-card__header team-card__header--row">
+            <div>
+              <div className="team-card__title-row">
+                <span className="team-card__title-icon" aria-hidden>
+                  <History size={16} strokeWidth={1.75} />
+                </span>
+                <h3>Журнал змін</h3>
+              </div>
+              <p>Усі збереження в адмінці — хто і що змінив</p>
+            </div>
+            <button
+              type="button"
+              className="team-btn team-btn--ghost"
+              disabled={activityLoading}
+              onClick={() => void loadActivity()}
+            >
+              <RefreshCw size={14} className={activityLoading ? "team-spin" : undefined} />
+              Оновити
+            </button>
+          </div>
+
+          <div className="team-stats">
+            <div className="team-stat">
+              <span className="team-stat__label">Усього</span>
+              <span className="team-stat__value">{activityStats.total}</span>
+            </div>
+            <div className="team-stat">
+              <span className="team-stat__label">Сьогодні</span>
+              <span className="team-stat__value">{activityStats.today}</span>
+            </div>
+            <div className="team-stat">
+              <span className="team-stat__label">Броні</span>
+              <span className="team-stat__value">{activityStats.bookings}</span>
+            </div>
+            <div className="team-stat">
+              <span className="team-stat__label">Налаштування</span>
+              <span className="team-stat__value">{activityStats.settings}</span>
+            </div>
+          </div>
+
+          <div className="team-filters">
+            <div className="team-search">
+              <Search size={14} className="team-search__icon" aria-hidden />
+              <input
+                className="team-search__input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Пошук у журналі…"
+              />
+            </div>
+            <select
+              className="team-select"
+              value={personFilter}
+              onChange={(e) => setPersonFilter(e.target.value)}
+              aria-label="Фільтр по людині"
+            >
+              <option value="all">Усі люди</option>
+              {peopleOptions.map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="team-select"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as ActivityTypeFilter)}
+              aria-label="Фільтр по типу"
+            >
+              <option value="all">Усі типи</option>
+              <option value="booking">Броні</option>
+              <option value="settings">Налаштування</option>
+              <option value="team">Команда</option>
+              <option value="other">Інше</option>
             </select>
           </div>
 
-          {mode === "password" ? (
-            <label className="svc-field" style={{ marginBottom: 14 }}>
-              <span className="svc-field__label">Тимчасовий пароль</span>
-              <input
-                className="svc-input"
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="мін. 6 символів"
-                disabled={!canAdd}
-              />
-            </label>
-          ) : null}
-
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={!canAdd}
-            onClick={() => void handleCreate()}
-            style={{ width: "100%" }}
-          >
-            {saving ? "Збереження…" : seatsLeft <= 0 ? "Ліміт акаунтів" : "Додати до команди"}
-          </button>
-
-          {lastInviteUrl ? (
-            <div
-              style={{
-                marginTop: 14,
-                padding: 12,
-                borderRadius: 12,
-                background: "#fff",
-                border: "1px dashed #9CB5A8",
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-              }}
-            >
-              <code style={{ flex: 1, fontSize: 12, wordBreak: "break-all", color: "#1A332A" }}>
-                {lastInviteUrl}
-              </code>
-              <button type="button" className="btn-outline" onClick={() => void copyInvite()}>
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </section>
+          {activityLoading && activityItems.length === 0 ? (
+            <p className="team-loading">Завантаження…</p>
+          ) : filteredActivity.length === 0 ? (
+            <p className="team-empty">
+              {activityItems.length === 0
+                ? "Поки немає записів. Вони зʼявляться після перших збережень."
+                : "Нічого не знайдено за цими фільтрами."}
+            </p>
+          ) : (
+            <ul className="team-log">
+              {filteredActivity.map((entry) => {
+                const kind = activityKind(entry.type || "");
+                const meta = kindMeta(kind);
+                return (
+                  <li key={entry.id || `${entry.at}-${entry.summary}`} className="team-log__item">
+                    <div className={`team-log__dot ${meta.dot}`} aria-hidden>
+                      {meta.emoji}
+                    </div>
+                    <div className="team-log__body">
+                      <div className="team-log__summary">{entry.summary || "Зміна"}</div>
+                      <div className="team-log__meta">
+                        <span className="team-log__badge">{meta.label}</span>
+                        <span>{actorLabel(entry)}</span>
+                        <span title={formatWhen(entry.at)}>{formatRelative(entry.at)}</span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+    </div>
   );
 }

@@ -36,6 +36,23 @@ import { bosoLeave } from "./adminTooltip";
 import { syncLegacyAdminViewDom } from "./adminViewDom";
 import { syncMobileAdminViewDom } from "../mobile/adminMobileViewDom";
 
+/** Legacy «activity» tab now lives inside Команда. */
+function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined): SettingsTabName {
+  if (tab === "activity") return "team";
+  const allowed: SettingsTabName[] = [
+    "branding",
+    "rooms",
+    "prices",
+    "discounts",
+    "restrictions",
+    "services",
+    "sms",
+    "team",
+  ];
+  if (tab && (allowed as string[]).includes(tab)) return tab as SettingsTabName;
+  return "rooms";
+}
+
 /** Лише дані з API — без dummy fallback. */
 function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayload {
   const s = raw || {};
@@ -219,18 +236,20 @@ export function useAdminApp(options?: {
       let view = saved?.activeView ?? "grid";
       if (view === "settings" && !allowSettings) view = "grid";
       if (view === "reports" && !allowReports) view = "grid";
-      if (saved?.settingsTab) setSettingsTab(saved.settingsTab);
+      if (saved?.settingsTab) setSettingsTab(normalizeSettingsTab(saved.settingsTab));
       if (saved?.settingsExpanded && allowSettings) setSettingsExpanded(true);
       setActiveView(view);
       if (platform === "mobile") {
         syncViewDom(view, {
           settingsExpanded: view === "settings" || !!saved?.settingsExpanded,
-          ...(view === "settings" ? { settingsTab: saved?.settingsTab ?? "rooms" } : {}),
+          ...(view === "settings"
+            ? { settingsTab: normalizeSettingsTab(saved?.settingsTab ?? "rooms") }
+            : {}),
         });
       } else {
         syncViewDom(view, {
           settingsExpanded: view === "settings" || !!saved?.settingsExpanded,
-          settingsTab: saved?.settingsTab ?? settingsTab,
+          settingsTab: normalizeSettingsTab(saved?.settingsTab ?? settingsTab),
         });
       }
       requestAnimationFrame(() => refreshLegacyView(view));
@@ -298,19 +317,20 @@ export function useAdminApp(options?: {
       switchView("grid");
       return;
     }
+    const tab = normalizeSettingsTab(tabName);
     bosoLeave();
     setActiveView("settings");
     setSettingsExpanded(true);
-    setSettingsTab(tabName);
-    persistNav("settings", tabName, true);
-    window.__adminSettingsTab = tabName;
+    setSettingsTab(tab);
+    persistNav("settings", tab, true);
+    window.__adminSettingsTab = tab;
     if (platform === "mobile") {
-      syncViewDom("settings", { settingsExpanded: true, settingsTab: tabName });
+      syncViewDom("settings", { settingsExpanded: true, settingsTab: tab });
     } else {
-      syncViewDom("settings", { settingsExpanded: true, settingsTab: tabName });
+      syncViewDom("settings", { settingsExpanded: true, settingsTab: tab });
     }
     requestAnimationFrame(() => {
-      window.__adminSettingsTab = tabName;
+      window.__adminSettingsTab = tab;
       refreshLegacyView("settings");
     });
   }, [platform, persistNav, allowSettings, switchView, syncViewDom]);

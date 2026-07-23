@@ -88,14 +88,4 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
       </>
     ),
   },
-  {
-    tab: "activity",
-    label: "Журнал змін",
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="8" />
-        <path d="M12 8v4l2.5 2.5" />
-      </>
-    ),
-  },
 ];

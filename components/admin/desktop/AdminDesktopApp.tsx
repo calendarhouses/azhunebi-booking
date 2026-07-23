@@ -6,7 +6,6 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import {
   canAccessReports,
   canAccessSettings,
-  roleLabelUk,
 } from "@/lib/admin/permissions";
 import { expireAdminSession } from "@/lib/admin/adminSession";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
@@ -63,11 +62,8 @@ export function AdminDesktopApp() {
   const publicBookUrl = membership?.tenantId
     ? `/book/${membership.tenantId}`
     : undefined;
-  const actorName =
+  const actorLabel =
     membership?.displayName || user?.name || membership?.email || user?.email || null;
-  const actorLabel = actorName
-    ? `${actorName} · ${roleLabelUk(membership?.role)}`
-    : null;
   const allowSettings = canAccessSettings(membership?.role);
   const allowReports = canAccessReports(membership?.role);
   const pauseSilentSyncRef = useRef(false);
