@@ -23,6 +23,10 @@ export interface DesktopSidebarProps {
   tenantPlan?: string | null;
   publicBookUrl?: string;
   logoPreviewUrl?: string | null;
+  /** Власник бачить налаштування і звіти; адміністратор — ні. */
+  canAccessSettings?: boolean;
+  canAccessReports?: boolean;
+  actorLabel?: string | null;
   onNavigate: (view: AdminViewName) => void;
   onToggleSettings: () => void;
   onSettingsTab: (tab: SettingsTabName) => void;
@@ -113,6 +117,9 @@ export function DesktopSidebar({
   tenantName,
   publicBookUrl,
   logoPreviewUrl,
+  canAccessSettings = true,
+  canAccessReports = true,
+  actorLabel,
   onNavigate,
   onToggleSettings,
   onSettingsTab,
@@ -274,6 +281,8 @@ export function DesktopSidebar({
           settingsTab={settingsTab}
           settingsExpanded={settingsExpanded}
           settingsViewActive={activeView === "settings"}
+          canAccessSettings={canAccessSettings}
+          canAccessReports={canAccessReports}
           onNavigate={onNavigate}
           onSettingsTab={onSettingsTab}
           onLogout={() => {
@@ -317,37 +326,55 @@ export function DesktopSidebar({
             </div>
           </div>
 
-          <div
-            className={`${menuClass(settingsActive)}${settingsExpanded ? " expanded" : ""}`}
-            id="menu-settings"
-            onClick={onToggleSettings}
-          >
-            <div className="menu-item-content">
-              <span className="menu-icon-wrap">{EXPANDED_MENU_ICONS.settings}</span>
-              <span className="menu-item-label">Налаштування</span>
-            </div>
-            {settingsChevron}
-          </div>
+          {canAccessSettings ? (
+            <>
+              <div
+                className={`${menuClass(settingsActive)}${settingsExpanded ? " expanded" : ""}`}
+                id="menu-settings"
+                onClick={onToggleSettings}
+              >
+                <div className="menu-item-content">
+                  <span className="menu-icon-wrap">{EXPANDED_MENU_ICONS.settings}</span>
+                  <span className="menu-item-label">Налаштування</span>
+                </div>
+                {settingsChevron}
+              </div>
 
-          <SettingsSubmenu
-            expanded={settingsExpanded}
-            activeTab={settingsTab}
-            settingsViewActive={activeView === "settings"}
-            onSelect={onSettingsTab}
-          />
+              <SettingsSubmenu
+                expanded={settingsExpanded}
+                activeTab={settingsTab}
+                settingsViewActive={activeView === "settings"}
+                onSelect={onSettingsTab}
+              />
+            </>
+          ) : null}
 
-          <div
-            className={menuClass(activeView === "reports")}
-            id="menu-reports"
-            onClick={() => onNavigate("reports")}
-          >
-            <div className="menu-item-content">
-              <span className="menu-icon-wrap">{EXPANDED_MENU_ICONS.reports}</span>
-              <span className="menu-item-label">Звіти</span>
+          {canAccessReports ? (
+            <div
+              className={menuClass(activeView === "reports")}
+              id="menu-reports"
+              onClick={() => onNavigate("reports")}
+            >
+              <div className="menu-item-content">
+                <span className="menu-icon-wrap">{EXPANDED_MENU_ICONS.reports}</span>
+                <span className="menu-item-label">Звіти</span>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="sidebar-logout-wrap">
+            {actorLabel ? (
+              <div
+                style={{
+                  padding: "10px 16px 4px",
+                  fontSize: 12,
+                  color: "rgba(244,247,245,0.72)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                Ви увійшли як <strong style={{ color: "#F4F7F5" }}>{actorLabel}</strong>
+              </div>
+            ) : null}
             <div
               className="menu-item logout-item"
               onClick={() => {

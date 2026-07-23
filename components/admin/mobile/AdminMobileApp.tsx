@@ -5,6 +5,7 @@ import { isAndroidUserAgent, isIOSUserAgent } from "@/lib/isMobileUserAgent";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAdminUndo, resolveActiveUndoScope } from "@/components/admin/undo/useAdminUndo";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
 import { expireAdminSession } from "@/lib/admin/adminSession";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
 import { isDiscountDraftId } from "@/lib/admin/discountDraft";
@@ -241,7 +242,12 @@ export function AdminMobileApp() {
             ) : null}
           </div>
 
-          <MobileBottomNav activeView={admin.activeView} onNavigate={admin.switchView} />
+          <MobileBottomNav
+            activeView={admin.activeView}
+            onNavigate={admin.switchView}
+            canAccessSettings={canAccessSettings(membership?.role)}
+            canAccessReports={canAccessReports(membership?.role)}
+          />
         </div>
 
         {/* Outside #admin-app flex so overlays never steal shell height / hide bottom nav */}

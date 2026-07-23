@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
     ) {
       return redirectToCleanAdminRoot(request);
     }
-    if (pathname === "/register") {
+    if (pathname === "/register" || pathname.startsWith("/invite/")) {
       return redirectToHost(request, ADMIN_HOST);
     }
 

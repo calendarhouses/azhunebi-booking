@@ -35,6 +35,9 @@ export type TenantMembership = {
   role: string;
   tenantName: string | null;
   plan: string | null;
+  displayName?: string | null;
+  userId?: string | null;
+  email?: string | null;
 };
 
 type AuthContextValue = {

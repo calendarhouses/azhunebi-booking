@@ -6,12 +6,14 @@ const FAKE = "FAKE_TEST_KEY_DO_NOT_TOUCH";
  *   6 — ФІНАНСИ / ЗВІТИ
  *   7 — ЗАЇЗД / ВИЇЗД
  *   8 — ЗАПИТИ БРОНЮВАННЯ
+ *  88 — ЗМІНИ (TELEGRAM_THREAD_CHANGES)
  */
 export const TELEGRAM_TOPIC = {
   bookings: 5,
   finance: 6,
   arrivals: 7,
   requests: 8,
+  changes: 88,
 } as const;
 
 export type TelegramTopicKey = keyof typeof TELEGRAM_TOPIC;
@@ -23,6 +25,8 @@ export type TelegramConfig = {
   threadFinance: number;
   threadArrivals: number;
   threadRequests: number;
+  /** Тред «Зміни»; 0 = вимкнено, поки не задано TELEGRAM_THREAD_CHANGES */
+  threadChanges: number;
   /** Окрема група клінінгу (без forum topic) */
   cleaningGroupId: string;
   isTestMode: boolean;
@@ -57,6 +61,10 @@ export function getTelegramConfig(): TelegramConfig {
     threadRequests: parseThreadId(
       process.env.TELEGRAM_THREAD_REQUESTS,
       TELEGRAM_TOPIC.requests
+    ),
+    threadChanges: parseThreadId(
+      process.env.TELEGRAM_THREAD_CHANGES,
+      TELEGRAM_TOPIC.changes
     ),
     cleaningGroupId:
       process.env.TELEGRAM_CLEANING_CHAT_ID?.trim() || "-5577418097",
@@ -107,6 +115,13 @@ export function getArrivalsTargets(): TelegramTarget {
 /** ФІНАНСИ / ЗВІТИ */
 export function getFinanceTargets(): TelegramTarget {
   return targetForThread(getTelegramConfig().threadFinance);
+}
+
+/** ЗМІНИ — дії команди в адмінці. */
+export function getChangesTargets(): TelegramTarget | null {
+  const id = getTelegramConfig().threadChanges;
+  if (!id) return null;
+  return targetForThread(id);
 }
 
 /** Група клінінгу — сповіщення про заїзди */

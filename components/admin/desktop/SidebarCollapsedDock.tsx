@@ -13,6 +13,8 @@ type SidebarCollapsedDockProps = {
   settingsTab: SettingsTabName;
   settingsExpanded: boolean;
   settingsViewActive: boolean;
+  canAccessSettings?: boolean;
+  canAccessReports?: boolean;
   onNavigate: (view: AdminViewName) => void;
   onSettingsTab: (tab: SettingsTabName) => void;
   onLogout: () => void;
@@ -23,6 +25,8 @@ export function SidebarCollapsedDock({
   settingsTab,
   settingsExpanded,
   settingsViewActive,
+  canAccessSettings = true,
+  canAccessReports = true,
   onNavigate,
   onSettingsTab,
   onLogout,
@@ -129,31 +133,35 @@ export function SidebarCollapsedDock({
             </SidebarCollapsedItem>
           ))}
 
-          <SidebarCollapsedItem
-            ref={settingsButtonRef}
-            elementId="menu-settings"
-            label="Налаштування"
-            hint="Житло, ціни, знижки та профіль"
-            active={settingsActive}
-            showTooltip={!settingsOpen}
-            ariaExpanded={settingsOpen}
-            onClick={handleSettingsClick}
-          >
-            {EXPANDED_MENU_ICONS.settings}
-          </SidebarCollapsedItem>
+          {canAccessSettings ? (
+            <SidebarCollapsedItem
+              ref={settingsButtonRef}
+              elementId="menu-settings"
+              label="Налаштування"
+              hint="Житло, ціни, знижки та профіль"
+              active={settingsActive}
+              showTooltip={!settingsOpen}
+              ariaExpanded={settingsOpen}
+              onClick={handleSettingsClick}
+            >
+              {EXPANDED_MENU_ICONS.settings}
+            </SidebarCollapsedItem>
+          ) : null}
 
-          <SidebarCollapsedItem
-            elementId="menu-reports"
-            label="Звіти"
-            hint="Аналітика та фінанси"
-            active={activeView === "reports" && !settingsActive}
-            onClick={() => {
-              closeSettings();
-              onNavigate("reports");
-            }}
-          >
-            {EXPANDED_MENU_ICONS.reports}
-          </SidebarCollapsedItem>
+          {canAccessReports ? (
+            <SidebarCollapsedItem
+              elementId="menu-reports"
+              label="Звіти"
+              hint="Аналітика та фінанси"
+              active={activeView === "reports" && !settingsActive}
+              onClick={() => {
+                closeSettings();
+                onNavigate("reports");
+              }}
+            >
+              {EXPANDED_MENU_ICONS.reports}
+            </SidebarCollapsedItem>
+          ) : null}
         </nav>
 
         <div className="sidebar-collapsed-nav__footer">

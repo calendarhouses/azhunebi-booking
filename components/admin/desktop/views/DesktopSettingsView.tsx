@@ -8,6 +8,8 @@ import {
   scrollToRestrictionsGrid,
 } from "../settings/DesktopRestrictionsGrid";
 import { BrandingSettingsPanel } from "../settings/BrandingSettingsPanel";
+import { TeamSettingsPanel } from "../settings/TeamSettingsPanel";
+import { ActivitySettingsPanel } from "../settings/ActivitySettingsPanel";
 import { DiscountTemplateGallery } from "../settings/DiscountTemplateGallery";
 import { AdditionalServicesSettingsPage } from "../settings/AdditionalServicesSettingsPage";
 import { SmsSettingsPanel } from "../settings/SmsSettingsPanel";
@@ -41,6 +43,8 @@ const MOBILE_SETTINGS_DESCRIPTIONS: Record<SettingsTabName, string> = {
   discounts: "Акції, промокоди та спеціальні умови",
   restrictions: "Мінімальні ночі та закриті дати",
   sms: "Шаблони, баланс TurboSMS і журнал відправок",
+  team: "Власники, адміністратори та запрошення",
+  activity: "Хто що змінив в адмінці",
 };
 
 export interface DesktopSettingsViewProps {
@@ -303,6 +307,30 @@ export function DesktopSettingsView({
             bookings={bookings}
             onShowGuestBookings={onShowGuestBookings}
           />
+        </div>
+        ) : null}
+
+        {showTab("team") ? (
+        <div
+          id="set-team"
+          className={tabContentClass(activeTab, "team")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-team" : undefined}
+          style={isMobile ? undefined : tabDisplay(activeTab, "team")}
+        >
+          <TeamSettingsPanel isActive={activeTab === "team"} />
+        </div>
+        ) : null}
+
+        {showTab("activity") ? (
+        <div
+          id="set-activity"
+          className={tabContentClass(activeTab, "activity")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-activity" : undefined}
+          style={isMobile ? undefined : tabDisplay(activeTab, "activity")}
+        >
+          <ActivitySettingsPanel isActive={activeTab === "activity"} />
         </div>
         ) : null}
       </div>

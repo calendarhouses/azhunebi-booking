@@ -8,6 +8,7 @@ export async function updateSession(request: NextRequest) {
   const isAdmin = pathname.startsWith("/admin");
   const isLogin = pathname === "/login";
   const isRegister = pathname === "/register";
+  const isInvite = pathname.startsWith("/invite/");
   const hasSession = Boolean(request.cookies.get(AUTH_COOKIE)?.value);
   const ua = request.headers.get("user-agent");
   const mobileUa = isMobileUserAgent(ua);
@@ -31,6 +32,11 @@ export async function updateSession(request: NextRequest) {
     url.pathname = mobileUa ? "/admin/mobile" : "/admin";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Сторінка запрошення в команду — публічна (без редіректу на login).
+  if (isInvite) {
+    return NextResponse.next({ request });
   }
 
   // Phone opens /admin → real mobile admin (bottom nav), not squeezed desktop sidebar.

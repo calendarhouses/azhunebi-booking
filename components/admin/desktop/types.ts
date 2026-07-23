@@ -9,7 +9,9 @@ export type SettingsTabName =
   | "discounts"
   | "restrictions"
   | "services"
-  | "sms";
+  | "sms"
+  | "team"
+  | "activity";
 
 export type RoomPricingModel = "per_house" | "per_guest";
 

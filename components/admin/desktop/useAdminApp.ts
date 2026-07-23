@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin/adminInitPrefetch";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
 import { isDiscountDraftId, dedupeDiscountsList } from "@/lib/admin/discountDraft";
 import {
@@ -87,6 +88,8 @@ export function useAdminApp(options?: {
   const platform = options?.platform ?? "desktop";
   const pauseSilentSyncRef = options?.pauseSilentSyncRef;
   const { ready: authReady, membership } = useAuth();
+  const allowSettings = canAccessSettings(membership?.role);
+  const allowReports = canAccessReports(membership?.role);
   const syncViewDom = platform === "mobile" ? syncMobileAdminViewDom : syncLegacyAdminViewDom;
   const [activeView, setActiveView] = useState<AdminViewName>("grid");
   const [settingsExpanded, setSettingsExpanded] = useState(false);
@@ -213,9 +216,11 @@ export function useAdminApp(options?: {
       initialViewBootstrapped.current = true;
       const tenantId = membership?.tenantId;
       const saved = tenantId ? loadAdminNav(tenantId) : null;
-      const view = saved?.activeView ?? "grid";
+      let view = saved?.activeView ?? "grid";
+      if (view === "settings" && !allowSettings) view = "grid";
+      if (view === "reports" && !allowReports) view = "grid";
       if (saved?.settingsTab) setSettingsTab(saved.settingsTab);
-      if (saved?.settingsExpanded) setSettingsExpanded(true);
+      if (saved?.settingsExpanded && allowSettings) setSettingsExpanded(true);
       setActiveView(view);
       if (platform === "mobile") {
         syncViewDom(view, {
@@ -245,7 +250,7 @@ export function useAdminApp(options?: {
     }, 30000);
 
     return () => window.clearInterval(interval);
-  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom]);
+  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports]);
 
   const persistNav = useCallback(
     (view: AdminViewName, tab: SettingsTabName, expanded: boolean) => {
@@ -263,29 +268,36 @@ export function useAdminApp(options?: {
   const switchView = useCallback(
     (viewName: AdminViewName) => {
       bosoLeave();
-      setActiveView(viewName);
-      persistNav(viewName, settingsTab, settingsExpanded);
+      let nextView = viewName;
+      if (viewName === "settings" && !allowSettings) nextView = "grid";
+      if (viewName === "reports" && !allowReports) nextView = "grid";
+      setActiveView(nextView);
+      persistNav(nextView, settingsTab, settingsExpanded);
       if (platform === "mobile" && typeof document !== "undefined") {
         const main = document.querySelector(".boso-admin-mobile .main-content");
         if (main) main.scrollTop = 0;
       }
       if (platform === "mobile") {
-        syncViewDom(viewName, {
+        syncViewDom(nextView, {
           settingsExpanded,
-          ...(viewName === "settings" ? { settingsTab } : {}),
+          ...(nextView === "settings" ? { settingsTab } : {}),
         });
       } else {
-        syncViewDom(viewName, {
+        syncViewDom(nextView, {
           settingsExpanded,
-          settingsTab: viewName === "settings" ? settingsTab : undefined,
+          settingsTab: nextView === "settings" ? settingsTab : undefined,
         });
       }
-      requestAnimationFrame(() => refreshLegacyView(viewName));
+      requestAnimationFrame(() => refreshLegacyView(nextView));
     },
-    [platform, persistNav, settingsTab, settingsExpanded]
+    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom]
   );
 
   const switchSettingsTab = useCallback((tabName: SettingsTabName) => {
+    if (!allowSettings) {
+      switchView("grid");
+      return;
+    }
     bosoLeave();
     setActiveView("settings");
     setSettingsExpanded(true);
@@ -301,9 +313,10 @@ export function useAdminApp(options?: {
       window.__adminSettingsTab = tabName;
       refreshLegacyView("settings");
     });
-  }, [platform, persistNav]);
+  }, [platform, persistNav, allowSettings, switchView, syncViewDom]);
 
   const toggleSettingsMenu = useCallback(() => {
+    if (!allowSettings) return;
     setSettingsExpanded((prev) => {
       const next = !prev;
       const view = activeViewRef.current;
@@ -318,7 +331,7 @@ export function useAdminApp(options?: {
       }
       return next;
     });
-  }, [persistNav, platform, settingsTab, syncViewDom]);
+  }, [persistNav, platform, settingsTab, syncViewDom, allowSettings]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

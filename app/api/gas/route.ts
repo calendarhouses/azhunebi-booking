@@ -324,6 +324,32 @@ export async function POST(request: Request) {
       });
     }
 
+    if (upstream.ok && result?.activity && typeof result.activity === "object") {
+      after(async () => {
+        try {
+          const { notifyActivityChange } = await import(
+            "@/lib/telegram/activityChangeNotify"
+          );
+          await notifyActivityChange(
+            result.activity as {
+              id?: string;
+              at?: string;
+              type?: string;
+              summary?: string;
+              actor?: {
+                userId?: string;
+                name?: string;
+                email?: string;
+                role?: string;
+              };
+            }
+          );
+        } catch (err) {
+          console.error("[GAS proxy] activity telegram:", err);
+        }
+      });
+    }
+
     return NextResponse.json(result, { status: upstream.status });
   } catch (err) {
     return NextResponse.json(

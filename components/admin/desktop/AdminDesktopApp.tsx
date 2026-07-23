@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAuth } from "@/components/auth/AuthProvider";
+import {
+  canAccessReports,
+  canAccessSettings,
+  roleLabelUk,
+} from "@/lib/admin/permissions";
 import { expireAdminSession } from "@/lib/admin/adminSession";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
@@ -54,10 +59,17 @@ function AdminMainContent({
 }
 
 export function AdminDesktopApp() {
-  const { signOut, membership } = useAuth();
+  const { signOut, membership, user } = useAuth();
   const publicBookUrl = membership?.tenantId
     ? `/book/${membership.tenantId}`
     : undefined;
+  const actorName =
+    membership?.displayName || user?.name || membership?.email || user?.email || null;
+  const actorLabel = actorName
+    ? `${actorName} · ${roleLabelUk(membership?.role)}`
+    : null;
+  const allowSettings = canAccessSettings(membership?.role);
+  const allowReports = canAccessReports(membership?.role);
   const pauseSilentSyncRef = useRef(false);
   const admin = useAdminApp({ pauseSilentSyncRef });
   useAdminBootFromAdmin(admin, membership?.tenantId);
@@ -185,6 +197,9 @@ export function AdminDesktopApp() {
           tenantPlan={membership?.plan}
           publicBookUrl={publicBookUrl}
           logoPreviewUrl={sidebarLogoPreviewUrl}
+          canAccessSettings={allowSettings}
+          canAccessReports={allowReports}
+          actorLabel={actorLabel}
           onNavigate={admin.switchView}
           onToggleSettings={admin.toggleSettingsMenu}
           onSettingsTab={admin.switchSettingsTab}

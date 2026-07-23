@@ -82,12 +82,24 @@ const NAV_ITEMS: { view: AdminViewName; id: string; label: string; icon: ReactNo
 export interface MobileBottomNavProps {
   activeView: AdminViewName;
   onNavigate: (view: AdminViewName) => void;
+  canAccessSettings?: boolean;
+  canAccessReports?: boolean;
 }
 
-export function MobileBottomNav({ activeView, onNavigate }: MobileBottomNavProps) {
+export function MobileBottomNav({
+  activeView,
+  onNavigate,
+  canAccessSettings = true,
+  canAccessReports = true,
+}: MobileBottomNavProps) {
+  const items = NAV_ITEMS.filter((item) => {
+    if (item.view === "settings") return canAccessSettings;
+    if (item.view === "reports") return canAccessReports;
+    return true;
+  });
   return (
     <div className="bottom-nav">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <div
           key={item.view}
           className={`nav-item${activeView === item.view ? " active" : ""}`}

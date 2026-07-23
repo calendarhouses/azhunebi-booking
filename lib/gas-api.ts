@@ -8,6 +8,7 @@ export const GAS_AUTH_TOKEN_KEY = "gas_auth_token";
 export type GasUser = {
   id: string;
   email?: string;
+  name?: string;
 };
 
 export type GasSession = {
@@ -20,6 +21,19 @@ export type TenantMembership = {
   role: string;
   tenantName: string | null;
   plan: string | null;
+  displayName?: string | null;
+  userId?: string | null;
+  email?: string | null;
+};
+
+export type TeamMemberPublic = {
+  id: string;
+  email: string;
+  name: string;
+  role: "owner" | "admin";
+  active: boolean;
+  createdAt?: string;
+  hasPendingInvite?: boolean;
 };
 
 export type GasApiError = {
@@ -719,6 +733,166 @@ export async function uploadFile(params: {
     throw new Error(data.error || "Не вдалося завантажити файл");
   }
   return { publicUrl: data.publicUrl };
+}
+
+export async function listTeamMembers(): Promise<{
+  members: TeamMemberPublic[];
+  maxMembers: number;
+}> {
+  const data = await gasFetch<{
+    members?: TeamMemberPublic[];
+    maxMembers?: number;
+    error?: string;
+    message?: string;
+  }>({ action: "listTeamMembers" }, { authToken: getStoredAuthToken() });
+  if (data.error) {
+    throw new Error(data.message || data.error);
+  }
+  return {
+    members: Array.isArray(data.members) ? data.members : [],
+    maxMembers: Number(data.maxMembers) || 5,
+  };
+}
+
+export type ActivityLogEntry = {
+  id: string;
+  at: string;
+  type: string;
+  summary: string;
+  details?: Record<string, unknown>;
+  actor?: {
+    userId?: string;
+    name?: string;
+    email?: string;
+    role?: string;
+  };
+};
+
+export async function listActivityLog(): Promise<{
+  items: ActivityLogEntry[];
+  total: number;
+}> {
+  const data = await gasFetch<{
+    items?: ActivityLogEntry[];
+    total?: number;
+    error?: string;
+    message?: string;
+  }>({ action: "listActivityLog" }, { authToken: getStoredAuthToken() });
+  if (data.error) {
+    throw new Error(data.message || data.error);
+  }
+  return {
+    items: Array.isArray(data.items) ? data.items : [],
+    total: Number(data.total) || 0,
+  };
+}
+
+export async function createTeamMember(input: {
+  name: string;
+  email: string;
+  role: "owner" | "admin";
+  mode: "password" | "invite";
+  password?: string;
+  inviteBaseUrl?: string;
+}): Promise<{
+  member: TeamMemberPublic;
+  inviteUrl?: string | null;
+  inviteToken?: string | null;
+}> {
+  const data = await gasPost<{
+    success?: boolean;
+    member?: TeamMemberPublic;
+    inviteUrl?: string | null;
+    inviteToken?: string | null;
+    error?: string;
+    message?: string;
+  }>(
+    {
+      action: "createTeamMember",
+      ...input,
+    },
+    { authToken: getStoredAuthToken() }
+  );
+  if (!data.success || !data.member) {
+    throw new Error(data.message || data.error || "Не вдалося додати");
+  }
+  return {
+    member: data.member,
+    inviteUrl: data.inviteUrl,
+    inviteToken: data.inviteToken,
+  };
+}
+
+export async function updateTeamMember(input: {
+  id: string;
+  name?: string;
+  role?: "owner" | "admin";
+  active?: boolean;
+  password?: string;
+}): Promise<TeamMemberPublic> {
+  const data = await gasPost<{
+    success?: boolean;
+    member?: TeamMemberPublic;
+    error?: string;
+    message?: string;
+  }>(
+    {
+      action: "updateTeamMember",
+      ...input,
+    },
+    { authToken: getStoredAuthToken() }
+  );
+  if (!data.success || !data.member) {
+    throw new Error(data.message || data.error || "Не вдалося оновити");
+  }
+  return data.member;
+}
+
+export async function fetchInviteInfo(token: string): Promise<{
+  email: string;
+  name: string;
+  role: "owner" | "admin";
+  tenantName: string;
+}> {
+  const data = await gasFetch<{
+    email?: string;
+    name?: string;
+    role?: "owner" | "admin";
+    tenantName?: string;
+    error?: string;
+    message?: string;
+  }>({ action: "getInviteInfo", token });
+  if (data.error || !data.email) {
+    throw new Error(data.message || data.error || "Запрошення недійсне");
+  }
+  return {
+    email: data.email,
+    name: data.name || "",
+    role: data.role === "admin" ? "admin" : "owner",
+    tenantName: data.tenantName || "",
+  };
+}
+
+export async function acceptTeamInvite(input: {
+  inviteToken: string;
+  password: string;
+  name?: string;
+}): Promise<GasSession> {
+  const data = await gasPost<{
+    success?: boolean;
+    accessToken?: string;
+    user?: GasUser;
+    error?: string;
+    message?: string;
+  }>({
+    action: "acceptTeamInvite",
+    ...input,
+  });
+  if (!data.success || !data.accessToken || !data.user) {
+    throw new Error(data.message || data.error || "Не вдалося прийняти запрошення");
+  }
+  setStoredAuthToken(data.accessToken);
+  return { user: data.user, accessToken: data.accessToken };
 }
 
 export function getGasApiUrl(): string {
