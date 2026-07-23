@@ -1293,12 +1293,80 @@
             min-height: 0;
         }
         .timeline-wrapper--focus-layout .timeline-focus-body .timeline-grid-container {
-            overflow-x: auto;
+            overflow-x: scroll; /* always reserve bottom gutter — easier to grab than overlay auto */
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            scrollbar-gutter: stable;
+            scrollbar-width: auto;
+            scrollbar-color: #9CA3AF #F3F4F6;
         }
-        .timeline-wrapper--focus-layout .timeline-focus-body .timeline-grid-container::-webkit-scrollbar:horizontal {
-            height: 8px;
+        /* Visible horizontal scrubber for the chessboard (desktop only) */
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board) .timeline-grid-container.timeline-scroll-surface,
+        .timeline-wrapper--focus-layout .timeline-focus-body .timeline-grid-container {
+            scrollbar-width: auto;
+            scrollbar-color: #9CA3AF #F3F4F6;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+            background: transparent;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar:horizontal,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar:horizontal {
+            height: 12px;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar-track,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar-track {
+            background: #F3F4F6;
+            border-radius: 999px;
+            margin: 0 6px;
+            box-shadow: inset 0 0 0 1px #E5E7EB;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar-thumb,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar-thumb {
+            background: #9CA3AF;
+            border-radius: 999px;
+            border: 2px solid #F3F4F6;
+            background-clip: padding-box;
+            min-width: 48px;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar-thumb:hover,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar-thumb:hover {
+            background: #6B7280;
+            border: 2px solid #F3F4F6;
+            background-clip: padding-box;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar-thumb:active,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar-thumb:active {
+            background: #4B5563;
+            border: 2px solid #F3F4F6;
+            background-clip: padding-box;
+        }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board)
+          .timeline-grid-container.timeline-scroll-surface::-webkit-scrollbar-corner,
+        .timeline-wrapper--focus-layout
+          .timeline-focus-body
+          .timeline-grid-container::-webkit-scrollbar-corner {
+            background: #F3F4F6;
         }
         .main-content--grid-focus .timeline-focus-body .timeline-grid-container {
             flex: 1 1 auto;
@@ -1937,6 +2005,11 @@
         }
         
         .timeline-grid-container { flex: 1; overflow-x: auto; position: relative; display: flex; flex-direction: column; }
+        .timeline-wrapper:not(.timeline-wrapper--mobile-board) .timeline-grid-container.timeline-scroll-surface {
+            overflow-x: scroll;
+            overflow-y: hidden;
+            scrollbar-gutter: stable;
+        }
         .timeline-months {
             display: flex;
             height: var(--timeline-months-height, 30px);
