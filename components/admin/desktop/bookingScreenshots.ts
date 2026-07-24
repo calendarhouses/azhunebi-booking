@@ -547,6 +547,12 @@ export async function captureCleaningCard(b: BookingRecord): Promise<string | nu
     /* ignore */
   }
 
+  const roomsForClean = resolveRoomsList();
+  const matchedCleanRoom = roomsForClean ? findRoomForBooking(b, roomsForClean) : null;
+  const cottageDisplay = matchedCleanRoom
+    ? adminRoomLabel(matchedCleanRoom)
+    : String(b.cottage || "—");
+
   const rawComment = b.comment ? String(b.comment) : "";
   const hasVat = rawComment.includes("♨️ Чан: Так");
   const matchDay = rawComment.match(/👥 Денні гості[^:]*:\s*(\d+)/);
