@@ -1,5 +1,6 @@
 import { getGuestWord } from "./adminPlural";
-import { isHutshubBooking } from "./bookingUtils";
+import { findRoomForBooking, isHutshubBooking } from "./bookingUtils";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import type { BookingRecord, RoomConfig } from "./types";
 
 declare const html2canvas: (
@@ -112,10 +113,12 @@ export async function capturePremiumCard(
   const lateTime = matchLate ? matchLate[1] : null;
 
   let extraGuestsCount = 0;
+  let cottageDisplay = String(b.cottage || "");
   if (list) {
-    const roomObj = list.find(
+    const roomObj = findRoomForBooking(b, list) || list.find(
       (r) => String(b.cottage).includes(r.name) || String(b.cottage).includes(r.short)
     );
+    if (roomObj) cottageDisplay = adminRoomLabel(roomObj);
     const cap = roomObj ? roomObj.capacity || 2 : 2;
     extraGuestsCount = Math.max(0, parseInt(String(b.guests), 10) - cap);
   }
@@ -267,7 +270,7 @@ export async function capturePremiumCard(
                 <span style="color: #6B7280; font-weight: 600; display:flex; align-items:center;">
                     <span style="margin-right:8px; display:flex;">${iconCottage}</span> Котедж:
                 </span> 
-                <span style="font-weight: 800; color: #111827; font-size: 18px; text-align: right;">${b.cottage}</span>
+                <span style="font-weight: 800; color: #111827; font-size: 18px; text-align: right;">${cottageDisplay}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: #6B7280; font-weight: 600; display:flex; align-items:center;">
@@ -349,6 +352,12 @@ export async function capturePaymentCard(
   if (displayPhone.length === 10 && displayPhone.startsWith("0")) displayPhone = "38" + displayPhone;
   if (displayPhone) displayPhone = "+" + displayPhone;
 
+  const roomsForPay = resolveRoomsList();
+  const matchedPayRoom = roomsForPay ? findRoomForBooking(b, roomsForPay) : null;
+  const cottageDisplayPay = matchedPayRoom
+    ? adminRoomLabel(matchedPayRoom)
+    : String(b.cottage || "—");
+
   let inDate = "—";
   let outDate = "—";
   try {
@@ -421,7 +430,7 @@ export async function capturePaymentCard(
         <div style="font-size: 16px; display: flex; flex-direction: column; gap: 14px;">
             <div style="${rowStyle}">
                 <span style="${labelStyle}">${iconCottage} Котедж:</span>
-                <span style="${valStyle}; font-size: 18px;">${b.cottage || "—"}</span>
+                <span style="${valStyle}; font-size: 18px;">${cottageDisplayPay}</span>
             </div>
             <div style="${rowStyle}">
                 <span style="${labelStyle}">${iconUser} Гість:</span>
@@ -615,7 +624,7 @@ export async function captureCleaningCard(b: BookingRecord): Promise<string | nu
                 <span style="color: #6B7280; font-weight: 600; display:flex; align-items:center;">
                     <span style="margin-right:8px; display:flex;">${iconCottage}</span> Котедж:
                 </span> 
-                <span style="font-weight: 800; color: #111827; font-size: 18px; text-align: right;">${b.cottage}</span>
+                <span style="font-weight: 800; color: #111827; font-size: 18px; text-align: right;">${cottageDisplay}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: #6B7280; font-weight: 600; display:flex; align-items:center;">

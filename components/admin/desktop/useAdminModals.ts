@@ -1052,7 +1052,7 @@ export function useAdminModals({
       } else {
         const names = (settings.roomsList || [])
           .filter((r) => discountForm.selectedIds.includes(String(r.id)))
-          .map((r) => r.name);
+          .map((r) => r.short?.trim() || r.name);
         savedIds = discountForm.selectedIds;
         displayRoomsText = names.length > 0 ? names.join(", ") : "Не обрано";
       }

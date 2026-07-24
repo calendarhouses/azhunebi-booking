@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin/bookingPayments";
 import { getDayPrice } from "../bookingPriceEngine";
 import { activeBookingPhrase, otherCheckInDatePhrase } from "../adminPlural";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import type {
   AdminSettingsPayload,
   BookingRecord,
@@ -195,9 +196,10 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
   const topRoomsCount: Record<string, number> = {};
 
   roomsList.forEach((r) => {
-    globalRoomCounts[r.name] = 0;
-    globalRoomMoney[r.name] = 0;
-    globalRoomNights[r.name] = 0;
+    const label = adminRoomLabel(r);
+    globalRoomCounts[label] = 0;
+    globalRoomMoney[label] = 0;
+    globalRoomNights[label] = 0;
   });
   ["Адмінка", "Instagram", "Telegram", "Viber", "Booking", "TikTok", "Сайт", "Hutshub"].forEach((s) => {
     sourceCounts[s] = 0;
@@ -222,7 +224,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
         const matchedRoom = roomsList.find(
           (r) => String(b.cottage).includes(r.name) || String(b.cottage).includes(r.short)
         );
-        const roomName = matchedRoom ? matchedRoom.name : String(b.cottage);
+        const roomName = matchedRoom ? adminRoomLabel(matchedRoom) : String(b.cottage);
         topRoomsCount[roomName] = (topRoomsCount[roomName] || 0) + 1;
       }
 
@@ -343,7 +345,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
         const matchedRoom = roomsList.find(
           (r) => String(b.cottage).includes(r.name) || String(b.cottage).includes(r.short)
         );
-        const roomName = matchedRoom ? matchedRoom.name : String(b.cottage);
+        const roomName = matchedRoom ? adminRoomLabel(matchedRoom) : String(b.cottage);
         globalRoomCounts[roomName] = (globalRoomCounts[roomName] || 0) + 1;
         globalRoomMoney[roomName] = (globalRoomMoney[roomName] || 0) + price;
         globalRoomNights[roomName] = (globalRoomNights[roomName] || 0) + nights;

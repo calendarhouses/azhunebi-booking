@@ -6,6 +6,7 @@ import { Ban, Calendar, CalendarDays, Moon, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { nightWord } from "../adminPlural";
 import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import { PriceRangeCalendar } from "./PriceRangeCalendar";
 import { ALL_WEEKDAY_INDICES } from "./ruleConstructorLogic";
 import type { RuleFormState } from "./ruleConstructorLogic";
@@ -236,7 +237,7 @@ export function RuleConstructorDrawer({
                   onClick={() => toggleRoom(String(r.id))}
                 >
                   <HousingChipIcon />
-                  {r.name}
+                  {adminRoomLabel(r)}
                 </ToggleCard>
               ))}
             </div>

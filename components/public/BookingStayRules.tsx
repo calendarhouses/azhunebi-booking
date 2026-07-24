@@ -25,21 +25,10 @@ export function BookingStayRules() {
 
         <p className="stay-rules__forbid-label">{STAY_RULES_PROHIBITIONS_LABEL}</p>
         <ul className="stay-rules__list">
-          {STAY_RULES_PROHIBITIONS.map((item, index) => (
-            <li
-              key={item}
-              className="stay-rules__item"
-              style={{ animationDelay: `${80 + index * 45}ms` }}
-            >
+          {STAY_RULES_PROHIBITIONS.map((item) => (
+            <li key={item} className="stay-rules__item">
               <span className="stay-rules__mark" aria-hidden>
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M6 6l12 12M18 6L6 18"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                ×
               </span>
               <span className="stay-rules__text">{item}</span>
             </li>

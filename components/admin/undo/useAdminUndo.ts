@@ -19,6 +19,7 @@ import {
   HOLDING_ROOM,
 } from "@/components/admin/desktop/timelineBookingMove";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "@/components/admin/desktop/types";
+import { adminRoomCottageValue } from "@/lib/admin/roomDisplay";
 
 const MAX_UNDO_STACK = 20;
 const PENDING_RESTORE_PREFIX = "__undo-pending-";
@@ -171,7 +172,7 @@ function buildBookingRecreatePayload(
   const payload = bookingRecordToPayload(booking);
   delete payload.row;
   delete payload.id;
-  payload.cottage = room.name;
+  payload.cottage = adminRoomCottageValue(room);
   payload.roomId = room.id;
   return payload;
 }

@@ -25,6 +25,7 @@ import {
 } from "./bookingDrawerDom";
 import { findRoomForBooking, formatRoomDisplayLabel, parseBookingComment } from "./bookingUtils";
 import { roomSidebarDisplayName } from "./TimelineSidebarRooms";
+import { adminRoomCottageValue } from "@/lib/admin/roomDisplay";
 import { HOLDING_ROOM_ID } from "./timelineBookingMove";
 import {
   childrenPolicyViolationMessage,
@@ -298,7 +299,11 @@ export function useBookingDrawer({
       const holding = roomKey === "Нерозподілені" || roomKey === String(HOLDING_ROOM_ID);
       window._bookingAssignmentState = holding ? "holding" : "assigned";
       const room = holding ? null : resolveRoomPrefill(roomKey);
-      const cottageName = holding ? "Нерозподілені" : room?.name || roomKey;
+      const cottageName = holding
+        ? "Нерозподілені"
+        : room
+          ? adminRoomCottageValue(room)
+          : roomKey;
       const label = holding
         ? "Нерозподілені"
         : room

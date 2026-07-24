@@ -1,4 +1,5 @@
 import type { CustomServiceConfig, RoomConfig, ServiceInputType } from "../types";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 
 export type ServicePricingMode = "once" | "per_day" | "per_guest" | "per_hour";
 export type ServiceSelectionMap = Record<string, number>;
@@ -126,7 +127,10 @@ export function buildServiceForm(service?: Partial<CustomServiceConfig>): Servic
 export function roomsLabelForService(roomIds: number[], roomsList: RoomConfig[]): string {
   if (!roomIds.length) return "Всі будинки";
   const names = roomIds
-    .map((id) => roomsList.find((r) => r.id === id)?.name?.trim())
+    .map((id) => {
+      const room = roomsList.find((r) => r.id === id);
+      return room ? adminRoomLabel(room) : "";
+    })
     .filter(Boolean) as string[];
   return names.length ? names.join(", ") : "Всі будинки";
 }
@@ -185,7 +189,12 @@ export function serviceAppliesToRoom(service: CustomServiceConfig, room: RoomCon
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean)
-    .includes(room.name.trim());
+    .some(
+      (part) =>
+        part === room.name.trim() ||
+        part === room.short?.trim() ||
+        part === adminRoomLabel(room)
+    );
 }
 
 export function listServicesForRoom(

@@ -6,17 +6,20 @@ import {
   copyToClipboard,
   displayClientName,
   displayPhone,
+  findRoomForBooking,
   getBookingBadgeClass,
 } from "../desktop/bookingUtils";
-import type { BookingRecord } from "../desktop/types";
+import type { BookingRecord, RoomConfig } from "../desktop/types";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import { iconCalMobile, iconMoonMobile, iconPhoneMobile } from "./mobileBookingRowIcons";
 
 export interface MobileBookingCardProps {
   booking: BookingRecord;
+  roomsList?: RoomConfig[];
   onOpen: (event: React.MouseEvent | null, row: number | string) => void;
 }
 
-export function MobileBookingCard({ booking: b, onOpen }: MobileBookingCardProps) {
+export function MobileBookingCard({ booking: b, roomsList = [], onOpen }: MobileBookingCardProps) {
   const inDate = parseSafeDate(b.checkIn);
   const outDate = parseSafeDate(b.checkOut);
   const nights = Math.round((outDate.getTime() - inDate.getTime()) / 86400000) || 0;
@@ -25,6 +28,8 @@ export function MobileBookingCard({ booking: b, onOpen }: MobileBookingCardProps
   const clientName = displayClientName(b.name);
   const initial = clientName.charAt(0).toUpperCase() || "👤";
   const phoneDisplay = displayPhone(b.phone);
+  const matchedRoom = findRoomForBooking(b, roomsList);
+  const cottageLabel = matchedRoom ? adminRoomLabel(matchedRoom) : b.cottage;
 
   return (
     <article className="boso-mobile-card boso-mobile-booking-card">
@@ -53,7 +58,7 @@ export function MobileBookingCard({ booking: b, onOpen }: MobileBookingCardProps
           </div>
         </div>
         <div className="boso-mobile-card__cottage-wrap">
-          <span className="boso-mobile-card__cottage">{b.cottage}</span>
+          <span className="boso-mobile-card__cottage">{cottageLabel}</span>
         </div>
       </div>
 

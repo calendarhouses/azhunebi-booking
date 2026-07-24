@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import { isDiscountDraftId } from "@/lib/admin/discountDraft";
 import { showToast } from "../adminGlobals";
 import type { AdminModalsApi } from "../useAdminModals";
@@ -581,7 +582,7 @@ export function DiscountSettingsAccordion({
                 onClick={() => toggleRoom(String(room.id))}
               >
                 <HousingChipIcon />
-                {room.name}
+                {adminRoomLabel(room)}
               </button>
             ))}
           </div>

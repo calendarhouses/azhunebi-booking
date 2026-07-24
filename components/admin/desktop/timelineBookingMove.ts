@@ -1,5 +1,6 @@
 import { parseSafeDate } from "./adminDates";
 import { formatDateKey, findRoomForBooking } from "./bookingUtils";
+import { adminRoomCottageValue } from "@/lib/admin/roomDisplay";
 import type { BookingRecord, RoomConfig } from "./types";
 
 export const TIMELINE_ROW_HEIGHT = 70;
@@ -92,7 +93,7 @@ export function buildBookingMovePayload(
     ...booking,
     checkIn,
     checkOut,
-    cottage: isHoldingRoom(room) ? "" : room.name,
+    cottage: isHoldingRoom(room) ? "" : adminRoomCottageValue(room),
     roomId: isHoldingRoom(room) ? "" : room.id,
     assignmentState: isHoldingRoom(room) ? "holding" : "assigned",
     row: booking.row,
@@ -111,7 +112,7 @@ export function applyBookingMove(
     ...booking,
     checkIn,
     checkOut,
-    cottage: isHoldingRoom(room) ? "" : room.name,
+    cottage: isHoldingRoom(room) ? "" : adminRoomCottageValue(room),
     roomId: isHoldingRoom(room) ? "" : room.id,
     assignmentState: isHoldingRoom(room) ? "holding" : "assigned",
   };

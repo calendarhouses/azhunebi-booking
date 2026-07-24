@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Banknote, Calendar, CalendarDays, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import { PriceRangeCalendar } from "./PriceRangeCalendar";
 import { ALL_WEEKDAY_INDICES } from "./priceConstructorLogic";
 import type { PriceFormState } from "./GenericModalContent";
@@ -204,7 +205,7 @@ export function PriceConstructorDrawer({
                   onClick={() => toggleRoom(String(r.id))}
                 >
                   <HousingChipIcon />
-                  {r.name}
+                  {adminRoomLabel(r)}
                 </ToggleCard>
               ))}
             </div>

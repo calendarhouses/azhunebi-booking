@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Banknote, Clock, Hash, Moon, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 import type { ServiceFormState } from "./additionalServicesLogic";
 import { previewServiceFee } from "./additionalServicesLogic";
 import type { AdminSettingsPayload } from "../types";
@@ -292,7 +293,7 @@ export function ServiceEditorDrawer({
                     onClick={() => toggleRoom(room.id)}
                   >
                     <RoomSidebarHouseIcon className="svc-room-chip__icon" />
-                    {room.name?.trim() || `Будинок ${room.id}`}
+                    {adminRoomLabel(room)}
                   </button>
                 );
               })}

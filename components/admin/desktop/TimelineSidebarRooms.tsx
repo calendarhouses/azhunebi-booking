@@ -6,15 +6,15 @@ import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon
 import { TimelineActionTooltip } from "./TimelineActionTooltip";
 import { useGridFocusModeOptional } from "./GridFocusModeContext";
 import type { RoomConfig } from "./types";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 
 export function timelineRoomsHeading(): "Будинки" {
   return "Будинки";
 }
 
+/** @deprecated Prefer `adminRoomLabel` from `@/lib/admin/roomDisplay`. */
 export function roomSidebarDisplayName(room: Pick<RoomConfig, "name" | "short">): string {
-  const chessboard = room.short?.trim();
-  if (chessboard) return chessboard;
-  return room.name?.trim() || "Назва житла";
+  return adminRoomLabel(room);
 }
 
 export function TimelineSidebarHeader({

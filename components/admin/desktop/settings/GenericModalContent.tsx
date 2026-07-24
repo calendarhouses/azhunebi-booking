@@ -20,6 +20,7 @@ import type {
 import { buildIncomeCategories, EXPENSE_CATEGORIES } from "../types";
 import { RoomPhotosUpload } from "./RoomPhotosUpload";
 import { AMENITIES_CATEGORIES, buildDefaultAmenitiesState } from "@/constants/amenitiesDict";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 
 export type GenericModalType =
   | "room"
@@ -347,7 +348,7 @@ export function GenericModalContent({
                 active={restrictionForm.selectedRoomIds.includes(String(r.id))}
                 onClick={() => toggleRestrRoom(String(r.id))}
               >
-                {r.name}
+                {adminRoomLabel(r)}
               </Chip>
             ))}
           </div>
@@ -478,7 +479,7 @@ export function GenericModalContent({
                 }
                 onClick={() => toggleDiscRoom(String(r.id))}
               >
-                {r.name}
+                {adminRoomLabel(r)}
               </Chip>
             ))}
           </div>

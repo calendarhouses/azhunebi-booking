@@ -217,7 +217,7 @@ function buildDisplayName(form: DiscountAccordionForm): string {
 
 export function buildDiscountConfigFromForm(
   form: DiscountAccordionForm,
-  roomsList: { id: number | string; name: string }[]
+  roomsList: { id: number | string; name: string; short?: string }[]
 ): Omit<DiscountConfig, "id"> {
   let roomsIds: string[] = [];
   let rooms = "Не обрано";
@@ -229,7 +229,7 @@ export function buildDiscountConfigFromForm(
     roomsIds = [...form.selectedRoomIds];
     const names = roomsList
       .filter((r) => roomsIds.includes(String(r.id)))
-      .map((r) => r.name);
+      .map((r) => r.short?.trim() || r.name);
     rooms = names.length ? names.join(", ") : "Не обрано";
   }
 

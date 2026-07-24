@@ -16,6 +16,7 @@ import {
 import { bookingMoveKey } from "../timelineBookingMove";
 import type { BookingRecord, RoomConfig } from "../types";
 import { MobileBookingCard } from "../../mobile/MobileBookingCard";
+import { adminRoomLabel } from "@/lib/admin/roomDisplay";
 
 const iconMoon = (
   <svg width="14" height="14" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
@@ -154,7 +155,12 @@ export function DesktopBookingsListView({
             <div className="boso-mobile-card-empty">Немає броней</div>
           ) : (
             rows.map((b) => (
-              <MobileBookingCard key={String(bookingMoveKey(b))} booking={b} onOpen={onOpenBooking} />
+              <MobileBookingCard
+                key={String(bookingMoveKey(b))}
+                booking={b}
+                roomsList={roomsList}
+                onOpen={onOpenBooking}
+              />
             ))
           )}
         </div>
@@ -186,7 +192,8 @@ export function DesktopBookingsListView({
               const clientName = displayClientName(b.name);
               const initial = clientName.charAt(0).toUpperCase() || "👤";
               const cleanPhone = displayPhone(b.phone);
-              const resolvedRoomName = findRoomForBooking(b, roomsList)?.name || b.cottage;
+              const matchedRoom = findRoomForBooking(b, roomsList);
+              const resolvedRoomName = matchedRoom ? adminRoomLabel(matchedRoom) : b.cottage;
 
               return (
                 <tr
