@@ -90,6 +90,8 @@ export type BookedRange = {
   end: Date;
   hasEarly: boolean;
   hasLate: boolean;
+  /** Parsed late checkout time when hasLate (e.g. "20:00"). */
+  lateTime?: string | null;
 };
 
 export type PublicServiceLine = {

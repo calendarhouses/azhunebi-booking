@@ -105,12 +105,17 @@ export function stripFlexibleTokensFromComment(raw: string): string {
     .replace(/🕒#early:\s*\d{2}:\d{2}(\s*\|\s*)?/g, "")
     .replace(/🕒#late⏳:\s*\d{2}:\d{2}(\s*\|\s*)?/g, "")
     .replace(/🕒#late:\s*\d{2}:\d{2}(\s*\|\s*)?/g, "")
+    .replace(/🕒#postlate⏳:\s*\d{2}:\d{2}(\s*\|\s*)?/g, "")
     .replace(
       /🕒\s*Ранній заїзд:\s*з\s*\d{2}:\d{2}(?:\s*\(очікує підтвердження\))?(\s*\|\s*)?/g,
       ""
     )
     .replace(
       /🕒\s*Пізній виїзд:\s*до\s*\d{2}:\d{2}(?:\s*\(очікує підтвердження\))?(\s*\|\s*)?/g,
+      ""
+    )
+    .replace(
+      /🕒\s*Заїзд після пізнього виїзду:\s*з\s*\d{2}:\d{2}(\s*\|\s*)?/g,
       ""
     )
     .replace(/\|\s*\|\s*/g, " | ")

@@ -68,6 +68,9 @@ export function DesktopBookingDrawer() {
     proceedLabel,
     price,
     priceError,
+    postLateGapNotice,
+    postLateArrivalTime,
+    isPostLateGapStay,
     checkIn,
     checkOut,
     submitCheckout,
@@ -202,6 +205,12 @@ export function DesktopBookingDrawer() {
               </div>
             </div>
 
+            {checkIn && checkOut ? (
+              <div style={{ marginTop: 12 }}>
+                <BookingFlexConflictAlert message={postLateGapNotice} />
+              </div>
+            ) : null}
+
             <div className="guests-block">
               <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
                 Гості
@@ -258,46 +267,58 @@ export function DesktopBookingDrawer() {
 
               <div className="guests-block" style={{ marginTop: 20 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Гнучкий графік</h3>
-                <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
-                  Стандартний заїзд з {flexibleSchedule.standardCheckIn}, виїзд до{" "}
-                  {flexibleSchedule.standardCheckOut}
-                  {flexibleSchedule.requiresApproval
-                    ? " · ранній/пізній за запитом адміністратора"
-                    : ""}
-                </p>
-                <ServiceCard
-                  title="Ранній заїзд"
-                  active={earlyActive}
-                  priceLabel={formatFlexFeeLabel(
-                    flexibleSchedule.earlyFee,
-                    flexibleSchedule.requiresApproval,
-                    !!earlyTime
-                  )}
-                  onToggle={() => toggleService("early")}
-                >
-                  <TimeChips
-                    times={flexibleSchedule.earlyTimes}
-                    selected={earlyTime}
-                    onSelect={(t) => selectTime("early", t)}
-                  />
-                </ServiceCard>
-                <ServiceCard
-                  title="Пізній виїзд"
-                  active={lateActive}
-                  priceLabel={formatFlexFeeLabel(
-                    flexibleSchedule.lateFee,
-                    flexibleSchedule.requiresApproval,
-                    !!lateTime
-                  )}
-                  onToggle={() => toggleService("late")}
-                >
-                  <TimeChips
-                    times={flexibleSchedule.lateTimes}
-                    selected={lateTime}
-                    onSelect={(t) => selectTime("late", t)}
-                  />
-                </ServiceCard>
-                <BookingFlexConflictAlert message={priceError} />
+                {isPostLateGapStay && postLateArrivalTime ? (
+                  <>
+                    <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+                      Заїзд зафіксовано з <b>{postLateArrivalTime}</b> (після виїзду попереднього гостя).
+                      Ранній заїзд / пізній виїзд для цих дат недоступні.
+                    </p>
+                    <BookingFlexConflictAlert message={priceError} />
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
+                      Стандартний заїзд з {flexibleSchedule.standardCheckIn}, виїзд до{" "}
+                      {flexibleSchedule.standardCheckOut}
+                      {flexibleSchedule.requiresApproval
+                        ? " · ранній/пізній за запитом адміністратора"
+                        : ""}
+                    </p>
+                    <ServiceCard
+                      title="Ранній заїзд"
+                      active={earlyActive}
+                      priceLabel={formatFlexFeeLabel(
+                        flexibleSchedule.earlyFee,
+                        flexibleSchedule.requiresApproval,
+                        !!earlyTime
+                      )}
+                      onToggle={() => toggleService("early")}
+                    >
+                      <TimeChips
+                        times={flexibleSchedule.earlyTimes}
+                        selected={earlyTime}
+                        onSelect={(t) => selectTime("early", t)}
+                      />
+                    </ServiceCard>
+                    <ServiceCard
+                      title="Пізній виїзд"
+                      active={lateActive}
+                      priceLabel={formatFlexFeeLabel(
+                        flexibleSchedule.lateFee,
+                        flexibleSchedule.requiresApproval,
+                        !!lateTime
+                      )}
+                      onToggle={() => toggleService("late")}
+                    >
+                      <TimeChips
+                        times={flexibleSchedule.lateTimes}
+                        selected={lateTime}
+                        onSelect={(t) => selectTime("late", t)}
+                      />
+                    </ServiceCard>
+                    <BookingFlexConflictAlert message={priceError} />
+                  </>
+                )}
               </div>
             </div>
           </DrawerContent>

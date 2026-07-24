@@ -58,7 +58,6 @@ function classifyDay(params: {
   let isOccupiedNight = false;
   let isNextGuestCheckIn = false;
   let nextGuestHasEarly = false;
-  let prevGuestHasLate = false;
 
   for (const r of ranges) {
     // Occupied nights: [start, end)
@@ -68,9 +67,6 @@ function classifyDay(params: {
         isNextGuestCheckIn = true;
         nextGuestHasEarly = Boolean(r.hasEarly);
       }
-    }
-    if (t === r.end.getTime() && r.hasLate) {
-      prevGuestHasLate = true;
     }
   }
 
@@ -86,7 +82,8 @@ function classifyDay(params: {
     return { kind: "turnover-checkout", clickable: true };
   }
 
-  if (isOccupiedNight || prevGuestHasLate) {
+  // Late-checkout day is selectable as check-in (post-late gap stay).
+  if (isOccupiedNight) {
     return { kind: "occupied", clickable: false };
   }
 

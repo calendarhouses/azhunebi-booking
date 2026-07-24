@@ -38,6 +38,11 @@ import {
   isStayClearOfBookings,
 } from "@/lib/public-booking/bookedRanges";
 import {
+  arrivalAfterLateCheckout,
+  buildPostLateCommentToken,
+  findPrevLateCheckoutRange,
+} from "@/lib/public-booking/postLateGapStay";
+import {
   createMonoPayment,
   ensurePaymentLinkSms,
   fetchPublicInitData,
@@ -148,6 +153,10 @@ type Ctx = {
   proceedLabel: string;
   price: PublicPriceBreakdown | null;
   priceError: string | null;
+  /** Warning when stay starts on previous guest's late-checkout day. */
+  postLateGapNotice: string | null;
+  postLateArrivalTime: string | null;
+  isPostLateGapStay: boolean;
   refreshCalendar: () => void;
   calKey: number;
   submitCheckout: (form: {
@@ -223,6 +232,7 @@ export function PublicBookingProvider({
   const [lateTime, setLateTime] = useState<string | null>(null);
   const [earlyActive, setEarlyActive] = useState(false);
   const [lateActive, setLateActive] = useState(false);
+  const [postLateArrivalTime, setPostLateArrivalTime] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successReceiptHtml, setSuccessReceiptHtml] = useState("");
@@ -417,12 +427,14 @@ export function PublicBookingProvider({
     setLateTime(null);
     setEarlyActive(false);
     setLateActive(false);
+    setPostLateArrivalTime(null);
     setPromoCode("");
   }, []);
 
   const clearStayDates = useCallback(() => {
     setCheckIn(null);
     setCheckOut(null);
+    setPostLateArrivalTime(null);
     setCalKey((k) => k + 1);
   }, []);
 
@@ -518,12 +530,7 @@ export function PublicBookingProvider({
       for (const r of ranges) {
         const isOccupiedNight = t >= r.start.getTime() && t < r.end.getTime();
         const isNextCheckIn = t === r.start.getTime();
-        const isLateCheckoutDay = t === r.end.getTime() && r.hasLate;
 
-        if (isLateCheckoutDay) {
-          blocked = true;
-          break;
-        }
         if (isOccupiedNight) {
           // Same-day turnover: next guest's check-in can be OUR checkout only if reachable
           const validTurnoverCheckout =
@@ -542,10 +549,10 @@ export function PublicBookingProvider({
       if (blocked) {
         // Clicking a blocked day starts a fresh check-in only if the night is free
         const nightFree = !ranges.some((r) => t >= r.start.getTime() && t < r.end.getTime());
-        const lateBlock = ranges.some((r) => t === r.end.getTime() && r.hasLate);
-        if (nightFree && !lateBlock && !isDateClosed(runtime.closedDates, selectedRoom.id, d, runtime.restrictions)) {
+        if (nightFree && !isDateClosed(runtime.closedDates, selectedRoom.id, d, runtime.restrictions)) {
           setCheckIn(d);
           setCheckOut(null);
+          setPostLateArrivalTime(null);
         } else {
           showPublicToast("Ця дата недоступна");
         }
@@ -572,6 +579,7 @@ export function PublicBookingProvider({
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
         setCheckIn(d);
         setCheckOut(null);
+        setPostLateArrivalTime(null);
       } else {
         // Prefer shared conflict helper (early/late edges + half-open nights)
         const stayBlocked = !isStayClearOfBookings(checkIn, d, ranges);
@@ -594,6 +602,7 @@ export function PublicBookingProvider({
           );
           setCheckIn(d);
           setCheckOut(null);
+          setPostLateArrivalTime(null);
         } else {
           const nights = Math.round((d.getTime() - checkIn.getTime()) / 86400000);
           const req = getBookingMinNightsRequired(
@@ -603,9 +612,33 @@ export function PublicBookingProvider({
             runtime.restrictions || {}
           );
           if (req > 0 && nights < req) {
-            showPublicToast(`Для обраних дат мінімум ${req} ${nightWord(req)}`);
-            setCheckOut(null);
+            const gapPrev = findPrevLateCheckoutRange(checkIn, ranges);
+            if (gapPrev) {
+              const arrival = arrivalAfterLateCheckout(gapPrev.lateTime);
+              setPostLateArrivalTime(arrival);
+              setLateTime(null);
+              setLateActive(false);
+              setCheckOut(d);
+              showPublicToast(
+                `Заїзд після ${gapPrev.lateTime || "20:00"} · −50% на ніч`
+              );
+            } else {
+              showPublicToast(`Для обраних дат мінімум ${req} ${nightWord(req)}`);
+              setCheckOut(null);
+            }
           } else {
+            const gapPrev = findPrevLateCheckoutRange(checkIn, ranges);
+            if (gapPrev) {
+              const arrival = arrivalAfterLateCheckout(gapPrev.lateTime);
+              setPostLateArrivalTime(arrival);
+              setLateTime(null);
+              setLateActive(false);
+              showPublicToast(
+                `Заїзд після ${gapPrev.lateTime || "20:00"} · −50% на ніч`
+              );
+            } else {
+              setPostLateArrivalTime(null);
+            }
             setCheckOut(d);
           }
         }
@@ -643,7 +676,9 @@ export function PublicBookingProvider({
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
         setCheckIn(d);
         setCheckOut(null);
+        setPostLateArrivalTime(null);
       } else {
+        // Room-specific gap notice is applied when a cottage is opened.
         setCheckOut(d);
       }
       setCalKey((k) => k + 1);
@@ -815,9 +850,34 @@ export function PublicBookingProvider({
     settings?.discountsList,
   ]);
 
+  // When dates + room form a post-late gap stay, lock arrival after previous late checkout.
+  useEffect(() => {
+    if (!selectedRoom || !runtime || !checkIn || !checkOut) {
+      return;
+    }
+    const ranges = getBookedRanges(runtime.bookings, selectedRoom);
+    const prev = findPrevLateCheckoutRange(checkIn, ranges);
+    if (!prev) {
+      if (postLateArrivalTime) setPostLateArrivalTime(null);
+      return;
+    }
+    const arrival = arrivalAfterLateCheckout(prev.lateTime);
+    if (postLateArrivalTime !== arrival) setPostLateArrivalTime(arrival);
+    if (lateTime) {
+      setLateTime(null);
+      setLateActive(false);
+    }
+  }, [selectedRoom, runtime, checkIn, checkOut, postLateArrivalTime, lateTime]);
+
   const priceResult = useMemo(() => {
     if (!selectedRoom || !settings || !checkIn || !checkOut || !runtime) {
-      return { price: null as PublicPriceBreakdown | null, error: null as string | null };
+      return {
+        price: null as PublicPriceBreakdown | null,
+        error: null as string | null,
+        postLateGapNotice: null as string | null,
+        postLateArrivalTime: null as string | null,
+        isPostLateGapStay: false,
+      };
     }
     const calc = computeBookingPrice({
       checkInStr: formatDateKey(checkIn),
@@ -834,6 +894,7 @@ export function PublicBookingProvider({
       enabledSpecialTariffIds,
       selectedEarlyTime: earlyTime,
       selectedLateTime: lateTime,
+      selectedPostLateArrivalTime: postLateArrivalTime,
       room: selectedRoom,
       settings,
       allBookings: runtime.bookings,
@@ -852,12 +913,21 @@ export function PublicBookingProvider({
       prevForm: null,
     });
     if (calc.isOverlap) {
-      return { price: null, error: calc.overlapReason || "Дати зайняті" };
+      return {
+        price: null,
+        error: calc.overlapReason || "Дати зайняті",
+        postLateGapNotice: calc.postLateGapNoticeHtml || null,
+        postLateArrivalTime: calc.postLateArrivalTime,
+        isPostLateGapStay: calc.isPostLateGapStay,
+      };
     }
     if (calc.restrViolation) {
       return {
         price: null,
         error: `Мінімум ${calc.requiredMinNights} ${nightWord(calc.requiredMinNights)}`,
+        postLateGapNotice: calc.postLateGapNoticeHtml || null,
+        postLateArrivalTime: calc.postLateArrivalTime,
+        isPostLateGapStay: calc.isPostLateGapStay,
       };
     }
     const prepaymentPolicy = readPrepaymentPolicy(data.branding);
@@ -882,9 +952,12 @@ export function PublicBookingProvider({
         prepayment,
         prepaymentLabel: formatPrepaymentGuestLabel(prepaymentPolicy),
         nights: calc.nights,
-        serviceLines: calc.serviceLines.filter((line) => line.quantity > 0),
+        serviceLines: calc.serviceLines,
       },
       error: null,
+      postLateGapNotice: calc.postLateGapNoticeHtml || null,
+      postLateArrivalTime: calc.postLateArrivalTime,
+      isPostLateGapStay: calc.isPostLateGapStay,
     };
   }, [
     selectedRoom,
@@ -902,6 +975,7 @@ export function PublicBookingProvider({
     ubdDiscountId,
     earlyTime,
     lateTime,
+    postLateArrivalTime,
     data.branding,
   ]);
 
@@ -909,10 +983,17 @@ export function PublicBookingProvider({
     !checkIn || !checkOut || Boolean(priceResult.error) || childrenPolicyBlocked;
   let proceedLabel = "Оберіть дати";
   if (checkIn && !checkOut) {
-    const min = selectedRoom
-      ? getRestrictionMinNights(runtime?.restrictions || {}, selectedRoom.id, checkIn)
-      : 0;
-    proceedLabel = min > 1 ? `Мінімум ${min} ${nightWord(min)}` : "Оберіть дату виїзду";
+    const ranges =
+      selectedRoom && runtime ? getBookedRanges(runtime.bookings, selectedRoom) : [];
+    const gapOnCheckIn = findPrevLateCheckoutRange(checkIn, ranges);
+    if (gapOnCheckIn) {
+      proceedLabel = "Оберіть дату виїзду";
+    } else {
+      const min = selectedRoom
+        ? getRestrictionMinNights(runtime?.restrictions || {}, selectedRoom.id, checkIn)
+        : 0;
+      proceedLabel = min > 1 ? `Мінімум ${min} ${nightWord(min)}` : "Оберіть дату виїзду";
+    }
   } else if (checkIn && checkOut && priceResult.error) {
     // Keep CTA short — full message is shown in BookingFlexConflictAlert (HTML stripped here).
     const plain = stripHtmlTags(priceResult.error);
@@ -980,10 +1061,13 @@ export function PublicBookingProvider({
       parts.push(
         ...buildServiceCommentTokens(selectedServices, servicesById, { isPublicBooking: true })
       );
-      if (earlyTime) {
+      if (earlyTime && !postLateArrivalTime) {
         parts.push(
           buildEarlyCommentToken(earlyTime, flexibleSchedule.requiresApproval)
         );
+      }
+      if (postLateArrivalTime) {
+        parts.push(buildPostLateCommentToken(postLateArrivalTime));
       }
       if (lateTime) {
         parts.push(buildLateCommentToken(lateTime, flexibleSchedule.requiresApproval));
@@ -1237,6 +1321,9 @@ export function PublicBookingProvider({
     proceedLabel,
     price: priceResult.price,
     priceError: priceResult.error,
+    postLateGapNotice: priceResult.postLateGapNotice,
+    postLateArrivalTime: priceResult.postLateArrivalTime,
+    isPostLateGapStay: priceResult.isPostLateGapStay,
     refreshCalendar: () => setCalKey((k) => k + 1),
     calKey,
     submitCheckout,

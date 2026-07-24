@@ -10,6 +10,7 @@ import type {
   BookingRecord,
   RoomConfig,
 } from "@/components/admin/desktop/types";
+import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import type { BookedRange } from "./types";
 
 export function formatDateKey(d: Date): string {
@@ -42,10 +43,16 @@ export function getBookedRanges(
       s.setHours(0, 0, 0, 0);
       const e = parseSafeDate(b.checkOut);
       e.setHours(0, 0, 0, 0);
-      const { hasEarly, hasLate: hasLateComment } = bookingHasEarlyLate(
-        String(b.comment || "")
-      );
-      return { start: s, end: e, hasEarly, hasLate: hasLateComment };
+      const comment = String(b.comment || "");
+      const { hasEarly, hasLate: hasLateComment } = bookingHasEarlyLate(comment);
+      const { lateTime } = parseEarlyLateTimesFromComment(comment);
+      return {
+        start: s,
+        end: e,
+        hasEarly,
+        hasLate: hasLateComment,
+        lateTime: hasLateComment ? lateTime : null,
+      };
     });
 }
 
@@ -79,8 +86,8 @@ function stayConflictsWithRange(
 
   // Half-open nights [start, end) — same rule as checkBookingOverlap / isRoomNightOccupied.
   if (start < range.end && end > range.start) return true;
-  // Same-day turnover edges
-  if (start.getTime() === range.end.getTime() && range.hasLate) return true;
+  // Late checkout day may be used as check-in (post-late gap stay: arrive after late time).
+  // Early check-in on next guest's day still conflicts.
   if (end.getTime() === range.start.getTime() && range.hasEarly) return true;
   return false;
 }
@@ -117,10 +124,13 @@ export function isRoomFreeForRange(
   }
 
   const nights = Math.round((end.getTime() - start.getTime()) / 86400000);
-  const req = getBookingMinNightsRequired(room, start, end, restrictions || {});
+  const ranges = getBookedRanges(bookings, room);
+  const postLateGap = ranges.some((r) => r.end.getTime() === start.getTime() && r.hasLate);
+  const req = postLateGap
+    ? 0
+    : getBookingMinNightsRequired(room, start, end, restrictions || {});
   if (req > 0 && nights < req) return false;
 
-  const ranges = getBookedRanges(bookings, room);
   for (const range of ranges) {
     if (stayConflictsWithRange(start, end, range)) return false;
   }

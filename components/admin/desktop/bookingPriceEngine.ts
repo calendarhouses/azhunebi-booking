@@ -15,13 +15,21 @@ import {
   serviceIsOnSite,
   type ServiceSelectionMap,
 } from "./settings/additionalServicesLogic";
-import { quoteFlexibleFee } from "@/lib/admin/flexibleSchedule";
+import { parseEarlyLateTimesFromComment, quoteFlexibleFee } from "@/lib/admin/flexibleSchedule";
 import {
   calculateTotal,
   formatDiscountLineForGuest,
   resolveApplicableBookingDiscounts,
 } from "@/lib/admin/bookingDiscountCalc";
 import { bookingsShareSameRoom } from "@/lib/admin/roomBookingMatch";
+import {
+  POST_LATE_GAP_FIRST_NIGHT_DISCOUNT,
+  arrivalAfterLateCheckout,
+  buildPostLateGapNoticeHtml,
+  findPrevLateCheckoutRange,
+  timeToMinutes,
+} from "@/lib/public-booking/postLateGapStay";
+import { getBookedRanges } from "@/lib/public-booking/bookedRanges";
 
 export type ManualPriceSnapshot = {
   base: number | null;
@@ -144,6 +152,8 @@ export function checkBookingOverlap(params: {
   nights: number;
   selectedEarlyTime: string | null;
   selectedLateTime: string | null;
+  /** Arrival time when check-in is on previous guest's late-checkout day. */
+  selectedPostLateArrivalTime?: string | null;
   allBookings: BookingRecord[];
   editingRow: number | string | null;
   editingId?: string | null;
@@ -156,6 +166,7 @@ export function checkBookingOverlap(params: {
     checkOut,
     selectedEarlyTime,
     selectedLateTime,
+    selectedPostLateArrivalTime = null,
     allBookings,
     editingRow,
     editingId,
@@ -190,19 +201,29 @@ export function checkBookingOverlap(params: {
 
     const comment = b.comment ? String(b.comment) : "";
     const { hasEarly: exHasEarly, hasLate: exHasLate } = bookingHasEarlyLate(comment);
+    const { lateTime: exLateTime } = parseEarlyLateTimesFromComment(comment);
 
     if (currentIn < exOut && currentOut > exIn) {
       return { isOverlap: true, overlapReason: "Ці дати вже повністю зайняті іншим гостем." };
     }
     if (currentIn.getTime() === exOut.getTime()) {
       if (exHasLate) {
-        return {
-          isOverlap: true,
-          overlapReason:
-            "Попередній гість має <b>Пізній виїзд</b>. Заселення в цей день неможливе.",
-        };
-      }
-      if (currentHasEarly) {
+        const prevLate = exLateTime || "20:00";
+        const arrival =
+          selectedPostLateArrivalTime ||
+          selectedEarlyTime ||
+          null;
+        if (arrival && timeToMinutes(arrival) > timeToMinutes(prevLate)) {
+          // Post-late gap stay: arrive after previous guest leaves — allowed.
+        } else {
+          return {
+            isOverlap: true,
+            overlapReason:
+              `Попередній гість має <b>Пізній виїзд</b> о ${prevLate}. ` +
+              `Заїзд у цей день можливий лише після цього часу.`,
+          };
+        }
+      } else if (currentHasEarly) {
         return {
           isOverlap: true,
           overlapReason: "Попередній гість ще не виїхав. Ваш <b>Ранній заїзд</b> неможливий.",
@@ -266,6 +287,10 @@ export type BookingPriceResult = {
   }[];
   selectedEarlyTime: string | null;
   selectedLateTime: string | null;
+  /** Non-blocking notice for post-late gap stay (arrive after previous late checkout). */
+  postLateGapNoticeHtml: string;
+  postLateArrivalTime: string | null;
+  isPostLateGapStay: boolean;
 };
 
 export function computeBookingPrice(params: {
@@ -283,6 +308,8 @@ export function computeBookingPrice(params: {
   enabledSpecialTariffIds?: string[];
   selectedEarlyTime: string | null;
   selectedLateTime: string | null;
+  /** Forced arrival when check-in is on a late-checkout day (public gap stay). */
+  selectedPostLateArrivalTime?: string | null;
   room: RoomConfig | undefined;
   settings: AdminSettingsPayload;
   allBookings: BookingRecord[];
@@ -323,6 +350,9 @@ export function computeBookingPrice(params: {
     serviceLines: [],
     selectedEarlyTime: params.selectedEarlyTime,
     selectedLateTime: params.selectedLateTime,
+    postLateGapNoticeHtml: "",
+    postLateArrivalTime: null,
+    isPostLateGapStay: false,
   };
 
   if (!params.checkInStr || !params.checkOutStr || !params.roomName || !params.room) {
@@ -335,6 +365,21 @@ export function computeBookingPrice(params: {
   const restrictions = params.settings.restrictions || {};
   const discountsList = params.settings.discountsList || [];
 
+  const ranges = getBookedRanges(params.allBookings, room);
+  const prevLateRange = findPrevLateCheckoutRange(d1, ranges);
+  const isPostLateGap = Boolean(prevLateRange);
+  const postLateArrivalTime = isPostLateGap
+    ? params.selectedPostLateArrivalTime ||
+      arrivalAfterLateCheckout(prevLateRange?.lateTime)
+    : null;
+  const postLateGapNoticeHtml =
+    isPostLateGap && postLateArrivalTime
+      ? buildPostLateGapNoticeHtml(
+          prevLateRange?.lateTime || "20:00",
+          postLateArrivalTime
+        )
+      : "";
+
   const overlap = checkBookingOverlap({
     roomName: params.roomName,
     roomId: params.room?.id ?? null,
@@ -344,16 +389,29 @@ export function computeBookingPrice(params: {
     nights,
     selectedEarlyTime: params.selectedEarlyTime,
     selectedLateTime: params.selectedLateTime,
+    selectedPostLateArrivalTime: postLateArrivalTime,
     allBookings: params.allBookings,
     editingRow: params.editingRow,
     editingId: params.editingId,
   });
 
   if (overlap.isOverlap) {
-    return { ...emptyResult, empty: false, isOverlap: true, overlapReason: overlap.overlapReason, nights };
+    return {
+      ...emptyResult,
+      empty: false,
+      isOverlap: true,
+      overlapReason: overlap.overlapReason,
+      nights,
+      postLateGapNoticeHtml,
+      postLateArrivalTime,
+      isPostLateGapStay: isPostLateGap,
+    };
   }
 
-  const requiredMinNights = getBookingMinNightsRequired(room, d1, d2, restrictions);
+  // Gap night after late checkout may be shorter than marketing min-nights.
+  const requiredMinNights = isPostLateGap
+    ? 0
+    : getBookingMinNightsRequired(room, d1, d2, restrictions);
   const restrViolation = requiredMinNights > 0 && nights < requiredMinNights;
   const restrWarningHtml = restrViolation
     ? `<div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px; color:#92400E; line-height:1.45;"><strong>Обмеження для гостей на сайті:</strong> мінімум <b>${requiredMinNights}</b> ${nightWord(requiredMinNights)} (зараз ${nights} ${nightWord(nights)}). У адмінці зберегти можна.</div>`
@@ -421,7 +479,7 @@ export function computeBookingPrice(params: {
   const earlyPendingApproval = earlyQuote.pendingApproval;
   const latePendingApproval = lateQuote.pendingApproval;
   let earlyFee =
-    params.selectedEarlyTime
+    params.selectedEarlyTime && !isPostLateGap
       ? isPublic && earlyPendingApproval
         ? 0
         : earlyQuotedFee
@@ -432,7 +490,7 @@ export function computeBookingPrice(params: {
         ? 0
         : lateQuotedFee
       : 0;
-  const early50 = earlyQuotedFee;
+  const early50 = isPostLateGap ? 0 : earlyQuotedFee;
   const late50 = lateQuotedFee;
 
   const currState: FormStateSnapshot = {
@@ -515,6 +573,24 @@ export function computeBookingPrice(params: {
           amount: line.amount,
         }));
     }
+
+    if (isPostLateGap && nightlyBasePrices.length > 0) {
+      const gapCut = Math.round(
+        nightlyBasePrices[0] * POST_LATE_GAP_FIRST_NIGHT_DISCOUNT
+      );
+      if (gapCut > 0) {
+        discountAmount += gapCut;
+        discountLines = [
+          ...discountLines,
+          {
+            label: "Заїзд після пізнього виїзду (−50%)",
+            amount: gapCut,
+          },
+        ];
+        resolvedDiscountPercent =
+          amountToDiscount > 0 ? discountAmount / amountToDiscount : 0;
+      }
+    }
   }
 
   let totalPrice =
@@ -557,6 +633,9 @@ export function computeBookingPrice(params: {
     serviceLines,
     selectedEarlyTime: params.selectedEarlyTime,
     selectedLateTime: params.selectedLateTime,
+    postLateGapNoticeHtml,
+    postLateArrivalTime,
+    isPostLateGapStay: isPostLateGap,
   };
 }
 
