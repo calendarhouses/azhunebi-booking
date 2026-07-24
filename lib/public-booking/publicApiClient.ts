@@ -45,25 +45,34 @@ export async function submitPublicBooking(
   return createBooking(payload) as Promise<SubmitBookingResult>;
 }
 
-export async function createMonoPayment(orderId: string): Promise<{
+export async function createMonoPayment(
+  orderId: string,
+  amountKind: "prepay" | "full" = "prepay"
+): Promise<{
   pageUrl: string;
   amount: number;
+  amountKind: "prepay" | "full";
 }> {
   const response = await fetch("/api/payments/monopay/invoice", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId }),
+    body: JSON.stringify({ orderId, amountKind }),
   });
   const data = (await response.json()) as {
     ok?: boolean;
     pageUrl?: string;
     amount?: number;
+    amountKind?: "prepay" | "full";
     message?: string;
   };
   if (!response.ok || !data.ok || !data.pageUrl) {
     throw new Error(data.message || "Не вдалося створити рахунок MonoPay");
   }
-  return { pageUrl: data.pageUrl, amount: Number(data.amount) || 0 };
+  return {
+    pageUrl: data.pageUrl,
+    amount: Number(data.amount) || 0,
+    amountKind: data.amountKind === "full" ? "full" : "prepay",
+  };
 }
 
 export async function createMonoPartsOrder(
@@ -129,6 +138,18 @@ export async function pollMonoPartsStatus(orderId: string): Promise<{
     failed: data.failed,
     message: data.message,
   };
+}
+
+export async function abandonMonoPartsOrder(orderId: string): Promise<void> {
+  const response = await fetch("/api/payments/monoparts/abandon", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId }),
+  });
+  const data = (await response.json()) as { ok?: boolean; message?: string };
+  if (!response.ok || !data.ok) {
+    throw new Error(data.message || "Не вдалося скинути заявку ПЧ");
+  }
 }
 
 export async function ensurePaymentLinkSms(orderId: string): Promise<boolean> {

@@ -1,6 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { PayBookingPage } from "@/components/public/PayBookingPage";
 import { fetchBookingByDisplayId } from "@/lib/gas-api";
+import {
+  getMonoChastTestAmountUah,
+  getMonoTestAmountUah,
+} from "@/lib/monopay/config";
 import { isMonoPartsConfigured } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 
@@ -46,6 +50,9 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   const totalPrice = Math.round(Number(booking.totalPrice) || 0);
   if (prepayAmount <= 0 && totalPrice <= 0) notFound();
 
+  const debitTestAmountUah = getMonoTestAmountUah();
+  const partsTestAmountUah = getMonoChastTestAmountUah();
+
   return (
     <PayBookingPage
       orderId={id}
@@ -56,9 +63,12 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       totalPrice={totalPrice}
       partsEnabled={
         isMonoPartsConfigured() &&
-        (Math.round(Number(booking.prepayAmount) || 0) >= 2 ||
+        (partsTestAmountUah != null ||
+          Math.round(Number(booking.prepayAmount) || 0) >= 2 ||
           Math.round(Number(booking.totalPrice) || 0) >= 2)
       }
+      debitTestAmountUah={debitTestAmountUah}
+      partsTestAmountUah={partsTestAmountUah}
     />
   );
 }

@@ -656,6 +656,19 @@ export async function storeMonoInvoice(params: {
   });
 }
 
+export async function clearMonoPaymentAttempt(orderId: string): Promise<{
+  ok: boolean;
+  cleared?: boolean;
+  booking?: GasBookingRecord;
+  reason?: string;
+}> {
+  return gasPost({
+    action: "clearMonoPaymentAttempt",
+    orderId,
+    webhookSecret: paymentLifecycleSecret(),
+  });
+}
+
 export async function listPaymentLifecycle(): Promise<{
   ok: boolean;
   due?: GasBookingRecord[];

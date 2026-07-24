@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { fetchBookingByDisplayId, storeMonoInvoice } from "@/lib/gas-api";
-import { resolveMonoChargeAmountUah } from "@/lib/monopay/config";
+import { clearMonoPaymentAttempt, fetchBookingByDisplayId, storeMonoInvoice } from "@/lib/gas-api";
+import { resolveMonoChastChargeAmountUah } from "@/lib/monopay/config";
 import {
   createMonoChastOrder,
   getMonoChastOrderState,
@@ -42,7 +42,7 @@ function chargeForKind(
     kind === "prepay"
       ? Math.round(Number(booking.prepayAmount) || 0)
       : Math.round(Number(booking.totalPrice) || 0);
-  return resolveMonoChargeAmountUah(raw);
+  return resolveMonoChastChargeAmountUah(raw);
 }
 
 export async function GET() {
@@ -93,11 +93,12 @@ export async function POST(request: Request) {
   }
 
   if (isMonoAcquiringBooking(booking)) {
-    return errorResponse(
-      409,
-      "ACQUIRING_STARTED",
-      "Для цієї броні вже відкрито оплату MonoPay. Завершіть її або дочекайтесь закінчення резерву."
-    );
+    await clearMonoPaymentAttempt(orderId);
+    const refreshed = await fetchBookingByDisplayId(orderId);
+    if (refreshed.ok && refreshed.booking) {
+      // continue with cleared booking below
+      Object.assign(booking, refreshed.booking);
+    }
   }
 
   let forceNewStoreOrder = false;
@@ -107,13 +108,19 @@ export async function POST(request: Request) {
       const state = await getMonoChastOrderState(booking.monoInvoiceId);
       const top = String(state.state || "").toUpperCase();
       if (top === "FAIL") {
+        await clearMonoPaymentAttempt(orderId);
         forceNewStoreOrder = true;
+        const refreshedFail = await fetchBookingByDisplayId(orderId);
+        if (refreshedFail.ok && refreshedFail.booking) {
+          Object.assign(booking, refreshedFail.booking);
+        }
       } else if (existingKind !== amountKind) {
-        return errorResponse(
-          409,
-          "PARTS_KIND_MISMATCH",
-          "Для цієї броні вже відкрито інший варіант Покупки частинами. Дочекайтесь завершення або скасування в Monobank."
-        );
+        await clearMonoPaymentAttempt(orderId);
+        forceNewStoreOrder = true;
+        const refreshedKind = await fetchBookingByDisplayId(orderId);
+        if (refreshedKind.ok && refreshedKind.booking) {
+          Object.assign(booking, refreshedKind.booking);
+        }
       } else {
         return NextResponse.json(
           {

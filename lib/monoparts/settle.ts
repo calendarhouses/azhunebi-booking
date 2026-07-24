@@ -1,7 +1,10 @@
 import "server-only";
 
-import { fetchBookingByDisplayId, type GasBookingRecord } from "@/lib/gas-api";
-import { resolveMonoChargeAmountUah } from "@/lib/monopay/config";
+import { fetchBookingByDisplayId, clearMonoPaymentAttempt, type GasBookingRecord } from "@/lib/gas-api";
+import {
+  getMonoChastTestAmountUah,
+  resolveMonoChastChargeAmountUah,
+} from "@/lib/monopay/config";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
@@ -32,13 +35,15 @@ function expectedPartsAmountUah(booking: GasBookingRecord): number {
     kind === "prepay"
       ? Math.round(Number(booking.prepayAmount) || 0)
       : Math.round(Number(booking.totalPrice) || 0);
-  return resolveMonoChargeAmountUah(raw);
+  return resolveMonoChastChargeAmountUah(raw);
 }
 
 function providerForBooking(booking: GasBookingRecord): string {
-  return amountKindForBooking(booking) === "prepay"
-    ? MONO_CHAST_PROVIDER_PREPAY
-    : MONO_CHAST_PROVIDER_FULL;
+  const base =
+    amountKindForBooking(booking) === "prepay"
+      ? MONO_CHAST_PROVIDER_PREPAY
+      : MONO_CHAST_PROVIDER_FULL;
+  return getMonoChastTestAmountUah() != null ? `${base} TEST` : base;
 }
 
 async function markBookingPaidFromParts(
@@ -51,9 +56,11 @@ async function markBookingPaidFromParts(
     return { ok: false, reason: "invalid_amount", message: "Некоректна сума броні" };
   }
 
+  const testMode = getMonoChastTestAmountUah() != null;
   const result = await confirmBookingPayment(orderId, amountUah, {
     provider: providerForBooking(booking),
     transactionId: monoOrderId,
+    testMode,
   });
   if (!result.ok) {
     return {
@@ -131,6 +138,14 @@ export async function settleMonoPartsOrder(params: {
   }
 
   if (state === "FAIL") {
+    try {
+      await clearMonoPaymentAttempt(orderId);
+    } catch (error) {
+      console.error("[Mono Parts] Failed to clear payment attempt after FAIL", {
+        orderId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
     return {
       ok: true,
       settled: false,

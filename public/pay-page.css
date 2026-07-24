@@ -1,0 +1,475 @@
+.pay-page {
+  --pay-bg: #eef1eb;
+  --pay-ink: #1a1a1a;
+  --pay-muted: #5f6758;
+  --pay-accent: #556b2f;
+  --pay-accent-deep: #3f5223;
+  --pay-card: rgba(255, 255, 255, 0.86);
+  --pay-line: rgba(85, 107, 47, 0.14);
+  --pay-danger: #b42318;
+  --pay-danger-bg: #fef3f2;
+  --pay-warn: #b54708;
+  --pay-warn-bg: #fffaeb;
+  --pay-ok: #027a48;
+  --pay-ok-bg: #ecfdf3;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 18px 40px;
+  color: var(--pay-ink);
+  font-family: Inter, system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(85, 107, 47, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 110% 10%, rgba(222, 184, 135, 0.28), transparent 50%),
+    linear-gradient(165deg, #f7f5f2 0%, #eef1eb 48%, #e7ebe2 100%);
+}
+
+.pay-page__glow {
+  position: absolute;
+  inset: auto;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: payFloat 9s ease-in-out infinite;
+}
+
+.pay-page__glow--a {
+  top: -120px;
+  left: -80px;
+  background: #9aaa6c;
+}
+
+.pay-page__glow--b {
+  right: -100px;
+  bottom: -140px;
+  background: #deb887;
+  animation-delay: -3s;
+}
+
+.pay-shell {
+  width: 100%;
+  max-width: 460px;
+  position: relative;
+  z-index: 1;
+  animation: payRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pay-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  justify-content: center;
+}
+
+.pay-brand__logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 10px 30px rgba(26, 26, 26, 0.12);
+  background: #fff;
+}
+
+.pay-brand__text {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.pay-card {
+  background: var(--pay-card);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 28px;
+  padding: 26px 22px 22px;
+  box-shadow:
+    0 30px 80px rgba(40, 50, 30, 0.12),
+    0 2px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.pay-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pay-muted);
+}
+
+.pay-title {
+  margin: 8px 0 4px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.pay-dates {
+  margin: 0 0 8px;
+  color: var(--pay-muted);
+  font-size: 14px;
+}
+
+.pay-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(85, 107, 47, 0.08);
+  color: var(--pay-accent-deep);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.pay-section {
+  margin-top: 18px;
+}
+
+.pay-section__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pay-section__label span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pay-muted);
+}
+
+.pay-section__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pay-option {
+  width: 100%;
+  border: 1px solid var(--pay-line);
+  background: #fff;
+  border-radius: 18px;
+  padding: 14px 14px 14px 12px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    background 0.2s ease;
+  animation: payFadeUp 0.55s ease both;
+}
+
+.pay-option + .pay-option {
+  margin-top: 10px;
+}
+
+.pay-option:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(85, 107, 47, 0.35);
+  box-shadow: 0 14px 30px rgba(85, 107, 47, 0.1);
+}
+
+.pay-option:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.pay-option--primary {
+  background: linear-gradient(135deg, #556b2f 0%, #3f5223 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 16px 36px rgba(85, 107, 47, 0.28);
+}
+
+.pay-option--primary:hover:not(:disabled) {
+  box-shadow: 0 20px 40px rgba(85, 107, 47, 0.34);
+}
+
+.pay-option--primary .pay-option__sub,
+.pay-option--primary .pay-option__meta {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.pay-option__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(85, 107, 47, 0.1);
+  color: var(--pay-accent-deep);
+  flex-shrink: 0;
+}
+
+.pay-option--primary .pay-option__icon {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.pay-option__body {
+  min-width: 0;
+}
+
+.pay-option__title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.pay-option__sub {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--pay-muted);
+  line-height: 1.35;
+}
+
+.pay-option__meta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #8a9180;
+}
+
+.pay-option__amount {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pay-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pay-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(85, 107, 47, 0.08);
+  color: var(--pay-accent-deep);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pay-option--primary .pay-chip {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.pay-alert {
+  margin-top: 16px;
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: start;
+  animation: payShake 0.45s ease both;
+}
+
+.pay-alert--danger {
+  background: var(--pay-danger-bg);
+  border: 1px solid #fecdca;
+  color: #7a271a;
+}
+
+.pay-alert--warn {
+  background: var(--pay-warn-bg);
+  border: 1px solid #fedf89;
+  color: #7a2e0e;
+}
+
+.pay-alert--ok {
+  background: var(--pay-ok-bg);
+  border: 1px solid #abefc6;
+  color: #054f31;
+}
+
+.pay-alert__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.pay-alert__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pay-alert__text {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.pay-waiting {
+  margin-top: 8px;
+  border-radius: 20px;
+  padding: 18px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(236, 242, 230, 0.95));
+  border: 1px solid var(--pay-line);
+  text-align: center;
+}
+
+.pay-waiting__pulse {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: rgba(85, 107, 47, 0.1);
+  color: var(--pay-accent-deep);
+  position: relative;
+}
+
+.pay-waiting__pulse::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 22px;
+  border: 2px solid rgba(85, 107, 47, 0.25);
+  animation: payPulse 1.6s ease-out infinite;
+}
+
+.pay-waiting h2 {
+  margin: 0 0 8px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 24px;
+}
+
+.pay-waiting p {
+  margin: 0;
+  color: var(--pay-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pay-waiting__sum {
+  margin-top: 14px !important;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--pay-ink) !important;
+  font-weight: 600;
+}
+
+.pay-footer {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--pay-muted);
+}
+
+.pay-secure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--pay-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@keyframes payRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes payFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes payFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(18px);
+  }
+}
+
+@keyframes payPulse {
+  from {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes payShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 420px) {
+  .pay-title {
+    font-size: 26px;
+  }
+  .pay-option {
+    grid-template-columns: 40px 1fr;
+  }
+  .pay-option__amount {
+    display: none;
+  }
+}

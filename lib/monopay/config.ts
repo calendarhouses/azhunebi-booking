@@ -61,8 +61,8 @@ export function getPublicOrigin(): string {
 }
 
 /**
- * Test charge override — hard-disabled in production unless
- * MONO_ALLOW_TEST_AMOUNT=true (emergency only).
+ * Test charge override for MonoPay acquiring — hard-disabled in production unless
+ * MONO_ALLOW_TEST_AMOUNT=true (emergency / sandbox only).
  */
 export function getMonoTestAmountUah(): number | null {
   if (isProductionRuntime() && process.env.MONO_ALLOW_TEST_AMOUNT !== "true") {
@@ -80,6 +80,38 @@ export function getMonoTestAmountUah(): number | null {
   return Math.round(amount * 100) / 100;
 }
 
+/**
+ * Test charge for Покупка частинами (separate from acquiring).
+ * Mono Chast requires total_sum >= 2 UAH.
+ * Disabled in production unless MONO_ALLOW_TEST_AMOUNT=true.
+ */
+export function getMonoChastTestAmountUah(): number | null {
+  if (isProductionRuntime() && process.env.MONO_ALLOW_TEST_AMOUNT !== "true") {
+    if (process.env.MONO_CHAST_TEST_AMOUNT_UAH?.trim()) {
+      console.error(
+        "[Mono Parts] MONO_CHAST_TEST_AMOUNT_UAH is set but ignored in production (set MONO_ALLOW_TEST_AMOUNT=true to force)"
+      );
+    }
+    return null;
+  }
+  const raw =
+    process.env.MONO_CHAST_TEST_AMOUNT_UAH?.trim() ||
+    // Fallback: same override as acquiring if only one test var is set
+    process.env.MONO_TEST_AMOUNT_UAH?.trim();
+  if (!raw) return null;
+  const amount = Number(raw);
+  if (!Number.isFinite(amount) || amount < 2) return null;
+  return Math.round(amount * 100) / 100;
+}
+
 export function resolveMonoChargeAmountUah(expectedAmountUah: number): number {
   return getMonoTestAmountUah() ?? expectedAmountUah;
+}
+
+export function resolveMonoChastChargeAmountUah(expectedAmountUah: number): number {
+  return getMonoChastTestAmountUah() ?? expectedAmountUah;
+}
+
+export function isMonoTestChargesEnabled(): boolean {
+  return getMonoTestAmountUah() != null || getMonoChastTestAmountUah() != null;
 }

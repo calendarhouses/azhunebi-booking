@@ -78,21 +78,38 @@ export async function POST(request: Request) {
   const expectedPrepayUah = Math.round(
     Number(bookingResult.booking.prepayAmount) || 0
   );
+  const expectedTotalUah = Math.round(
+    Number(bookingResult.booking.totalPrice) || 0
+  );
   const testAmountUah = getMonoTestAmountUah();
-  const expectedKopiykas =
-    Math.round(resolveMonoChargeAmountUah(expectedPrepayUah) * 100);
-  if (expectedKopiykas <= 0 || amountKopiykas !== expectedKopiykas) {
+  const expectedPrepayKop = Math.round(
+    resolveMonoChargeAmountUah(expectedPrepayUah) * 100
+  );
+  const expectedTotalKop = Math.round(
+    resolveMonoChargeAmountUah(expectedTotalUah) * 100
+  );
+  const matchesPrepay = expectedPrepayKop > 0 && amountKopiykas === expectedPrepayKop;
+  const matchesTotal = expectedTotalKop > 0 && amountKopiykas === expectedTotalKop;
+  if (!matchesPrepay && !matchesTotal && testAmountUah == null) {
     console.error("[MonoPay Webhook] Amount mismatch", {
       reference,
       invoiceId,
       amountKopiykas,
-      expectedKopiykas,
+      expectedPrepayKop,
+      expectedTotalKop,
     });
     return NextResponse.json({ error: "Amount mismatch" }, { status: 422 });
   }
+  if (testAmountUah != null) {
+    const testKop = Math.round(testAmountUah * 100);
+    if (amountKopiykas !== testKop && !matchesPrepay && !matchesTotal) {
+      return NextResponse.json({ error: "Amount mismatch" }, { status: 422 });
+    }
+  }
 
+  const providerBase = matchesTotal && !matchesPrepay ? "MonoPay повна" : "MonoPay";
   const result = await confirmBookingPayment(reference, amountKopiykas / 100, {
-    provider: testAmountUah != null ? "MonoPay TEST" : "MonoPay",
+    provider: testAmountUah != null ? "MonoPay TEST" : providerBase,
     transactionId: invoiceId,
     testMode: testAmountUah != null,
   });
