@@ -69,6 +69,7 @@ import {
   handleBookingTouchEnd,
   handleBookingTouchMove,
   handleBookingTouchStart,
+  TOUCH_TOOLTIP_HOLD_SLOP_PX,
 } from "../timelineBookingTouch";
 import type { BookingRecord, RoomConfig } from "../types";
 import {
@@ -1464,8 +1465,9 @@ export function DesktopTimelineView({
           if (ev.cancelable) ev.preventDefault();
         }
 
-        // After long-press, start drag on a small move (tooltip already shown).
-        const dragStartPx = isTouch ? 3 : moveThreshold;
+        // After long-press, allow small finger jitter while reading the tooltip;
+        // a clear move dismisses it and starts drag.
+        const dragStartPx = isTouch ? TOUCH_TOOLTIP_HOLD_SLOP_PX : moveThreshold;
         if (!session.moved && dist < dragStartPx) return;
 
         clearLongPress();
@@ -1502,7 +1504,7 @@ export function DesktopTimelineView({
         if (ev.cancelable) ev.preventDefault();
         lastPointerRef.current = { x: t.clientX, y: t.clientY };
         const dist = Math.hypot(t.clientX - session.startX, t.clientY - session.startY);
-        const dragStartPx = isTouch ? 3 : moveThreshold;
+        const dragStartPx = isTouch ? TOUCH_TOOLTIP_HOLD_SLOP_PX : moveThreshold;
         if (!session.moved && dist < dragStartPx) return;
         clearLongPress();
         bosoLeave();
@@ -2176,7 +2178,7 @@ export function DesktopTimelineView({
                 }
                 onTouchMove={
                   isMobile && !onMoveBooking
-                    ? (e) => handleBookingTouchMove(e.currentTarget)
+                    ? (e) => handleBookingTouchMove(e, e.currentTarget)
                     : undefined
                 }
                 onTouchEnd={

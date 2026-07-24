@@ -5,6 +5,16 @@ let pressTimer: ReturnType<typeof setTimeout> | null = null;
 let isLongPress = false;
 let isSwiping = false;
 let suppressNextClick = false;
+let pressStartX = 0;
+let pressStartY = 0;
+
+/** До long-press: такий зсув = скрол, не утримання. */
+export const TOUCH_PRESS_CANCEL_PX = 12;
+/**
+ * Після показу тултіпа: мікротремтіння пальця ігноруємо;
+ * чіткий рух одразу ховає тултип (і дозволяє жест далі).
+ */
+export const TOUCH_TOOLTIP_HOLD_SLOP_PX = 18;
 
 export function consumeSuppressClick(): boolean {
   if (!suppressNextClick) return false;
@@ -17,6 +27,8 @@ export function resetTimelineTouchState(): void {
   pressTimer = null;
   isLongPress = false;
   isSwiping = false;
+  pressStartX = 0;
+  pressStartY = 0;
 }
 
 export function handleBookingTouchStart(
@@ -27,6 +39,9 @@ export function handleBookingTouchStart(
 ): void {
   if (String(rowId).startsWith("temp_")) return;
 
+  const t = e.touches[0];
+  pressStartX = t?.clientX ?? 0;
+  pressStartY = t?.clientY ?? 0;
   isLongPress = false;
   isSwiping = false;
   element.classList.add("pressing");
@@ -39,10 +54,27 @@ export function handleBookingTouchStart(
   }, 400);
 }
 
-export function handleBookingTouchMove(element: HTMLElement): void {
+export function handleBookingTouchMove(
+  e: TouchEvent<HTMLElement>,
+  element: HTMLElement
+): void {
+  const t = e.touches[0];
+  if (!t) return;
+  const dist = Math.hypot(t.clientX - pressStartX, t.clientY - pressStartY);
+
+  if (!isLongPress) {
+    if (dist < TOUCH_PRESS_CANCEL_PX) return;
+    isSwiping = true;
+    if (pressTimer) clearTimeout(pressTimer);
+    pressTimer = null;
+    element.classList.remove("pressing");
+    return;
+  }
+
+  // Тултип уже на екрані — тримаємо при мікрорусі, ховаємо при явному жесті.
+  if (dist < TOUCH_TOOLTIP_HOLD_SLOP_PX) return;
   isSwiping = true;
-  if (pressTimer) clearTimeout(pressTimer);
-  pressTimer = null;
+  bosoLeave();
   element.classList.remove("pressing");
 }
 

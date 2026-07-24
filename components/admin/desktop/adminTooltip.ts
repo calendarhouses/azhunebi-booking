@@ -64,6 +64,9 @@ function syncTooltipWithPointer(clientX: number, clientY: number): void {
 }
 
 function schedulePointerCheck(e: PointerEvent | MouseEvent): void {
+  // Touch dismiss / hold-slop handled by chessboard gesture code — avoid
+  // killing the tooltip on millimetre jitter leaving the booking hit-target.
+  if ("pointerType" in e && e.pointerType === "touch") return;
   if (pointerCheckFrame !== null) return;
   const { clientX, clientY } = e;
   pointerCheckFrame = requestAnimationFrame(() => {
