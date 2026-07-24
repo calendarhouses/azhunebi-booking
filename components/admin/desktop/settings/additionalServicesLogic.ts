@@ -448,7 +448,17 @@ export function formatChildrenPolicyBadge(
   if (!roomAllowsChildren(room)) return "Без дітей";
   const minAge = roomMinChildAge(room);
   if (minAge == null || minAge <= 0) return null;
-  return `Діти від ${minAge}`;
+  const abs = Math.abs(minAge) % 100;
+  const last = abs % 10;
+  const yearsWord =
+    abs > 10 && abs < 20
+      ? "років"
+      : last === 1
+        ? "рік"
+        : last >= 2 && last <= 4
+          ? "роки"
+          : "років";
+  return `Діти від ${minAge} ${yearsWord}`;
 }
 
 export function roomPricingModel(room: RoomConfig | null | undefined): "per_house" | "per_guest" {

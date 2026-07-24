@@ -8,6 +8,7 @@ import {
 import { getDayPrice } from "../bookingPriceEngine";
 import { activeBookingPhrase, otherCheckInDatePhrase } from "../adminPlural";
 import { adminRoomLabel } from "@/lib/admin/roomDisplay";
+import { findRoomForBooking } from "../bookingUtils";
 import type {
   AdminSettingsPayload,
   BookingRecord,
@@ -221,9 +222,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       currCount++;
 
       if (b.cottage) {
-        const matchedRoom = roomsList.find(
-          (r) => String(b.cottage).includes(r.name) || String(b.cottage).includes(r.short)
-        );
+        const matchedRoom = findRoomForBooking(b, roomsList);
         const roomName = matchedRoom ? adminRoomLabel(matchedRoom) : String(b.cottage);
         topRoomsCount[roomName] = (topRoomsCount[roomName] || 0) + 1;
       }
@@ -249,7 +248,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       const outD = parseSafeDate(String(b.checkOut));
       const nights = Math.max(1, Math.round((outD.getTime() - inD.getTime()) / 86400000));
 
-      const room = roomsList.find((r) => b.cottage && String(b.cottage).includes(r.short));
+      const room = findRoomForBooking(b, roomsList);
       const cap = room ? room.capacity : 2;
       const extraPrice =
         room && room.extraGuestPrice !== undefined ? room.extraGuestPrice : 2500;
@@ -342,9 +341,7 @@ export function computeAnalytics(input: ComputeAnalyticsInput): AnalyticsResult 
       }
 
       if (b.cottage) {
-        const matchedRoom = roomsList.find(
-          (r) => String(b.cottage).includes(r.name) || String(b.cottage).includes(r.short)
-        );
+        const matchedRoom = findRoomForBooking(b, roomsList);
         const roomName = matchedRoom ? adminRoomLabel(matchedRoom) : String(b.cottage);
         globalRoomCounts[roomName] = (globalRoomCounts[roomName] || 0) + 1;
         globalRoomMoney[roomName] = (globalRoomMoney[roomName] || 0) + price;

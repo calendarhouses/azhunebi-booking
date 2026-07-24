@@ -5,6 +5,7 @@ import {
   paidUntilDate,
   paymentsInPeriod,
 } from "@/lib/admin/bookingPayments";
+import { findRoomForBooking } from "../bookingUtils";
 import type {
   BookingRecord,
   CustomServiceConfig,
@@ -123,7 +124,7 @@ export function gatherFinanceReport(input: GatherFinanceReportInput): FinanceRep
       const inD = parseSafeDate(String(b.checkIn));
       const outD = parseSafeDate(String(b.checkOut));
       const nights = Math.max(1, Math.round((outD.getTime() - inD.getTime()) / 86400000));
-      const room = roomsList.find((r) => b.cottage && String(b.cottage).includes(r.short));
+      const room = findRoomForBooking(b, roomsList);
       const cap = room ? room.capacity : 2;
       const extraPrice =
         room && room.extraGuestPrice !== undefined ? room.extraGuestPrice : 2500;
