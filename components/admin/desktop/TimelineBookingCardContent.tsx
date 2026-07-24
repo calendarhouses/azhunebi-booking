@@ -199,7 +199,7 @@ function PriceBadge({
   );
 }
 
-/** Сума → гості, в один ряд. */
+/** Сума зліва; гості + коментар — окремі бейджі як на ПК. */
 function MobileMetaRow({
   block,
   showGuestChip,
@@ -224,6 +224,80 @@ function MobileMetaRow({
         compact
         textOnly={textOnly}
       />
+    </div>
+  );
+}
+
+function MobilePremiumCard({
+  block,
+  showGuestChip,
+  oneNightFinKind,
+  textOnly,
+  showName,
+  name,
+  stayClass,
+  compact,
+  androidPremium,
+}: {
+  block: TimelineBookingCardBlock;
+  showGuestChip: boolean;
+  oneNightFinKind: TimelineOneNightFinKind | null;
+  textOnly: boolean;
+  showName: boolean;
+  name: string;
+  stayClass: string;
+  compact: boolean;
+  androidPremium: boolean;
+}) {
+  const amount = block.finText.replace(/\s*(грн|₴)\s*$/i, "").trim();
+  const mobileFinText =
+    block.finText === "—"
+      ? "—"
+      : `${amount}${androidPremium || block.contentWidth >= 68 ? " ₴" : ""}`;
+  const pricedBlock = { ...block, finText: mobileFinText };
+
+  return (
+    <div
+      className={[
+        "booking-inner-content",
+        "booking-inner-content--mobile-premium",
+        compact
+          ? "booking-inner-content--mobile-premium-dense"
+          : "booking-inner-content--mobile-premium-standard",
+        androidPremium ? "booking-inner-content--android-premium" : "",
+        stayClass,
+        showName ? "booking-inner-content--mobile-pc-layout" : "booking-inner-content--meta-only",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {showName ? (
+        <>
+          <div className="booking-card-top booking-card-top--mobile">
+            <div className="booking-guest-name">{name}</div>
+            <BookingMetaChips
+              block={block}
+              showGuestChip={showGuestChip}
+              compact
+              textOnly={textOnly}
+            />
+          </div>
+          <div className="booking-card-bottom booking-card-bottom--mobile">
+            {oneNightFinKind ? (
+              <OneNightFinBadge finBadge={pricedBlock.finBadge} kind={oneNightFinKind} />
+            ) : (
+              <PriceBadge finText={pricedBlock.finText} finBadge={pricedBlock.finBadge} />
+            )}
+          </div>
+        </>
+      ) : (
+        <MobileMetaRow
+          block={pricedBlock}
+          showGuestChip={showGuestChip}
+          oneNightFinKind={oneNightFinKind}
+          textOnly={textOnly}
+        />
+      )}
     </div>
   );
 }
@@ -284,11 +358,6 @@ export function TimelineBookingCardContent({
     // 2+ nights: always show name (ellipsis if narrow). 1-night: meta only.
     const showName = !isOneNight && Boolean(name);
     const textOnlyGuests = isOneNight || effectiveWidth < (androidPremium ? 72 : 100);
-    const amount = block.finText.replace(/\s*(грн|₴)\s*$/i, "").trim();
-    const mobileFinText =
-      block.finText === "—"
-        ? "—"
-        : `${amount}${androidPremium || effectiveWidth >= 68 ? " ₴" : ""}`;
     const stayClass =
       block.nights === 1
         ? "booking-inner-content--stay-1"
@@ -296,28 +365,17 @@ export function TimelineBookingCardContent({
           ? "booking-inner-content--stay-2"
           : "booking-inner-content--stay-3plus";
     return (
-      <div
-        className={[
-          "booking-inner-content",
-          "booking-inner-content--mobile-premium",
-          compact
-            ? "booking-inner-content--mobile-premium-dense"
-            : "booking-inner-content--mobile-premium-standard",
-          androidPremium ? "booking-inner-content--android-premium" : "",
-          stayClass,
-          showName ? "" : "booking-inner-content--meta-only",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        {showName ? <div className="booking-guest-name">{name}</div> : null}
-        <MobileMetaRow
-          block={{ ...block, finText: mobileFinText }}
-          showGuestChip={showGuestChip}
-          oneNightFinKind={isOneNight ? oneNightFinKind : null}
-          textOnly={textOnlyGuests}
-        />
-      </div>
+      <MobilePremiumCard
+        block={block}
+        showGuestChip={showGuestChip}
+        oneNightFinKind={isOneNight ? oneNightFinKind : null}
+        textOnly={textOnlyGuests}
+        showName={showName}
+        name={name}
+        stayClass={stayClass}
+        compact={compact}
+        androidPremium={androidPremium}
+      />
     );
   }
 
