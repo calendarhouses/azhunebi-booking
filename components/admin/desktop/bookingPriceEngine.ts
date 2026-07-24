@@ -221,7 +221,7 @@ export function checkBookingOverlap(params: {
             isOverlap: true,
             overlapReason:
               `Попередній гість має <b>Пізній виїзд</b> о ${prevLate}. ` +
-              `Заїзд у цей день можливий лише з <b>${minArrival}</b> (буфер +1 год).`,
+              `Заїзд у цей день можливий лише з <b>${minArrival}</b>.`,
           };
         }
       } else if (currentHasEarly) {

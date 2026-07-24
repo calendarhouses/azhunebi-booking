@@ -300,8 +300,8 @@ function buildBookingBlocks(
     const minBlockWidth = 20;
     const gridRight = daysCount * cellWidth;
 
-    // Always standard half-cell geometry (15:00 in → 11:00 out). Early/late are
-    // badges only — the other half stays free for gap stays / adjacent bookings.
+    // Always standard half-cell geometry (15:00 in → 11:00 out). Early/late show as
+    // side strips on the card — do not stretch into the free half of the day cell.
     let blockLeft = checkInDayIndex * cellWidth + halfCell;
     let blockRight = checkoutDayIndex * cellWidth + halfCell;
 
@@ -315,8 +315,24 @@ function buildBookingBlocks(
     blockLeft += blockGap;
     blockWidth = Math.max(blockWidth - blockGap * 2, minBlockWidth);
 
-    const padLeft = nights === 1 ? 3 : 10;
-    const padRight = nights === 1 ? 3 : 10;
+    const extensions: BookingBlockData["extensions"] = [];
+    const sideStrip = Math.max(14, Math.min(20, Math.round(halfCell * 0.32)));
+    let padLeft = nights === 1 ? 3 : 10;
+    let padRight = nights === 1 ? 3 : 10;
+
+    if (exHasEarly) {
+      extensions.push({ type: "early", left: blockLeft, width: sideStrip });
+      padLeft = sideStrip + (nights === 1 ? 2 : 6);
+    }
+    if (exHasLate) {
+      extensions.push({
+        type: "late",
+        left: blockLeft + blockWidth - sideStrip,
+        width: sideStrip,
+      });
+      padRight = sideStrip + (nights === 1 ? 2 : 6);
+    }
+
     const contentWidth = blockWidth - padLeft - padRight;
     const finText =
       nights === 1
@@ -345,7 +361,7 @@ function buildBookingBlocks(
       lateTime: exHasLate ? lateTime || "—" : null,
       finBadge,
       finText,
-      extensions: [],
+      extensions,
       padLeft,
       padRight,
     });
@@ -2006,6 +2022,12 @@ export function DesktopTimelineView({
     setCellHoverPreview((prev) => (prev?.room === roomKey ? null : prev));
   }, []);
 
+  const iconClock = (
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+
   const bookingBlockLayout = isMobile
     ? getTimelineBookingBlockLayout(rowHeight, true)
     : denseRows
@@ -2166,14 +2188,17 @@ export function DesktopTimelineView({
               }}
               title={`Після виїзду о ${hint.lateTime} · заїзд з ${hint.arrival}`}
             >
-              <span className="timeline-gap-hint__label">з {hint.arrival}</span>
+              <span className="timeline-gap-hint__label">+</span>
             </div>
           ))}
           {blocks.map((block) => {
             const isDraggingCard =
               draggingBookingKey != null &&
               bookingMoveKey(block.booking) === draggingBookingKey;
+            const hasEarlyExtension = block.extensions.some((ext) => ext.type === "early");
+            const hasLateExtension = block.extensions.some((ext) => ext.type === "late");
             const mobilePadX = denseRows ? 4 : 5;
+            const mobileExtPad = (denseRows ? 16 : 18) + (denseRows ? 3 : 4);
 
             if (!isBlockVisible(block) && !isDraggingCard) return null;
 
@@ -2182,24 +2207,27 @@ export function DesktopTimelineView({
             return (
               <div
                 key={String(bookingMoveKey(block.booking))}
-                className={`booking-block ${block.statusClass}${block.nights === 1 ? " micro-booking" : ""}${block.nights >= 2 ? " booking-block--multi-night" : ""}${block.earlyTime ? " booking-block--has-early" : ""}${block.lateTime ? " booking-block--has-late" : ""}${isDraggingCard ? " booking-block--drag-source-hidden" : ""}`}
+                className={`booking-block ${block.statusClass}${block.nights === 1 ? " micro-booking" : ""}${block.nights >= 2 ? " booking-block--multi-night" : ""}${isDraggingCard ? " booking-block--drag-source-hidden" : ""}`}
                 style={{
                   left: block.left,
                   width: block.width,
                   position: "absolute",
                   opacity: isDraggingCard ? 0 : undefined,
                   paddingLeft: isMobile
-                    ? block.nights === 1
-                      ? 3
-                      : mobilePadX
+                    ? hasEarlyExtension
+                      ? mobileExtPad
+                      : block.nights === 1
+                        ? 3
+                        : mobilePadX
                     : block.padLeft,
                   paddingRight: isMobile
-                    ? block.nights === 1
-                      ? 3
-                      : mobilePadX
+                    ? hasLateExtension
+                      ? mobileExtPad
+                      : block.nights === 1
+                        ? 3
+                        : mobilePadX
                     : block.padRight,
                   cursor: onMoveBooking ? "grab" : "pointer",
-                  // Mobile: leave touch-action to CSS. Inline flips mid-drag cancel Android pointers.
                   touchAction: onMoveBooking
                     ? isMobile
                       ? undefined
@@ -2243,6 +2271,63 @@ export function DesktopTimelineView({
                 }
                 onContextMenu={isMobile ? (e) => e.preventDefault() : undefined}
               >
+                {block.extensions.map((ext, idx) => (
+                  <div
+                    key={idx}
+                    className={`time-extension ${ext.type}${isMobile ? " time-extension--mobile" : ""}`}
+                    style={{
+                      width: isMobile ? (denseRows ? 16 : 18) : ext.width,
+                      left: isMobile
+                        ? ext.type === "early"
+                          ? 0
+                          : "auto"
+                        : ext.left - block.left,
+                      right: isMobile && ext.type === "late" ? 0 : "auto",
+                      position: "absolute",
+                      height: "100%",
+                    }}
+                    onMouseEnter={
+                      isMobile
+                        ? undefined
+                        : (e) => {
+                            e.stopPropagation();
+                            bosoHover(e.currentTarget, block.booking.row, ext.type);
+                          }
+                    }
+                    onMouseLeave={
+                      isMobile
+                        ? undefined
+                        : (e) => {
+                            e.stopPropagation();
+                            const parent = e.currentTarget.parentElement as HTMLElement | null;
+                            if (parent) {
+                              bosoHover(parent, block.booking.row, "main");
+                            } else {
+                              bosoLeave();
+                            }
+                          }
+                    }
+                    onPointerDown={
+                      isMobile
+                        ? (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        : undefined
+                    }
+                    onClick={
+                      isMobile
+                        ? (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bosoHover(e.currentTarget, block.booking.row, ext.type);
+                          }
+                        : undefined
+                    }
+                  >
+                    {iconClock}
+                  </div>
+                ))}
                 <TimelineBookingCardContent
                   block={block}
                   mobile={isMobile}
@@ -2258,7 +2343,7 @@ export function DesktopTimelineView({
       {draggingBookingKey != null && draggingBlockRef.current ? (
         <div
           ref={dragFloatRef}
-          className={`booking-block ${draggingBlockRef.current.statusClass} booking-block--drag-float${draggingBlockRef.current.nights === 1 ? " micro-booking" : ""}${draggingBlockRef.current.nights >= 2 ? " booking-block--multi-night" : ""}${draggingBlockRef.current.earlyTime ? " booking-block--has-early" : ""}${draggingBlockRef.current.lateTime ? " booking-block--has-late" : ""}`}
+          className={`booking-block ${draggingBlockRef.current.statusClass} booking-block--drag-float${draggingBlockRef.current.nights === 1 ? " micro-booking" : ""}${draggingBlockRef.current.nights >= 2 ? " booking-block--multi-night" : ""}`}
           style={{
             position: "absolute",
             left: 0,
@@ -2266,24 +2351,47 @@ export function DesktopTimelineView({
             width: draggingBlockRef.current.width,
             height: getTimelineBookingBlockLayout(rowHeight, denseRows).height,
             paddingLeft: isMobile
-              ? draggingBlockRef.current.nights === 1
-                ? 3
-                : denseRows
-                  ? 4
-                  : 5
+              ? draggingBlockRef.current.extensions.some((ext) => ext.type === "early")
+                ? (denseRows ? 16 : 18) + (denseRows ? 3 : 4)
+                : draggingBlockRef.current.nights === 1
+                  ? 3
+                  : denseRows
+                    ? 4
+                    : 5
               : draggingBlockRef.current.padLeft,
             paddingRight: isMobile
-              ? draggingBlockRef.current.nights === 1
-                ? 3
-                : denseRows
-                  ? 4
-                  : 5
+              ? draggingBlockRef.current.extensions.some((ext) => ext.type === "late")
+                ? (denseRows ? 16 : 18) + (denseRows ? 3 : 4)
+                : draggingBlockRef.current.nights === 1
+                  ? 3
+                  : denseRows
+                    ? 4
+                    : 5
               : draggingBlockRef.current.padRight,
             pointerEvents: "none",
             transform: `translate3d(${draggingBlockRef.current.left}px, ${getTimelineBookingBlockLayout(rowHeight, denseRows).top}px, 0)`,
             ...getTimelineBookingBlockStyle(draggingBlockRef.current.booking),
           }}
         >
+          {draggingBlockRef.current.extensions.map((ext, idx) => (
+            <div
+              key={idx}
+              className={`time-extension ${ext.type}${isMobile ? " time-extension--mobile" : ""}`}
+              style={{
+                width: isMobile ? (denseRows ? 16 : 18) : ext.width,
+                left: isMobile
+                  ? ext.type === "early"
+                    ? 0
+                    : "auto"
+                  : ext.left - draggingBlockRef.current!.left,
+                right: isMobile && ext.type === "late" ? 0 : "auto",
+                position: "absolute",
+                height: "100%",
+              }}
+            >
+              {iconClock}
+            </div>
+          ))}
           <TimelineBookingCardContent
             block={draggingBlockRef.current}
             mobile={isMobile}

@@ -910,14 +910,12 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   pointer-events: none;
 }
 .timeline-gap-hint__label {
-  font-size: 8px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: #556B2F;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  padding: 0 2px;
+  line-height: 1;
+  padding: 0;
 }
 
 /* --- МОБІЛЬНІ ШТОРКИ (BOTTOM SHEETS) --- */

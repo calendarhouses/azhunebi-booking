@@ -42,7 +42,7 @@ export function isPostLateGapStay(
 export function buildPostLateGapNoticeHtml(prevLateTime: string, arrivalTime: string): string {
   return (
     `Попередній гість виїжджає о <b>${prevLateTime}</b>. ` +
-    `Заїзд у цей день можливий лише з <b>${arrivalTime}</b> (буфер +1 год), виїзд — за стандартом. ` +
+    `Заїзд у цей день можливий лише з <b>${arrivalTime}</b>, виїзд — за стандартом. ` +
     `За ці умови діє знижка <b>−50%</b> на першу ніч.`
   );
 }

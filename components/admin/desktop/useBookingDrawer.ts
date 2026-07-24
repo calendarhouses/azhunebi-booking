@@ -125,6 +125,7 @@ export function useBookingDrawer({
   const [isInitialPriceLoad, setIsInitialPriceLoad] = useState(false);
   const [earlyTime, setEarlyTimeState] = useState<string | null>(null);
   const [lateTime, setLateTimeState] = useState<string | null>(null);
+  const [postLateArrivalTime, setPostLateArrivalTime] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<number | string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [form, setForm] = useState<BookingDrawerFormState>(defaultBookingDrawerForm);
@@ -259,6 +260,7 @@ export function useBookingDrawer({
       (window as Window & { selectedPostLateArrivalTime?: string | null }).selectedPostLateArrivalTime =
         null;
     }
+    setPostLateArrivalTime(null);
     if (typeof document !== "undefined") {
       document.getElementById("bookingDrawer")?.classList.remove("active");
     }
@@ -403,6 +405,7 @@ export function useBookingDrawer({
       lateTimeRef.current = null;
       setEarlyTimeState(null);
       setLateTimeState(null);
+      setPostLateArrivalTime(null);
 
       setDrawerTitle("Нове бронювання");
       setShowDeleteBtn(false);
@@ -495,6 +498,7 @@ export function useBookingDrawer({
       setEditingBookingId(booking.id || null);
       setDrawerTitle(`Деталі броні ${booking.id || ""}`);
       setShowDeleteBtn(true);
+      setPostLateArrivalTime(null);
 
       const parsed = parseBookingComment(booking.comment || "", specialTariffToggles);
       (window as Window & { _bookingBookmenowCommentTokens?: string[] })._bookingBookmenowCommentTokens =
@@ -765,6 +769,10 @@ export function useBookingDrawer({
 
   const selectAdminTime = useCallback(
     (type: "early" | "late", time: string, chipEl: HTMLElement) => {
+      if (type === "early" && postLateArrivalTime) {
+        // Gap stay after late checkout: arrival is fixed (prev late + 1h).
+        return;
+      }
       document
         .querySelectorAll(`#adminCard${type === "early" ? "Early" : "Late"} .t-chip`)
         .forEach((c) => c.classList.remove("selected"));
@@ -777,12 +785,13 @@ export function useBookingDrawer({
         patchForm({ lateCardActive: true });
       }
     },
-    [setEarlyTime, setLateTime, patchForm]
+    [setEarlyTime, setLateTime, patchForm, postLateArrivalTime]
   );
 
   const toggleAdminService = useCallback(
     (type: "early" | "late") => {
       if (type === "early") {
+        if (postLateArrivalTime) return;
         const next = !form.earlyCardActive;
         patchForm({ earlyCardActive: next });
         if (!next) {
@@ -798,7 +807,26 @@ export function useBookingDrawer({
         }
       }
     },
-    [form.earlyCardActive, form.lateCardActive, patchForm, setEarlyTime, setLateTime]
+    [form.earlyCardActive, form.lateCardActive, patchForm, setEarlyTime, setLateTime, postLateArrivalTime]
+  );
+
+  const applyPostLateGap = useCallback(
+    (arrival: string | null) => {
+      setPostLateArrivalTime((prev) => (prev === arrival ? prev : arrival));
+      if (!arrival) return;
+      // Lock early schedule: arrival is fixed after previous guest's late checkout.
+      if (earlyTimeRef.current) {
+        earlyTimeRef.current = null;
+        setEarlyTimeState(null);
+      }
+      patchForm({ earlyCardActive: false });
+      if (typeof document !== "undefined") {
+        document
+          .querySelectorAll("#adminCardEarly .t-chip")
+          .forEach((c) => c.classList.remove("selected"));
+      }
+    },
+    [patchForm]
   );
 
   const handleStatusFromPayment = useCallback(
@@ -881,6 +909,7 @@ export function useBookingDrawer({
     setIsInitialPriceLoad: setIsInitialPriceLoad,
     earlyTime,
     lateTime,
+    postLateArrivalTime,
     editingRow,
     editingBookingId,
     form,
@@ -893,6 +922,7 @@ export function useBookingDrawer({
     setSubmitDisabled,
     scheduleLabels,
     applyScheduleLabels,
+    applyPostLateGap,
     applySubmitDisabled,
     finishInitialPriceLoad,
     initialPayment,

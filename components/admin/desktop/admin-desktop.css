@@ -4997,15 +4997,13 @@ input[type="number"] {
             box-sizing: border-box;
         }
         .timeline-gap-hint__label {
-            font-size: 9px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 800;
             color: #556B2F;
-            letter-spacing: 0.01em;
+            letter-spacing: 0;
+            line-height: 1;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-            padding: 0 2px;
+            padding: 0;
         }
         .timeline-gap-hint--mobile {
             top: 4px;
@@ -5013,7 +5011,7 @@ input[type="number"] {
             border-radius: 4px;
         }
         .timeline-gap-hint--mobile .timeline-gap-hint__label {
-            font-size: 8px;
+            font-size: 14px;
         }
         
         /* --- ЗВІТИ ТА АНАЛІТИКА --- */

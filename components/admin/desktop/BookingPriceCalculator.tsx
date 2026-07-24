@@ -76,6 +76,8 @@ export interface BookingPriceCalculatorProps {
   onOverlapChange?: (isOverlap: boolean) => void;
   onScheduleLabelsChange?: (labels: SchedulePriceLabels) => void;
   onPricingSnapshotChange?: (snapshot: BookingPricingSnapshot | null) => void;
+  /** When check-in is after a previous late checkout — fixed arrival (late + 1h). */
+  onPostLateGapChange?: (arrivalTime: string | null) => void;
   onStatusFromPayment?: (
     status: "Очікує оплату" | "Підтверджено"
   ) => void;
@@ -120,6 +122,7 @@ export function BookingPriceCalculator({
   onOverlapChange,
   onScheduleLabelsChange,
   onPricingSnapshotChange,
+  onPostLateGapChange,
   onStatusFromPayment,
   initialPrepay = 0,
   initialSurcharge = 0,
@@ -361,16 +364,13 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     const w = window as Window & { selectedPostLateArrivalTime?: string | null };
-    w.selectedPostLateArrivalTime = computed.isPostLateGapStay
-      ? computed.postLateArrivalTime
-      : null;
-    return () => {
-      if (!computed.isPostLateGapStay) return;
-      // Keep value until next calculator pass / drawer close clears it.
-    };
+    const arrival = computed.isPostLateGapStay ? computed.postLateArrivalTime : null;
+    w.selectedPostLateArrivalTime = arrival;
+    onPostLateGapChange?.(arrival);
   }, [
     computed.isPostLateGapStay,
     computed.postLateArrivalTime,
+    onPostLateGapChange,
   ]);
 
   const amountToDiscount = manualLines.base + manualLines.extra;
@@ -442,8 +442,28 @@ export function BookingPriceCalculator({
 
   const extrasTotal = manualLines.pet + manualLines.dayGuest + manualLines.early + manualLines.late;
 
+  const postLateGapDiscount = useMemo(() => {
+    if (!computed.isPostLateGapStay || computed.empty || computed.isOverlap) return 0;
+    const fromLines = (computed.discountLines || [])
+      .filter((line) => /пізнього|−50%|-50%/.test(line.label))
+      .reduce((sum, line) => sum + Math.max(0, Math.round(line.amount)), 0);
+    if (fromLines > 0) return fromLines;
+    const firstNight = computed.nightlyBasePrices?.[0];
+    if (!firstNight || firstNight <= 0) return 0;
+    return Math.round(firstNight * 0.5);
+  }, [
+    computed.discountLines,
+    computed.empty,
+    computed.isOverlap,
+    computed.isPostLateGapStay,
+    computed.nightlyBasePrices,
+  ]);
+
   const instantDiscount = Math.max(0, Math.round(instantDiscountAmount));
-  const autoTotal = Math.max(0, discountBreakdown.total - instantDiscount + extrasTotal);
+  const autoTotal = Math.max(
+    0,
+    discountBreakdown.total - instantDiscount - postLateGapDiscount + extrasTotal
+  );
 
   const discountHydratedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -496,7 +516,7 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (computed.empty || computed.isOverlap) return;
-    const sum = discountBreakdown.discountSum + instantDiscount;
+    const sum = discountBreakdown.discountSum + instantDiscount + postLateGapDiscount;
     setManualLines((prev) => ({ ...prev, discount: sum }));
     const hasDiscountEdits = editedDiscountIds.size > 0 || instantDiscount > 0;
     setManual((prev) => ({
@@ -510,6 +530,7 @@ export function BookingPriceCalculator({
     discountBreakdown.discountSum,
     editedDiscountIds.size,
     instantDiscount,
+    postLateGapDiscount,
     manual.discountEdited,
   ]);
 
@@ -738,15 +759,23 @@ export function BookingPriceCalculator({
         lines.dayGuest +
         lines.early +
         lines.late -
-        instantDiscount;
+        instantDiscount -
+        postLateGapDiscount;
       setManualLines((m) => ({
         ...m,
         ...overrides,
-        discount: discountResult.discountSum + instantDiscount,
+        discount: discountResult.discountSum + instantDiscount + postLateGapDiscount,
       }));
       setTotalOverride(total);
     },
-    [autoDiscounts, editedDiscountIds, instantDiscount, manualDiscountAmounts, manualLines]
+    [
+      autoDiscounts,
+      editedDiscountIds,
+      instantDiscount,
+      manualDiscountAmounts,
+      manualLines,
+      postLateGapDiscount,
+    ]
   );
 
   useEffect(() => {
@@ -943,6 +972,38 @@ export function BookingPriceCalculator({
             onManualRecalc(false, { late: v });
           }}
         />
+      ) : null}
+
+      {postLateGapDiscount > 0 ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 14,
+            gap: 8,
+          }}
+        >
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flex: "1 1 auto",
+              minWidth: 0,
+              fontSize: 13,
+              color: "#4B5563",
+              fontWeight: 500,
+            }}
+          >
+            {iconClock}
+            Заїзд після пізнього виїзду
+            <span style={{ color: "#9CA3AF", fontWeight: 500 }}>(−50% 1-ша ніч)</span>
+          </span>
+          <span style={{ fontWeight: 700, fontSize: 13, color: "#059669", flexShrink: 0 }}>
+            −{postLateGapDiscount} грн
+          </span>
+        </div>
       ) : null}
 
       {discountBreakdown.lines.length > 0 ? (

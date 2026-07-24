@@ -442,31 +442,49 @@ export function DesktopBookingDrawer({
                   className="booking-form-section-heading--inset"
                   title="Гнучкий графік"
                 />
-                <div className={`service-card${form.earlyCardActive ? " active" : ""}`} id="adminCardEarly">
-                  <div className="srv-header" onClick={() => drawer.toggleAdminService("early")}>
+                <div
+                  className={`service-card${form.earlyCardActive || drawer.postLateArrivalTime ? " active" : ""}${drawer.postLateArrivalTime ? " service-card--locked" : ""}`}
+                  id="adminCardEarly"
+                >
+                  <div
+                    className="srv-header"
+                    onClick={() => drawer.toggleAdminService("early")}
+                    style={drawer.postLateArrivalTime ? { cursor: "default" } : undefined}
+                  >
                     <div className="srv-title">
                       <svg viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Ранній заїзд
+                      {drawer.postLateArrivalTime ? "Заїзд після пізнього виїзду" : "Ранній заїзд"}
                     </div>
                     <div className="srv-price" id="adminLabelPriceEarly">
-                      {drawer.scheduleLabels.early}
+                      {drawer.postLateArrivalTime
+                        ? `з ${drawer.postLateArrivalTime} · −50%`
+                        : drawer.scheduleLabels.early}
                     </div>
                   </div>
                   <div className="srv-body">
-                    <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500 }}>Оберіть годину заїзду:</div>
-                    <div className="time-chips">
-                      {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00"].map((t) => (
-                        <div
-                          key={t}
-                          className={`t-chip${drawer.earlyTime === t ? " selected" : ""}`}
-                          onClick={(e) => drawer.selectAdminTime("early", t, e.currentTarget)}
-                        >
-                          {t}
+                    {drawer.postLateArrivalTime ? (
+                      <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500, lineHeight: 1.45 }}>
+                        Заїзд зафіксовано з <b>{drawer.postLateArrivalTime}</b> після виїзду попереднього гостя.
+                        Ранній заїзд недоступний.
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500 }}>Оберіть годину заїзду:</div>
+                        <div className="time-chips">
+                          {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00"].map((t) => (
+                            <div
+                              key={t}
+                              className={`t-chip${drawer.earlyTime === t ? " selected" : ""}`}
+                              onClick={(e) => drawer.selectAdminTime("early", t, e.currentTarget)}
+                            >
+                              {t}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className={`service-card${form.lateCardActive ? " active" : ""}`} id="adminCardLate">
@@ -516,6 +534,7 @@ export function DesktopBookingDrawer({
                 onGuestsChange={(guests) => drawer.patchForm({ guests })}
                 onOverlapChange={drawer.applySubmitDisabled}
                 onScheduleLabelsChange={drawer.applyScheduleLabels}
+                onPostLateGapChange={drawer.applyPostLateGap}
                 onStatusFromPayment={drawer.handleStatusFromPayment}
                 bookingStatus={form.status}
                 initialPrepay={drawer.initialPayment.prepay}
