@@ -91,7 +91,7 @@ import type {
   PublicTenantPayload,
 } from "@/lib/public-booking/types";
 
-type DrawerStep = "info" | "calendar" | "checkout";
+type DrawerStep = "info" | "calendar" | "checkout" | "rules";
 
 type Ctx = {
   runtime: PublicSiteRuntime | null;

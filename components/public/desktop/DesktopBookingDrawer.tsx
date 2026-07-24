@@ -15,9 +15,12 @@ import { CabinSlideImage } from "../CabinSlideImage";
 import { usePublicBooking } from "../PublicBookingProvider";
 import { BookingCheckoutSummary } from "./BookingCheckoutSummary";
 import { BookingFlexConflictAlert } from "../BookingFlexConflictAlert";
+import { BookingStayRules } from "../BookingStayRules";
 import { BookingPromoCodeField } from "@/components/admin/desktop/BookingPromoCodeField";
 import { DesktopCalendar } from "./DesktopCalendar";
 import { PublicGuestsAndServicesBlock } from "../PublicGuestsAndServicesBlock";
+import { showPublicToast } from "@/lib/public-booking/publicToast";
+import { normalizeUaNationalPhoneDigits } from "@/lib/public-booking/uaPhone";
 
 function formatFlexFeeLabel(amount: number, requiresApproval: boolean, selected: boolean): string {
   if (!selected) return requiresApproval ? "За запитом" : `${amount.toLocaleString("uk-UA")} ₴`;
@@ -444,11 +447,76 @@ export function DesktopBookingDrawer() {
               className="btn-proceed"
               id="bookBtn"
               disabled={submitting || !price || childrenPolicyBlocked}
+              onClick={() => {
+                if (!firstName.trim()) {
+                  showPublicToast("Введіть ваше ім'я");
+                  return;
+                }
+                if (!phone.trim() || normalizeUaNationalPhoneDigits(phone).length < 9) {
+                  showPublicToast("Введіть коректний номер телефону");
+                  return;
+                }
+                setStep("rules");
+              }}
+            >
+              Забронювати
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="drawer-step-rules"
+          className={`drawer-step ${step === "rules" ? "active" : ""}`}
+        >
+          <DrawerContent scrollResetKey={`${drawerScrollKey}-rules`}>
+            <button
+              type="button"
+              className="back-btn"
+              onClick={() => setStep("checkout")}
+              disabled={submitting}
+            >
+              {DesktopIcons.chevronLeft} До даних гостя
+            </button>
+
+            <div className="step-bar">
+              <div className="step done">
+                <div className="step-num">✓</div>
+                <div className="step-label">Котедж</div>
+              </div>
+              <div className="step-line done" />
+              <div className="step done">
+                <div className="step-num">✓</div>
+                <div className="step-label">Дати</div>
+              </div>
+              <div className="step-line done" />
+              <div className="step active">
+                <div className="step-num">4</div>
+                <div className="step-label">Правила</div>
+              </div>
+            </div>
+
+            <BookingStayRules />
+          </DrawerContent>
+
+          <div className="sticky-cta sticky-cta--rules">
+            <button
+              type="button"
+              className="btn-proceed"
+              id="agreeRulesBtn"
+              disabled={submitting || !price || childrenPolicyBlocked}
               onClick={() =>
                 submitCheckout({ firstName, lastName, phone, comment })
               }
             >
-              {submitting ? "Відправляємо..." : "Забронювати"}
+              {submitting ? "Відправляємо..." : "Погоджуюсь і бронюю"}
+            </button>
+            <button
+              type="button"
+              className="btn-rules-back"
+              disabled={submitting}
+              onClick={() => setStep("checkout")}
+            >
+              Повернутися до даних
             </button>
           </div>
         </div>
