@@ -5048,7 +5048,8 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   overflow-x: auto !important;
   overflow-y: hidden !important;
   -webkit-overflow-scrolling: touch !important;
-  touch-action: pan-x pan-y !important;
+  /* pan-x only — pan-y + overflow-y:hidden traps vertical page scroll on Android */
+  touch-action: pan-x !important;
   overscroll-behavior-x: none !important;
   overscroll-behavior-y: auto !important;
 }
@@ -5274,22 +5275,26 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   max-height: 10px !important;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view .price-cell {
-  touch-action: pan-x pan-y;
+.boso-admin-mobile #view-settings .price-grid-view .price-cell,
+.boso-admin-mobile #view-settings .price-grid-view .restriction-cell {
+  touch-action: pan-x;
 }
 
 /* Selecting mode must NOT flip touch-action mid-gesture (iOS cancels the pointer).
    Scroll is blocked via non-passive touchmove preventDefault while selecting. */
-.boso-admin-mobile #view-settings .price-grid-view--touch-selecting .price-cell {
-  touch-action: pan-x pan-y;
+.boso-admin-mobile #view-settings .price-grid-view--touch-selecting .price-cell,
+.boso-admin-mobile #view-settings .price-grid-view--touch-selecting .restriction-cell {
+  touch-action: pan-x;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-cell {
-  touch-action: pan-x pan-y;
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-cell,
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense .restriction-cell {
+  touch-action: pan-x;
 }
 
-.boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .price-cell {
-  touch-action: pan-x pan-y;
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .price-cell,
+.boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .restriction-cell {
+  touch-action: pan-x;
 }
 
 /* Settings: flexible schedule and guest services */
@@ -7467,10 +7472,23 @@ body.boso-admin-android .booking-quick-edit-sheet * {
   overflow-y: hidden !important;
 }
 
-/* Android price/rules chessboards: keep pan-* (no mid-gesture touch-action flip). */
+/* Android price/rules chessboards: keep pan-x (no mid-gesture touch-action flip). */
 .boso-admin-android .price-grid-view--touch-selecting,
 .boso-admin-android .price-grid-view--touch-selecting .price-cell,
+.boso-admin-android .price-grid-view--touch-selecting .restriction-cell,
 .boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll,
-.boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll * {
-  touch-action: pan-x pan-y !important;
+.boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll *,
+.boso-admin-android .price-grid-view--touch-selecting #restrictionScroll,
+.boso-admin-android .price-grid-view--touch-selecting #restrictionScroll * {
+  touch-action: pan-x !important;
+}
+
+/* Price/rules boards: override global timeline pan-x pan-y so vertical scrolls the page */
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll,
+.boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll *,
+.boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll,
+.boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll *,
+.boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll,
+.boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll * {
+  touch-action: pan-x !important;
 }

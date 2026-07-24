@@ -41,6 +41,8 @@ import {
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
 const TOUCH_DRAG_THRESHOLD_PX = 10;
+/** Cancel long-press as soon as the finger clearly moves (page scroll / pan). */
+const TOUCH_HOLD_CANCEL_PX = 6;
 /** Touch must hold this long on a cell before multi-select starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
 const TOUCH_SELECT_HOLD_MS_ANDROID = 520;
@@ -153,8 +155,9 @@ function PriceGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    // On mobile, pan until selection arms; scroll lock then blocks via touchmove preventDefault.
-    touchAction: editing ? "auto" : enableTouchPan ? "pan-x pan-y" : "none",
+    // Horizontal-only scrollport: pan-x lets Android chain vertical swipes to the page.
+    // pan-x pan-y + overflow-y:hidden traps vertical gestures on Android.
+    touchAction: editing ? "auto" : enableTouchPan ? "pan-x" : "none",
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -717,6 +720,13 @@ export function DesktopPriceGrid({
   const armTouchSelection = useCallback(() => {
     const drag = dragRef.current;
     if (!drag.pending) return;
+    const dx = lastPointerRef.current.x - drag.startX;
+    const dy = lastPointerRef.current.y - drag.startY;
+    // Finger already moved (scroll/pan) — do not lock the page.
+    if (Math.hypot(dx, dy) >= TOUCH_HOLD_CANCEL_PX) {
+      abortDragSelection();
+      return;
+    }
     if (!canArmTouchGesture(drag.touchId, true)) {
       abortDragSelection();
       return;
@@ -908,7 +918,13 @@ export function DesktopPriceGrid({
       if (drag.pending) {
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
-        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+        const dist = Math.hypot(dx, dy);
+        // Vertical page scroll — release pending selection, never preventDefault.
+        if (dist >= TOUCH_HOLD_CANCEL_PX && Math.abs(dy) >= Math.abs(dx)) {
+          abortDragSelection();
+          return;
+        }
+        if (dist >= TOUCH_DRAG_THRESHOLD_PX) {
           abortDragSelection();
         }
         return;
@@ -976,12 +992,21 @@ export function DesktopPriceGrid({
       if (drag.pending) {
         const dx = t.clientX - drag.startX;
         const dy = t.clientY - drag.startY;
-        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+        const dist = Math.hypot(dx, dy);
+        lastPointerRef.current = { x: t.clientX, y: t.clientY };
+        // Vertical page scroll — do not preventDefault; abort hold/selection.
+        if (dist >= TOUCH_HOLD_CANCEL_PX && Math.abs(dy) >= Math.abs(dx)) {
+          abortDragSelection();
+          return;
+        }
+        if (dist >= TOUCH_DRAG_THRESHOLD_PX) {
           abortDragSelection();
         }
         return;
       }
 
+      // Active multi-select only: lock scroll. Vertical-dominant moves still stay locked
+      // while selecting so the highlight does not fight the page.
       if (e.cancelable) e.preventDefault();
       lastPointerRef.current = { x: t.clientX, y: t.clientY };
 
@@ -1413,7 +1438,8 @@ export function DesktopPriceGrid({
                 overflowX: "auto",
                 overflowY: "hidden",
                 WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x pan-y",
+                // pan-x only: page (.main-content) owns vertical scroll on Android
+                touchAction: "pan-x",
                 overscrollBehaviorX: "none",
               }}
             >

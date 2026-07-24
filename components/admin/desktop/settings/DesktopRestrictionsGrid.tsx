@@ -46,6 +46,8 @@ import {
 const DAYS_LABELS = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const DRAG_THRESHOLD_PX = 5;
 const TOUCH_DRAG_THRESHOLD_PX = 10;
+/** Cancel long-press as soon as the finger clearly moves (page scroll / pan). */
+const TOUCH_HOLD_CANCEL_PX = 6;
 /** Touch must hold this long on a cell before multi-select starts (keeps pan/scroll free). */
 const TOUCH_SELECT_HOLD_MS = 500;
 const TOUCH_SELECT_HOLD_MS_ANDROID = 520;
@@ -127,8 +129,8 @@ function RuleGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    // On mobile, pan until selection arms; scroll lock then blocks via touchmove preventDefault.
-    touchAction: enableTouchPan ? "pan-x pan-y" : "none",
+    // Horizontal-only scrollport: pan-x lets Android chain vertical swipes to the page.
+    touchAction: enableTouchPan ? "pan-x" : "none",
   };
 
   return (
@@ -596,6 +598,12 @@ export function DesktopRestrictionsGrid({
   const armTouchSelection = useCallback(() => {
     const drag = dragRef.current;
     if (!drag.pending) return;
+    const dx = lastPointerRef.current.x - drag.startX;
+    const dy = lastPointerRef.current.y - drag.startY;
+    if (Math.hypot(dx, dy) >= TOUCH_HOLD_CANCEL_PX) {
+      abortDragSelection();
+      return;
+    }
     if (!canArmTouchGesture(drag.touchId, true)) {
       abortDragSelection();
       return;
@@ -732,7 +740,12 @@ export function DesktopRestrictionsGrid({
       if (drag.pending) {
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
-        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+        const dist = Math.hypot(dx, dy);
+        if (dist >= TOUCH_HOLD_CANCEL_PX && Math.abs(dy) >= Math.abs(dx)) {
+          abortDragSelection();
+          return;
+        }
+        if (dist >= TOUCH_DRAG_THRESHOLD_PX) {
           abortDragSelection();
         }
         return;
@@ -800,7 +813,13 @@ export function DesktopRestrictionsGrid({
       if (drag.pending) {
         const dx = t.clientX - drag.startX;
         const dy = t.clientY - drag.startY;
-        if (Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD_PX) {
+        const dist = Math.hypot(dx, dy);
+        lastPointerRef.current = { x: t.clientX, y: t.clientY };
+        if (dist >= TOUCH_HOLD_CANCEL_PX && Math.abs(dy) >= Math.abs(dx)) {
+          abortDragSelection();
+          return;
+        }
+        if (dist >= TOUCH_DRAG_THRESHOLD_PX) {
           abortDragSelection();
         }
         return;
@@ -1214,7 +1233,7 @@ export function DesktopRestrictionsGrid({
                 overflowX: "auto",
                 overflowY: "hidden",
                 WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x pan-y",
+                touchAction: "pan-x",
                 overscrollBehaviorX: "none",
               }}
             >
