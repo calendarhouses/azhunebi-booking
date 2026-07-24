@@ -71,6 +71,7 @@ export async function GET(request: Request) {
       waitingClient: Boolean(settled.waitingClient),
       failed: Boolean(settled.failed),
       message: settled.message,
+      subState: settled.subState,
       partsStarted: true,
     },
     { headers: { "Cache-Control": "no-store" } }

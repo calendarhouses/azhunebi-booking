@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { PayBookingPage } from "@/components/public/PayBookingPage";
-import { fetchBookingByDisplayId } from "@/lib/gas-api";
+import { fetchBookingByDisplayId, fetchPublicTenantData } from "@/lib/gas-api";
+import { toImageDisplaySrc } from "@/lib/driveImageUrl";
 import {
   getMonoChastTestAmountUah,
   getMonoTestAmountUah,
@@ -37,7 +38,10 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
     redirect(`/?payment=return&orderId=${encodeURIComponent(id)}`);
   }
 
-  const result = await fetchBookingByDisplayId(id);
+  const [result, tenant] = await Promise.all([
+    fetchBookingByDisplayId(id),
+    fetchPublicTenantData("default"),
+  ]);
   if (!result.ok || !result.booking) notFound();
 
   const booking = result.booking;
@@ -52,6 +56,19 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
 
   const debitTestAmountUah = getMonoTestAmountUah();
   const partsTestAmountUah = getMonoChastTestAmountUah();
+  const branding = tenant?.branding || {};
+  const brandName =
+    String(branding.site_title || "").trim() ||
+    String(tenant?.tenantName || "").trim() ||
+    "АЖ У НЕБІ";
+  const brandLogoUrl =
+    toImageDisplaySrc(String(branding.logo_url || "").trim(), 512) || null;
+  const heroImageUrl =
+    toImageDisplaySrc(
+      String(branding.hero_image_url || "").trim() ||
+        String((branding as { cover_image_url?: string }).cover_image_url || "").trim(),
+      1600
+    ) || null;
 
   return (
     <PayBookingPage
@@ -67,6 +84,9 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
           Math.round(Number(booking.prepayAmount) || 0) >= 2 ||
           Math.round(Number(booking.totalPrice) || 0) >= 2)
       }
+      brandName={brandName}
+      brandLogoUrl={brandLogoUrl}
+      heroImageUrl={heroImageUrl}
       debitTestAmountUah={debitTestAmountUah}
       partsTestAmountUah={partsTestAmountUah}
     />

@@ -22,7 +22,14 @@ import {
 } from "./config";
 
 export type SettleMonoPartsResult =
-  | { ok: true; settled: boolean; waitingClient?: boolean; failed?: boolean; message?: string }
+  | {
+      ok: true;
+      settled: boolean;
+      waitingClient?: boolean;
+      failed?: boolean;
+      message?: string;
+      subState?: string;
+    }
   | { ok: false; reason: string; message?: string };
 
 function amountKindForBooking(booking: GasBookingRecord): MonoChastAmountKind {
@@ -151,6 +158,7 @@ export async function settleMonoPartsOrder(params: {
       settled: false,
       failed: true,
       message: failMessage(subState),
+      subState,
     };
   }
 
@@ -189,18 +197,23 @@ export async function settleMonoPartsOrder(params: {
 function failMessage(subState: string): string {
   switch (subState) {
     case "CLIENT_NOT_FOUND":
-      return "Клієнта Monobank з цим номером не знайдено";
+      return "Клієнта Monobank з цим номером не знайдено. Перевірте, що в броні фінансовий номер Mono.";
     case "EXCEEDED_SUM_LIMIT":
-      return "Перевищено ліміт Покупки частинами";
+      return "Перевищено ліміт Покупки частинами на цьому акаунті Monobank.";
     case "EXISTS_OTHER_OPEN_ORDER":
-      return "У клієнта вже є незавершена заявка ПЧ — спробуйте через 15 хв";
+      return "У вас уже є незавершена заявка ПЧ. Відхиліть її в Monobank або зачекайте близько 15 хвилин і спробуйте знову. Або оплатіть одразу через MonoPay.";
     case "NOT_ENOUGH_MONEY_FOR_INIT_DEBIT":
-      return "Недостатньо коштів для першого платежу";
+      return "Недостатньо коштів для першого платежу ПЧ (≈ 1/3 суми). Поповніть картку або оберіть оплату одразу.";
     case "REJECTED_BY_CLIENT":
-      return "Клієнт відхилив Покупку частинами";
+      return "Ви відхилили Покупку частинами в Monobank. Оберіть інший спосіб нижче.";
     case "CLIENT_PUSH_TIMEOUT":
-      return "Час на підтвердження в застосунку Monobank вичерпано";
+      return "Час на підтвердження в Monobank вичерпано. Спробуйте ще раз або оплатіть одразу.";
+    case "PAY_PARTS_ARE_NOT_ACCEPTABLE":
+      return "Кількість платежів не прийнятна для магазину. Напишіть у підтримку Mono / @chast_monobankbot.";
+    case "FRAUD_REJECTED":
+    case "RESTRICTED_BY_RISKS":
+      return "Банк відхилив заявку через ризик-контроль. Спробуйте інший спосіб оплати або пізніше.";
     default:
-      return "Заявку Покупки частинами відхилено";
+      return "Monobank відхилив заявку (часто через іншу відкриту ПЧ або внутрішню помилку банку). Зачекайте ~15 хв або оплатіть одразу через MonoPay.";
   }
 }
