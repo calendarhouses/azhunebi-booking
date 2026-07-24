@@ -46,11 +46,9 @@ function expectedPartsAmountUah(booking: GasBookingRecord): number {
 }
 
 function providerForBooking(booking: GasBookingRecord): string {
-  const base =
-    amountKindForBooking(booking) === "prepay"
-      ? MONO_CHAST_PROVIDER_PREPAY
-      : MONO_CHAST_PROVIDER_FULL;
-  return getMonoChastTestAmountUah() != null ? `${base} TEST` : base;
+  return amountKindForBooking(booking) === "prepay"
+    ? MONO_CHAST_PROVIDER_PREPAY
+    : MONO_CHAST_PROVIDER_FULL;
 }
 
 async function markBookingPaidFromParts(

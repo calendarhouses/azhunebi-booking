@@ -153,7 +153,7 @@ export async function POST(request: Request) {
     const invoice = await createMonoInvoice({
       reference: orderId,
       amountUah: chargeAmountUah,
-      destination: `${testAmountUah ? "Тестова оплата за" : amountKind === "full" ? "Оплата за" : "Передплата за"} ${
+      destination: `${amountKind === "full" ? "Оплата за" : "Передплата за"} ${
         booking.cottage || "бронювання"
       }`,
       redirectUrl: `${publicOrigin}/?payment=return&orderId=${encodeURIComponent(orderId)}`,

@@ -249,7 +249,6 @@ export function PayBookingPage({
   const debitFullLabel = debitTestAmountUah ?? totalPrice;
   const partsPrepayLabel = partsTestAmountUah ?? prepayAmount;
   const partsFullLabel = partsTestAmountUah ?? totalPrice;
-  const testMode = debitTestAmountUah != null || partsTestAmountUah != null;
   const logoSrc = brandLogoUrl || "/images/icons/house-with-hearth.svg";
 
   return (
@@ -282,22 +281,6 @@ export function PayBookingPage({
             </div>
             <div className="pay-panel__id">№ {orderId}</div>
           </div>
-
-          {testMode ? (
-            <div className="pay-alert pay-alert--warn" role="status">
-              <div className="pay-alert__icon">
-                <IconAlert />
-              </div>
-              <div>
-                <p className="pay-alert__title">Тестові суми</p>
-                <p className="pay-alert__text">
-                  MonoPay: {debitTestAmountUah != null ? formatUah(debitTestAmountUah) : "—"}. ПЧ:{" "}
-                  {partsTestAmountUah != null ? formatUah(partsTestAmountUah) : "—"}. Після тестів
-                  прибери env на Vercel.
-                </p>
-              </div>
-            </div>
-          ) : null}
 
           {mode === "parts_waiting" ? (
             <div className="pay-wait">
@@ -337,7 +320,7 @@ export function PayBookingPage({
             </div>
           ) : (
             <>
-              <div className="pay-group" style={{ marginTop: testMode ? 14 : 0 }}>
+              <div className="pay-group">
                 <div className="pay-group__head">
                   <span>Оплатити зараз</span>
                 </div>
@@ -366,7 +349,6 @@ export function PayBookingPage({
                       <div className="pay-method__tags">
                         <span className="pay-tag">Visa / Mastercard</span>
                         <span className="pay-tag">Миттєво</span>
-                        {debitTestAmountUah != null ? <span className="pay-tag">TEST</span> : null}
                       </div>
                     </div>
                     <div className="pay-method__price">{formatUah(debitPrepayLabel)}</div>
@@ -392,7 +374,6 @@ export function PayBookingPage({
                         <div className="pay-method__sub">Уся сума карткою · без розстрочки</div>
                         <div className="pay-method__tags">
                           <span className="pay-tag">1 платіж</span>
-                          {debitTestAmountUah != null ? <span className="pay-tag">TEST</span> : null}
                         </div>
                       </div>
                       <div className="pay-method__price">{formatUah(debitFullLabel)}</div>

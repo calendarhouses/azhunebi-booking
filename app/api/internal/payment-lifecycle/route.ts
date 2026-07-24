@@ -79,7 +79,7 @@ async function settleOrExpire(booking: GasBookingRecord): Promise<"paid" | "expi
         }
         const testMode = getMonoTestAmountUah() != null;
         const confirmed = await confirmBookingPayment(orderId, amountKopiykas / 100, {
-          provider: testMode ? "MonoPay TEST" : "MonoPay",
+          provider: "MonoPay",
           transactionId: booking.monoInvoiceId,
           testMode,
         });

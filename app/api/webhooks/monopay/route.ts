@@ -109,7 +109,7 @@ export async function POST(request: Request) {
 
   const providerBase = matchesTotal && !matchesPrepay ? "MonoPay повна" : "MonoPay";
   const result = await confirmBookingPayment(reference, amountKopiykas / 100, {
-    provider: testAmountUah != null ? "MonoPay TEST" : providerBase,
+    provider: providerBase,
     transactionId: invoiceId,
     testMode: testAmountUah != null,
   });
