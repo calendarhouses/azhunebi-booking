@@ -1577,6 +1577,41 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 #boso-tooltip .bt-status.green { background: #D1FAE5; color: #059669; }
 #boso-tooltip .bt-status.gray { background: #F3F4F6; color: #6B7280; }
 #boso-tooltip .bt-status.yellow { background: #FEF3C7; color: #B45309; }
+#boso-tooltip .bt-comment {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #FBF9F4 0%, #F5F1E8 100%);
+  border: 1px solid rgba(85, 107, 47, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+#boso-tooltip .bt-comment__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6B7F4E;
+}
+#boso-tooltip .bt-comment__icon {
+  width: 13px;
+  height: 13px;
+  color: #556B2F;
+  flex-shrink: 0;
+}
+#boso-tooltip .bt-comment__text {
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.45;
+  color: #2F3728;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 7.2em;
+  overflow: hidden;
+}
 
 /* Flatpickr у drawer — одне поле d.m.Y на дату */
 .drawer .form-group .flatpickr-wrapper {
@@ -2499,6 +2534,23 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 .boso-admin-mobile .booking-guest-chip {
   font-size: 9px !important;
   padding: 1px 4px !important;
+}
+
+.boso-admin-mobile .booking-meta-chips {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.boso-admin-mobile .booking-comment-chip {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+.boso-admin-mobile .booking-comment-chip-icon {
+  width: 9px !important;
+  height: 9px !important;
 }
 
 .boso-admin-mobile .booking-fin-badge {

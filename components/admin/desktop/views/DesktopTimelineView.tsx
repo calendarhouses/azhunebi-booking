@@ -23,6 +23,7 @@ import {
   getTimelineFinBadge,
   getTimelineStatusClass,
   getTimelineBookingBlockStyle,
+  parseBookingComment,
 } from "../bookingUtils";
 import {
   shiftDateKey,
@@ -120,6 +121,7 @@ type BookingBlockData = {
   statusClass: string;
   guestName: string;
   guestChip: string | null;
+  hasGuestComment: boolean;
   finBadge: { text: string; bg: string; color: string };
   finText: string;
   extensions: { type: "early" | "late"; left: number; width: number }[];
@@ -327,6 +329,9 @@ function buildBookingBlocks(
           : finBadge.text.replace(/\s*грн\s*$/i, "").trim()
         : formatTimelineFinText(finBadge, contentWidth);
     const guestChip = formatTimelineGuestChip(b);
+    const hasGuestComment = Boolean(
+      parseBookingComment(comment).guestComment.trim()
+    );
 
     blocks.push({
       booking: b,
@@ -337,6 +342,7 @@ function buildBookingBlocks(
       statusClass: getTimelineStatusClass(b),
       guestName: displayClientName(b.name),
       guestChip,
+      hasGuestComment,
       finBadge,
       finText,
       extensions,

@@ -1,4 +1,4 @@
-import { formatPhone, parseSafeDate } from "./adminDates";
+import { parseSafeDate } from "./adminDates";
 import { getGuestWord } from "./adminPlural";
 import type { BookingRecord } from "./types";
 import { resolveBookingFinanceSummary } from "@/lib/admin/bookingPayments";
@@ -7,6 +7,7 @@ import {
   isAwaitingPaymentStatus,
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
+import { parseBookingComment } from "./bookingUtils";
 
 /** Скасовує відкладене показування після bosoLeave / нового hover. */
 let showGeneration = 0;
@@ -16,6 +17,14 @@ let pointerCheckFrame: number | null = null;
 let hoverAnchor: HTMLElement | null = null;
 
 const DISMISS_POINTER_ROOT = ".sidebar, .bottom-nav, .header, .drawer-overlay, .modal-overlay";
+
+function escapeTooltipHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 function isPointInRect(x: number, y: number, rect: DOMRect, padding = 0): boolean {
   return (
@@ -143,17 +152,30 @@ export function bosoHover(
       statusHtml = `<div class="bt-status yellow">Очікує аванс: ${prepayExpected} грн</div>`;
     }
 
-    const phone = formatPhone(String(b.phone || ""));
+    const guestComment = parseBookingComment(rawComment).guestComment.trim();
+    const commentHtml = guestComment
+      ? `<div class="bt-comment">
+          <div class="bt-comment__label">
+            <svg class="bt-comment__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8 10.5h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 11.5a7.5 7.5 0 01-11.4 6.4L5 19l1.2-3.2A7.5 7.5 0 1120 11.5z" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round"/>
+            </svg>
+            Коментар
+          </div>
+          <div class="bt-comment__text">${escapeTooltipHtml(guestComment).replace(/\n/g, "<br/>")}</div>
+        </div>`
+      : "";
     tt.innerHTML = `
       <div class="bt-head">
-        <span class="bt-name">${name}</span>
+        <span class="bt-name">${escapeTooltipHtml(name)}</span>
         <span class="bt-guests">${guests} ${getGuestWord(Number(guests))}</span>
       </div>
-      <div class="bt-row"><span class="bt-label">Котедж:</span> <span class="bt-val">${room}</span></div>
+      <div class="bt-row"><span class="bt-label">Котедж:</span> <span class="bt-val">${escapeTooltipHtml(room)}</span></div>
       <div class="bt-row"><span class="bt-label">Дати:</span> <span class="bt-val" style="color:var(--accent);">${inDate} — ${outDate}</span></div>
       <div class="bt-row"><span class="bt-label">Сума:</span> <span class="bt-val">${total} грн</span></div>
       <div class="bt-row"><span class="bt-label">Внесено:</span> <span class="bt-val${paid > 0 ? " green" : ""}">${paid} грн</span></div>
       ${statusHtml}
+      ${commentHtml}
     `;
   }
 

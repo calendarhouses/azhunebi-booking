@@ -2476,34 +2476,81 @@
             flex-shrink: 0;
         }
 
-        .booking-block.status-new .booking-guest-chip {
+        .booking-meta-chips {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .booking-comment-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.18));
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: inherit;
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.35),
+              0 1px 2px rgba(0, 0, 0, 0.08);
+            opacity: 1 !important;
+            margin: 0 !important;
+        }
+
+        .booking-comment-chip--compact {
+            width: 16px;
+            height: 16px;
+        }
+
+        .booking-comment-chip-icon {
+            width: 11px;
+            height: 11px;
+            opacity: 0.92;
+        }
+
+        .booking-comment-chip--compact .booking-comment-chip-icon {
+            width: 10px;
+            height: 10px;
+        }
+
+        .booking-block.status-new .booking-guest-chip,
+        .booking-block.status-new .booking-comment-chip {
             background: rgba(255, 255, 255, 0.38);
             border-color: rgba(255, 255, 255, 0.5);
             color: rgba(58, 42, 22, 0.92);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
-        .booking-block.status-confirmed .booking-guest-chip {
+        .booking-block.status-confirmed .booking-guest-chip,
+        .booking-block.status-confirmed .booking-comment-chip {
             background: rgba(255, 255, 255, 0.38);
             border-color: rgba(255, 255, 255, 0.5);
             color: rgba(18, 40, 58, 0.92);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
-        .booking-block.status-paid .booking-guest-chip {
+        .booking-block.status-paid .booking-guest-chip,
+        .booking-block.status-paid .booking-comment-chip {
             background: rgba(255, 255, 255, 0.38);
             border-color: rgba(255, 255, 255, 0.5);
             color: rgba(16, 42, 30, 0.92);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
-        .booking-block.status-hutshub .booking-guest-chip {
+        .booking-block.status-hutshub .booking-guest-chip,
+        .booking-block.status-hutshub .booking-comment-chip {
             background: rgba(26, 51, 42, 0.1);
             border-color: rgba(26, 51, 42, 0.16);
             color: rgba(26, 51, 42, 0.9);
         }
 
-        .booking-block.status-cancelled .booking-guest-chip {
+        .booking-block.status-cancelled .booking-guest-chip,
+        .booking-block.status-cancelled .booking-comment-chip {
             background: rgba(107, 114, 128, 0.1);
             border-color: rgba(107, 114, 128, 0.16);
             color: #6B7280;
@@ -2786,7 +2833,8 @@
         .booking-block.status-pending-review .booking-guest-name {
             color: #374151;
         }
-        .booking-block.status-pending-review .booking-guest-chip {
+        .booking-block.status-pending-review .booking-guest-chip,
+        .booking-block.status-pending-review .booking-comment-chip {
             background: rgba(255,255,255,0.55);
             color: #4B5563;
         }
@@ -2799,7 +2847,7 @@
         }
         .badge.hutshub { background-color: #C9D6D2; color: #1A332A; }
         
-        .booking-block span:not(.booking-guest-chip):not(.booking-fin-badge) { 
+        .booking-block span:not(.booking-guest-chip):not(.booking-fin-badge):not(.booking-comment-chip):not(.booking-meta-chips) { 
             font-size: 11px; 
             font-weight: 500; 
             opacity: 0.85; 
@@ -4806,6 +4854,42 @@ input[type="number"] {
 .bt-status.green { background: #D1FAE5; color: #059669; }
 .bt-status.gray { background: #F3F4F6; color: #6B7280; }
 .bt-status.yellow { background: #FEF3C7; color: #B45309; }
+.bt-comment {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #FBF9F4 0%, #F5F1E8 100%);
+  border: 1px solid rgba(85, 107, 47, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.bt-comment__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6B7F4E;
+}
+.bt-comment__icon {
+  width: 13px;
+  height: 13px;
+  color: #556B2F;
+  flex-shrink: 0;
+}
+.bt-comment__text {
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.45;
+  color: #2F3728;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 7.2em;
+  overflow: hidden;
+}
 
         /* --- ПРЕМІУМ-ІНДИКАТОРИ РАННЬОГО/ПІЗНЬОГО ЗАЇЗДУ --- */
         .time-extension {

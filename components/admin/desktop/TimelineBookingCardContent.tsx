@@ -33,6 +33,8 @@ export type TimelineBookingCardBlock = {
   contentWidth: number;
   guestName: string;
   guestChip: string | null;
+  /** Free-text guest/admin comment (system tokens stripped). */
+  hasGuestComment: boolean;
   finText: string;
   finBadge: { bg: string; color: string };
   booking: BookingRecord;
@@ -61,6 +63,37 @@ function GuestChipIcon() {
   );
 }
 
+function CommentChipIcon() {
+  return (
+    <svg className="booking-comment-chip-icon" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8 10.5h8M8 14h5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 11.5a7.5 7.5 0 01-11.4 6.4L5 19l1.2-3.2A7.5 7.5 0 1120 11.5z"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CommentChip({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className={`booking-comment-chip${compact ? " booking-comment-chip--compact" : ""}`}
+      aria-label="Є коментар"
+      title="Є коментар"
+    >
+      <CommentChipIcon />
+    </span>
+  );
+}
+
 function GuestChip({
   value,
   compact = false,
@@ -77,6 +110,29 @@ function GuestChip({
     >
       {textOnly ? null : <GuestChipIcon />}
       {value}
+    </span>
+  );
+}
+
+function BookingMetaChips({
+  block,
+  showGuestChip,
+  compact = false,
+  textOnly = false,
+}: {
+  block: TimelineBookingCardBlock;
+  showGuestChip: boolean;
+  compact?: boolean;
+  textOnly?: boolean;
+}) {
+  const showComment = Boolean(block.hasGuestComment);
+  if (!showGuestChip && !showComment) return null;
+  return (
+    <span className="booking-meta-chips">
+      {showGuestChip && block.guestChip ? (
+        <GuestChip value={block.guestChip} compact={compact} textOnly={textOnly} />
+      ) : null}
+      {showComment ? <CommentChip compact={compact} /> : null}
     </span>
   );
 }
@@ -162,9 +218,12 @@ function MobileMetaRow({
       ) : (
         <PriceBadge finText={block.finText} finBadge={block.finBadge} />
       )}
-      {showGuestChip && block.guestChip ? (
-        <GuestChip value={block.guestChip} compact textOnly={textOnly} />
-      ) : null}
+      <BookingMetaChips
+        block={block}
+        showGuestChip={showGuestChip}
+        compact
+        textOnly={textOnly}
+      />
     </div>
   );
 }
@@ -184,9 +243,12 @@ function CompactStackedStayCard({
     <div className="booking-inner-content booking-inner-content--compact booking-inner-content--compact-short-stay">
       <div className="booking-guest-name">{block.guestName}</div>
       <div className="booking-compact-short-stay-meta">
-        {showGuestChip && block.guestChip ? (
-          <GuestChip value={block.guestChip} compact textOnly={block.contentWidth < 72} />
-        ) : null}
+        <BookingMetaChips
+          block={block}
+          showGuestChip={showGuestChip}
+          compact
+          textOnly={block.contentWidth < 72}
+        />
         <span
           className="booking-fin-badge"
           style={{
@@ -274,9 +336,12 @@ export function TimelineBookingCardContent({
           {oneNightFinKind ? (
             <OneNightFinBadge finBadge={block.finBadge} kind={oneNightFinKind} />
           ) : null}
-          {showGuestChip && block.guestChip ? (
-            <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
-          ) : null}
+          <BookingMetaChips
+            block={block}
+            showGuestChip={showGuestChip}
+            compact
+            textOnly={guestTextOnly}
+          />
         </div>
       </div>
     );
@@ -290,9 +355,12 @@ export function TimelineBookingCardContent({
     return (
       <div className="booking-inner-content booking-inner-content--compact">
         <div className="booking-guest-name">{block.guestName}</div>
-        {showGuestChip && block.guestChip ? (
-          <GuestChip value={block.guestChip} compact textOnly={guestTextOnly} />
-        ) : null}
+        <BookingMetaChips
+          block={block}
+          showGuestChip={showGuestChip}
+          compact
+          textOnly={guestTextOnly}
+        />
         <PriceBadge finText={block.finText} finBadge={block.finBadge} />
       </div>
     );
@@ -303,7 +371,7 @@ export function TimelineBookingCardContent({
       className={[
         "booking-inner-content",
         isOneNight ? "booking-inner-content--one-night" : "",
-        showGuestChip ? "booking-inner-content--has-guests" : "",
+        showGuestChip || block.hasGuestComment ? "booking-inner-content--has-guests" : "",
         mobile ? "booking-inner-content--mobile" : "",
       ]
         .filter(Boolean)
@@ -311,9 +379,11 @@ export function TimelineBookingCardContent({
     >
       <div className="booking-card-top">
         <div className="booking-guest-name">{block.guestName}</div>
-        {showGuestChip && block.guestChip ? (
-          <GuestChip value={block.guestChip} textOnly={guestTextOnly} />
-        ) : null}
+        <BookingMetaChips
+          block={block}
+          showGuestChip={showGuestChip}
+          textOnly={guestTextOnly}
+        />
       </div>
       <div className="booking-card-bottom">
         {oneNightFinKind ? (
