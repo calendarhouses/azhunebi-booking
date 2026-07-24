@@ -45,6 +45,14 @@ export function getPublicOrigin(): string {
         console.error("[Mono] Refusing localhost public origin in production:", raw);
         return DEFAULT_PUBLIC_ORIGIN;
       }
+      // SMS/pay links must use the real domain, not the Vercel deployment host.
+      if (url.hostname.endsWith(".vercel.app")) {
+        console.error(
+          "[Mono] Refusing vercel.app public origin in production (use MONO_PUBLIC_ORIGIN=https://azhunebi.com):",
+          raw
+        );
+        return DEFAULT_PUBLIC_ORIGIN;
+      }
     }
     return url.origin;
   } catch {

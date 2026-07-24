@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  fetchBookingByDisplayId,
-  markPaidBookingTelegramSent,
-} from "@/lib/gas-api";
+import { fetchBookingByDisplayId } from "@/lib/gas-api";
 import {
   getMonoTestAmountUah,
   resolveMonoChargeAmountUah,
@@ -12,7 +9,7 @@ import type { MonoWebhookPayload } from "@/lib/monopay/types";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
-import { notifyPaidBooking } from "@/lib/telegram/paidBookingNotify";
+import { notifyPaidBookingOnce } from "@/lib/telegram/paidBookingNotify";
 
 export const runtime = "nodejs";
 
@@ -126,11 +123,9 @@ export async function POST(request: Request) {
         error: sms.error || sms.responseStatus,
       });
     }
-    if (!confirmedBooking.booking.paidTelegramSentAt) {
-      const telegramSent = await notifyPaidBooking(confirmedBooking.booking);
-      if (telegramSent) {
-        await markPaidBookingTelegramSent(reference);
-      }
+    const tg = await notifyPaidBookingOnce(confirmedBooking.booking);
+    if (tg === "failed") {
+      console.error("[MonoPay Webhook] Paid Telegram notify failed", { reference });
     }
   }
   return NextResponse.json({ ok: true });

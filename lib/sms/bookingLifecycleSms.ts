@@ -87,6 +87,18 @@ export async function sendBookingLifecycleSms(
   if (!phone) return { ok: false, error: "missing phone" };
 
   const orderId = String(booking.id || "").trim();
+
+  // Claim marker under GAS lock BEFORE send — stops gas-proxy + cron races.
+  if (orderId) {
+    const claim = await markBookingSmsSent(orderId, type);
+    if (!claim.ok) {
+      return { ok: false, error: claim.reason || "claim_failed" };
+    }
+    if (claim.already || claim.claimed === false) {
+      return { ok: true, responseStatus: "already sent" };
+    }
+  }
+
   const text = buildBookingLifecycleSmsText(booking, type, settings);
 
   const result = await sendTurboSms({
@@ -112,28 +124,14 @@ export async function sendBookingLifecycleSms(
     );
   }
 
-  if (result.ok && orderId) {
-    const marked = await markBookingSmsSent(orderId, type);
-    if (!marked.ok) {
-      console.error("[SMS] Sent but marker update failed", { orderId, type, marked });
-    }
-  } else if (!result.ok && orderId && isNonRetryableSmsResult(result)) {
-    // Stop the 1-min lifecycle loop: duplicate / rejected sends must not retry forever.
-    const marked = await markBookingSmsSent(orderId, type);
-    if (!marked.ok) {
-      console.error("[SMS] Non-retryable send; marker update failed", {
-        orderId,
-        type,
-        status: result.responseStatus || result.error,
-        marked,
-      });
-    } else {
-      console.warn("[SMS] Marked as sent after non-retryable TurboSMS status", {
-        orderId,
-        type,
-        status: result.responseStatus || result.error,
-      });
-    }
+  if (!result.ok && orderId && !isNonRetryableSmsResult(result)) {
+    // Soft failure: leave marker so we don't double-send; cron won't retry this type.
+    // Operator can clear the SMS-sent cell if a manual resend is needed.
+    console.error("[SMS] Send failed after claim (won't auto-retry)", {
+      orderId,
+      type,
+      status: result.responseStatus || result.error,
+    });
   }
   return result;
 }

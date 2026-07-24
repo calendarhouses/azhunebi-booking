@@ -84,7 +84,7 @@ export function formatTelegramDaySeparator(date: Date = new Date()): string {
   }).formatToParts(date);
   const day = parts.find((p) => p.type === "day")?.value || "";
   const month = (parts.find((p) => p.type === "month")?.value || "").toUpperCase();
-  return `📅 ➖➖➖➖ ${day} ${month} ➖➖➖➖ 📅`;
+  return `📅 ➖➖ ${day} ${month} ➖➖ 📅`;
 }
 
 export function isActiveBookingStatus(status: unknown): boolean {

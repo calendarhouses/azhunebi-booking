@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import {
   expireBookingPayment,
   listPaymentLifecycle,
-  markPaidBookingTelegramSent,
   type GasBookingRecord,
 } from "@/lib/gas-api";
 import { getMonoInvoiceStatus } from "@/lib/monopay/client";
@@ -13,7 +12,7 @@ import {
   type BookingLifecycleSmsType,
 } from "@/lib/sms/bookingLifecycleSms";
 import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
-import { notifyPaidBooking } from "@/lib/telegram/paidBookingNotify";
+import { notifyPaidBookingOnce } from "@/lib/telegram/paidBookingNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -136,14 +135,9 @@ export async function POST(request: Request) {
       }
       for (const booking of refreshed.pendingTelegram || []) {
         try {
-          const sent = await notifyPaidBooking(booking);
-          if (sent && booking.id) {
-            const marked = await markPaidBookingTelegramSent(booking.id);
-            if (marked.ok) telegramSent += 1;
-            else telegramFailed += 1;
-          } else {
-            telegramFailed += 1;
-          }
+          const outcome = await notifyPaidBookingOnce(booking);
+          if (outcome === "sent" || outcome === "already") telegramSent += 1;
+          else if (outcome === "failed") telegramFailed += 1;
         } catch (error) {
           telegramFailed += 1;
           console.error("[Payment lifecycle] Telegram failed", {

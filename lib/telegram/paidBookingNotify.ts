@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { GasBookingRecord } from "@/lib/gas-api";
+import {
+  markPaidBookingTelegramSent,
+  type GasBookingRecord,
+} from "@/lib/gas-api";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
@@ -108,4 +111,28 @@ export async function notifyPaidBooking(booking: GasBookingRecord): Promise<bool
   const body = await response.text().catch(() => "");
   console.error("[TG] Paid booking notify failed", response.status, body);
   return false;
+}
+
+/** Claim GAS marker first, then send — prevents webhook + cron duplicates. */
+export async function notifyPaidBookingOnce(
+  booking: GasBookingRecord
+): Promise<"sent" | "already" | "failed" | "skipped"> {
+  if (booking.paidTelegramSentAt) return "already";
+  const orderId = String(booking.id || "").trim();
+  if (!orderId) return "failed";
+  if (!isTelegramConfigured()) {
+    console.warn("[TG] Skipping paid booking notify — Telegram is not configured");
+    return "skipped";
+  }
+
+  const claim = await markPaidBookingTelegramSent(orderId);
+  if (!claim.ok) return "failed";
+  if (claim.already || claim.claimed === false) return "already";
+
+  const sent = await notifyPaidBooking(booking);
+  if (!sent) {
+    console.error("[TG] Paid notify failed after claim (won't auto-retry)", { orderId });
+    return "failed";
+  }
+  return "sent";
 }

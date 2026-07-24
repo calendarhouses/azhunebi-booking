@@ -698,7 +698,7 @@ export async function expireBookingPayment(orderId: string): Promise<{
 export async function markBookingSmsSent(
   orderId: string,
   smsType: "payment_link" | "success" | "expiry"
-): Promise<{ ok: boolean; reason?: string }> {
+): Promise<{ ok: boolean; claimed?: boolean; already?: boolean; reason?: string }> {
   return gasPost({
     action: "markBookingSmsSent",
     orderId,
@@ -709,7 +709,7 @@ export async function markBookingSmsSent(
 
 export async function markPaidBookingTelegramSent(
   orderId: string
-): Promise<{ ok: boolean; reason?: string }> {
+): Promise<{ ok: boolean; claimed?: boolean; already?: boolean; reason?: string }> {
   return gasPost({
     action: "markPaidBookingTelegramSent",
     orderId,
