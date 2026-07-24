@@ -18,7 +18,6 @@ type PayBookingPageProps = {
   partsEnabled: boolean;
   brandName: string;
   brandLogoUrl?: string | null;
-  heroImageUrl?: string | null;
   debitTestAmountUah?: number | null;
   partsTestAmountUah?: number | null;
 };
@@ -33,7 +32,7 @@ type Submitting =
   | null;
 
 type AlertState = {
-  tone: "danger" | "warn" | "info";
+  tone: "danger" | "warn";
   title: string;
   text: string;
 } | null;
@@ -46,34 +45,33 @@ function formatUah(amount: number): string {
   return `${amount.toLocaleString("uk-UA")} грн`;
 }
 
-function IconBolt() {
+/** Mono black circle mark */
+function LogoMono() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M13 2 4 14h7l-1 8 10-14h-7l0-6z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden>
+      <circle cx="20" cy="20" r="20" fill="#111111" />
+      <text
+        x="20"
+        y="26"
+        textAnchor="middle"
+        fill="#fff"
+        fontSize="18"
+        fontWeight="800"
+        fontFamily="Inter, system-ui, sans-serif"
+      >
+        m
+      </text>
     </svg>
   );
 }
 
-function IconCard() {
+/** Покупка частинами — three bars mark */
+function LogoParts() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M2.5 10h19" stroke="currentColor" strokeWidth="1.7" />
-    </svg>
-  );
-}
-
-function IconParts() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="3" y="4" width="5.5" height="16" rx="1.5" fill="currentColor" opacity="0.35" />
-      <rect x="9.25" y="4" width="5.5" height="16" rx="1.5" fill="currentColor" opacity="0.65" />
-      <rect x="15.5" y="4" width="5.5" height="16" rx="1.5" fill="currentColor" />
+    <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden>
+      <rect x="4" y="8" width="8" height="24" rx="2.5" fill="#111111" opacity="0.28" />
+      <rect x="16" y="8" width="8" height="24" rx="2.5" fill="#111111" opacity="0.55" />
+      <rect x="28" y="8" width="8" height="24" rx="2.5" fill="#111111" />
     </svg>
   );
 }
@@ -116,7 +114,6 @@ export function PayBookingPage({
   partsEnabled,
   brandName,
   brandLogoUrl = null,
-  heroImageUrl = null,
   debitTestAmountUah = null,
   partsTestAmountUah = null,
 }: PayBookingPageProps) {
@@ -126,7 +123,7 @@ export function PayBookingPage({
   const [submitting, setSubmitting] = useState<Submitting>(null);
   const [alert, setAlert] = useState<AlertState>(null);
   const [partsHint, setPartsHint] = useState(
-    "Відкрийте застосунок Monobank і підтвердіть push — зазвичай до хвилини."
+    "Відкрийте застосунок Monobank і підтвердіть push."
   );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -169,12 +166,12 @@ export function PayBookingPage({
             title: "Monobank відхилив Покупку частинами",
             text:
               status.message ||
-              "Часта причина — інша незавершена заявка ПЧ (почекайте ~15 хв) або ліміт. Оберіть оплату одразу нижче.",
+              "Спробуйте ще раз пізніше або оберіть оплату одразу.",
           });
           return;
         }
         if (status.waitingClient) {
-          setPartsHint("Push уже в Monobank. Підтвердіть Покупку частинами у застосунку.");
+          setPartsHint("Підтвердіть Покупку частинами у застосунку Monobank.");
         }
       } catch {
         // keep polling
@@ -221,11 +218,11 @@ export function PayBookingPage({
       } catch (err) {
         setAlert({
           tone: "danger",
-          title: "Не вдалося створити заявку ПЧ",
+          title: "Не вдалося створити заявку",
           text:
             err instanceof Error
               ? err.message
-              : "Спробуйте оплату одразу або повторіть через кілька хвилин.",
+              : "Спробуйте оплату одразу або повторіть пізніше.",
         });
         setSubmitting(null);
       }
@@ -253,230 +250,182 @@ export function PayBookingPage({
 
   return (
     <main className="pay-page">
-      <div className="pay-page__bg" aria-hidden>
-        {heroImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="pay-page__bg-img" src={heroImageUrl} alt="" />
-        ) : null}
-      </div>
-
       <div className="pay-page__inner">
-        <header className="pay-hero">
-          <div className="pay-hero__logo-wrap">
+        <header className="pay-brand">
+          <div className="pay-brand__logo-wrap">
+            <span className="pay-brand__wave" />
+            <span className="pay-brand__wave pay-brand__wave--2" />
+            <span className="pay-brand__wave pay-brand__wave--3" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="pay-hero__logo" src={logoSrc} alt={brandName} />
+            <img className="pay-brand__logo" src={logoSrc} alt={brandName} />
           </div>
-          <div className="pay-hero__mark">{brandName}</div>
-          <div className="pay-hero__sub">Оплата бронювання</div>
+          <h1 className="pay-brand__title">{brandName}</h1>
+          <p className="pay-brand__sub">Оплата бронювання</p>
         </header>
 
-        <section className="pay-panel">
-          <div className="pay-panel__top">
-            <div>
-              <p className="pay-panel__kicker">Ваше бронювання</p>
-              <h1 className="pay-panel__title">{cottage}</h1>
-              <p className="pay-panel__dates">
-                {checkInLabel} — {checkOutLabel}
-              </p>
-            </div>
-            <div className="pay-panel__id">№ {orderId}</div>
+        <div className="pay-meta">
+          <div className="pay-meta__card">
+            <p className="pay-meta__label">Ваше бронювання</p>
+            <p className="pay-meta__value">{cottage}</p>
           </div>
-
-          {mode === "parts_waiting" ? (
-            <div className="pay-wait">
-              <div className="pay-wait__orb">
-                <IconParts />
+          <div className="pay-meta__card">
+            <div className="pay-meta__row">
+              <div>
+                <p className="pay-meta__label">Дати</p>
+                <p className="pay-meta__dates">
+                  {checkInLabel} — {checkOutLabel}
+                </p>
               </div>
-              <h2>Чекаємо Monobank</h2>
-              <p>{partsHint}</p>
-              <p className="pay-wait__sum">
-                {partsKind === "prepay" ? "Передплата" : "Повна сума"} · {formatUah(waitingAmount)}{" "}
-                · 3 платежі ≈ {formatUah(third(waitingAmount))}
-              </p>
-              <div className="pay-wait__actions">
-                <button
-                  type="button"
-                  className="pay-ghost"
-                  onClick={() => {
-                    void (async () => {
-                      stopPolling();
-                      try {
-                        await abandonMonoPartsOrder(orderId);
-                      } catch {
-                        // ignore
-                      }
-                      setMode("choose");
-                      setAlert({
-                        tone: "warn",
-                        title: "Оберіть інший спосіб",
-                        text: "Можна оплатити одразу через MonoPay. Якщо в Monobank ще висить заявка — відхиліть її або зачекайте ~15 хв.",
-                      });
-                    })();
-                  }}
-                >
-                  Обрати інший спосіб оплати
-                </button>
-              </div>
+              <div className="pay-meta__id">№ {orderId}</div>
             </div>
-          ) : (
-            <>
-              <div className="pay-group">
-                <div className="pay-group__head">
-                  <span>Оплатити зараз</span>
-                </div>
+          </div>
+        </div>
 
+        {mode === "parts_waiting" ? (
+          <div className="pay-wait">
+            <div className="pay-wait__orb">
+              <LogoParts />
+            </div>
+            <h2>Чекаємо Monobank</h2>
+            <p>{partsHint}</p>
+            <p className="pay-wait__sum">
+              {partsKind === "prepay" ? "Передплата" : "Повна сума"} · {formatUah(waitingAmount)} ·
+              3 платежі ≈ {formatUah(third(waitingAmount))}
+            </p>
+            <button
+              type="button"
+              className="pay-ghost"
+              onClick={() => {
+                void (async () => {
+                  stopPolling();
+                  try {
+                    await abandonMonoPartsOrder(orderId);
+                  } catch {
+                    // ignore
+                  }
+                  setMode("choose");
+                  setAlert({
+                    tone: "warn",
+                    title: "Оберіть інший спосіб",
+                    text: "Можна оплатити одразу через MonoPay.",
+                  });
+                })();
+              }}
+            >
+              Обрати інший спосіб оплати
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="pay-group">
+              <p className="pay-group__title">Оплатити зараз</p>
+
+              <button
+                type="button"
+                className="pay-option pay-option--primary"
+                disabled={Boolean(submitting)}
+                onClick={() => void handleDebit("prepay")}
+              >
+                <div className="pay-option__logo">
+                  <LogoMono />
+                </div>
+                <div>
+                  <p className="pay-option__name">
+                    {submitting === "debit-prepay" ? "Відкриваємо…" : "Передплата одразу"}
+                  </p>
+                  <p className="pay-option__hint">MonoPay · решта на місці</p>
+                </div>
+                <div className="pay-option__price">{formatUah(debitPrepayLabel)}</div>
+              </button>
+
+              {showFullDebit ? (
                 <button
                   type="button"
-                  className="pay-method pay-method--featured"
-                  style={{ animationDelay: "0.04s" }}
+                  className="pay-option"
                   disabled={Boolean(submitting)}
-                  onClick={() => void handleDebit("prepay")}
+                  onClick={() => void handleDebit("full")}
                 >
-                  <div className="pay-method__inner">
-                    <div className="pay-method__icon">
-                      <IconBolt />
-                    </div>
-                    <div>
-                      <div className="pay-method__name">
-                        {submitting === "debit-prepay" ? "Відкриваємо MonoPay…" : "Передплата одразу"}
-                      </div>
-                      <div className="pay-method__sub">
-                        <span className="pay-mono-mark">
-                          <i /> MonoPay
-                        </span>{" "}
-                        · решта на місці
-                      </div>
-                      <div className="pay-method__tags">
-                        <span className="pay-tag">Visa / Mastercard</span>
-                        <span className="pay-tag">Миттєво</span>
-                      </div>
-                    </div>
-                    <div className="pay-method__price">{formatUah(debitPrepayLabel)}</div>
+                  <div className="pay-option__logo">
+                    <LogoMono />
                   </div>
+                  <div>
+                    <p className="pay-option__name">
+                      {submitting === "debit-full" ? "Відкриваємо…" : "Повна оплата одразу"}
+                    </p>
+                    <p className="pay-option__hint">MonoPay · уся сума</p>
+                  </div>
+                  <div className="pay-option__price">{formatUah(debitFullLabel)}</div>
                 </button>
+              ) : null}
+            </div>
 
-                {showFullDebit ? (
+            {(showPrepayParts || showFullParts) && (
+              <div className="pay-group">
+                <p className="pay-group__title">Покупка частинами</p>
+
+                {showPrepayParts ? (
                   <button
                     type="button"
-                    className="pay-method"
-                    style={{ animationDelay: "0.1s" }}
+                    className="pay-option"
                     disabled={Boolean(submitting)}
-                    onClick={() => void handleDebit("full")}
+                    onClick={() => void handleParts("prepay")}
                   >
-                    <div className="pay-method__inner">
-                      <div className="pay-method__icon">
-                        <IconCard />
-                      </div>
-                      <div>
-                        <div className="pay-method__name">
-                          {submitting === "debit-full" ? "Відкриваємо MonoPay…" : "Повна оплата одразу"}
-                        </div>
-                        <div className="pay-method__sub">Уся сума карткою · без розстрочки</div>
-                        <div className="pay-method__tags">
-                          <span className="pay-tag">1 платіж</span>
-                        </div>
-                      </div>
-                      <div className="pay-method__price">{formatUah(debitFullLabel)}</div>
+                    <div className="pay-option__logo">
+                      <LogoParts />
                     </div>
+                    <div>
+                      <p className="pay-option__name">
+                        {submitting === "parts-prepay"
+                          ? "Створюємо заявку…"
+                          : "Передплата частинами"}
+                      </p>
+                      <p className="pay-option__hint">Підтвердження в застосунку Monobank</p>
+                    </div>
+                    <div className="pay-option__price">{formatUah(partsPrepayLabel)}</div>
+                  </button>
+                ) : null}
+
+                {showFullParts ? (
+                  <button
+                    type="button"
+                    className="pay-option"
+                    disabled={Boolean(submitting)}
+                    onClick={() => void handleParts("full")}
+                  >
+                    <div className="pay-option__logo">
+                      <LogoParts />
+                    </div>
+                    <div>
+                      <p className="pay-option__name">
+                        {submitting === "parts-full"
+                          ? "Створюємо заявку…"
+                          : "Повна сума частинами"}
+                      </p>
+                      <p className="pay-option__hint">Підтвердження в застосунку Monobank</p>
+                    </div>
+                    <div className="pay-option__price">{formatUah(partsFullLabel)}</div>
                   </button>
                 ) : null}
               </div>
+            )}
+          </>
+        )}
 
-              {(showPrepayParts || showFullParts) && (
-                <div className="pay-group">
-                  <div className="pay-group__head">
-                    <span>Покупка частинами</span>
-                    <span className="pay-group__pill">
-                      <IconParts /> 0% · 3 платежі
-                    </span>
-                  </div>
-
-                  {showPrepayParts ? (
-                    <button
-                      type="button"
-                      className="pay-method"
-                      style={{ animationDelay: "0.16s" }}
-                      disabled={Boolean(submitting)}
-                      onClick={() => void handleParts("prepay")}
-                    >
-                      <div className="pay-method__inner">
-                        <div className="pay-method__icon">
-                          <IconParts />
-                        </div>
-                        <div>
-                          <div className="pay-method__name">
-                            {submitting === "parts-prepay"
-                              ? "Створюємо заявку…"
-                              : "Передплата частинами"}
-                          </div>
-                          <div className="pay-method__sub">
-                            {formatUah(partsPrepayLabel)} · ≈ {formatUah(third(partsPrepayLabel))} ×
-                            3 · решта на місці
-                          </div>
-                          <div className="pay-method__hint">Підтвердження в застосунку Monobank</div>
-                        </div>
-                        <div className="pay-method__price">{formatUah(partsPrepayLabel)}</div>
-                      </div>
-                    </button>
-                  ) : null}
-
-                  {showFullParts ? (
-                    <button
-                      type="button"
-                      className="pay-method"
-                      style={{ animationDelay: "0.22s" }}
-                      disabled={Boolean(submitting)}
-                      onClick={() => void handleParts("full")}
-                    >
-                      <div className="pay-method__inner">
-                        <div className="pay-method__icon">
-                          <IconParts />
-                        </div>
-                        <div>
-                          <div className="pay-method__name">
-                            {submitting === "parts-full"
-                              ? "Створюємо заявку…"
-                              : "Повна сума частинами"}
-                          </div>
-                          <div className="pay-method__sub">
-                            {formatUah(partsFullLabel)} · ≈ {formatUah(third(partsFullLabel))} × 3
-                          </div>
-                          <div className="pay-method__hint">
-                            Після підтвердження фінальну суму в адмінці вже не змінюють
-                          </div>
-                        </div>
-                        <div className="pay-method__price">{formatUah(partsFullLabel)}</div>
-                      </div>
-                    </button>
-                  ) : null}
-                </div>
-              )}
-            </>
-          )}
-
-          {alert ? (
-            <div className={`pay-alert pay-alert--${alert.tone}`} role="alert">
-              <div className="pay-alert__icon">
-                <IconAlert />
-              </div>
-              <div>
-                <p className="pay-alert__title">{alert.title}</p>
-                <p className="pay-alert__text">{alert.text}</p>
-              </div>
+        {alert ? (
+          <div className={`pay-alert pay-alert--${alert.tone}`} role="alert">
+            <div className="pay-alert__icon">
+              <IconAlert />
             </div>
-          ) : null}
-
-          <div style={{ textAlign: "center" }}>
-            <div className="pay-secure">
-              <IconShield /> Захищена оплата · Mono
+            <div>
+              <p className="pay-alert__title">{alert.title}</p>
+              <p className="pay-alert__text">{alert.text}</p>
             </div>
           </div>
-        </section>
+        ) : null}
 
-        <p className="pay-foot">
-          Для Покупки частинами потрібен клієнт Monobank, вільний ліміт ПЧ і без інших незавершених
-          заявок (після відмов зачекайте ~15 хвилин).
-        </p>
+        <div className="pay-secure">
+          <IconShield /> Захищена оплата · Mono
+        </div>
       </div>
     </main>
   );

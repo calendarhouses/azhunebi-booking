@@ -63,12 +63,6 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
     "АЖ У НЕБІ";
   const brandLogoUrl =
     toImageDisplaySrc(String(branding.logo_url || "").trim(), 512) || null;
-  const heroImageUrl =
-    toImageDisplaySrc(
-      String(branding.hero_image_url || "").trim() ||
-        String((branding as { cover_image_url?: string }).cover_image_url || "").trim(),
-      1600
-    ) || null;
 
   return (
     <PayBookingPage
@@ -86,7 +80,6 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       }
       brandName={brandName}
       brandLogoUrl={brandLogoUrl}
-      heroImageUrl={heroImageUrl}
       debitTestAmountUah={debitTestAmountUah}
       partsTestAmountUah={partsTestAmountUah}
     />
