@@ -35,6 +35,8 @@ export type TimelineBookingCardBlock = {
   guestChip: string | null;
   /** Free-text guest/admin comment (system tokens stripped). */
   hasGuestComment: boolean;
+  earlyTime?: string | null;
+  lateTime?: string | null;
   finText: string;
   finBadge: { bg: string; color: string };
   booking: BookingRecord;
@@ -54,6 +56,34 @@ type TimelineBookingCardContentProps = {
   /** Android chessboard: fuller cards (name + price + guests) at denser row heights. */
   androidPremium?: boolean;
 };
+
+function ScheduleBadges({
+  earlyTime,
+  lateTime,
+  compact = false,
+}: {
+  earlyTime?: string | null;
+  lateTime?: string | null;
+  compact?: boolean;
+}) {
+  if (!earlyTime && !lateTime) return null;
+  return (
+    <div
+      className={`booking-schedule-badges${compact ? " booking-schedule-badges--compact" : ""}`}
+    >
+      {earlyTime ? (
+        <span className="booking-schedule-badge booking-schedule-badge--early" title={earlyTime === "—" ? "Ранній заїзд" : `Ранній заїзд з ${earlyTime}`}>
+          {earlyTime === "—" ? "ранній" : `з ${earlyTime}`}
+        </span>
+      ) : null}
+      {lateTime ? (
+        <span className="booking-schedule-badge booking-schedule-badge--late" title={lateTime === "—" ? "Пізній виїзд" : `Пізній виїзд до ${lateTime}`}>
+          {lateTime === "—" ? "пізній" : `до ${lateTime}`}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function GuestChipIcon() {
   return (
@@ -350,11 +380,7 @@ export function TimelineBookingCardContent({
   const name = block.guestName?.trim() || "";
 
   if (mobile) {
-    const flexibleInset = block.extensions.length * (compact ? 20 : 26);
-    const effectiveWidth = Math.max(
-      0,
-      block.width - (compact ? 10 : 14) - flexibleInset
-    );
+    const effectiveWidth = Math.max(0, block.width - (compact ? 10 : 14));
     // 2+ nights: always show name (ellipsis if narrow). 1-night: meta only.
     const showName = !isOneNight && Boolean(name);
     const textOnlyGuests = isOneNight || effectiveWidth < (androidPremium ? 72 : 100);
@@ -365,17 +391,24 @@ export function TimelineBookingCardContent({
           ? "booking-inner-content--stay-2"
           : "booking-inner-content--stay-3plus";
     return (
-      <MobilePremiumCard
-        block={block}
-        showGuestChip={showGuestChip}
-        oneNightFinKind={isOneNight ? oneNightFinKind : null}
-        textOnly={textOnlyGuests}
-        showName={showName}
-        name={name}
-        stayClass={stayClass}
-        compact={compact}
-        androidPremium={androidPremium}
-      />
+      <>
+        <ScheduleBadges
+          earlyTime={block.earlyTime}
+          lateTime={block.lateTime}
+          compact
+        />
+        <MobilePremiumCard
+          block={block}
+          showGuestChip={showGuestChip}
+          oneNightFinKind={isOneNight ? oneNightFinKind : null}
+          textOnly={textOnlyGuests}
+          showName={showName}
+          name={name}
+          stayClass={stayClass}
+          compact={compact}
+          androidPremium={androidPremium}
+        />
+      </>
     );
   }
 
@@ -389,6 +422,7 @@ export function TimelineBookingCardContent({
             : "booking-inner-content--one-night-stack",
         ].join(" ")}
       >
+        <ScheduleBadges earlyTime={block.earlyTime} lateTime={block.lateTime} compact />
         <div className="booking-guest-name">{block.guestName}</div>
         <div className="booking-compact-one-night-foot">
           {oneNightFinKind ? (
@@ -406,12 +440,18 @@ export function TimelineBookingCardContent({
   }
 
   if (compact && shouldUseCompactStackedMultiNightLayout(block)) {
-    return <CompactStackedStayCard block={block} showGuestChip={showGuestChip} />;
+    return (
+      <>
+        <ScheduleBadges earlyTime={block.earlyTime} lateTime={block.lateTime} compact />
+        <CompactStackedStayCard block={block} showGuestChip={showGuestChip} />
+      </>
+    );
   }
 
   if (compact) {
     return (
       <div className="booking-inner-content booking-inner-content--compact">
+        <ScheduleBadges earlyTime={block.earlyTime} lateTime={block.lateTime} compact />
         <div className="booking-guest-name">{block.guestName}</div>
         <BookingMetaChips
           block={block}
@@ -435,6 +475,7 @@ export function TimelineBookingCardContent({
         .filter(Boolean)
         .join(" ")}
     >
+      <ScheduleBadges earlyTime={block.earlyTime} lateTime={block.lateTime} />
       <div className="booking-card-top">
         <div className="booking-guest-name">{block.guestName}</div>
         <BookingMetaChips

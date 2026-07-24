@@ -14,6 +14,7 @@ import {
   type ServiceSelectionMap,
 } from "./settings/additionalServicesLogic";
 import { buildEarlyCommentToken, buildLateCommentToken } from "@/lib/admin/flexibleSchedule";
+import { buildPostLateCommentToken } from "@/lib/public-booking/postLateGapStay";
 import { buildPromoCodeCommentToken } from "@/lib/admin/bookingDiscountCalc";
 import {
   BOOKING_STATUS_CLOSED,
@@ -45,6 +46,7 @@ export function buildSystemComment(
     promoCode?: string;
     earlyTime: string | null;
     lateTime: string | null;
+    postLateArrivalTime?: string | null;
     /** Зберегти імпортні BookMeNow-токени при перезаписі коментаря. */
     bookmenowTokens?: string[];
   }
@@ -61,7 +63,11 @@ export function buildSystemComment(
   sysComment.push(...buildSpecialTariffCommentParts(opts.specialTariffs, opts.specialTariffToggles));
   const promoToken = buildPromoCodeCommentToken(opts.promoCode || "");
   if (promoToken) sysComment.push(promoToken);
-  if (opts.earlyTime) sysComment.push(buildEarlyCommentToken(opts.earlyTime, false));
+  if (opts.postLateArrivalTime) {
+    sysComment.push(buildPostLateCommentToken(opts.postLateArrivalTime));
+  } else if (opts.earlyTime) {
+    sysComment.push(buildEarlyCommentToken(opts.earlyTime, false));
+  }
   if (opts.lateTime) sysComment.push(buildLateCommentToken(opts.lateTime, false));
   for (const token of opts.bookmenowTokens || []) {
     const t = String(token || "").trim();
@@ -198,6 +204,9 @@ export function collectBookingFromForm(
           .__bookingSpecialTariffToggles || [],
       earlyTime: selectedEarlyTime,
       lateTime: selectedLateTime,
+      postLateArrivalTime:
+        (window as Window & { selectedPostLateArrivalTime?: string | null })
+          .selectedPostLateArrivalTime || null,
       bookmenowTokens: w._bookingBookmenowCommentTokens || [],
     }),
     basePrice: getFormVal("manualBasePrice"),

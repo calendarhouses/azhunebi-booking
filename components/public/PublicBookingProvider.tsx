@@ -619,7 +619,7 @@ export function PublicBookingProvider({
               setLateActive(false);
               setCheckOut(d);
               showPublicToast(
-                `Заїзд після ${gapPrev.lateTime || "20:00"} · −50% на ніч`
+                `Заїзд з ${arrival} · −50% на ніч`
               );
             } else {
               showPublicToast(`Для обраних дат мінімум ${req} ${nightWord(req)}`);
@@ -633,7 +633,7 @@ export function PublicBookingProvider({
               setLateTime(null);
               setLateActive(false);
               showPublicToast(
-                `Заїзд після ${gapPrev.lateTime || "20:00"} · −50% на ніч`
+                `Заїзд з ${arrival} · −50% на ніч`
               );
             } else {
               setPostLateArrivalTime(null);

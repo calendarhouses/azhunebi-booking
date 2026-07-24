@@ -3220,6 +3220,59 @@ input[type="number"] {
         .time-extension.early { left: 0; border-right: 1px solid rgba(0,0,0,0.05); border-radius: 6px 0 0 6px; }
         .time-extension.late { right: 0; border-left: 1px solid rgba(0,0,0,0.05); border-radius: 0 6px 6px 0;}
         .time-extension svg { stroke: rgba(255,255,255,0.9); }
+
+        .booking-schedule-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-bottom: 2px;
+            max-width: 100%;
+        }
+        .booking-schedule-badges--compact { margin-bottom: 1px; gap: 2px; }
+        .booking-schedule-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.2;
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.22);
+            color: rgba(255, 255, 255, 0.96);
+            white-space: nowrap;
+        }
+        .booking-schedule-badge--early { background: rgba(14, 116, 144, 0.88); }
+        .booking-schedule-badge--late { background: rgba(124, 45, 18, 0.88); }
+        .timeline-gap-hint {
+            top: 6px;
+            bottom: 6px;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px dashed rgba(85, 107, 47, 0.45);
+            background: repeating-linear-gradient(
+              -45deg,
+              rgba(85, 107, 47, 0.06),
+              rgba(85, 107, 47, 0.06) 4px,
+              rgba(85, 107, 47, 0.12) 4px,
+              rgba(85, 107, 47, 0.12) 8px
+            );
+            box-sizing: border-box;
+        }
+        .timeline-gap-hint__label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #556B2F;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            padding: 0 2px;
+        }
+        .timeline-gap-hint--mobile { top: 4px; bottom: 4px; border-radius: 4px; }
+        .timeline-gap-hint--mobile .timeline-gap-hint__label { font-size: 8px; }
         
         /* --- ЗВІТИ ТА АНАЛІТИКА --- */
         .reports-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }

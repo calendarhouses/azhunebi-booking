@@ -10,16 +10,16 @@ export function timeToMinutes(time: string): number {
 }
 
 export function minutesToTime(totalMinutes: number): string {
-  const mins = Math.max(0, Math.min(23 * 60 + 30, Math.round(totalMinutes)));
+  const mins = Math.max(0, Math.min(23 * 60 + 59, Math.round(totalMinutes)));
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Arrival slot after previous guest's late checkout (default +30 min). */
+/** Arrival slot after previous guest's late checkout (+1 hour buffer). */
 export function arrivalAfterLateCheckout(lateTime: string | null | undefined): string {
   const late = lateTime && /^\d{1,2}:\d{2}$/.test(lateTime.trim()) ? lateTime.trim() : "20:00";
-  return minutesToTime(timeToMinutes(late) + 30);
+  return minutesToTime(timeToMinutes(late) + 60);
 }
 
 export function findPrevLateCheckoutRange(
@@ -42,7 +42,7 @@ export function isPostLateGapStay(
 export function buildPostLateGapNoticeHtml(prevLateTime: string, arrivalTime: string): string {
   return (
     `Попередній гість виїжджає о <b>${prevLateTime}</b>. ` +
-    `Заїзд можливий лише <b>після ${arrivalTime}</b>, виїзд — за стандартом. ` +
+    `Заїзд у цей день можливий лише з <b>${arrivalTime}</b> (буфер +1 год), виїзд — за стандартом. ` +
     `За ці умови діє знижка <b>−50%</b> на першу ніч.`
   );
 }

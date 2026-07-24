@@ -209,18 +209,19 @@ export function checkBookingOverlap(params: {
     if (currentIn.getTime() === exOut.getTime()) {
       if (exHasLate) {
         const prevLate = exLateTime || "20:00";
+        const minArrival = arrivalAfterLateCheckout(prevLate);
         const arrival =
           selectedPostLateArrivalTime ||
           selectedEarlyTime ||
           null;
-        if (arrival && timeToMinutes(arrival) > timeToMinutes(prevLate)) {
-          // Post-late gap stay: arrive after previous guest leaves — allowed.
+        if (arrival && timeToMinutes(arrival) >= timeToMinutes(minArrival)) {
+          // Post-late gap stay: arrive at least +1h after previous late checkout.
         } else {
           return {
             isOverlap: true,
             overlapReason:
               `Попередній гість має <b>Пізній виїзд</b> о ${prevLate}. ` +
-              `Заїзд у цей день можливий лише після цього часу.`,
+              `Заїзд у цей день можливий лише з <b>${minArrival}</b> (буфер +1 год).`,
           };
         }
       } else if (currentHasEarly) {

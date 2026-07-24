@@ -256,6 +256,8 @@ export function useBookingDrawer({
     if (typeof window !== "undefined") {
       (window as Window & { _bookingBookmenowCommentTokens?: string[] })._bookingBookmenowCommentTokens =
         [];
+      (window as Window & { selectedPostLateArrivalTime?: string | null }).selectedPostLateArrivalTime =
+        null;
     }
     if (typeof document !== "undefined") {
       document.getElementById("bookingDrawer")?.classList.remove("active");

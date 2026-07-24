@@ -359,6 +359,20 @@ export function BookingPriceCalculator({
     onOverlapChange?.(computed.isOverlap);
   }, [computed.isOverlap, onOverlapChange]);
 
+  useEffect(() => {
+    const w = window as Window & { selectedPostLateArrivalTime?: string | null };
+    w.selectedPostLateArrivalTime = computed.isPostLateGapStay
+      ? computed.postLateArrivalTime
+      : null;
+    return () => {
+      if (!computed.isPostLateGapStay) return;
+      // Keep value until next calculator pass / drawer close clears it.
+    };
+  }, [
+    computed.isPostLateGapStay,
+    computed.postLateArrivalTime,
+  ]);
+
   const amountToDiscount = manualLines.base + manualLines.extra;
 
   useEffect(() => {
@@ -798,6 +812,23 @@ export function BookingPriceCalculator({
   return (
     <>
     <div className="form-section" style={{ background: "#FDFCFB", borderColor: "var(--accent)" }}>
+      {computed.postLateGapNoticeHtml ? (
+        <div
+          className="admin-postlate-notice"
+          style={{
+            marginBottom: 14,
+            padding: "12px 14px",
+            borderRadius: 10,
+            background: "#F4F7EE",
+            border: "1px solid #C9D6B0",
+            color: "#3F4A2E",
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: 1.45,
+          }}
+          dangerouslySetInnerHTML={{ __html: computed.postLateGapNoticeHtml }}
+        />
+      ) : null}
       {computed.restrWarningHtml ? (
         <div dangerouslySetInnerHTML={{ __html: computed.restrWarningHtml }} />
       ) : null}

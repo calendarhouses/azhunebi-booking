@@ -1,5 +1,5 @@
 import { normalizeDateToIso, parseSafeDate } from "./adminDates";
-import { bookingHasEarlyLate, findRoomForBooking } from "./bookingUtils";
+import { findRoomForBooking } from "./bookingUtils";
 import { shiftDateKey } from "./timelineBookingMove";
 import type { BookingRecord, RoomConfig } from "./types";
 
@@ -9,9 +9,9 @@ export type OccupiedInterval = {
 };
 
 export type RoomTimelineConstraints = {
-  /** День, у який не можна почати заїзд (після пізнього виїзду попередньої броні). */
+  /** Reserved for future half-day selection rules (currently unused). */
   blockedCheckInDays: Set<string>;
-  /** День, у який не можна оформити виїзд (перед раннім заїздом наступної броні). */
+  /** Reserved for future half-day selection rules (currently unused). */
   blockedCheckOutDays: Set<string>;
   /** Існуючі броні в рядку (checkIn включно, checkOut виключно). */
   occupied: OccupiedInterval[];
@@ -123,15 +123,9 @@ export function buildRoomTimelineConstraints(
 
     occupied.push({ checkIn, checkOut });
 
-    const { hasEarly, hasLate } = bookingHasEarlyLate(String(booking.comment || ""));
-    if (hasLate) {
-      blockedCheckInDays.add(checkOut);
-      blockedCheckOutDays.add(checkOut);
-    }
-    if (hasEarly) {
-      blockedCheckOutDays.add(checkIn);
-      blockedCheckInDays.add(checkIn);
-    }
+    // Early/late no longer occupy the other half of the day cell on the chessboard —
+    // admins can place a gap stay (check-in after late) or end a stay before early.
+    // Overlap rules for early-vs-late same-day conflicts live in bookingPriceEngine.
   }
 
   return { blockedCheckInDays, blockedCheckOutDays, occupied };
