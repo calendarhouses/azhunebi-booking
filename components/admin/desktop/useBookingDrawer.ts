@@ -253,6 +253,10 @@ export function useBookingDrawer({
   const closeDrawer = useCallback(() => {
     revertColorPreview();
     drawerSessionSavedRef.current = false;
+    if (typeof window !== "undefined") {
+      (window as Window & { _bookingBookmenowCommentTokens?: string[] })._bookingBookmenowCommentTokens =
+        [];
+    }
     if (typeof document !== "undefined") {
       document.getElementById("bookingDrawer")?.classList.remove("active");
     }
@@ -433,6 +437,8 @@ export function useBookingDrawer({
 
       window._bookingPayments = [];
       window._bookingPaymentMeta = { createdAt: checkIn || undefined, checkOut: checkOut || undefined };
+      (window as Window & { _bookingBookmenowCommentTokens?: string[] })._bookingBookmenowCommentTokens =
+        [];
 
       setForm({
         ...defaultBookingDrawerForm(),
@@ -485,6 +491,8 @@ export function useBookingDrawer({
       setShowDeleteBtn(true);
 
       const parsed = parseBookingComment(booking.comment || "", specialTariffToggles);
+      (window as Window & { _bookingBookmenowCommentTokens?: string[] })._bookingBookmenowCommentTokens =
+        parsed.bookmenowTokens;
       const matchedRoom = findRoomForBooking(booking, roomsList);
       const savedRoom =
         booking.assignmentState === "holding"

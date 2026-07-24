@@ -41,6 +41,8 @@ export function buildSystemComment(
     promoCode?: string;
     earlyTime: string | null;
     lateTime: string | null;
+    /** Зберегти імпортні BookMeNow-токени при перезаписі коментаря. */
+    bookmenowTokens?: string[];
   }
 ): string {
   const sysComment: string[] = [];
@@ -57,6 +59,10 @@ export function buildSystemComment(
   if (promoToken) sysComment.push(promoToken);
   if (opts.earlyTime) sysComment.push(buildEarlyCommentToken(opts.earlyTime, false));
   if (opts.lateTime) sysComment.push(buildLateCommentToken(opts.lateTime, false));
+  for (const token of opts.bookmenowTokens || []) {
+    const t = String(token || "").trim();
+    if (t && !sysComment.includes(t)) sysComment.push(t);
+  }
 
   if (sysComment.length > 0) {
     return (
@@ -93,6 +99,7 @@ export function collectBookingFromForm(
     _bookingPaymentMeta?: { createdAt?: string; checkOut?: string };
     _bookingExpectedPrepay?: number;
     _bookingAssignmentState?: "assigned" | "holding";
+    _bookingBookmenowCommentTokens?: string[];
   };
   const paymentsForSave = buildPaymentsForSave({
     journalPayments: w._bookingPayments || [],
@@ -162,6 +169,7 @@ export function collectBookingFromForm(
           .__bookingSpecialTariffToggles || [],
       earlyTime: selectedEarlyTime,
       lateTime: selectedLateTime,
+      bookmenowTokens: w._bookingBookmenowCommentTokens || [],
     }),
     basePrice: getFormVal("manualBasePrice"),
     extraGuestFee: getFormVal("manualExtraGuest"),

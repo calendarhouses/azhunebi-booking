@@ -359,6 +359,30 @@ export interface ParsedBookingComment {
   promoCode: string;
   earlyTime: string | null;
   lateTime: string | null;
+  /** Імпорт BookMeNow — не показувати як коментар гостя, але зберігати при сейві. */
+  bookmenowTokens: string[];
+}
+
+/** bookmenowId:… | BMN#382 — службові токени імпорту. */
+export function extractBookmenowCommentTokens(raw: string): string[] {
+  const text = String(raw || "");
+  const tokens: string[] = [];
+  const idMatch = text.match(/\bbookmenowId:[a-f0-9]+\b/i);
+  if (idMatch) tokens.push(idMatch[0]);
+  const numMatch = text.match(/\bBMN#\d+\b/i);
+  if (numMatch) tokens.push(numMatch[0]);
+  return tokens;
+}
+
+export function stripBookmenowTokensFromComment(text: string): string {
+  return String(text || "")
+    .replace(/\bbookmenowId:[a-f0-9]+\b/gi, "")
+    .replace(/\bBMN#\d+\b/gi, "")
+    .replace(/\s*\|\s*/g, " | ")
+    .replace(/(?:\s*\|\s*){2,}/g, " | ")
+    .replace(/^\s*\|\s*|\s*\|\s*$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 export function parseBookingComment(
@@ -367,6 +391,7 @@ export function parseBookingComment(
 ): ParsedBookingComment {
   let textComment = raw || "";
   let parsedDayGuests = 0;
+  const bookmenowTokens = extractBookmenowCommentTokens(textComment);
 
   const matchDay = textComment.match(/👥 Денні гості[^:]*:\s*(\d+)/);
   if (matchDay) {
@@ -397,6 +422,7 @@ export function parseBookingComment(
   const selectedServices = parseSelectedServicesFromComment(raw || "");
   textComment = stripChildrenFromComment(textComment);
   textComment = stripServiceTokensFromComment(textComment);
+  textComment = stripBookmenowTokensFromComment(textComment);
 
   textComment = textComment
     .replace(/^Коментар гостя:\s*/, "")
@@ -415,6 +441,7 @@ export function parseBookingComment(
     promoCode,
     earlyTime,
     lateTime,
+    bookmenowTokens,
   };
 }
 

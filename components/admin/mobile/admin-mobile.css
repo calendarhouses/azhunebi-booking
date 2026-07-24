@@ -2005,8 +2005,8 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   border-bottom: none;
 }
 .boso-admin-mobile #view-grid .booking-block:not(.booking-block--drag-float) {
-  top: 7px !important;
-  height: calc(100% - 14px) !important;
+  top: 5px !important;
+  height: calc(100% - 10px) !important;
 }
 .boso-admin-mobile .main-content {
   justify-content: flex-start;
@@ -2516,8 +2516,8 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 }
 
 .boso-admin-mobile #view-grid .booking-block:not(.booking-block--drag-float) {
-  top: 7px !important;
-  height: calc(100% - 14px) !important;
+  top: 5px !important;
+  height: calc(100% - 10px) !important;
 }
 
 .boso-admin-mobile .booking-inner-content {
@@ -2528,7 +2528,7 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 .boso-admin-mobile .booking-guest-name {
   font-size: 11px !important;
   font-weight: 800 !important;
-  line-height: 1.1 !important;
+  line-height: 1.2 !important;
 }
 
 .boso-admin-mobile .booking-guest-chip {
@@ -2568,6 +2568,7 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
   opacity: 1 !important;
   margin: 0 !important;
   flex-shrink: 0 !important;
+  overflow: visible !important;
 }
 
 .boso-admin-mobile .booking-comment-chip--compact {
@@ -2576,9 +2577,12 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 }
 
 .boso-admin-mobile .booking-comment-chip-icon {
+  display: block !important;
   width: 10px !important;
   height: 10px !important;
   opacity: 0.95 !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
 }
 
 .boso-admin-mobile .booking-comment-chip--compact .booking-comment-chip-icon {
@@ -2588,13 +2592,15 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 
 /* 2+ nights: name + chips top (як ПК), ціна знизу */
 .boso-admin-mobile .booking-inner-content--mobile-pc-layout {
-  justify-content: space-between !important;
+  justify-content: center !important;
   gap: 2px !important;
+  padding-block: 2px !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .booking-card-top--mobile {
   display: flex !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: space-between !important;
   gap: 4px !important;
   min-width: 0 !important;
@@ -2602,15 +2608,24 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
   flex: 0 0 auto !important;
 }
 
-.boso-admin-mobile .booking-card-top--mobile .booking-guest-name {
+.boso-admin-mobile
+  .booking-inner-content--mobile-premium
+  .booking-card-top--mobile
+  .booking-guest-name {
   flex: 1 1 auto !important;
   width: auto !important;
+  min-width: 0 !important;
   max-width: none !important;
+  /* Не різати кириличні верхівки при overflow:hidden */
+  line-height: 1.2 !important;
+  padding-block: 1px !important;
 }
 
 .boso-admin-mobile .booking-card-top--mobile .booking-meta-chips {
   margin-top: 0 !important;
-  align-self: flex-start !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  max-width: none !important;
 }
 
 .boso-admin-mobile .booking-card-bottom--mobile {
@@ -3735,8 +3750,8 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 /* Premium responsive booking cards: 1 / 2 / 3+ nights */
 .boso-admin-mobile .booking-block:not(.booking-block--drag-float) {
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   border: 1px solid rgba(255, 255, 255, 0.34) !important;
   border-radius: 12px !important;
   box-shadow:
@@ -3764,34 +3779,37 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: 100% !important;
   height: 100% !important;
   min-width: 0 !important;
-  gap: 3px !important;
+  min-height: 0 !important;
+  gap: 2px !important;
   overflow: hidden !important;
   font-variant-numeric: tabular-nums;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .booking-inner-content--mobile-premium-standard {
-  padding: 2px 4px !important;
+  padding: 3px 5px !important;
 }
 
 .boso-admin-mobile .booking-inner-content--mobile-premium-dense {
-  padding: 0 1px !important;
-  gap: 2px !important;
+  padding: 2px 3px !important;
+  gap: 1px !important;
 }
 
 .boso-admin-mobile .booking-inner-content--mobile-premium .booking-guest-name {
-  flex: 0 0 auto !important;
+  flex: 0 1 auto !important;
   min-width: 0 !important;
   max-width: 100% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   font-size: 11px !important;
-  font-weight: 850 !important;
-  line-height: 1.24 !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
   letter-spacing: -0.01em !important;
   color: var(--booking-card-fg, inherit) !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  padding-block: 1px !important;
 }
 
 .boso-admin-mobile
@@ -3820,11 +3838,13 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   .booking-fin-badge {
   flex: 0 0 auto !important;
   width: auto !important;
-  max-width: none !important;
+  max-width: 100% !important;
   min-width: 0 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   padding-inline: 6px !important;
+  padding-block: 2px !important;
+  line-height: 1.15 !important;
   border: 1px solid rgba(255, 255, 255, 0.24) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
@@ -7300,12 +7320,13 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 }
 
 .boso-admin-android .booking-inner-content--android-premium.booking-inner-content--mobile-pc-layout {
-  justify-content: space-between !important;
+  justify-content: center !important;
   gap: 1px !important;
+  padding-block: 1px !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-guest-name {
-  flex: 0 0 auto !important;
+  flex: 1 1 auto !important;
   flex-shrink: 1 !important;
   font-size: 11px !important;
   font-weight: 800 !important;
@@ -7316,15 +7337,26 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
   margin: 0 !important;
   min-height: 0 !important;
   max-height: none !important;
+  padding-block: 1px !important;
   color: var(--booking-card-fg, inherit) !important;
+}
+
+.boso-admin-android
+  .booking-inner-content--android-premium
+  .booking-card-top--mobile
+  .booking-guest-name {
+  width: auto !important;
+  max-width: none !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-card-top--mobile {
   gap: 3px !important;
+  align-items: center !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-meta-chips {
   gap: 3px !important;
+  flex: 0 0 auto !important;
 }
 
 .boso-admin-android .booking-inner-content--android-premium .booking-mobile-meta-row {
@@ -7507,25 +7539,39 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 }
 
 .boso-admin-ios #view-grid .booking-block:not(.booking-block--drag-float) {
-  top: 7px !important;
-  height: calc(100% - 14px) !important;
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+  top: 5px !important;
+  height: calc(100% - 10px) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .boso-admin-ios .timeline-wrapper--mobile-dense .booking-block:not(.booking-block--drag-float) {
   top: 2px !important;
   height: calc(100% - 4px) !important;
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   border-radius: 8px !important;
 }
 
 .boso-admin-ios .timeline-wrapper--mobile-dense .booking-inner-content--mobile-premium-dense {
   flex-direction: column !important;
   justify-content: center !important;
-  gap: 2px !important;
-  padding: 0 2px !important;
+  gap: 1px !important;
+  padding: 1px 3px !important;
+}
+
+.boso-admin-ios .booking-inner-content--mobile-pc-layout {
+  justify-content: center !important;
+  padding-block: 2px !important;
+}
+
+.boso-admin-ios
+  .booking-inner-content--mobile-premium
+  .booking-card-top--mobile
+  .booking-guest-name {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
