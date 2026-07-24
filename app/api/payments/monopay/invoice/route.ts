@@ -6,6 +6,7 @@ import {
   getPublicOrigin,
   resolveMonoChargeAmountUah,
 } from "@/lib/monopay/config";
+import { isMonoChastBooking } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 
 export const runtime = "nodejs";
@@ -46,6 +47,14 @@ export async function POST(request: Request) {
   const validitySeconds = Math.floor((deadlineMs - Date.now()) / 1000);
   if (!Number.isFinite(validitySeconds) || validitySeconds < 60) {
     return errorResponse(409, "PAYMENT_EXPIRED", "Час резерву для оплати завершився");
+  }
+
+  if (isMonoChastBooking(booking)) {
+    return errorResponse(
+      409,
+      "PARTS_STARTED",
+      "Для цієї броні вже відкрито Покупку частинами. Підтвердіть її в застосунку Monobank."
+    );
   }
 
   if (booking.monoInvoiceId && booking.monoPageUrl) {

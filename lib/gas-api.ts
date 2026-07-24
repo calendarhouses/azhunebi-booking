@@ -647,6 +647,7 @@ export async function storeMonoInvoice(params: {
   orderId: string;
   invoiceId: string;
   pageUrl: string;
+  force?: boolean;
 }): Promise<{ ok: boolean; stored?: boolean; booking?: GasBookingRecord; reason?: string }> {
   return gasPost({
     action: "storeMonoInvoice",

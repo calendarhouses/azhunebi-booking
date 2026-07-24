@@ -43,7 +43,6 @@ import {
   findPrevLateCheckoutRange,
 } from "@/lib/public-booking/postLateGapStay";
 import {
-  createMonoPayment,
   ensurePaymentLinkSms,
   fetchPublicInitData,
   submitPublicBooking,
@@ -1201,32 +1200,18 @@ export function PublicBookingProvider({
 
         if (paymentAmount > 0) {
           try {
-            // Do not delay MonoPay while TurboSMS processes the message.
+            // Do not delay payment page while TurboSMS processes the message.
             void ensurePaymentLinkSms(orderId).catch((error) => {
               console.warn("[Booking] Payment link SMS will be retried", {
                 orderId,
                 error,
               });
             });
-            const invoice = await createMonoPayment(orderId);
-            sessionData.prepayment = invoice.amount;
-            try {
-              sessionStorage.setItem("lastBooking", JSON.stringify(sessionData));
-            } catch (storageErr) {
-              console.warn("[Booking] sessionStorage unavailable", storageErr);
-            }
-            const pageUrl = String(invoice.pageUrl || "").trim();
-            if (/^https:\/\//i.test(pageUrl)) {
-              window.location.assign(pageUrl);
-              return;
-            }
-            showPublicToast(
-              "Бронювання створено. Відкриваємо сторінку оплати…"
-            );
+            showPublicToast("Бронювання створено. Оберіть спосіб оплати…");
             window.location.assign(`/pay/${encodeURIComponent(orderId)}`);
           } catch {
             showPublicToast(
-              "Бронювання створено, але MonoPay не відкрився. Спробуйте оплатити ще раз."
+              "Бронювання створено. Відкриваємо сторінку оплати…"
             );
             window.location.assign(`/pay/${encodeURIComponent(orderId)}`);
           }

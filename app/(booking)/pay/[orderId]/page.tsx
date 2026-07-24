@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { PayBookingPage } from "@/components/public/PayBookingPage";
-import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { fetchBookingByDisplayId } from "@/lib/gas-api";
+import { isMonoPartsConfigured } from "@/lib/monoparts/config";
+import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,8 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   if (!isAwaitingPaymentStatus(booking.status)) notFound();
 
   const prepayAmount = Math.round(Number(booking.prepayAmount) || 0);
-  if (prepayAmount <= 0) notFound();
+  const totalPrice = Math.round(Number(booking.totalPrice) || 0);
+  if (prepayAmount <= 0 && totalPrice <= 0) notFound();
 
   return (
     <PayBookingPage
@@ -50,7 +52,13 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       cottage={booking.cottage || "Котедж"}
       checkInLabel={formatDateUk(booking.checkIn)}
       checkOutLabel={formatDateUk(booking.checkOut)}
-      prepayAmount={prepayAmount}
+      prepayAmount={prepayAmount > 0 ? prepayAmount : totalPrice}
+      totalPrice={totalPrice}
+      partsEnabled={
+        isMonoPartsConfigured() &&
+        (Math.round(Number(booking.prepayAmount) || 0) >= 2 ||
+          Math.round(Number(booking.totalPrice) || 0) >= 2)
+      }
     />
   );
 }

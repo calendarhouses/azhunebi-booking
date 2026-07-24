@@ -6,6 +6,8 @@ import {
 } from "@/lib/gas-api";
 import { getMonoInvoiceStatus } from "@/lib/monopay/client";
 import { getMonoTestAmountUah } from "@/lib/monopay/config";
+import { isMonoChastBooking } from "@/lib/monoparts/config";
+import { settleMonoPartsOrder } from "@/lib/monoparts/settle";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
 import {
   sendBookingLifecycleSms,
@@ -46,7 +48,28 @@ async function settleOrExpire(booking: GasBookingRecord): Promise<"paid" | "expi
   const orderId = String(booking.id || "").trim();
   if (!orderId) return "skipped";
 
-  if (booking.monoInvoiceId) {
+  if (booking.monoInvoiceId && isMonoChastBooking(booking)) {
+    try {
+      const settled = await settleMonoPartsOrder({
+        orderId,
+        monoOrderId: booking.monoInvoiceId,
+        booking,
+      });
+      if (settled.ok && settled.settled) return "paid";
+      if (settled.ok && settled.failed) {
+        // Fall through to expiry when parts application failed.
+      } else {
+        return "skipped";
+      }
+    } catch (error) {
+      console.error("[Payment lifecycle] Mono Parts status failed", {
+        orderId,
+        invoiceId: booking.monoInvoiceId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return "skipped";
+    }
+  } else if (booking.monoInvoiceId) {
     try {
       const invoice = await getMonoInvoiceStatus(booking.monoInvoiceId);
       if (invoice.status === "success") {
