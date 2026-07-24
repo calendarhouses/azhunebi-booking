@@ -303,6 +303,7 @@ export async function POST(request: Request) {
       comment: String(data.comment || ""),
       totalPrice: Number(data.totalPrice) || 0,
       paidAmount: Number(data.paidAmount) || 0,
+      status: String(data.status || ""),
     });
     return jsonResponse({ success: true });
   }

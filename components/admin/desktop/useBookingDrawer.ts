@@ -363,7 +363,9 @@ export function useBookingDrawer({
           const cottageName =
             roomKey === String(HOLDING_ROOM_ID) || roomKey === "Нерозподілені"
               ? "Нерозподілені"
-              : room?.name || roomKey;
+              : room
+                ? adminRoomCottageValue(room)
+                : roomKey;
           selectOption("cottageWrapper", "adminCottage", cottageName, null, display);
           syncCottageUi(roomKey);
         }
@@ -418,7 +420,9 @@ export function useBookingDrawer({
         : resolveRoomPrefill(prefillRoom) || activeRooms[0] || null;
       const defaultRoom = isHolding
         ? "Нерозподілені"
-        : defaultRoomConfig?.name || "";
+        : defaultRoomConfig
+          ? adminRoomCottageValue(defaultRoomConfig)
+          : "";
       const cottageLabel = isHolding
         ? "Нерозподілені"
         : defaultRoomConfig

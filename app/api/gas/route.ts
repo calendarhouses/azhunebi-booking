@@ -89,6 +89,7 @@ async function handleLocalTelegramActions(
       comment: String(payload.comment || ""),
       totalPrice: Number(payload.totalPrice) || 0,
       paidAmount: Number(payload.paidAmount) || 0,
+      status: String(payload.status || ""),
     });
     return NextResponse.json({ success: true });
   }
@@ -144,6 +145,7 @@ async function afterBookingTelegramHooks(
       comment: String(payload.comment || ""),
       totalPrice: Number(payload.totalPrice) || 0,
       paidAmount: Number(payload.paidAmount) || 0,
+      status: status,
       screenshot: payload.screenshot ? String(payload.screenshot) : undefined,
       screenshotCleaning: payload.screenshotCleaning
         ? String(payload.screenshotCleaning)

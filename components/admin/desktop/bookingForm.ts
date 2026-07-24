@@ -145,7 +145,24 @@ export function collectBookingFromForm(
     checkOut: normalizeDateToIso(
       formDates?.checkOut || getFormString("adminCheckOut")
     ),
-    cottage: getFormString("adminCottage"),
+    cottage: (() => {
+      const rawCottage = getFormString("adminCottage");
+      const rawRoomId = getFormString("adminRoomId");
+      const rooms =
+        (typeof window !== "undefined" &&
+          (window as Window & { roomsList?: Array<{ id?: number | string; name?: string; short?: string }> })
+            .roomsList) ||
+        [];
+      if (rawRoomId && rooms.length) {
+        const room = rooms.find((r) => String(r.id) === String(rawRoomId));
+        if (room) {
+          const short = String(room.short || "").trim();
+          const name = String(room.name || "").trim();
+          return short || name || rawCottage;
+        }
+      }
+      return rawCottage;
+    })(),
     roomId: (() => {
       const raw = getFormString("adminRoomId");
       if (!raw) return undefined;
