@@ -219,8 +219,8 @@ export function MobileBookingDrawer() {
 
             <DesktopCalendar room={room} layout="mobile" />
 
-            {checkIn && checkOut ? (
-              <div style={{ marginTop: 12 }}>
+            {checkIn && checkOut && postLateGapNotice ? (
+              <div className="booking-gap-notice">
                 <BookingFlexConflictAlert message={postLateGapNotice} />
               </div>
             ) : null}

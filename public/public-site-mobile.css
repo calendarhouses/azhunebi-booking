@@ -761,6 +761,12 @@ body.public-booking-page.boso-public-mobile.ready {
   border: 1px solid rgba(180, 120, 60, 0.28);
 }
 .booking-alert b { font-weight: 800; color: #8B4518; }
+.booking-gap-notice {
+  margin: 18px 0 22px;
+}
+.booking-gap-notice .booking-alert {
+  margin-top: 0;
+}
 
 /* ── SUCCESS ── */
 .success-wrap { padding: 40px 16px; text-align: center; }

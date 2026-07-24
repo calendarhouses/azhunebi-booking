@@ -205,8 +205,8 @@ export function DesktopBookingDrawer() {
               </div>
             </div>
 
-            {checkIn && checkOut ? (
-              <div style={{ marginTop: 12 }}>
+            {checkIn && checkOut && postLateGapNotice ? (
+              <div className="booking-gap-notice">
                 <BookingFlexConflictAlert message={postLateGapNotice} />
               </div>
             ) : null}
