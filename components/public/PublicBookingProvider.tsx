@@ -1089,6 +1089,7 @@ export function PublicBookingProvider({
           (runtime?.customServicesList || []).map((s) => [String(s.id), s] as const)
         ),
         hasUbd,
+        isPostLateGapStay: Boolean(postLateArrivalTime || priceResult.isPostLateGapStay),
       });
 
       const payload: SubmitBookingPayload = {

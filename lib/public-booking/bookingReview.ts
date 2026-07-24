@@ -14,10 +14,13 @@ export type ReviewCheckInput = {
   selectedServices: ServiceSelectionMap;
   servicesById: Map<string, CustomServiceConfig>;
   hasUbd: boolean;
+  /** Check-in on previous guest's late-checkout day — always needs admin OK. */
+  isPostLateGapStay?: boolean;
 };
 
 /** Бронь потребує ручного підтвердження адміном перед оплатою. */
 export function needsManualReview(input: ReviewCheckInput): boolean {
+  if (input.isPostLateGapStay) return true;
   if (input.nights === 1) return true;
   if (input.flexibleRequiresApproval && (input.earlyTime || input.lateTime)) return true;
   for (const [id, qty] of Object.entries(input.selectedServices)) {
