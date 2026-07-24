@@ -18,7 +18,11 @@ import {
   type NightlyPriceOverrides,
 } from "@/lib/admin/bookingNightlyPrices";
 import { hasActivePromoCodeDiscounts, promoCodeAppliesToBooking } from "@/lib/admin/bookingDiscountCalc";
-import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
+import {
+  BOOKING_STATUS_CLOSED,
+  isClosedStatus,
+  isPendingReviewStatus,
+} from "@/lib/public-booking/bookingReview";
 import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
 import { findBookingInList, findRoomForBooking, resolveBookingAccentColor, resolveBookingOrderId } from "./bookingUtils";
 import { ADMIN_SELECTABLE_SOURCES } from "./adminUiHelpers";
@@ -28,6 +32,13 @@ import {
 } from "../shared/BookingReviewActions";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
+
+const ADMIN_BOOKING_STATUSES = [
+  "Очікує оплату",
+  "Підтверджено",
+  "Скасовано",
+  BOOKING_STATUS_CLOSED,
+] as const;
 
 type DrawerApi = ReturnType<typeof useBookingDrawer>;
 
@@ -98,6 +109,7 @@ export function DesktopBookingDrawer({
     [activeBooking, form.customColor, form.status]
   );
   const drawerTintStyle = useMemo(() => bookingAccentTintStyle(accentColor), [accentColor]);
+  const isClosedBooking = isClosedStatus(form.status);
   const selectedRoom = useMemo(() => {
     if (!form.cottage || form.cottage === "Нерозподілені") return null;
     return resolvedRoomForPromo || null;
@@ -226,7 +238,7 @@ export function DesktopBookingDrawer({
           ) : null}
           <BookingFormSectionHeading compact title="Статус броні" />
           <div className="status-toggle">
-            {(["Очікує оплату", "Підтверджено", "Скасовано"] as const).map((status) => (
+            {ADMIN_BOOKING_STATUSES.map((status) => (
               <div
                 key={status}
                 className={`status-btn${form.status === status ? " active" : ""}`}
@@ -261,21 +273,31 @@ export function DesktopBookingDrawer({
               <BookingFormSectionHeading title="Гість" />
               <div className="form-grid">
                 <div className="form-group" style={{ gridColumn: "span 2" }}>
-                  <label>Ім&apos;я та Прізвище:</label>
+                  <label>
+                    Ім&apos;я та Прізвище:
+                    {isClosedBooking ? (
+                      <span className="form-label-optional"> (необовʼязково)</span>
+                    ) : null}
+                  </label>
                   <input
                     type="text"
                     id="adminName"
-                    required
+                    required={!isClosedBooking}
                     value={form.name}
                     onChange={(e) => drawer.patchForm({ name: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
-                  <label>Телефон:</label>
+                  <label>
+                    Телефон:
+                    {isClosedBooking ? (
+                      <span className="form-label-optional"> (необовʼязково)</span>
+                    ) : null}
+                  </label>
                   <input
                     type="tel"
                     id="adminPhone"
-                    required
+                    required={!isClosedBooking}
                     value={form.phone}
                     onChange={(e) => drawer.patchForm({ phone: e.target.value })}
                   />

@@ -471,6 +471,7 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .badge.new { background-color: #DBEAFE; color: #1E40AF; }
 .badge.confirmed { background-color: #D1FAE5; color: #065F46; }
 .badge.cancelled { background-color: #FEE2E2; color: #991B1B; }
+.badge.closed { background-color: #FEE2E2; color: #7F1D1D; }
 
 /* --- КНОПКИ --- */
 .btn-primary, .btn-secondary, .btn-outline-danger, .btn-success {
@@ -833,6 +834,13 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 .booking-block.status-custom { border-color: transparent; transition: background 0.2s ease-in-out, color 0.2s ease-in-out; }
 .booking-block.status-cancelled { background: #F9FAFB; color: #9CA3AF; border: 1px dashed #D1D5DB; }
+.booking-block.status-closed {
+  background: linear-gradient(145deg, #E08A8A 0%, #C45C5C 58%, #B04A4A 100%);
+  color: #7F1D1D;
+  border: 1px solid rgba(127, 29, 29, 0.14);
+  box-shadow: 0 1px 2px rgba(127, 29, 29, 0.08), 0 6px 14px rgba(127, 29, 29, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
+}
 .booking-block.status-pending-review {
   background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
   color: #374151;
@@ -1517,6 +1525,8 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .status-btn.active[data-status="Підтверджено"] { color: var(--success); } .status-btn.active[data-status="Підтверджено"] .status-dot { background: var(--success); }
 .status-btn.active[data-status="Виїхав"] { color: var(--warning); } .status-btn.active[data-status="Виїхав"] .status-dot { background: var(--warning); }
 .status-btn.active[data-status="Скасовано"] { color: var(--danger); } .status-btn.active[data-status="Скасовано"] .status-dot { background: var(--danger); }
+.status-btn.active[data-status="Закрито"] { color: #B91C1C; } .status-btn.active[data-status="Закрито"] .status-dot { background: #DC2626; }
+.form-label-optional { font-weight: 500; color: #9CA3AF; }
 
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 

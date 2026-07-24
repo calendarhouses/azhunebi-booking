@@ -3,6 +3,7 @@ import type { ServiceSelectionMap } from "@/components/admin/desktop/settings/ad
 
 export const BOOKING_STATUS_PENDING_REVIEW = "Очікує підтвердження";
 export const BOOKING_STATUS_AWAITING_PAYMENT = "Очікує оплату";
+export const BOOKING_STATUS_CLOSED = "Закрито";
 
 export type PublicBookingFlow = "instant" | "pending_review";
 
@@ -40,4 +41,10 @@ export function isPendingReviewStatus(status: string | undefined | null): boolea
 export function isAwaitingPaymentStatus(status: string | undefined | null): boolean {
   const s = String(status || "").toLowerCase();
   return s.includes("очікує оплату");
+}
+
+/** Адмін-блок дат без гостя: «Закрито». Блокує сайт, видно на шахматі. */
+export function isClosedStatus(status: string | undefined | null): boolean {
+  const s = String(status || "").toLowerCase().trim();
+  return s === "закрито" || s.includes("закрито");
 }

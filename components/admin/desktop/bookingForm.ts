@@ -15,6 +15,10 @@ import {
 } from "./settings/additionalServicesLogic";
 import { buildEarlyCommentToken, buildLateCommentToken } from "@/lib/admin/flexibleSchedule";
 import { buildPromoCodeCommentToken } from "@/lib/admin/bookingDiscountCalc";
+import {
+  BOOKING_STATUS_CLOSED,
+  isClosedStatus,
+} from "@/lib/public-booking/bookingReview";
 
 export function getFormVal(id: string): number {
   const el = document.getElementById(id);
@@ -125,6 +129,14 @@ export function collectBookingFromForm(
     status === "Очікує оплату" &&
     actualPaid === 0;
 
+  const rawName = getFormString("adminName");
+  const rawPhone = getFormString("adminPhone");
+  const closed = isClosedStatus(status);
+  const guestName =
+    rawName || (closed ? BOOKING_STATUS_CLOSED : "");
+  const guestPhone =
+    rawPhone || (closed ? "Не вказано" : "");
+
   const bookingData: Record<string, unknown> = {
     tenant_id: getAdminTenantId(),
     checkIn: normalizeDateToIso(
@@ -140,8 +152,8 @@ export function collectBookingFromForm(
       const asNum = Number(raw);
       return Number.isFinite(asNum) ? asNum : raw;
     })(),
-    name: getFormString("adminName"),
-    phone: getFormString("adminPhone"),
+    name: guestName,
+    phone: guestPhone,
     guests: getFormString("adminGuests"),
     pets: getFormString("adminPets"),
     source,

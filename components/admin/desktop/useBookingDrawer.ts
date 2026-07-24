@@ -797,7 +797,7 @@ export function useBookingDrawer({
 
   const handleStatusFromPayment = useCallback(
     (status: "Очікує оплату" | "Підтверджено") => {
-      if (form.status === "Скасовано") return;
+      if (form.status === "Скасовано" || form.status === "Закрито") return;
       if (form.status !== status) {
         setBookingStatus(status);
         patchForm({ status });

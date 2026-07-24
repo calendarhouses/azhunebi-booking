@@ -19,6 +19,7 @@ import {
 } from "@/lib/admin/bookingDiscountCalc";
 import {
   isAwaitingPaymentStatus,
+  isClosedStatus,
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
 import {
@@ -120,6 +121,7 @@ export function getBookingBadgeClass(booking: BookingRecord): string {
   const s = String(booking.status).toLowerCase();
   const src = String(booking.source || "").toLowerCase();
   if (s.includes("скас")) return "cancelled";
+  if (isClosedStatus(booking.status)) return "closed";
   if (src.includes("hutshub")) return "hutshub";
   if (isPendingReviewStatus(booking.status)) return "pending-review";
   if (isAwaitingPaymentStatus(booking.status)) return "new";
@@ -137,6 +139,9 @@ export function getTimelineFinBadge(
 
   if (statusClass === "status-cancelled") {
     return { text: "—", bg: "rgba(0,0,0,0.05)", color: "#9CA3AF" };
+  }
+  if (statusClass === "status-closed") {
+    return { text: "—", bg: "rgba(255,255,255,0.28)", color: "#7F1D1D" };
   }
   if (statusClass === "status-hutshub") {
     return { text: total > 0 ? `${Math.round(total)} грн` : "—", bg: "rgba(255,255,255,0.3)", color: "#1A332A" };
@@ -163,7 +168,9 @@ export function getTimelineOneNightFinKind(booking: BookingRecord): TimelineOneN
   const statusClass = getTimelineStatusClass(booking);
   const { total, paid, balance } = resolveBookingFinanceSummary(booking);
 
-  if (statusClass === "status-cancelled" || total === 0) return "neutral";
+  if (statusClass === "status-cancelled" || statusClass === "status-closed" || total === 0) {
+    return "neutral";
+  }
   if (statusClass === "status-pending-review") return "pending";
   if (paid === 0) return "pending";
   if (balance <= 0) return "paid";
@@ -200,10 +207,11 @@ export function formatTimelineFinText(
 /**
  * Ієрархія кольору картки:
  * 1) custom_color → status-custom (+ inline style)
- * 2) Оплачено повністю → status-paid (зелений)
- * 3) Підтверджено → status-confirmed (блакитний)
- * 4) Очікує оплату / Нова бронь → status-new (синій)
- * Інакше — legacy (скасовано / review / hutshub).
+ * 2) Скасовано / Закрито
+ * 3) Оплачено повністю → status-paid (зелений)
+ * 4) Підтверджено → status-confirmed (блакитний)
+ * 5) Очікує оплату / Нова бронь → status-new
+ * Інакше — legacy (review / hutshub).
  */
 export function getTimelineStatusClass(booking: BookingRecord): string {
   if (normalizeBookingCustomColor(booking.custom_color)) return "status-custom";
@@ -211,6 +219,7 @@ export function getTimelineStatusClass(booking: BookingRecord): string {
   const status = String(booking.status || "");
   const sClass = status.toLowerCase();
   if (sClass.includes("скас")) return "status-cancelled";
+  if (isClosedStatus(booking.status)) return "status-closed";
   if (isPendingReviewStatus(booking.status)) return "status-pending-review";
 
   const { total, balance } = resolveBookingFinanceSummary(booking);
@@ -239,6 +248,7 @@ export function resolveBookingAccentColor(
   const status = String(overrides?.status ?? booking?.status ?? "");
   const sClass = status.toLowerCase();
   if (sClass.includes("скас")) return BOOKING_STATUS_ACCENT.cancelled;
+  if (isClosedStatus(status)) return BOOKING_STATUS_ACCENT.closed;
   if (isPendingReviewStatus(status)) return BOOKING_STATUS_ACCENT.pendingReview;
 
   if (booking) {

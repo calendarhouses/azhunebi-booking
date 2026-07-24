@@ -73,7 +73,7 @@ export function calculateBalanceLive(): void {
 
   const activeStatusBtn = document.querySelector(".status-btn.active");
   const currentStatus = activeStatusBtn?.getAttribute("data-status") || "";
-  if (currentStatus !== "Скасовано") {
+  if (currentStatus !== "Скасовано" && currentStatus !== "Закрито") {
     document.querySelectorAll(".status-btn").forEach((b) => b.classList.remove("active"));
     if (paid > 0) {
       document.querySelector('.status-btn[data-status="Підтверджено"]')?.classList.add("active");

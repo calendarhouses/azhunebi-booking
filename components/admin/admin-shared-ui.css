@@ -632,6 +632,7 @@
         .badge.new { background-color: #DBEAFE; color: #1E40AF; }
         .badge.confirmed { background-color: #D1FAE5; color: #065F46; }
         .badge.cancelled { background-color: #FEE2E2; color: #991B1B; }
+        .badge.closed { background-color: #FEE2E2; color: #7F1D1D; }
         .status-dot-small { width: 6px; height: 6px; border-radius: 50%; }
         
         .btn-action { background: #F3F4F6; color: #374151; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; text-decoration: none;}
@@ -1615,6 +1616,28 @@
             border: 1px dashed #D1D5DB; 
             text-decoration: line-through; 
             box-shadow: none; 
+        }
+
+        /* 3a. ЗАКРИТО: червона картка блокування дат */
+        .booking-block.status-closed {
+            background: linear-gradient(145deg, #E08A8A 0%, #C45C5C 58%, #B04A4A 100%);
+            color: #7F1D1D;
+            border: 1px solid rgba(127, 29, 29, 0.14);
+            box-shadow:
+              0 1px 2px rgba(127, 29, 29, 0.08),
+              0 6px 14px rgba(127, 29, 29, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.35);
+            transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .booking-block.status-closed .booking-guest-name {
+            color: #7F1D1D;
+        }
+        .booking-block.status-closed .booking-guest-chip,
+        .booking-block.status-closed .booking-comment-chip {
+            background: rgba(255, 255, 255, 0.38);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: rgba(127, 29, 29, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
         /* 3b. ОЧІКУЄ ПІДТВЕРДЖЕННЯ: Сірий */
@@ -2887,8 +2910,16 @@
             box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15), 0 0 0 2px rgba(5, 150, 105, 0.1);
             transform: translateY(-1px);
         }
-        .status-toggle { display: flex; background: #F3F4F6; padding: 4px; border-radius: 12px; margin-bottom: 24px; }
-        .status-btn { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; color: #6B7280; cursor: pointer; border-radius: 8px; transition: 0.2s; user-select: none; display: flex; align-items: center; justify-content: center; gap: 6px;}
+        .status-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            background: #F3F4F6;
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            gap: 4px;
+        }
+        .status-btn { flex: 1 1 calc(50% - 4px); min-width: 120px; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; color: #6B7280; cursor: pointer; border-radius: 8px; transition: 0.2s; user-select: none; display: flex; align-items: center; justify-content: center; gap: 6px;}
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #D1D5DB; }
         .status-btn.active { background: #FFFFFF; color: var(--text-main); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .status-btn.active[data-status="Нова бронь"] .status-dot { background: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
@@ -2896,6 +2927,9 @@
         .status-btn.active[data-status="Підтверджено"] .status-dot { background: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
         .status-btn.active[data-status="Виїхав"] .status-dot { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
         .status-btn.active[data-status="Скасовано"] .status-dot { background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
+        .status-btn.active[data-status="Закрито"] .status-dot { background: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.2); }
+        .status-btn.active[data-status="Закрито"] { color: #B91C1C; }
+        .form-label-optional { font-weight: 500; color: #9CA3AF; }
 
         .close-btn { background: #E5E7EB; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;}
         .close-btn:hover { background: #D1D5DB; }

@@ -5,6 +5,7 @@ import { resolveBookingFinanceSummary } from "@/lib/admin/bookingPayments";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import {
   isAwaitingPaymentStatus,
+  isClosedStatus,
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
 import { parseBookingComment } from "./bookingUtils";
@@ -141,6 +142,8 @@ export function bosoHover(
     const sClass = String(b.status).toLowerCase();
     if (sClass.includes("скас")) {
       statusHtml = `<div class="bt-status gray">Скасовано</div>`;
+    } else if (isClosedStatus(b.status)) {
+      statusHtml = `<div class="bt-status red">Закрито</div>`;
     } else if (isPendingReviewStatus(b.status)) {
       statusHtml = `<div class="bt-status gray">Очікує підтвердження</div>`;
     } else if (isAwaitingPaymentStatus(b.status)) {

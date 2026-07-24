@@ -14,6 +14,10 @@ import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
 import { TimelineGridRow } from "../TimelineGridCells";
 import {
+  BOOKING_STATUS_CLOSED,
+  isClosedStatus,
+} from "@/lib/public-booking/bookingReview";
+import {
   bookingHasEarlyLate,
   displayClientName,
   findRoomForBooking,
@@ -329,7 +333,7 @@ function buildBookingBlocks(
           ? finBadge.text
           : finBadge.text.replace(/\s*грн\s*$/i, "").trim()
         : formatTimelineFinText(finBadge, contentWidth);
-    const guestChip = formatTimelineGuestChip(b);
+    const guestChip = isClosedStatus(b.status) ? null : formatTimelineGuestChip(b);
     const hasGuestComment = Boolean(
       parseBookingComment(comment).guestComment.trim()
     );
@@ -341,7 +345,9 @@ function buildBookingBlocks(
       nights,
       contentWidth,
       statusClass: getTimelineStatusClass(b),
-      guestName: displayClientName(b.name),
+      guestName: isClosedStatus(b.status)
+        ? BOOKING_STATUS_CLOSED
+        : displayClientName(b.name),
       guestChip,
       hasGuestComment,
       finBadge,

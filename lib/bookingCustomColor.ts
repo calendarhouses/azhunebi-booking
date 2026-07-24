@@ -9,6 +9,7 @@ export const BOOKING_STATUS_ACCENT = {
   confirmed: "#7EABCA",
   new: "#C9A97A",
   cancelled: "#9CA3AF",
+  closed: "#C45C5C",
   pendingReview: "#9CA3AF",
   hutshub: "#7FA896",
   default: "#94A3B8",
