@@ -291,6 +291,9 @@ export type BookingPriceResult = {
   /** Non-blocking notice for post-late gap stay (arrive after previous late checkout). */
   postLateGapNoticeHtml: string;
   postLateArrivalTime: string | null;
+  /** Earliest allowed arrival (prev late + 1h), independent of admin selection. */
+  postLateMinArrivalTime: string | null;
+  postLatePrevLateTime: string | null;
   isPostLateGapStay: boolean;
 };
 
@@ -353,6 +356,8 @@ export function computeBookingPrice(params: {
     selectedLateTime: params.selectedLateTime,
     postLateGapNoticeHtml: "",
     postLateArrivalTime: null,
+    postLateMinArrivalTime: null,
+    postLatePrevLateTime: null,
     isPostLateGapStay: false,
   };
 
@@ -369,15 +374,26 @@ export function computeBookingPrice(params: {
   const ranges = getBookedRanges(params.allBookings, room);
   const prevLateRange = findPrevLateCheckoutRange(d1, ranges);
   const isPostLateGap = Boolean(prevLateRange);
+  const postLatePrevLateTime = isPostLateGap
+    ? prevLateRange?.lateTime || "20:00"
+    : null;
+  const postLateMinArrivalTime = isPostLateGap
+    ? arrivalAfterLateCheckout(postLatePrevLateTime)
+    : null;
+  const selectedArrival =
+    params.selectedPostLateArrivalTime &&
+    postLateMinArrivalTime &&
+    timeToMinutes(params.selectedPostLateArrivalTime) >= timeToMinutes(postLateMinArrivalTime)
+      ? params.selectedPostLateArrivalTime
+      : null;
   const postLateArrivalTime = isPostLateGap
-    ? params.selectedPostLateArrivalTime ||
-      arrivalAfterLateCheckout(prevLateRange?.lateTime)
+    ? selectedArrival || postLateMinArrivalTime
     : null;
   const postLateGapNoticeHtml =
-    isPostLateGap && postLateArrivalTime
+    isPostLateGap && postLateMinArrivalTime
       ? buildPostLateGapNoticeHtml(
-          prevLateRange?.lateTime || "20:00",
-          postLateArrivalTime
+          postLatePrevLateTime || "20:00",
+          postLateMinArrivalTime
         )
       : "";
 
@@ -405,6 +421,8 @@ export function computeBookingPrice(params: {
       nights,
       postLateGapNoticeHtml,
       postLateArrivalTime,
+      postLateMinArrivalTime,
+      postLatePrevLateTime,
       isPostLateGapStay: isPostLateGap,
     };
   }
@@ -636,6 +654,8 @@ export function computeBookingPrice(params: {
     selectedLateTime: params.selectedLateTime,
     postLateGapNoticeHtml,
     postLateArrivalTime,
+    postLateMinArrivalTime,
+    postLatePrevLateTime,
     isPostLateGapStay: isPostLateGap,
   };
 }

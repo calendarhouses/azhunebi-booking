@@ -23,6 +23,7 @@ import {
   isClosedStatus,
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
+import { buildPostLateArrivalTimes } from "@/lib/public-booking/postLateGapStay";
 import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
 import { findBookingInList, findRoomForBooking, resolveBookingAccentColor, resolveBookingOrderId } from "./bookingUtils";
 import { ADMIN_SELECTABLE_SOURCES } from "./adminUiHelpers";
@@ -443,32 +444,42 @@ export function DesktopBookingDrawer({
                   title="Гнучкий графік"
                 />
                 <div
-                  className={`service-card${form.earlyCardActive || drawer.postLateArrivalTime ? " active" : ""}${drawer.postLateArrivalTime ? " service-card--locked" : ""}`}
+                  className={`service-card${form.earlyCardActive || drawer.postLateMinArrival ? " active" : ""}`}
                   id="adminCardEarly"
                 >
-                  <div
-                    className="srv-header"
-                    onClick={() => drawer.toggleAdminService("early")}
-                    style={drawer.postLateArrivalTime ? { cursor: "default" } : undefined}
-                  >
+                  <div className="srv-header" onClick={() => drawer.toggleAdminService("early")}>
                     <div className="srv-title">
                       <svg viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {drawer.postLateArrivalTime ? "Заїзд після пізнього виїзду" : "Ранній заїзд"}
+                      {drawer.postLateMinArrival ? "Заїзд після пізнього виїзду" : "Ранній заїзд"}
                     </div>
                     <div className="srv-price" id="adminLabelPriceEarly">
                       {drawer.postLateArrivalTime
-                        ? `з ${drawer.postLateArrivalTime} · −50%`
+                        ? `з ${drawer.postLateArrivalTime}`
                         : drawer.scheduleLabels.early}
                     </div>
                   </div>
                   <div className="srv-body">
-                    {drawer.postLateArrivalTime ? (
-                      <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500, lineHeight: 1.45 }}>
-                        Заїзд зафіксовано з <b>{drawer.postLateArrivalTime}</b> після виїзду попереднього гостя.
-                        Ранній заїзд недоступний.
-                      </div>
+                    {drawer.postLateMinArrival ? (
+                      <>
+                        <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500 }}>
+                          Оберіть годину заїзду (після {drawer.postLatePrevLateTime || "виїзду"}):
+                        </div>
+                        <div className="time-chips">
+                          {buildPostLateArrivalTimes(drawer.postLateMinArrival).map((t) => (
+                            <div
+                              key={t}
+                              className={`t-chip${drawer.postLateArrivalTime === t ? " selected" : ""}`}
+                              onClick={(e) =>
+                                drawer.selectPostLateArrivalTime(t, e.currentTarget)
+                              }
+                            >
+                              {t}
+                            </div>
+                          ))}
+                        </div>
+                      </>
                     ) : (
                       <>
                         <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500 }}>Оберіть годину заїзду:</div>
@@ -531,6 +542,7 @@ export function DesktopBookingDrawer({
                 editingBookingId={drawer.editingBookingId}
                 selectedEarlyTime={drawer.earlyTime}
                 selectedLateTime={drawer.lateTime}
+                selectedPostLateArrivalTime={drawer.postLateArrivalTime}
                 onGuestsChange={(guests) => drawer.patchForm({ guests })}
                 onOverlapChange={drawer.applySubmitDisabled}
                 onScheduleLabelsChange={drawer.applyScheduleLabels}

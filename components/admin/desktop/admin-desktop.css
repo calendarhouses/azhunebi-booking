@@ -4978,8 +4978,6 @@ input[type="number"] {
         }
 
         .timeline-gap-hint {
-            top: 6px;
-            bottom: 6px;
             z-index: 1;
             display: flex;
             align-items: center;
@@ -5006,8 +5004,6 @@ input[type="number"] {
             padding: 0;
         }
         .timeline-gap-hint--mobile {
-            top: 4px;
-            bottom: 4px;
             border-radius: 4px;
         }
         .timeline-gap-hint--mobile .timeline-gap-hint__label {

@@ -3244,8 +3244,6 @@ input[type="number"] {
         .booking-schedule-badge--early { background: rgba(14, 116, 144, 0.88); }
         .booking-schedule-badge--late { background: rgba(124, 45, 18, 0.88); }
         .timeline-gap-hint {
-            top: 6px;
-            bottom: 6px;
             z-index: 1;
             display: flex;
             align-items: center;
@@ -3269,7 +3267,7 @@ input[type="number"] {
             line-height: 1;
             padding: 0;
         }
-        .timeline-gap-hint--mobile { top: 4px; bottom: 4px; border-radius: 4px; }
+        .timeline-gap-hint--mobile { border-radius: 4px; }
         .timeline-gap-hint--mobile .timeline-gap-hint__label { font-size: 14px; }
         
         /* --- ЗВІТИ ТА АНАЛІТИКА --- */

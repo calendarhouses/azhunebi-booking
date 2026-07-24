@@ -22,6 +22,19 @@ export function arrivalAfterLateCheckout(lateTime: string | null | undefined): s
   return minutesToTime(timeToMinutes(late) + 60);
 }
 
+/** Arrival chips after a late checkout: from (late+1h) through 23:00. */
+export function buildPostLateArrivalTimes(minArrival: string): string[] {
+  const min = timeToMinutes(minArrival);
+  if (min > 23 * 60) return [];
+  const times: string[] = [minutesToTime(min)];
+  let hour = Math.floor(min / 60) + 1;
+  while (hour <= 23) {
+    times.push(`${String(hour).padStart(2, "0")}:00`);
+    hour += 1;
+  }
+  return [...new Set(times)];
+}
+
 export function findPrevLateCheckoutRange(
   checkIn: Date,
   ranges: BookedRange[]

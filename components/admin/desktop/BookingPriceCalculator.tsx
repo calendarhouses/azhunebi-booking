@@ -62,6 +62,11 @@ export type BookingPricingSnapshot = {
   discountEdited: boolean;
 };
 
+export type PostLateGapInfo = {
+  minArrival: string;
+  prevLateTime: string;
+};
+
 export interface BookingPriceCalculatorProps {
   form: BookingPriceFormInput;
   isInitialLoad: boolean;
@@ -71,13 +76,15 @@ export interface BookingPriceCalculatorProps {
   editingRow: number | string | null;
   selectedEarlyTime: string | null;
   selectedLateTime: string | null;
+  /** Admin-selected arrival when stay starts after a late checkout. */
+  selectedPostLateArrivalTime?: string | null;
   editingBookingId?: string | null;
   onGuestsChange?: (guests: number) => void;
   onOverlapChange?: (isOverlap: boolean) => void;
   onScheduleLabelsChange?: (labels: SchedulePriceLabels) => void;
   onPricingSnapshotChange?: (snapshot: BookingPricingSnapshot | null) => void;
-  /** When check-in is after a previous late checkout — fixed arrival (late + 1h). */
-  onPostLateGapChange?: (arrivalTime: string | null) => void;
+  /** When check-in is after a previous late checkout — min arrival (late + 1h). */
+  onPostLateGapChange?: (info: PostLateGapInfo | null) => void;
   onStatusFromPayment?: (
     status: "Очікує оплату" | "Підтверджено"
   ) => void;
@@ -117,6 +124,7 @@ export function BookingPriceCalculator({
   editingRow,
   selectedEarlyTime,
   selectedLateTime,
+  selectedPostLateArrivalTime = null,
   editingBookingId = null,
   onGuestsChange,
   onOverlapChange,
@@ -229,6 +237,7 @@ export function BookingPriceCalculator({
       enabledSpecialTariffIds: activeSpecialTariffIds,
       selectedEarlyTime,
       selectedLateTime,
+      selectedPostLateArrivalTime,
       room,
       settings,
       allBookings: bookings,
@@ -258,6 +267,7 @@ export function BookingPriceCalculator({
     guestsForCalc,
     selectedEarlyTime,
     selectedLateTime,
+    selectedPostLateArrivalTime,
     room,
     settings,
     bookings,
@@ -364,14 +374,31 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     const w = window as Window & { selectedPostLateArrivalTime?: string | null };
-    const arrival = computed.isPostLateGapStay ? computed.postLateArrivalTime : null;
-    w.selectedPostLateArrivalTime = arrival;
-    onPostLateGapChange?.(arrival);
+    if (!computed.isPostLateGapStay || !computed.postLateMinArrivalTime) {
+      w.selectedPostLateArrivalTime = null;
+      onPostLateGapChange?.(null);
+      return;
+    }
+    w.selectedPostLateArrivalTime =
+      selectedPostLateArrivalTime || computed.postLateArrivalTime;
+    onPostLateGapChange?.({
+      minArrival: computed.postLateMinArrivalTime,
+      prevLateTime: computed.postLatePrevLateTime || "20:00",
+    });
   }, [
     computed.isPostLateGapStay,
     computed.postLateArrivalTime,
+    computed.postLateMinArrivalTime,
+    computed.postLatePrevLateTime,
+    selectedPostLateArrivalTime,
     onPostLateGapChange,
   ]);
+
+  const [postLateDiscountOverride, setPostLateDiscountOverride] = useState<number | null>(null);
+
+  useEffect(() => {
+    setPostLateDiscountOverride(null);
+  }, [form.checkIn, form.checkOut, form.cottage]);
 
   const amountToDiscount = manualLines.base + manualLines.extra;
 
@@ -459,10 +486,15 @@ export function BookingPriceCalculator({
     computed.nightlyBasePrices,
   ]);
 
+  const effectivePostLateDiscount =
+    postLateDiscountOverride != null
+      ? Math.max(0, Math.round(postLateDiscountOverride))
+      : postLateGapDiscount;
+
   const instantDiscount = Math.max(0, Math.round(instantDiscountAmount));
   const autoTotal = Math.max(
     0,
-    discountBreakdown.total - instantDiscount - postLateGapDiscount + extrasTotal
+    discountBreakdown.total - instantDiscount - effectivePostLateDiscount + extrasTotal
   );
 
   const discountHydratedRef = useRef<string | null>(null);
@@ -516,9 +548,9 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (computed.empty || computed.isOverlap) return;
-    const sum = discountBreakdown.discountSum + instantDiscount + postLateGapDiscount;
+    const sum = discountBreakdown.discountSum + instantDiscount + effectivePostLateDiscount;
     setManualLines((prev) => ({ ...prev, discount: sum }));
-    const hasDiscountEdits = editedDiscountIds.size > 0 || instantDiscount > 0;
+    const hasDiscountEdits = editedDiscountIds.size > 0 || instantDiscount > 0 || postLateDiscountOverride != null;
     setManual((prev) => ({
       ...prev,
       discountEdited: hasDiscountEdits,
@@ -530,7 +562,8 @@ export function BookingPriceCalculator({
     discountBreakdown.discountSum,
     editedDiscountIds.size,
     instantDiscount,
-    postLateGapDiscount,
+    effectivePostLateDiscount,
+    postLateDiscountOverride,
     manual.discountEdited,
   ]);
 
@@ -760,11 +793,11 @@ export function BookingPriceCalculator({
         lines.early +
         lines.late -
         instantDiscount -
-        postLateGapDiscount;
+        effectivePostLateDiscount;
       setManualLines((m) => ({
         ...m,
         ...overrides,
-        discount: discountResult.discountSum + instantDiscount + postLateGapDiscount,
+        discount: discountResult.discountSum + instantDiscount + effectivePostLateDiscount,
       }));
       setTotalOverride(total);
     },
@@ -774,7 +807,7 @@ export function BookingPriceCalculator({
       instantDiscount,
       manualDiscountAmounts,
       manualLines,
-      postLateGapDiscount,
+      effectivePostLateDiscount,
     ]
   );
 
@@ -974,36 +1007,19 @@ export function BookingPriceCalculator({
         />
       ) : null}
 
-      {postLateGapDiscount > 0 ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 14,
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flex: "1 1 auto",
-              minWidth: 0,
-              fontSize: 13,
-              color: "#4B5563",
-              fontWeight: 500,
-            }}
-          >
-            {iconClock}
-            Заїзд після пізнього виїзду
-            <span style={{ color: "#9CA3AF", fontWeight: 500 }}>(−50% 1-ша ніч)</span>
-          </span>
-          <span style={{ fontWeight: 700, fontSize: 13, color: "#059669", flexShrink: 0 }}>
-            −{postLateGapDiscount} грн
-          </span>
-        </div>
+      {effectivePostLateDiscount > 0 || computed.isPostLateGapStay ? (
+        <PriceLine
+          label="Заїзд після пізнього виїзду"
+          icon={iconClock}
+          meta="(−50% 1-ша ніч)"
+          value={effectivePostLateDiscount}
+          defaultValue={postLateGapDiscount}
+          sign="-"
+          danger
+          isMobile={isMobile}
+          onOpenQuickEdit={setQuickEdit}
+          onChange={(v) => setPostLateDiscountOverride(Math.max(0, Math.round(v)))}
+        />
       ) : null}
 
       {discountBreakdown.lines.length > 0 ? (
@@ -1313,6 +1329,7 @@ function PriceLine({
   value,
   defaultValue,
   sign,
+  danger,
   isMobile,
   onOpenQuickEdit,
   onChange,
@@ -1323,32 +1340,52 @@ function PriceLine({
   value: number;
   defaultValue: number;
   sign?: "+" | "-";
+  danger?: boolean;
   isMobile: boolean;
   onOpenQuickEdit: QuickEditOpener;
   onChange: (value: number) => void;
 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}>
+    <div
+      className={`booking-price-line${isMobile && meta ? " booking-price-line--stacked-meta" : ""}`}
+      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}
+    >
       <span
+        className="booking-price-line__label"
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 8,
+          alignItems: isMobile && meta ? "flex-start" : "center",
+          gap: isMobile && meta ? 6 : 8,
           flex: "1 1 auto",
           minWidth: 0,
           fontSize: 13,
           color: "#4B5563",
           fontWeight: 500,
+          flexDirection: isMobile && meta ? "column" : "row",
         }}
       >
-        {icon ? <span>{icon}</span> : null}
-        {label}
-        {meta ? <span style={{ color: "#9CA3AF", fontSize: 11 }}>{meta}</span> : null}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          {icon ? <span>{icon}</span> : null}
+          <span>{label}</span>
+        </span>
+        {meta ? (
+          <span
+            className="booking-price-line__meta"
+            style={{
+              color: "#9CA3AF",
+              fontSize: 11,
+              fontWeight: 500,
+              ...(isMobile ? { paddingLeft: icon ? 20 : 0, lineHeight: 1.3 } : {}),
+            }}
+          >
+            {meta}
+          </span>
+        ) : null}
       </span>
       {isMobile ? (
         <button
           type="button"
-          className="price-edit-wrapper"
+          className={`price-edit-wrapper${danger ? " danger" : ""}`}
           style={{ fontSize: 14 }}
           onClick={() =>
             onOpenQuickEdit({
@@ -1365,9 +1402,9 @@ function PriceLine({
           <span className="price-edit-suffix">грн</span>
         </button>
       ) : (
-        <div className="price-edit-wrapper" style={{ fontSize: 14 }}>
+        <div className={`price-edit-wrapper${danger ? " danger" : ""}`} style={{ fontSize: 14 }}>
           {sign ? <span className="price-sign">{sign}</span> : null}
-          <PriceLineInput value={value} onChange={onChange} />
+          <PriceLineInput value={value} onChange={onChange} danger={danger} />
           <span className="price-edit-suffix">грн</span>
         </div>
       )}

@@ -2184,7 +2184,15 @@ export function DesktopTimelineView({
                 left: hint.left,
                 width: hint.width,
                 position: "absolute",
+                top: typeof bookingBlockLayout.top === "number" ? bookingBlockLayout.top : 7,
+                height:
+                  typeof bookingBlockLayout.height === "number"
+                    ? bookingBlockLayout.height
+                    : undefined,
+                bottom:
+                  typeof bookingBlockLayout.height === "number" ? undefined : 7,
                 pointerEvents: "none",
+                boxSizing: "border-box",
               }}
               title={`Після виїзду о ${hint.lateTime} · заїзд з ${hint.arrival}`}
             >

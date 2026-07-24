@@ -126,6 +126,8 @@ export function useBookingDrawer({
   const [earlyTime, setEarlyTimeState] = useState<string | null>(null);
   const [lateTime, setLateTimeState] = useState<string | null>(null);
   const [postLateArrivalTime, setPostLateArrivalTime] = useState<string | null>(null);
+  const [postLateMinArrival, setPostLateMinArrival] = useState<string | null>(null);
+  const [postLatePrevLateTime, setPostLatePrevLateTime] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<number | string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [form, setForm] = useState<BookingDrawerFormState>(defaultBookingDrawerForm);
@@ -261,6 +263,8 @@ export function useBookingDrawer({
         null;
     }
     setPostLateArrivalTime(null);
+    setPostLateMinArrival(null);
+    setPostLatePrevLateTime(null);
     if (typeof document !== "undefined") {
       document.getElementById("bookingDrawer")?.classList.remove("active");
     }
@@ -406,6 +410,8 @@ export function useBookingDrawer({
       setEarlyTimeState(null);
       setLateTimeState(null);
       setPostLateArrivalTime(null);
+      setPostLateMinArrival(null);
+      setPostLatePrevLateTime(null);
 
       setDrawerTitle("Нове бронювання");
       setShowDeleteBtn(false);
@@ -499,6 +505,8 @@ export function useBookingDrawer({
       setDrawerTitle(`Деталі броні ${booking.id || ""}`);
       setShowDeleteBtn(true);
       setPostLateArrivalTime(null);
+      setPostLateMinArrival(null);
+      setPostLatePrevLateTime(null);
 
       const parsed = parseBookingComment(booking.comment || "", specialTariffToggles);
       (window as Window & { _bookingBookmenowCommentTokens?: string[] })._bookingBookmenowCommentTokens =
@@ -769,8 +777,7 @@ export function useBookingDrawer({
 
   const selectAdminTime = useCallback(
     (type: "early" | "late", time: string, chipEl: HTMLElement) => {
-      if (type === "early" && postLateArrivalTime) {
-        // Gap stay after late checkout: arrival is fixed (prev late + 1h).
+      if (type === "early" && postLateMinArrival) {
         return;
       }
       document
@@ -785,13 +792,36 @@ export function useBookingDrawer({
         patchForm({ lateCardActive: true });
       }
     },
-    [setEarlyTime, setLateTime, patchForm, postLateArrivalTime]
+    [setEarlyTime, setLateTime, patchForm, postLateMinArrival]
+  );
+
+  const selectPostLateArrivalTime = useCallback(
+    (time: string, chipEl?: HTMLElement | null) => {
+      if (!postLateMinArrival) return;
+      setPostLateArrivalTime(time);
+      if (typeof window !== "undefined") {
+        (window as Window & { selectedPostLateArrivalTime?: string | null }).selectedPostLateArrivalTime =
+          time;
+      }
+      if (chipEl && typeof document !== "undefined") {
+        document
+          .querySelectorAll("#adminCardEarly .t-chip")
+          .forEach((c) => c.classList.remove("selected"));
+        chipEl.classList.add("selected");
+      }
+      patchForm({ earlyCardActive: true });
+    },
+    [postLateMinArrival, patchForm]
   );
 
   const toggleAdminService = useCallback(
     (type: "early" | "late") => {
       if (type === "early") {
-        if (postLateArrivalTime) return;
+        if (postLateMinArrival) {
+          // Expand/collapse post-late section only — do not clear arrival.
+          patchForm({ earlyCardActive: !form.earlyCardActive });
+          return;
+        }
         const next = !form.earlyCardActive;
         patchForm({ earlyCardActive: next });
         if (!next) {
@@ -807,26 +837,44 @@ export function useBookingDrawer({
         }
       }
     },
-    [form.earlyCardActive, form.lateCardActive, patchForm, setEarlyTime, setLateTime, postLateArrivalTime]
+    [form.earlyCardActive, form.lateCardActive, patchForm, setEarlyTime, setLateTime, postLateMinArrival]
   );
 
   const applyPostLateGap = useCallback(
-    (arrival: string | null) => {
-      setPostLateArrivalTime((prev) => (prev === arrival ? prev : arrival));
-      if (!arrival) return;
-      // Lock early schedule: arrival is fixed after previous guest's late checkout.
+    (info: { minArrival: string; prevLateTime: string } | null) => {
+      if (!info) {
+        setPostLateMinArrival(null);
+        setPostLatePrevLateTime(null);
+        setPostLateArrivalTime(null);
+        if (typeof window !== "undefined") {
+          (window as Window & { selectedPostLateArrivalTime?: string | null }).selectedPostLateArrivalTime =
+            null;
+        }
+        return;
+      }
+      setPostLateMinArrival(info.minArrival);
+      setPostLatePrevLateTime(info.prevLateTime);
+      setPostLateArrivalTime((prev) => {
+        let next = info.minArrival;
+        if (prev) {
+          const prevMins = Number(prev.slice(0, 2)) * 60 + Number(prev.slice(3, 5));
+          const minMins =
+            Number(info.minArrival.slice(0, 2)) * 60 + Number(info.minArrival.slice(3, 5));
+          if (prevMins >= minMins && prevMins <= 23 * 60) next = prev;
+        }
+        if (typeof window !== "undefined") {
+          (window as Window & { selectedPostLateArrivalTime?: string | null }).selectedPostLateArrivalTime =
+            next;
+        }
+        return next;
+      });
       if (earlyTimeRef.current) {
         earlyTimeRef.current = null;
         setEarlyTimeState(null);
       }
-      patchForm({ earlyCardActive: false });
-      if (typeof document !== "undefined") {
-        document
-          .querySelectorAll("#adminCardEarly .t-chip")
-          .forEach((c) => c.classList.remove("selected"));
-      }
+      setForm((prev) => (prev.earlyCardActive ? prev : { ...prev, earlyCardActive: true }));
     },
-    [patchForm]
+    []
   );
 
   const handleStatusFromPayment = useCallback(
@@ -910,6 +958,8 @@ export function useBookingDrawer({
     earlyTime,
     lateTime,
     postLateArrivalTime,
+    postLateMinArrival,
+    postLatePrevLateTime,
     editingRow,
     editingBookingId,
     form,
@@ -948,6 +998,7 @@ export function useBookingDrawer({
     setStatus,
     setCustomColor,
     selectAdminTime,
+    selectPostLateArrivalTime,
     toggleAdminService,
     handleStatusFromPayment,
     roomsList,
