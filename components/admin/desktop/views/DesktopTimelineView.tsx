@@ -2180,20 +2180,30 @@ export function DesktopTimelineView({
             <div
               key={hint.key}
               className={`timeline-gap-hint${isMobile ? " timeline-gap-hint--mobile" : ""}`}
-              style={{
-                left: hint.left,
-                width: hint.width,
-                position: "absolute",
-                top: typeof bookingBlockLayout.top === "number" ? bookingBlockLayout.top : 7,
-                height:
-                  typeof bookingBlockLayout.height === "number"
-                    ? bookingBlockLayout.height
-                    : undefined,
-                bottom:
-                  typeof bookingBlockLayout.height === "number" ? undefined : 7,
-                pointerEvents: "none",
-                boxSizing: "border-box",
-              }}
+              style={
+                isMobile
+                  ? {
+                      left: hint.left,
+                      width: hint.width,
+                      position: "absolute",
+                      pointerEvents: "none",
+                      boxSizing: "border-box",
+                    }
+                  : {
+                      left: hint.left,
+                      width: hint.width,
+                      position: "absolute",
+                      top: typeof bookingBlockLayout.top === "number" ? bookingBlockLayout.top : 7,
+                      height:
+                        typeof bookingBlockLayout.height === "number"
+                          ? bookingBlockLayout.height
+                          : undefined,
+                      bottom:
+                        typeof bookingBlockLayout.height === "number" ? undefined : 7,
+                      pointerEvents: "none",
+                      boxSizing: "border-box",
+                    }
+              }
               title={`Після виїзду о ${hint.lateTime} · заїзд з ${hint.arrival}`}
             >
               <span className="timeline-gap-hint__label">+</span>
