@@ -508,7 +508,7 @@ export function DesktopBookingDrawer() {
                 submitCheckout({ firstName, lastName, phone, comment })
               }
             >
-              {submitting ? "Відправляємо..." : "Погоджуюсь і бронюю"}
+              {submitting ? "Відправляємо..." : "Погоджуюсь"}
             </button>
             <button
               type="button"
@@ -516,7 +516,7 @@ export function DesktopBookingDrawer() {
               disabled={submitting}
               onClick={() => setStep("checkout")}
             >
-              Повернутися до даних
+              Повернутися
             </button>
           </div>
         </div>
