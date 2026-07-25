@@ -12,6 +12,7 @@ export const BOOKING_STATUS_ACCENT = {
   closed: "#C45C5C",
   pendingReview: "#9CA3AF",
   hutshub: "#7FA896",
+  booking: "#3B6FB6",
   default: "#94A3B8",
 } as const;
 

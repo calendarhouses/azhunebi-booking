@@ -27,6 +27,8 @@ import {
   getTimelineFinBadge,
   getTimelineStatusClass,
   getTimelineBookingBlockStyle,
+  isBookingComBooking,
+  createOrphanTimelineRoom,
   parseBookingComment,
 } from "../bookingUtils";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
@@ -334,13 +336,16 @@ function buildBookingBlocks(
     }
 
     const contentWidth = blockWidth - padLeft - padRight;
-    const finText =
-      nights === 1
+    const isBookingCom = isBookingComBooking(b);
+    const finText = isBookingCom
+      ? "Booking.com"
+      : nights === 1
         ? finBadge.text === "—"
           ? finBadge.text
           : finBadge.text.replace(/\s*грн\s*$/i, "").trim()
         : formatTimelineFinText(finBadge, contentWidth);
-    const guestChip = isClosedStatus(b.status) ? null : formatTimelineGuestChip(b);
+    const guestChip =
+      isClosedStatus(b.status) || isBookingCom ? null : formatTimelineGuestChip(b);
     const hasGuestComment = Boolean(
       parseBookingComment(comment).guestComment.trim()
     );
@@ -352,14 +357,18 @@ function buildBookingBlocks(
       nights,
       contentWidth,
       statusClass: getTimelineStatusClass(b),
-      guestName: isClosedStatus(b.status)
-        ? BOOKING_STATUS_CLOSED
-        : displayClientName(b.name),
+      guestName: isBookingCom
+        ? "Booking.com"
+        : isClosedStatus(b.status)
+          ? BOOKING_STATUS_CLOSED
+          : displayClientName(b.name),
       guestChip,
       hasGuestComment,
       earlyTime: exHasEarly ? earlyTime || "—" : null,
       lateTime: exHasLate ? lateTime || "—" : null,
-      finBadge,
+      finBadge: isBookingCom
+        ? { text: "Booking.com", bg: "rgba(255,255,255,0.22)", color: "#FFFFFF" }
+        : finBadge,
       finText,
       extensions,
       padLeft,

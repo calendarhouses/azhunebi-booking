@@ -117,7 +117,7 @@ export function IcalSyncSettingsPanel({ settings, modals }: Props) {
           <div>
             <h3 className="ical-sync-panel__title">Синхронізація календарів (iCal)</h3>
             <p className="ical-sync-panel__lead">
-              Двосторонній обмін зайнятими датами з Booking.com. Підключено імпорт:{" "}
+              Двосторонній обмін зайнятими датами з Booking.com Підключено:{" "}
               {connectedCount} з {rooms.length}.
             </p>
           </div>
@@ -149,7 +149,7 @@ export function IcalSyncSettingsPanel({ settings, modals }: Props) {
         </li>
         <li>
           Скопіюйте з Booking їхнє <strong>експорт-посилання</strong> і вставте нижче (щоб броні з
-          Booking з’являлись у нас як «Закрито»).
+          Booking з’являлись у нас).
         </li>
       </ol>
 

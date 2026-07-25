@@ -2,6 +2,7 @@ import type { BookingRecord } from "./types";
 import {
   getTimelineOneNightFinAriaLabel,
   getTimelineOneNightFinKind,
+  isBookingComBooking,
   type TimelineOneNightFinKind,
 } from "./bookingUtils";
 
@@ -56,6 +57,40 @@ type TimelineBookingCardContentProps = {
   /** Android chessboard: fuller cards (name + price + guests) at denser row heights. */
   androidPremium?: boolean;
 };
+
+function BookingComMark({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      className="booking-com-mark"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
+      <rect width="24" height="24" rx="6" fill="#003580" />
+      <text
+        x="12"
+        y="16.5"
+        textAnchor="middle"
+        fill="#fff"
+        fontSize="13"
+        fontWeight="800"
+        fontFamily="Arial, Helvetica, sans-serif"
+      >
+        B
+      </text>
+    </svg>
+  );
+}
+
+function BookingComCardLabel({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`booking-com-label${compact ? " booking-com-label--compact" : ""}`}>
+      <BookingComMark size={compact ? 12 : 15} />
+      <span>Booking.com</span>
+    </div>
+  );
+}
 
 function GuestChipIcon() {
   return (
@@ -346,10 +381,28 @@ export function TimelineBookingCardContent({
   androidPremium = false,
 }: TimelineBookingCardContentProps) {
   const isOneNight = block.nights === 1;
+  const isBookingCom = isBookingComBooking(block.booking);
   const { showGuestChip } = resolveTimelineGuestChipVisibility(block);
   const oneNightFinKind = isOneNight ? getTimelineOneNightFinKind(block.booking) : null;
   const guestTextOnly = block.contentWidth < 72;
   const name = block.guestName?.trim() || "";
+
+  if (isBookingCom) {
+    return (
+      <div
+        className={[
+          "booking-inner-content",
+          "booking-inner-content--booking-com",
+          mobile ? "booking-inner-content--mobile-premium" : "",
+          compact ? "booking-inner-content--compact" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <BookingComCardLabel compact={compact || block.contentWidth < 90} />
+      </div>
+    );
+  }
 
   if (mobile) {
     const flexibleInset = block.extensions.length * (compact ? 18 : 22);

@@ -55,6 +55,21 @@ export function isHutshubBooking(b: BookingRecord): boolean {
     .includes("hutshub");
 }
 
+/** Бронь з Booking.com (iCal-імпорт). Ручні броні з джерелом Booking залишаються звичайними. */
+export function isBookingComBooking(b: BookingRecord | null | undefined): boolean {
+  if (!b) return false;
+  if (String(b.id || "").startsWith("ICAL-")) return true;
+  if (String(b.comment || "").includes("icalUid:")) return true;
+  const src = String(b.source || "")
+    .toLowerCase()
+    .trim();
+  if (!(src === "booking" || src.includes("booking.com"))) return false;
+  const name = String(b.name || "")
+    .toLowerCase()
+    .trim();
+  return !name || name === "booking.com" || name.includes("booking");
+}
+
 export function findBookingInList(
   bookings: BookingRecord[],
   key: string | number | null | undefined
@@ -121,6 +136,7 @@ export function getBookingBadgeClass(booking: BookingRecord): string {
   const s = String(booking.status).toLowerCase();
   const src = String(booking.source || "").toLowerCase();
   if (s.includes("скас")) return "cancelled";
+  if (isBookingComBooking(booking)) return "booking";
   if (isClosedStatus(booking.status)) return "closed";
   if (src.includes("hutshub")) return "hutshub";
   if (isPendingReviewStatus(booking.status)) return "pending-review";
@@ -139,6 +155,9 @@ export function getTimelineFinBadge(
 
   if (statusClass === "status-cancelled") {
     return { text: "—", bg: "rgba(0,0,0,0.05)", color: "#9CA3AF" };
+  }
+  if (statusClass === "status-booking" || isBookingComBooking(booking)) {
+    return { text: "Booking.com", bg: "rgba(255,255,255,0.22)", color: "#FFFFFF" };
   }
   if (statusClass === "status-closed") {
     return { text: "—", bg: "rgba(255,255,255,0.28)", color: "#7F1D1D" };
@@ -169,6 +188,9 @@ export function getTimelineOneNightFinKind(booking: BookingRecord): TimelineOneN
   const { total, paid, balance } = resolveBookingFinanceSummary(booking);
 
   if (statusClass === "status-cancelled" || statusClass === "status-closed" || total === 0) {
+    return "neutral";
+  }
+  if (statusClass === "status-booking" || isBookingComBooking(booking)) {
     return "neutral";
   }
   if (statusClass === "status-pending-review") return "pending";
@@ -219,6 +241,7 @@ export function getTimelineStatusClass(booking: BookingRecord): string {
   const status = String(booking.status || "");
   const sClass = status.toLowerCase();
   if (sClass.includes("скас")) return "status-cancelled";
+  if (isBookingComBooking(booking)) return "status-booking";
   if (isClosedStatus(booking.status)) return "status-closed";
   if (isPendingReviewStatus(booking.status)) return "status-pending-review";
 
@@ -248,6 +271,7 @@ export function resolveBookingAccentColor(
   const status = String(overrides?.status ?? booking?.status ?? "");
   const sClass = status.toLowerCase();
   if (sClass.includes("скас")) return BOOKING_STATUS_ACCENT.cancelled;
+  if (booking && isBookingComBooking(booking)) return BOOKING_STATUS_ACCENT.booking;
   if (isClosedStatus(status)) return BOOKING_STATUS_ACCENT.closed;
   if (isPendingReviewStatus(status)) return BOOKING_STATUS_ACCENT.pendingReview;
 

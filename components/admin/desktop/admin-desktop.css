@@ -2869,8 +2869,49 @@
             border-color: rgba(26, 51, 42, 0.15);
         }
         .badge.hutshub { background-color: #C9D6D2; color: #1A332A; }
+
+        /* 5. Booking.com iCal */
+        .booking-block.status-booking {
+            background: linear-gradient(135deg, #3B6FB6 0%, #003580 100%);
+            color: #FFFFFF;
+            border-color: rgba(0, 53, 128, 0.35);
+        }
+        .badge.booking { background-color: #003580; color: #FFFFFF; }
+        .booking-block.status-booking .booking-guest-name,
+        .booking-block.status-booking .booking-com-label {
+            color: #FFFFFF;
+        }
+        .booking-inner-content--booking-com {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100%;
+            min-width: 0;
+            padding: 0 2px;
+        }
+        .booking-com-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .booking-com-label--compact {
+            gap: 4px;
+            font-size: 11px;
+        }
+        .booking-com-mark {
+            flex-shrink: 0;
+            border-radius: 4px;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+        }
         
-        .booking-block span:not(.booking-guest-chip):not(.booking-fin-badge):not(.booking-comment-chip):not(.booking-meta-chips) { 
+        .booking-block span:not(.booking-guest-chip):not(.booking-fin-badge):not(.booking-comment-chip):not(.booking-meta-chips):not(.booking-com-label) { 
             font-size: 11px; 
             font-weight: 500; 
             opacity: 0.85; 

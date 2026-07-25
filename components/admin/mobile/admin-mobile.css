@@ -847,11 +847,16 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 
 .booking-block.status-hutshub { background: linear-gradient(135deg, #C9D6D2 0%, #B2C4BE 100%); color: #1A332A; border-color: rgba(26, 51, 42, 0.15); }
+.booking-block.status-booking { background: linear-gradient(135deg, #3B6FB6 0%, #003580 100%); color: #FFFFFF; border-color: rgba(0, 53, 128, 0.35); }
 .booking-block .booking-guest-name {
   font-weight: 800 !important;
   color: var(--booking-card-fg, inherit);
 }
 .badge.hutshub { background-color: #C9D6D2; color: #1A332A; }
+.badge.booking { background-color: #003580; color: #FFFFFF; }
+.booking-inner-content--booking-com { display: flex; align-items: center; height: 100%; min-width: 0; }
+.booking-com-label { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: #fff; }
+.booking-com-mark { flex-shrink: 0; border-radius: 4px; }
 
 /* --- ПРЕМІУМ-ІНДИКАТОРИ РАННЬОГО/ПІЗНЬОГО ЗАЇЗДУ --- */
 .time-extension {

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { fetchCronTelegramDigest } from "@/lib/telegram/cronDigest";
+import { notifyBookingComSync } from "@/lib/telegram/bookingComNotify";
 import { parseICal } from "./parse";
 import {
   ICAL_UID_SUFFIX,
@@ -114,6 +115,7 @@ export async function syncAllIcalImports(): Promise<{
         cancelled?: number;
         skipped?: number;
         lastSyncedAt?: string;
+        createdEvents?: Array<{ checkIn?: string; checkOut?: string }>;
       }>({
         action: "syncIcalRoomBlocks",
         roomId: row.roomId,
@@ -127,6 +129,7 @@ export async function syncAllIcalImports(): Promise<{
         exportUidSuffix: ICAL_UID_SUFFIX,
       });
 
+      const created = Number(syncResult.created) || 0;
       const syncedAt = syncResult.lastSyncedAt || new Date().toISOString();
       nextRooms[i] = {
         ...row,
@@ -137,11 +140,27 @@ export async function syncAllIcalImports(): Promise<{
         roomId: row.roomId,
         cottage,
         fetched: events.length,
-        created: Number(syncResult.created) || 0,
+        created,
         updated: Number(syncResult.updated) || 0,
         cancelled: Number(syncResult.cancelled) || 0,
         skipped: Number(syncResult.skipped) || 0,
       });
+
+      if (created > 0) {
+        const first = Array.isArray(syncResult.createdEvents)
+          ? syncResult.createdEvents[0]
+          : null;
+        try {
+          await notifyBookingComSync({
+            cottage,
+            created,
+            checkIn: first?.checkIn,
+            checkOut: first?.checkOut,
+          });
+        } catch (notifyErr) {
+          console.error("[ical-sync] Booking.com notify failed", notifyErr);
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       try {
