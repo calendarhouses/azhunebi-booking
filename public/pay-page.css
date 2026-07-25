@@ -109,21 +109,22 @@ body {
 .pay-meta__card--booking {
   position: relative;
   overflow: visible;
-  padding-right: 96px;
+  padding-right: 132px;
   z-index: 1;
 }
 
 .pay-meta__cat {
   position: absolute;
-  right: 10%;
-  bottom: -1px;
-  width: 78px;
+  right: 8%;
+  bottom: 0;
+  width: 117px;
   height: auto;
   display: block;
   pointer-events: none;
   user-select: none;
   z-index: 2;
-  transform: translateY(42%);
+  /* Лапки на нижній рамці картки «Будиночок 1», голова вище */
+  transform: translateY(18%);
   filter: drop-shadow(0 4px 8px rgba(26, 26, 26, 0.12));
 }
 
