@@ -1,6 +1,6 @@
 import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
-import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
+import { formatGuestsCompact } from "@/lib/public-booking/formatGuestsLabel";
 import {
   chessboardKeyboard,
   getArrivalsTargets,
@@ -39,21 +39,20 @@ function petsYes(pets: unknown): boolean {
 }
 
 function buildDetails(booking: ArrivalDepartureBooking, kind: "arrival" | "departure"): string {
-  const guestsLabel = formatGuestsLabel(
+  const guestsLabel = formatGuestsCompact(
     Number(booking.guests) || 0,
-    parseChildrenFromComment(booking.comment || ""),
-    parseYoungestChildAgeFromComment(booking.comment || "")
+    parseChildrenFromComment(booking.comment || "")
   );
   const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(booking.comment || "");
   const hasUbd = (booking.comment || "").includes("🇺🇦 УБД: Так");
   const lines: string[] = [];
   if (kind === "arrival") {
-    lines.push(`👥 ${escapeHtml(guestsLabel || "—")}`);
+    lines.push(`👥 ${escapeHtml(guestsLabel)}`);
     if (petsYes(booking.pets)) lines.push("🐾 З твариною");
     if (hasUbd) lines.push("🇺🇦 УБД: Так");
     if (earlyTime) lines.push(`🕒 Ранній заїзд: з ${escapeHtml(earlyTime)}`);
   } else {
-    lines.push(`👥 Було ${escapeHtml(guestsLabel || "—")}`);
+    lines.push(`👥 Було ${escapeHtml(guestsLabel)}`);
     if (petsYes(booking.pets)) lines.push("🐾 Була тварина");
     if (hasUbd) lines.push("🇺🇦 УБД: Так");
     if (lateTime) lines.push(`🕒 Пізній виїзд: до ${escapeHtml(lateTime)}`);

@@ -1,4 +1,5 @@
 import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import { formatGuestsCompact } from "@/lib/public-booking/formatGuestsLabel";
 import {
   getCleaningTargets,
   isCleaningConfigured,
@@ -19,15 +20,6 @@ function cottageKey(cottage: string | undefined): string {
   return String(cottage || "").trim().toLowerCase();
 }
 
-function formatCleaningGuestsJoined(adults: number, children: number): string {
-  const a = Math.max(0, Math.round(Number(adults) || 0));
-  const c = Math.max(0, Math.round(Number(children) || 0));
-  const parts: string[] = [];
-  if (a > 0) parts.push(`${a} ${a === 1 ? "дорослий" : "дорослих"}`);
-  if (c > 0) parts.push(`${c} ${c === 1 ? "дитина" : "дітей"}`);
-  return parts.join(" і ") || "—";
-}
-
 function guestsFromBooking(booking: ArrivalDepartureBooking): { adults: number; children: number } {
   return {
     adults: Number(booking.guests) || 0,
@@ -38,7 +30,7 @@ function guestsFromBooking(booking: ArrivalDepartureBooking): { adults: number; 
 export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
   const cottage = booking.cottage || "Котедж";
   const { adults, children } = guestsFromBooking(booking);
-  const guestsLabel = formatCleaningGuestsJoined(adults, children);
+  const guestsLabel = formatGuestsCompact(adults, children);
 
   return [
     `🛎 <b>СЬОГОДНІ ВИЇЗД | ${escapeHtml(cottage)}</b>`,
@@ -51,7 +43,7 @@ export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking):
 export function buildCleaningArrivalSection(booking: ArrivalDepartureBooking): string {
   const cottage = booking.cottage || "Котедж";
   const { adults, children } = guestsFromBooking(booking);
-  const guestsLabel = formatCleaningGuestsJoined(adults, children);
+  const guestsLabel = formatGuestsCompact(adults, children);
 
   return [
     `🛎 <b>СЬОГОДНІ ЗАЇЗД | ${escapeHtml(cottage)}</b>`,
