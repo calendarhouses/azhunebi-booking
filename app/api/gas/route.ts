@@ -35,17 +35,44 @@ function gasUnreachable(method: string, err: unknown): NextResponse {
   );
 }
 
+/** Pull the human-readable text out of a Google Apps Script HTML error page. */
+function extractGasErrorText(html: string): string {
+  const div = html.match(/class="errorMessage"[^>]*>([\s\S]*?)<\/div>/i);
+  const raw = div ? div[1] : html;
+  return raw
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 600);
+}
+
 /** Google returns an HTML page (quota, 429, transient 5xx) instead of our JSON. */
 function gasBadResponse(method: string, status: number, body: string): NextResponse {
+  const errorText = extractGasErrorText(body);
   console.error(
-    `[GAS proxy] non-JSON upstream (${method} HTTP ${status}):`,
-    body.slice(0, 500).replace(/\s+/g, " ")
+    `[GAS proxy] non-JSON upstream (${method} HTTP ${status}): ${errorText || body.slice(0, 500).replace(/\s+/g, " ")}`
   );
-  const looksLikeQuota = /too many|quota|rate|invoked too many times/i.test(body);
+  const lower = `${errorText} ${body}`.toLowerCase();
+  const looksLikeQuota =
+    /too many|quota|invoked too many times|exceeded maximum|too much computer time|rate/i.test(
+      lower
+    );
+  const looksLikeAuth =
+    /authoriz|permission|not have access|unauthor|потрібен доступ|немає доступу/i.test(
+      lower
+    );
   return NextResponse.json(
     {
-      error: looksLikeQuota ? "GAS_RATE_LIMITED" : "GAS_BAD_RESPONSE",
-      message: `Google Script відповів не JSON (HTTP ${status})`,
+      error: looksLikeAuth
+        ? "GAS_AUTH_REQUIRED"
+        : looksLikeQuota
+          ? "GAS_RATE_LIMITED"
+          : "GAS_BAD_RESPONSE",
+      message: errorText
+        ? `Google Script: ${errorText}`
+        : `Google Script відповів не JSON (HTTP ${status})`,
       upstreamStatus: status,
     },
     { status: 502 }
