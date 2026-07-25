@@ -121,6 +121,15 @@ export function formatAdminSyncError(err: unknown): string {
   ) {
     return "Немає зв'язку з сервером. Перевірте інтернет або повторіть через хвилину (можливо йде деплой).";
   }
+  if (lower.includes("не відповів вчасно") || lower.includes("gas_timeout")) {
+    return "Google Таблиця не відповіла вчасно. Зміни могли зберегтися — оновіть сторінку перед повтором.";
+  }
+  if (lower.includes("gas_rate_limited") || lower.includes("не json")) {
+    return "Google тимчасово обмежив запити. Зачекайте 10-15 секунд і повторіть.";
+  }
+  if (lower.includes("немає звʼязку з google script")) {
+    return "Немає звʼязку з Google Таблицею. Повторіть через хвилину.";
+  }
   if (lower.includes("invalid json") || lower.includes("empty response")) {
     return "Сервер тимчасово недоступний (деплой або перезапуск). Спробуйте ще раз.";
   }

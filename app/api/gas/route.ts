@@ -2,10 +2,54 @@ import { after, NextResponse } from "next/server";
 import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 
 export const runtime = "nodejs";
+// GAS writes with LockService can take 10-20s; without this the gateway kills
+// the request at the platform default and returns an HTML page instead of JSON.
+export const maxDuration = 60;
+
+const GAS_UPSTREAM_TIMEOUT_MS = 45_000;
 
 function getGasUrl(): string | null {
   const url = process.env.NEXT_PUBLIC_GAS_URL?.trim();
   return url || null;
+}
+
+function upstreamSignal(): AbortSignal | undefined {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    return AbortSignal.timeout(GAS_UPSTREAM_TIMEOUT_MS);
+  }
+  return undefined;
+}
+
+function gasUnreachable(method: string, err: unknown): NextResponse {
+  const detail = err instanceof Error ? err.message : String(err);
+  const timedOut = /abort|timeout/i.test(detail);
+  console.error(`[GAS proxy] ${method} upstream failed:`, detail);
+  return NextResponse.json(
+    {
+      error: timedOut ? "GAS_TIMEOUT" : "GAS_UNREACHABLE",
+      message: timedOut
+        ? "Google Script не відповів вчасно"
+        : `Немає звʼязку з Google Script: ${detail}`,
+    },
+    { status: 504 }
+  );
+}
+
+/** Google returns an HTML page (quota, 429, transient 5xx) instead of our JSON. */
+function gasBadResponse(method: string, status: number, body: string): NextResponse {
+  console.error(
+    `[GAS proxy] non-JSON upstream (${method} HTTP ${status}):`,
+    body.slice(0, 500).replace(/\s+/g, " ")
+  );
+  const looksLikeQuota = /too many|quota|rate|invoked too many times/i.test(body);
+  return NextResponse.json(
+    {
+      error: looksLikeQuota ? "GAS_RATE_LIMITED" : "GAS_BAD_RESPONSE",
+      message: `Google Script відповів не JSON (HTTP ${status})`,
+      upstreamStatus: status,
+    },
+    { status: 502 }
+  );
 }
 
 function forwardHeaders(request: Request, method: "GET" | "POST"): Headers {
@@ -24,15 +68,6 @@ function forwardHeaders(request: Request, method: "GET" | "POST"): Headers {
   if (tenant) headers.set("x-tenant-id", tenant);
 
   return headers;
-}
-
-function passthroughResponse(upstream: Response): NextResponse {
-  return new NextResponse(upstream.body, {
-    status: upstream.status,
-    headers: {
-      "Content-Type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
-    },
-  });
 }
 
 function extractBearer(request: Request): string | null {
@@ -184,21 +219,36 @@ export async function GET(request: Request) {
   }
 
   try {
-    const upstream = await fetch(target.toString(), {
-      method: "GET",
-      headers: forwardHeaders(request, "GET"),
-      redirect: "follow",
-      cache: "no-store",
-    });
-    return passthroughResponse(upstream);
+    let lastStatus = 0;
+    let lastText = "";
+    // Reads are safe to retry: Google intermittently answers with an HTML page.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const upstream = await fetch(target.toString(), {
+        method: "GET",
+        headers: forwardHeaders(request, "GET"),
+        redirect: "follow",
+        cache: "no-store",
+        signal: upstreamSignal(),
+      });
+      const text = await upstream.text();
+      lastStatus = upstream.status;
+      lastText = text;
+      if (text.trim()) {
+        try {
+          JSON.parse(text);
+          return new NextResponse(text, {
+            status: upstream.status,
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+          });
+        } catch {
+          // fall through to retry / error
+        }
+      }
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
+    }
+    return gasBadResponse("GET", lastStatus, lastText);
   } catch (err) {
-    return NextResponse.json(
-      {
-        error: "GAS_UNREACHABLE",
-        message: err instanceof Error ? err.message : String(err),
-      },
-      { status: 502 }
-    );
+    return gasUnreachable("GET", err);
   }
 }
 
@@ -229,6 +279,7 @@ export async function POST(request: Request) {
       body,
       redirect: "follow",
       cache: "no-store",
+      signal: upstreamSignal(),
     });
     const responseText = await upstream.text();
 
@@ -236,12 +287,8 @@ export async function POST(request: Request) {
     try {
       result = JSON.parse(responseText) as Record<string, unknown>;
     } catch {
-      return new NextResponse(responseText, {
-        status: upstream.status,
-        headers: {
-          "Content-Type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
-        },
-      });
+      // Writes are never retried here: the upstream may have applied the change.
+      return gasBadResponse("POST", upstream.status, responseText);
     }
 
     const isPendingReview =
@@ -361,12 +408,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result, { status: upstream.status });
   } catch (err) {
-    return NextResponse.json(
-      {
-        error: "GAS_UNREACHABLE",
-        message: err instanceof Error ? err.message : String(err),
-      },
-      { status: 502 }
-    );
+    return gasUnreachable("POST", err);
   }
 }
