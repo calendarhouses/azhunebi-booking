@@ -45,34 +45,19 @@ function formatUah(amount: number): string {
   return `${amount.toLocaleString("uk-UA")} грн`;
 }
 
-/** Mono black circle mark */
+/** MonoPay mark */
 function LogoMono() {
   return (
-    <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden>
-      <circle cx="20" cy="20" r="20" fill="#111111" />
-      <text
-        x="20"
-        y="26"
-        textAnchor="middle"
-        fill="#fff"
-        fontSize="18"
-        fontWeight="800"
-        fontFamily="Inter, system-ui, sans-serif"
-      >
-        m
-      </text>
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/images/mono/logomono.jpg" alt="" width={48} height={48} />
   );
 }
 
-/** Покупка частинами — three bars mark */
+/** Покупка частинами — лапка */
 function LogoParts() {
   return (
-    <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden>
-      <rect x="4" y="8" width="8" height="24" rx="2.5" fill="#111111" opacity="0.28" />
-      <rect x="16" y="8" width="8" height="24" rx="2.5" fill="#111111" opacity="0.55" />
-      <rect x="28" y="8" width="8" height="24" rx="2.5" fill="#111111" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/images/mono/lapkamono.png" alt="" width={48} height={48} />
   );
 }
 
@@ -139,8 +124,15 @@ export function PayBookingPage({
     link.rel = "stylesheet";
     link.href = "/pay-page.css";
     document.head.appendChild(link);
+    // Pull-to-refresh off (older iOS Safari ignores overscroll-behavior from CSS).
+    const prevHtml = document.documentElement.style.overscrollBehaviorY;
+    const prevBody = document.body.style.overscrollBehaviorY;
+    document.documentElement.style.overscrollBehaviorY = "none";
+    document.body.style.overscrollBehaviorY = "none";
     return () => {
       link.remove();
+      document.documentElement.style.overscrollBehaviorY = prevHtml;
+      document.body.style.overscrollBehaviorY = prevBody;
       stopPolling();
     };
   }, [stopPolling]);
@@ -264,9 +256,16 @@ export function PayBookingPage({
         </header>
 
         <div className="pay-meta">
-          <div className="pay-meta__card">
+          <div className="pay-meta__card pay-meta__card--booking">
             <p className="pay-meta__label">Ваше бронювання</p>
             <p className="pay-meta__value">{cottage}</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="pay-meta__cat"
+              src="/images/mono/Cat.png"
+              alt=""
+              aria-hidden
+            />
           </div>
           <div className="pay-meta__card">
             <div className="pay-meta__row">
@@ -322,7 +321,7 @@ export function PayBookingPage({
 
               <button
                 type="button"
-                className="pay-option pay-option--primary"
+                className="pay-option"
                 disabled={Boolean(submitting)}
                 onClick={() => void handleDebit("prepay")}
               >
