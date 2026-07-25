@@ -7,7 +7,7 @@ import { resolveBookingOrderId } from "@/components/admin/desktop/bookingUtils";
 import { showToast } from "@/components/admin/desktop/adminGlobals";
 import { IntegerAmountInput } from "./IntegerAmountInput";
 import { getBookingPayments } from "@/lib/admin/bookingPayments";
-import { isMonoChastBooking } from "@/lib/monoparts/config";
+import { isMonoChastBooking } from "@/lib/monoparts/bookingKind";
 import { isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 import type { BookingRecord } from "@/components/admin/desktop/types";
 
