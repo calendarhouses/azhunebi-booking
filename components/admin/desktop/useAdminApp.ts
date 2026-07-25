@@ -46,6 +46,7 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
     "discounts",
     "restrictions",
     "services",
+    "channels",
     "sms",
     "team",
   ];
@@ -61,12 +62,14 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     discountsList: Array.isArray(s.discountsList) ? s.discountsList : [],
     customServicesList: Array.isArray(s.customServicesList) ? s.customServicesList : [],
     flexibleScheduleSettings: s.flexibleScheduleSettings,
+    icalSyncSettings: s.icalSyncSettings,
     sysServicesList: Array.isArray(s.sysServicesList) ? s.sysServicesList : [],
     customPrices: s.customPrices && typeof s.customPrices === "object" ? s.customPrices : {},
     restrictions: s.restrictions && typeof s.restrictions === "object" ? s.restrictions : {},
     closedDates: s.closedDates && typeof s.closedDates === "object" ? s.closedDates : {},
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
+    smsSettings: s.smsSettings,
   };
 }
 

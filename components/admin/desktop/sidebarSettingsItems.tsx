@@ -47,6 +47,16 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
     ),
   },
   {
+    tab: "channels",
+    label: "Канали",
+    icon: (
+      <>
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M8 2v4M16 2v4M3 10h18" />
+      </>
+    ),
+  },
+  {
     tab: "discounts",
     label: "Знижки",
     icon: (

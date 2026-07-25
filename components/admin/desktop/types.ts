@@ -9,6 +9,7 @@ export type SettingsTabName =
   | "discounts"
   | "restrictions"
   | "services"
+  | "channels"
   | "sms"
   | "team"
   | "activity";
@@ -213,6 +214,7 @@ export interface AdminSettingsPayload {
   transactions?: TransactionConfig[];
   branding?: Record<string, unknown>;
   flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
+  icalSyncSettings?: import("@/lib/ical").IcalSyncSettings;
   smsSettings?: import("@/lib/sms/smsSettings").SmsSettings;
 }
 

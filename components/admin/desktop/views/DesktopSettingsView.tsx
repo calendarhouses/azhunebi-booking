@@ -12,6 +12,7 @@ import { TeamSettingsPanel } from "../settings/TeamSettingsPanel";
 import { DiscountTemplateGallery } from "../settings/DiscountTemplateGallery";
 import { AdditionalServicesSettingsPage } from "../settings/AdditionalServicesSettingsPage";
 import { SmsSettingsPanel } from "../settings/SmsSettingsPanel";
+import { IcalSyncSettingsPanel } from "../settings/IcalSyncSettingsPanel";
 import { SettingsRoomsTable } from "../settings/DesktopSettingsTables";
 import { SIDEBAR_SETTINGS_ITEMS } from "../sidebarSettingsItems";
 import type { AdminModalsApi } from "../useAdminModals";
@@ -39,6 +40,7 @@ const MOBILE_SETTINGS_DESCRIPTIONS: Record<SettingsTabName, string> = {
   rooms: "Котеджі, місткість, ціни та зручності",
   prices: "Тарифи для дат і окремих будинків",
   services: "Гнучкий графік і пропозиції для гостей",
+  channels: "iCal-синхронізація з Booking.com та іншими OTA",
   discounts: "Акції, промокоди та спеціальні умови",
   restrictions: "Мінімальні ночі та закриті дати",
   sms: "Шаблони, баланс TurboSMS і журнал відправок",
@@ -288,6 +290,18 @@ export function DesktopSettingsView({
             isTabActive={activeTab === "restrictions"}
             adminUndo={adminUndo}
           />
+        </div>
+        ) : null}
+
+        {showTab("channels") ? (
+        <div
+          id="set-channels"
+          className={tabContentClass(activeTab, "channels")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-channels" : undefined}
+          style={isMobile ? undefined : tabDisplay(activeTab, "channels")}
+        >
+          <IcalSyncSettingsPanel settings={settings} modals={modals} />
         </div>
         ) : null}
 
