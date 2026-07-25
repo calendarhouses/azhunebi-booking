@@ -124,7 +124,7 @@ body {
   user-select: none;
   z-index: 2;
   /* Лапки на нижній рамці картки — трохи вище, щоб збігтися з лінією */
-  transform: translateY(10%);
+  transform: translateY(14%);
   filter: drop-shadow(0 4px 8px rgba(26, 26, 26, 0.12));
 }
 
