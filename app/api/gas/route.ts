@@ -37,15 +37,24 @@ function gasUnreachable(method: string, err: unknown): NextResponse {
 
 /** Pull the human-readable text out of a Google Apps Script HTML error page. */
 function extractGasErrorText(html: string): string {
-  const div = html.match(/class="errorMessage"[^>]*>([\s\S]*?)<\/div>/i);
+  // Prefer the visible errorMessage div; ignore CSS that also contains ".errorMessage".
+  const div = html.match(
+    /<div[^>]*class=["']errorMessage["'][^>]*>([\s\S]*?)<\/div>/i
+  );
   const raw = div ? div[1] : html;
-  return raw
+  const cleaned = raw
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 600);
+    .trim();
+  // Common Sheets limit message often sits after the CSS dump.
+  const cellLimit = cleaned.match(
+    /Максимал\w+\s+количество\s+символов[^.]{0,80}|Maximum of \d+ characters in a single cell[^.]{0,40}/i
+  );
+  if (cellLimit) return cellLimit[0].trim();
+  return cleaned.slice(0, 600);
 }
 
 /** Google returns an HTML page (quota, 429, transient 5xx) instead of our JSON. */
@@ -59,6 +68,8 @@ function gasBadResponse(method: string, status: number, body: string): NextRespo
     /too many|quota|invoked too many times|exceeded maximum|too much computer time|rate/i.test(
       lower
     );
+  const looksLikeCellLimit =
+    /50000|символов в одной|characters in a single cell/i.test(lower);
   const looksLikeAuth =
     /authoriz|permission|not have access|unauthor|потрібен доступ|немає доступу/i.test(
       lower
@@ -67,12 +78,16 @@ function gasBadResponse(method: string, status: number, body: string): NextRespo
     {
       error: looksLikeAuth
         ? "GAS_AUTH_REQUIRED"
-        : looksLikeQuota
-          ? "GAS_RATE_LIMITED"
-          : "GAS_BAD_RESPONSE",
-      message: errorText
-        ? `Google Script: ${errorText}`
-        : `Google Script відповів не JSON (HTTP ${status})`,
+        : looksLikeCellLimit
+          ? "GAS_CELL_LIMIT"
+          : looksLikeQuota
+            ? "GAS_RATE_LIMITED"
+            : "GAS_BAD_RESPONSE",
+      message: looksLikeCellLimit
+        ? "Журнал змін у таблиці переповнений (ліміт комірки 50000). Очистіть activityLog у аркуші Settings."
+        : errorText
+          ? `Google Script: ${errorText}`
+          : `Google Script відповів не JSON (HTTP ${status})`,
       upstreamStatus: status,
     },
     { status: 502 }

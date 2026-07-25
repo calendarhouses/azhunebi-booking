@@ -124,6 +124,13 @@ export function formatAdminSyncError(err: unknown): string {
   if (lower.includes("не відповів вчасно") || lower.includes("gas_timeout")) {
     return "Google Таблиця не відповіла вчасно. Зміни могли зберегтися — оновіть сторінку перед повтором.";
   }
+  if (
+    lower.includes("50000") ||
+    lower.includes("символов в одной") ||
+    lower.includes("characters in a single cell")
+  ) {
+    return "Журнал змін у таблиці переповнений. Очистіть activityLog у Settings або зачекайте оновлення скрипта.";
+  }
   if (lower.includes("gas_rate_limited") || lower.includes("не json")) {
     return "Google тимчасово обмежив запити. Зачекайте 10-15 секунд і повторіть.";
   }
