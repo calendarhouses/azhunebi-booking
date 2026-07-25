@@ -77,6 +77,56 @@ export function showToast(message: string) {
 
 const ALERT_CIRCLE_ICON = `<svg class="toast-icon toast-icon--warning" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 8v4"/><path stroke-linecap="round" stroke-width="2" d="M12 16h.01"/></svg>`;
 
+/** Тост для помилок (жовтий/warning стиль, без зеленої галочки). */
+export function showErrorToast(message: string) {
+  if (typeof window === "undefined") return;
+  const container = document.getElementById("toast-container");
+  if (!container) {
+    console.error("[toast-error]", message);
+    return;
+  }
+  container.innerHTML = "";
+  const toast = document.createElement("div");
+  toast.className = "toast toast--warning";
+  const safe = String(message || "Помилка")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  toast.innerHTML = `${ALERT_CIRCLE_ICON} ${safe}`;
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.add("show"), 10);
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => {
+      if (container.contains(toast)) toast.remove();
+    }, 400);
+  }, 4500);
+}
+
+export function formatAdminSyncError(err: unknown): string {
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : "Невідома помилка";
+  const msg = String(raw || "").trim();
+  if (!msg) return "Не вдалося зберегти. Спробуйте ще раз.";
+  const lower = msg.toLowerCase();
+  if (
+    lower.includes("failed to fetch") ||
+    lower.includes("networkerror") ||
+    lower.includes("load failed") ||
+    lower.includes("network request failed")
+  ) {
+    return "Немає зв'язку з сервером. Перевірте інтернет або повторіть через хвилину (можливо йде деплой).";
+  }
+  if (lower.includes("invalid json") || lower.includes("empty response")) {
+    return "Сервер тимчасово недоступний (деплой або перезапуск). Спробуйте ще раз.";
+  }
+  if (msg.length > 120) return `${msg.slice(0, 117)}…`;
+  return msg;
+}
 export function showPublishingToast(message: string) {
   if (typeof window === "undefined") return;
   const container = document.getElementById("toast-container");

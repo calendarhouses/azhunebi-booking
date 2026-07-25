@@ -22,7 +22,7 @@ import {
   handleSaveApiErrors,
   isBookingSaveSuccessful,
 } from "./bookingForm";
-import { showToast as toastImpl } from "./adminGlobals";
+import { showToast as toastImpl, showErrorToast, formatAdminSyncError } from "./adminGlobals";
 import {
   captureCleaningCard,
   capturePaymentCard,
@@ -244,7 +244,8 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         window.allBookings = next;
         return next;
       });
-      toastImpl("Помилка синхронізації!");
+      console.error("[admin delete]", err);
+      showErrorToast(formatAdminSyncError(err));
     } finally {
       if (btn) {
         btn.innerHTML = originalHtml;
@@ -361,7 +362,8 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
         await expireAdminSession();
         return;
       }
-      toastImpl("Помилка синхронізації!");
+      console.error("[admin save]", err);
+      showErrorToast(formatAdminSyncError(err));
     } finally {
       if (btn) {
         btn.innerText = originalText;
