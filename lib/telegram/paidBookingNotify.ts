@@ -85,13 +85,16 @@ export function buildPaidBookingTelegramText(booking: GasBookingRecord): string 
   if (earlyTime) lines.push(`🕒 Ранній заїзд: ${escapeHtml(earlyTime)}`);
   if (lateTime) lines.push(`🕒 Пізній виїзд: ${escapeHtml(lateTime)}`);
   if (comment) lines.push(`💬 ${escapeHtml(comment)}`);
-  lines.push(
-    "",
-    `💰 Загальна вартість: <b>${money(total)}</b>`,
-    `💳 Передоплата: <b>${money(paid)}</b>`,
-    `🧾 Залишок: <b>${money(balance)}</b>`,
-    `🔖 ${escapeHtml(booking.id || "")}`
-  );
+  lines.push("", `💰 Загальна вартість: <b>${money(total)}</b>`);
+  if (balance <= 0 && paid > 0) {
+    lines.push(`✅ Оплачено повністю: <b>${money(paid)}</b>`);
+  } else {
+    lines.push(
+      `💳 Передоплата: <b>${money(paid)}</b>`,
+      `🧾 Залишок: <b>${money(balance)}</b>`
+    );
+  }
+  lines.push(`🔖 ${escapeHtml(booking.id || "")}`);
   return lines.join("\n");
 }
 
