@@ -9,7 +9,6 @@ export type SettingsTabName =
   | "discounts"
   | "restrictions"
   | "services"
-  | "channels"
   | "sms"
   | "team"
   | "activity";

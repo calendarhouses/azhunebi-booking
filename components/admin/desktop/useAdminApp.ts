@@ -39,6 +39,8 @@ import { syncMobileAdminViewDom } from "../mobile/adminMobileViewDom";
 /** Legacy «activity» tab now lives inside Команда. */
 function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined): SettingsTabName {
   if (tab === "activity") return "team";
+  // Legacy tab removed — redirect saved nav to rooms.
+  if (tab === "channels") return "rooms";
   const allowed: SettingsTabName[] = [
     "branding",
     "rooms",
@@ -46,7 +48,6 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
     "discounts",
     "restrictions",
     "services",
-    "channels",
     "sms",
     "team",
   ];
@@ -62,7 +63,6 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     discountsList: Array.isArray(s.discountsList) ? s.discountsList : [],
     customServicesList: Array.isArray(s.customServicesList) ? s.customServicesList : [],
     flexibleScheduleSettings: s.flexibleScheduleSettings,
-    icalSyncSettings: s.icalSyncSettings,
     sysServicesList: Array.isArray(s.sysServicesList) ? s.sysServicesList : [],
     customPrices: s.customPrices && typeof s.customPrices === "object" ? s.customPrices : {},
     restrictions: s.restrictions && typeof s.restrictions === "object" ? s.restrictions : {},
