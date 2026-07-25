@@ -115,3 +115,26 @@ export async function getMonoChastOrderState(
 export async function confirmMonoChastOrder(orderId: string): Promise<void> {
   await chastFetch("/api/order/confirm", { order_id: orderId });
 }
+
+/**
+ * Повернення коштів за заявкою «Покупка частинами» (повне або часткове).
+ * sumUah — сума повернення у гривнях (як total_sum при створенні).
+ * return_money_to_card=true → банк повертає гроші на картку клієнта.
+ * POST /api/order/return
+ */
+export async function returnMonoChastOrder(params: {
+  orderId: string;
+  sumUah: number;
+  storeReturnId: string;
+}): Promise<void> {
+  const sum = Math.round(params.sumUah * 100) / 100;
+  if (!(sum > 0)) {
+    throw new MonoChastApiError("Invalid Mono Chast return amount", 400);
+  }
+  await chastFetch("/api/order/return", {
+    order_id: params.orderId,
+    return_money_to_card: true,
+    store_return_id: params.storeReturnId.slice(0, 64),
+    sum,
+  });
+}

@@ -88,6 +88,46 @@ export async function createMonoInvoice(params: {
   return data;
 }
 
+export type MonoInvoiceCancelResponse = {
+  status: string;
+  createdDate?: string;
+  modifiedDate?: string;
+};
+
+/**
+ * Скасування (повне або часткове повернення) успішної оплати рахунку.
+ * amountUah не передається → повне повернення; інакше — часткове.
+ * POST /api/merchant/invoice/cancel
+ */
+export async function cancelMonoInvoice(params: {
+  invoiceId: string;
+  amountUah?: number;
+  extRef?: string;
+}): Promise<MonoInvoiceCancelResponse> {
+  const body: Record<string, unknown> = { invoiceId: params.invoiceId };
+  if (params.extRef) body.extRef = params.extRef.slice(0, 64);
+  if (params.amountUah != null) {
+    const amount = Math.round(params.amountUah * 100);
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      throw new MonoApiError("Invalid Mono refund amount", 400);
+    }
+    body.amount = amount;
+  }
+
+  const response = await fetch(`${getMonoApiOrigin()}/api/merchant/invoice/cancel`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Token": requireMonoAcquiringToken(),
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+
+  return readMonoResponse<MonoInvoiceCancelResponse>(response);
+}
+
 export async function getMonoInvoiceStatus(
   invoiceId: string
 ): Promise<MonoInvoiceStatusResponse> {

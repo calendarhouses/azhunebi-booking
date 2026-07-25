@@ -146,6 +146,54 @@ export async function submitBookingReview(params: {
   return { ok: Boolean(data.ok), reason: data.reason, smsLine: data.smsLine };
 }
 
+export async function submitBookingRefund(params: {
+  orderId: string;
+  amountUah: number;
+  cancelBooking?: boolean;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  message?: string;
+  paidAmount?: number;
+  recorded?: boolean;
+  warning?: string;
+}> {
+  const token = await getAccessToken();
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    "x-tenant-id": getAdminTenantId(),
+  });
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch("/api/payments/refund", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(params),
+    cache: "no-store",
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    message?: string;
+    paidAmount?: number;
+    recorded?: boolean;
+    warning?: string;
+  };
+  if (!res.ok) {
+    return { ok: false, error: data.error || `http_${res.status}`, message: data.message };
+  }
+  return {
+    ok: Boolean(data.ok),
+    error: data.error,
+    message: data.message,
+    paidAmount: data.paidAmount,
+    recorded: data.recorded,
+    warning: data.warning,
+  };
+}
+
 export async function postAdminBooking(
   payload: Record<string, unknown>
 ): Promise<{ success?: boolean; error?: string; requiredMin?: number; orderId?: string }> {

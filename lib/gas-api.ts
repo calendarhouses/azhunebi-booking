@@ -570,6 +570,41 @@ export async function confirmBookingPayment(
   }
 }
 
+export async function recordBookingRefund(params: {
+  orderReference: string;
+  amount: number;
+  method?: string;
+  note?: string;
+  transactionId?: string;
+  cancelBooking?: boolean;
+}): Promise<{
+  ok: boolean;
+  updated?: boolean;
+  displayId?: string;
+  paidAmount?: number;
+  reason?: string;
+  message?: string;
+}> {
+  try {
+    return await gasPost({
+      action: "recordBookingRefund",
+      orderReference: params.orderReference,
+      amount: params.amount,
+      method: params.method,
+      note: params.note,
+      transactionId: params.transactionId,
+      cancelBooking: params.cancelBooking === true,
+      webhookSecret: reviewWebhookSecret(),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "db_error",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function getBookingStatusByDisplayId(
   displayId: string
 ): Promise<string | null> {

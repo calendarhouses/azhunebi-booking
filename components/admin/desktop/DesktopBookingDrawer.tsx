@@ -31,6 +31,8 @@ import {
   BookingReviewActions,
   BOOKING_STATUS_AWAITING_PAYMENT,
 } from "../shared/BookingReviewActions";
+import { BookingPhoneMessengerButtons } from "../shared/BookingPhoneMessengerButtons";
+import { BookingRefundSection } from "../shared/BookingRefundSection";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -302,6 +304,7 @@ export function DesktopBookingDrawer({
                     value={form.phone}
                     onChange={(e) => drawer.patchForm({ phone: e.target.value })}
                   />
+                  <BookingPhoneMessengerButtons phone={form.phone} />
                 </div>
                 <div className="form-group">
                   <label>Джерело:</label>
@@ -561,6 +564,12 @@ export function DesktopBookingDrawer({
               )}
             </div>
           </form>
+          {activeBooking ? (
+            <BookingRefundSection
+              booking={activeBooking}
+              onRefunded={() => void onBookingReviewed?.()}
+            />
+          ) : null}
         </div>
         <div className={`drawer-footer${isMobile ? " drawer-footer--mobile" : ""}`}>
           <div className="drawer-footer-actions">
