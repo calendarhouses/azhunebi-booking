@@ -1,0 +1,419 @@
+/* Stay rules editor (Моя сторінка → Правила проживання).
+   Imported by the component so it loads on BOTH desktop and mobile admin.
+   Some rules use !important to beat global `#view-settings :is(input, textarea)`. */
+
+/* Compound selector: beats `.svc-accordion__panel { gap: 0 }` on the same node. */
+.stay-rules-editor,
+.svc-accordion__panel.stay-rules-editor {
+  --sr-line: #e8e4de;
+  --sr-line-soft: #f0eeea;
+  --sr-ink: #1c1917;
+  --sr-muted: #78716c;
+  --sr-sage: #4d5c3d;
+  --sr-sage-line: #c5d4b8;
+  --sr-sage-soft: #f4f6f0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.svc-accordion.is-open .stay-rules-editor {
+  padding-top: 20px !important;
+}
+
+.svc-accordion:not(.is-open) .stay-rules-editor {
+  padding-top: 0 !important;
+}
+
+/* ── intro note ── */
+.stay-rules-editor__lead {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8d8;
+  background: var(--sr-sage-soft);
+  color: #5c6752;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ── header fields ── */
+.stay-rules-editor__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  min-width: 0;
+}
+
+.stay-rules-editor__field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.stay-rules-editor__field--wide {
+  grid-column: 1 / -1;
+}
+
+.stay-rules-editor__field > span {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sr-muted);
+}
+
+/* !important throughout: admin themes style `#view-settings :is(input, textarea)`
+   with higher specificity, which otherwise breaks heights and paddings here. */
+.stay-rules-editor__field input,
+.stay-rules-editor__field textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  border: 1px solid var(--sr-line) !important;
+  border-radius: 12px !important;
+  background: #fafaf9 !important;
+  color: var(--sr-ink) !important;
+  font-family: inherit;
+  font-size: 14.5px !important;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.stay-rules-editor__field input {
+  height: 46px;
+  min-height: 46px !important;
+  padding: 0 14px !important;
+}
+
+.stay-rules-editor__field textarea {
+  min-height: 96px !important;
+  padding: 12px 14px !important;
+  line-height: 1.55 !important;
+  font-weight: 500;
+  resize: vertical;
+}
+
+.stay-rules-editor__field input:focus,
+.stay-rules-editor__field textarea:focus,
+.stay-rules-editor__section-title:focus {
+  border-color: #a8b896 !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(92, 107, 75, 0.12) !important;
+}
+
+/* ── sections block ── */
+.stay-rules-editor__block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--sr-line-soft);
+}
+
+.stay-rules-editor__block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stay-rules-editor__block-head strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--sr-ink);
+}
+
+.stay-rules-editor__block-head em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8a847c;
+}
+
+/* ── buttons ── */
+.stay-rules-editor__btn-primary,
+.stay-rules-editor__btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 11px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.stay-rules-editor__btn-primary {
+  flex-shrink: 0;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--sr-sage-line);
+  background: linear-gradient(180deg, #f8faf4 0%, #eef3e6 100%);
+  color: #3f4a32;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.stay-rules-editor__btn-primary:hover {
+  background: #e8efd9;
+  border-color: #afc29a;
+}
+
+.stay-rules-editor__btn-primary:active {
+  transform: scale(0.985);
+}
+
+.stay-rules-editor__btn-ghost {
+  align-self: stretch;
+  margin-top: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px dashed #d6d3d1;
+  background: transparent;
+  color: #57534e;
+}
+
+.stay-rules-editor__btn-ghost:hover {
+  border-color: #b7c6a4;
+  background: #f8faf4;
+  color: #3f4a32;
+}
+
+/* ── empty state ── */
+.stay-rules-editor__empty {
+  padding: 22px 16px;
+  border-radius: 14px;
+  border: 1px dashed #d6d3d1;
+  background: #fafaf9;
+  color: var(--sr-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ── section card ── */
+.stay-rules-editor__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.stay-rules-editor__section {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--sr-line);
+  background: linear-gradient(180deg, #ffffff 0%, #fbf9f5 100%);
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.045);
+}
+
+.stay-rules-editor__section-top {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  min-width: 0;
+}
+
+.stay-rules-editor__badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2e6;
+  color: var(--sr-sage);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.stay-rules-editor__section-title {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px;
+  min-height: 44px !important;
+  box-sizing: border-box;
+  border: 1px solid var(--sr-line) !important;
+  border-radius: 11px !important;
+  padding: 0 13px !important;
+  background: #fff !important;
+  color: var(--sr-ink) !important;
+  font-family: inherit;
+  font-size: 14.5px !important;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stay-rules-editor__toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.stay-rules-editor__tool {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--sr-line);
+  background: #fff;
+  color: #57534e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.stay-rules-editor__tool:hover:not(:disabled) {
+  background: #f5f5f4;
+  border-color: #d6d3d1;
+}
+
+.stay-rules-editor__tool:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.stay-rules-editor__tool.is-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+/* ── rule rows ── */
+.stay-rules-editor__rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stay-rules-editor__rules li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--sr-line-soft);
+}
+
+.stay-rules-editor__mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(107, 79, 58, 0.08);
+  color: #8b5e3c;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Auto-growing textarea: global admin rules force min-height 46px — override. */
+.stay-rules-editor__rules textarea {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 24px !important;
+  margin: 0;
+  padding: 2px 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  outline: none;
+  box-shadow: none !important;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 14px !important;
+  font-weight: 600;
+  line-height: 1.45 !important;
+  color: #292524 !important;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.stay-rules-editor__rules li:focus-within {
+  border-color: #cfd9c2;
+  box-shadow: 0 0 0 3px rgba(92, 107, 75, 0.1);
+}
+
+/* ── narrow screens ── */
+@media (max-width: 760px) {
+  .stay-rules-editor {
+    gap: 18px;
+  }
+
+  .stay-rules-editor__meta {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stay-rules-editor__block-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .stay-rules-editor__btn-primary {
+    width: 100%;
+  }
+
+  .stay-rules-editor__section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .stay-rules-editor__section-top {
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-areas:
+      "badge title"
+      "toolbar toolbar";
+    gap: 10px;
+  }
+
+  .stay-rules-editor__badge {
+    grid-area: badge;
+  }
+
+  .stay-rules-editor__section-title {
+    grid-area: title;
+  }
+
+  .stay-rules-editor__toolbar {
+    grid-area: toolbar;
+    justify-content: flex-end;
+  }
+}

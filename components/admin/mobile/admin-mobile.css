@@ -3975,7 +3975,6 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   justify-content: center !important;
 }
 
-
 .boso-admin-mobile
   .booking-inner-content--stay-1
   .booking-mobile-meta-row {
@@ -4026,7 +4025,6 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   width: 16px !important;
   height: 16px !important;
 }
-
 
 /* Nav arrows: sit INSIDE the 40px month card (not 44px tap targets) */
 .boso-admin-mobile .timeline-nav-row .timeline-nav .btn-icon,
@@ -4606,87 +4604,6 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   gap: 12px;
   margin-top: 18px !important;
   padding: 0 !important;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor {
-  gap: 18px;
-  padding-top: 4px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__meta {
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__field input,
-.boso-admin-mobile #view-settings .stay-rules-editor__field textarea {
-  border-radius: 12px !important;
-  font-size: 15px !important;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__field input {
-  min-height: 46px;
-  height: 46px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__block-head {
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__btn-primary {
-  width: 100%;
-  min-height: 44px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__section {
-  padding: 14px;
-  border-radius: 14px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__section-top {
-  grid-template-columns: 28px minmax(0, 1fr);
-  grid-template-areas:
-    "badge title"
-    "toolbar toolbar";
-  gap: 8px 10px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__badge {
-  grid-area: badge;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__section-title {
-  grid-area: title;
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__toolbar {
-  grid-area: toolbar;
-  justify-content: flex-end;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__rules li {
-  grid-template-columns: 26px minmax(0, 1fr) 34px;
-  align-items: start;
-  gap: 8px;
-  padding: 10px;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__rules textarea {
-  width: 100% !important;
-  min-width: 0 !important;
-  font-size: 14px !important;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.boso-admin-mobile #view-settings .stay-rules-editor__btn-ghost {
-  width: 100%;
-  min-height: 42px;
 }
 
 .boso-admin-mobile #view-settings .branding-prepayment-modes {

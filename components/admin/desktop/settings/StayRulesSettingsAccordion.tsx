@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -14,6 +14,13 @@ import {
   createEmptyStayRulesSection,
   stayRulesSummaryLabel,
 } from "@/lib/public-booking/stayRules";
+import "./settings-stay-rules.css";
+
+function autoGrow(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.max(el.scrollHeight, 24)}px`;
+}
 
 type Props = {
   open: boolean;
@@ -69,11 +76,35 @@ export function StayRulesSettingsAccordion({
     [onChange, value]
   );
 
-  const addSection = useCallback(() => {
-    onChange({
-      ...value,
-      sections: [...value.sections, createEmptyStayRulesSection("Новий розділ")],
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const sectionRefs = useRef(new Map<string, HTMLElement>());
+  const [focusSectionId, setFocusSectionId] = useState<string | null>(null);
+
+  // scrollHeight is 0 while the accordion is collapsed, so re-measure on open too.
+  useEffect(() => {
+    if (!open) return;
+    const nodes = rootRef.current?.querySelectorAll<HTMLTextAreaElement>(
+      ".stay-rules-editor__rules textarea"
+    );
+    nodes?.forEach(autoGrow);
+  }, [open, value.sections]);
+
+  // Scroll to and focus a freshly added section once it is in the DOM.
+  useEffect(() => {
+    if (!focusSectionId) return;
+    const el = sectionRefs.current.get(focusSectionId);
+    if (!el) return;
+    setFocusSectionId(null);
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.querySelector<HTMLInputElement>(".stay-rules-editor__section-title")?.focus({
+      preventScroll: true,
     });
+  }, [focusSectionId, value.sections]);
+
+  const addSection = useCallback(() => {
+    const section = createEmptyStayRulesSection("Новий розділ");
+    onChange({ ...value, sections: [...value.sections, section] });
+    setFocusSectionId(section.id);
   }, [onChange, value]);
 
   const updateItem = useCallback(
@@ -147,7 +178,10 @@ export function StayRulesSettingsAccordion({
         inert={!open}
       >
         <div className="branding-svc-collapse__panel">
-          <div className="branding-svc-collapse__content svc-accordion__panel stay-rules-editor">
+          <div
+            ref={rootRef}
+            className="branding-svc-collapse__content svc-accordion__panel stay-rules-editor"
+          >
             <p className="stay-rules-editor__lead">
               Текст перед підтвердженням броні. Додавайте розділи — кожен пункт
               стане карткою на сайті.
@@ -207,7 +241,14 @@ export function StayRulesSettingsAccordion({
               ) : (
                 <div className="stay-rules-editor__list">
                   {value.sections.map((section, index) => (
-                    <article key={section.id} className="stay-rules-editor__section">
+                    <article
+                      key={section.id}
+                      className="stay-rules-editor__section"
+                      ref={(el) => {
+                        if (el) sectionRefs.current.set(section.id, el);
+                        else sectionRefs.current.delete(section.id);
+                      }}
+                    >
                       <div className="stay-rules-editor__section-top">
                         <span className="stay-rules-editor__badge" aria-hidden>
                           {index + 1}
@@ -262,21 +303,11 @@ export function StayRulesSettingsAccordion({
                               value={item}
                               placeholder="Текст правила…"
                               onChange={(e) => {
+                                autoGrow(e.currentTarget);
                                 updateItem(section.id, itemIndex, e.target.value);
-                                const el = e.currentTarget;
-                                el.style.height = "auto";
-                                el.style.height = `${el.scrollHeight}px`;
                               }}
-                              onFocus={(e) => {
-                                const el = e.currentTarget;
-                                el.style.height = "auto";
-                                el.style.height = `${el.scrollHeight}px`;
-                              }}
-                              ref={(el) => {
-                                if (!el) return;
-                                el.style.height = "auto";
-                                el.style.height = `${el.scrollHeight}px`;
-                              }}
+                              onFocus={(e) => autoGrow(e.currentTarget)}
+                              ref={autoGrow}
                             />
                             <button
                               type="button"
