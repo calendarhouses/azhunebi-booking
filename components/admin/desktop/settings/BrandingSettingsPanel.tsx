@@ -12,7 +12,7 @@ import {
   type PrepaymentMode,
 } from "@/lib/public-booking/prepaymentPolicy";
 import {
-  resolveStayRules,
+  resolveStayRulesForEditing,
   serializeStayRulesForSave,
   type StayRulesContent,
 } from "@/lib/public-booking/stayRules";
@@ -118,7 +118,7 @@ export function BrandingSettingsPanel({
     setForm((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const stayRules = resolveStayRules(form);
+  const stayRules = resolveStayRulesForEditing(form);
   const setStayRules = useCallback((next: StayRulesContent) => {
     setForm((prev) => ({ ...prev, stay_rules: next }));
   }, []);
@@ -235,7 +235,7 @@ export function BrandingSettingsPanel({
         logo_url: logoUrl || undefined,
         maps_external_url: mapsExternal || undefined,
         maps_embed_url: mapsEmbed || undefined,
-        stay_rules: serializeStayRulesForSave(resolveStayRules(form)),
+        stay_rules: serializeStayRulesForSave(resolveStayRulesForEditing(form)),
       };
       delete branding.site_description;
       const next: AdminSettingsPayload = {

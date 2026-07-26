@@ -9,11 +9,16 @@ import {
   ScrollText,
   Trash2,
 } from "lucide-react";
-import type { StayRulesContent, StayRulesSection } from "@/lib/public-booking/stayRules";
+import type {
+  StayRulesContent,
+  StayRulesSection,
+} from "@/lib/public-booking/stayRules";
 import {
   createEmptyStayRulesSection,
+  STAY_RULE_MARKS,
   stayRulesSummaryLabel,
 } from "@/lib/public-booking/stayRules";
+import { StayRuleMarkIcon } from "@/components/ui/StayRuleMarkIcon";
 import "./settings-stay-rules.css";
 
 function autoGrow(el: HTMLTextAreaElement | null) {
@@ -182,11 +187,6 @@ export function StayRulesSettingsAccordion({
             ref={rootRef}
             className="branding-svc-collapse__content svc-accordion__panel stay-rules-editor"
           >
-            <p className="stay-rules-editor__lead">
-              Текст перед підтвердженням броні. Додавайте розділи — кожен пункт
-              стане карткою на сайті.
-            </p>
-
             <div className="stay-rules-editor__meta">
               <label className="stay-rules-editor__field">
                 <span>Надзаголовок</span>
@@ -292,11 +292,42 @@ export function StayRulesSettingsAccordion({
                         </div>
                       </div>
 
+                      <div className="stay-rules-editor__marks">
+                        <span className="stay-rules-editor__marks-label">
+                          Іконка пунктів
+                        </span>
+                        <div
+                          className="stay-rules-editor__marks-group"
+                          role="group"
+                          aria-label="Іконка пунктів розділу"
+                        >
+                          {STAY_RULE_MARKS.map((mark) => (
+                            <button
+                              key={mark.value}
+                              type="button"
+                              title={mark.label}
+                              aria-pressed={section.icon === mark.value}
+                              className={`stay-rules-editor__mark-option is-${mark.value}${
+                                section.icon === mark.value ? " is-active" : ""
+                              }`}
+                              onClick={() =>
+                                updateSection(section.id, { icon: mark.value })
+                              }
+                            >
+                              <StayRuleMarkIcon mark={mark.value} size={15} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <ul className="stay-rules-editor__rules">
                         {section.items.map((item, itemIndex) => (
                           <li key={`${section.id}-${itemIndex}`}>
-                            <span className="stay-rules-editor__mark" aria-hidden>
-                              ×
+                            <span
+                              className={`stay-rules-editor__mark is-${section.icon}`}
+                              aria-hidden
+                            >
+                              <StayRuleMarkIcon mark={section.icon} size={14} />
                             </span>
                             <textarea
                               rows={1}

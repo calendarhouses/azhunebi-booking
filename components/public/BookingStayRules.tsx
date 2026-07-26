@@ -1,6 +1,7 @@
 "use client";
 
 import { resolveStayRules, type StayRulesContent } from "@/lib/public-booking/stayRules";
+import { StayRuleMarkIcon } from "@/components/ui/StayRuleMarkIcon";
 import type { PublicBranding } from "@/lib/public-booking/types";
 
 type Props = {
@@ -32,8 +33,11 @@ export function BookingStayRules({ branding, content }: Props) {
               <ul className="stay-rules__list">
                 {section.items.map((item, itemIndex) => (
                   <li key={`${section.id}-${itemIndex}`} className="stay-rules__item">
-                    <span className="stay-rules__mark" aria-hidden>
-                      ×
+                    <span
+                      className={`stay-rules__mark stay-rules__mark--${section.icon}`}
+                      aria-hidden
+                    >
+                      <StayRuleMarkIcon mark={section.icon} size={15} />
                     </span>
                     <span className="stay-rules__text">{item}</span>
                   </li>

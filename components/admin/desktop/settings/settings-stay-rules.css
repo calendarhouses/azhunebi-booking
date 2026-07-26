@@ -27,19 +27,6 @@
   padding-top: 0 !important;
 }
 
-/* ── intro note ── */
-.stay-rules-editor__lead {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #e2e8d8;
-  background: var(--sr-sage-soft);
-  color: #5c6752;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
 /* ── header fields ── */
 .stay-rules-editor__meta {
   display: grid;
@@ -300,6 +287,71 @@
   color: #b91c1c;
 }
 
+/* ── per-section marker picker ── */
+.stay-rules-editor__marks {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding-left: 40px;
+}
+
+.stay-rules-editor__marks-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sr-muted);
+}
+
+.stay-rules-editor__marks-group {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--sr-line);
+  background: #f7f6f3;
+}
+
+.stay-rules-editor__mark-option {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #a8a29e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.stay-rules-editor__mark-option:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: #57534e;
+}
+
+.stay-rules-editor__mark-option.is-active {
+  background: #fff;
+  border-color: var(--sr-line);
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.08);
+}
+
+.stay-rules-editor__mark-option.is-active.is-cross {
+  color: #8b5e3c;
+}
+
+.stay-rules-editor__mark-option.is-active.is-check {
+  color: #55682f;
+}
+
+.stay-rules-editor__mark-option.is-active.is-dash {
+  color: #6b675e;
+}
+
 /* ── rule rows ── */
 .stay-rules-editor__rules {
   list-style: none;
@@ -332,9 +384,17 @@
   justify-content: center;
   background: rgba(107, 79, 58, 0.08);
   color: #8b5e3c;
-  font-size: 15px;
-  font-weight: 700;
   line-height: 1;
+}
+
+.stay-rules-editor__mark.is-check {
+  background: rgba(85, 107, 47, 0.12);
+  color: #55682f;
+}
+
+.stay-rules-editor__mark.is-dash {
+  background: rgba(60, 58, 52, 0.08);
+  color: #6b675e;
 }
 
 /* Auto-growing textarea: global admin rules force min-height 46px — override. */
@@ -415,5 +475,10 @@
   .stay-rules-editor__toolbar {
     grid-area: toolbar;
     justify-content: flex-end;
+  }
+
+  .stay-rules-editor__marks {
+    padding-left: 0;
+    justify-content: space-between;
   }
 }

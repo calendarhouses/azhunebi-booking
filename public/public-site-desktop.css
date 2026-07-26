@@ -1277,6 +1277,17 @@ body {
   line-height: 1;
   margin-top: 1px;
 }
+.stay-rules__mark svg {
+  display: block;
+}
+.stay-rules__mark--check {
+  background: rgba(85, 107, 47, 0.12);
+  color: #55682F;
+}
+.stay-rules__mark--dash {
+  background: rgba(60, 58, 52, 0.08);
+  color: #6B675E;
+}
 .stay-rules__text {
   flex: 1 1 auto;
   min-width: 0;
