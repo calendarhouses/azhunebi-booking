@@ -2,8 +2,9 @@
 
 import { useCallback } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   ChevronDown,
-  ChevronUp,
   Plus,
   ScrollText,
   Trash2,
@@ -146,38 +147,34 @@ export function StayRulesSettingsAccordion({
         inert={!open}
       >
         <div className="branding-svc-collapse__panel">
-          <div className="branding-svc-collapse__content svc-accordion__panel">
-            <p className="svc-accordion__intro">
-              Сторінка, яку гість бачить перед підтвердженням броні. Можна додати
-              окремі розділи — наприклад виселення чи повернення коштів — кожен
-              пункт покажеться карткою на сайті.
+          <div className="branding-svc-collapse__content svc-accordion__panel stay-rules-editor">
+            <p className="stay-rules-editor__lead">
+              Текст перед підтвердженням броні. Додавайте розділи — кожен пункт
+              стане карткою на сайті.
             </p>
 
-            <div className="svc-accordion__section stay-rules-editor__hero">
-              <label className="svc-field">
-                <span className="svc-field__label">Надзаголовок</span>
+            <div className="stay-rules-editor__meta">
+              <label className="stay-rules-editor__field">
+                <span>Надзаголовок</span>
                 <input
-                  className="svc-field__input"
                   type="text"
                   value={value.eyebrow}
                   placeholder="Внутрішні правила"
                   onChange={(e) => patchRoot("eyebrow", e.target.value)}
                 />
               </label>
-              <label className="svc-field">
-                <span className="svc-field__label">Заголовок</span>
+              <label className="stay-rules-editor__field">
+                <span>Заголовок</span>
                 <input
-                  className="svc-field__input"
                   type="text"
                   value={value.title}
                   placeholder="Спокійний відпочинок"
                   onChange={(e) => patchRoot("title", e.target.value)}
                 />
               </label>
-              <label className="svc-field">
-                <span className="svc-field__label">Підзаголовок</span>
+              <label className="stay-rules-editor__field stay-rules-editor__field--wide">
+                <span>Підзаголовок</span>
                 <textarea
-                  className="svc-field__input stay-rules-editor__intro"
                   rows={3}
                   value={value.intro}
                   placeholder="Короткий вступ для гостя…"
@@ -186,29 +183,35 @@ export function StayRulesSettingsAccordion({
               </label>
             </div>
 
-            <div className="svc-accordion__section">
-              <div className="stay-rules-editor__sections-head">
-                <span className="svc-field__label">Розділи правил</span>
+            <div className="stay-rules-editor__block">
+              <div className="stay-rules-editor__block-head">
+                <div>
+                  <strong>Розділи</strong>
+                  <em>Заголовок розділу + пункти-картки</em>
+                </div>
                 <button
                   type="button"
-                  className="stay-rules-editor__add-section"
+                  className="stay-rules-editor__btn-primary"
                   onClick={addSection}
                 >
-                  <Plus size={15} strokeWidth={2.4} />
+                  <Plus size={16} strokeWidth={2.4} />
                   Додати розділ
                 </button>
               </div>
 
-              <div className="stay-rules-editor__sections">
-                {value.sections.length === 0 ? (
-                  <div className="stay-rules-editor__empty">
-                    Ще немає розділів. Додайте, наприклад, «У нас не можна» або
-                    «Правила виселення».
-                  </div>
-                ) : (
-                  value.sections.map((section, index) => (
-                    <article key={section.id} className="stay-rules-editor__card">
-                      <header className="stay-rules-editor__card-head">
+              {value.sections.length === 0 ? (
+                <div className="stay-rules-editor__empty">
+                  Ще немає розділів. Додайте, наприклад, «У нас не можна» або
+                  «Правила виселення».
+                </div>
+              ) : (
+                <div className="stay-rules-editor__list">
+                  {value.sections.map((section, index) => (
+                    <article key={section.id} className="stay-rules-editor__section">
+                      <div className="stay-rules-editor__section-top">
+                        <span className="stay-rules-editor__badge" aria-hidden>
+                          {index + 1}
+                        </span>
                         <input
                           className="stay-rules-editor__section-title"
                           type="text"
@@ -218,53 +221,66 @@ export function StayRulesSettingsAccordion({
                             updateSection(section.id, { title: e.target.value })
                           }
                         />
-                        <div className="stay-rules-editor__card-actions">
+                        <div className="stay-rules-editor__toolbar">
                           <button
                             type="button"
-                            className="stay-rules-editor__icon-btn"
+                            className="stay-rules-editor__tool"
                             title="Вище"
                             disabled={index === 0}
                             onClick={() => moveSection(index, -1)}
                           >
-                            <ChevronUp size={16} />
+                            <ArrowUp size={15} />
                           </button>
                           <button
                             type="button"
-                            className="stay-rules-editor__icon-btn"
+                            className="stay-rules-editor__tool"
                             title="Нижче"
                             disabled={index === value.sections.length - 1}
                             onClick={() => moveSection(index, 1)}
                           >
-                            <ChevronDown size={16} />
+                            <ArrowDown size={15} />
                           </button>
                           <button
                             type="button"
-                            className="stay-rules-editor__icon-btn is-danger"
+                            className="stay-rules-editor__tool is-danger"
                             title="Видалити розділ"
                             onClick={() => removeSection(section.id)}
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
-                      </header>
+                      </div>
 
-                      <ul className="stay-rules-editor__items">
+                      <ul className="stay-rules-editor__rules">
                         {section.items.map((item, itemIndex) => (
                           <li key={`${section.id}-${itemIndex}`}>
-                            <span className="stay-rules-editor__bullet" aria-hidden>
+                            <span className="stay-rules-editor__mark" aria-hidden>
                               ×
                             </span>
-                            <input
-                              type="text"
+                            <textarea
+                              rows={1}
                               value={item}
                               placeholder="Текст правила…"
-                              onChange={(e) =>
-                                updateItem(section.id, itemIndex, e.target.value)
-                              }
+                              onChange={(e) => {
+                                updateItem(section.id, itemIndex, e.target.value);
+                                const el = e.currentTarget;
+                                el.style.height = "auto";
+                                el.style.height = `${el.scrollHeight}px`;
+                              }}
+                              onFocus={(e) => {
+                                const el = e.currentTarget;
+                                el.style.height = "auto";
+                                el.style.height = `${el.scrollHeight}px`;
+                              }}
+                              ref={(el) => {
+                                if (!el) return;
+                                el.style.height = "auto";
+                                el.style.height = `${el.scrollHeight}px`;
+                              }}
                             />
                             <button
                               type="button"
-                              className="stay-rules-editor__icon-btn is-danger"
+                              className="stay-rules-editor__tool is-danger"
                               title="Видалити пункт"
                               onClick={() => removeItem(section.id, itemIndex)}
                             >
@@ -276,16 +292,16 @@ export function StayRulesSettingsAccordion({
 
                       <button
                         type="button"
-                        className="stay-rules-editor__add-item"
+                        className="stay-rules-editor__btn-ghost"
                         onClick={() => addItem(section.id)}
                       >
-                        <Plus size={14} strokeWidth={2.4} />
+                        <Plus size={15} strokeWidth={2.4} />
                         Додати пункт
                       </button>
                     </article>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

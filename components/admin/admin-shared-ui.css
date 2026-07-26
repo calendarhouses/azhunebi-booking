@@ -183,55 +183,145 @@
             color: #4D5C3D;
             letter-spacing: -0.01em;
         }
-        .stay-rules-editor__hero {
+        .stay-rules-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            min-width: 0;
+        }
+        .stay-rules-editor__lead {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #F4F6F0;
+            border: 1px solid #E2E8D8;
+            color: #5C6752;
+            font-size: 13.5px;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        .stay-rules-editor__meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 16px;
+            min-width: 0;
+        }
+        .stay-rules-editor__field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            min-width: 0;
+        }
+        .stay-rules-editor__field--wide {
+            grid-column: 1 / -1;
+        }
+        .stay-rules-editor__field > span {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #78716C;
+            text-transform: none;
+        }
+        .stay-rules-editor__field input,
+        .stay-rules-editor__field textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #E7E5E4;
+            border-radius: 12px;
+            background: #FAFAF9;
+            color: #1C1917;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        .stay-rules-editor__field input {
+            height: 46px;
+            padding: 0 14px;
+        }
+        .stay-rules-editor__field textarea {
+            min-height: 92px;
+            padding: 12px 14px;
+            resize: vertical;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .stay-rules-editor__field input:focus,
+        .stay-rules-editor__field textarea:focus {
+            border-color: #A8B896;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(92, 107, 75, 0.12);
+        }
+        .stay-rules-editor__block {
             display: flex;
             flex-direction: column;
             gap: 14px;
+            min-width: 0;
+            padding-top: 4px;
+            border-top: 1px solid #EFECE7;
         }
-        .stay-rules-editor__intro {
-            resize: vertical;
-            min-height: 84px;
-            line-height: 1.45;
-            font-family: inherit;
-        }
-        .stay-rules-editor__sections-head {
+        .stay-rules-editor__block-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 12px;
+            flex-wrap: wrap;
         }
-        .stay-rules-editor__add-section,
-        .stay-rules-editor__add-item {
+        .stay-rules-editor__block-head strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 800;
+            color: #1C1917;
+            letter-spacing: -0.01em;
+        }
+        .stay-rules-editor__block-head em {
+            display: block;
+            margin-top: 2px;
+            font-style: normal;
+            font-size: 12px;
+            color: #8A847C;
+            font-weight: 500;
+        }
+        .stay-rules-editor__btn-primary,
+        .stay-rules-editor__btn-ghost {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            border: 1px solid #D4DCC8;
-            background: #F7F9F3;
-            color: #4D5C3D;
+            justify-content: center;
+            gap: 7px;
+            border-radius: 11px;
             font-size: 13px;
             font-weight: 700;
-            border-radius: 10px;
-            padding: 8px 12px;
             cursor: pointer;
-            transition: background 0.15s ease, border-color 0.15s ease;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         }
-        .stay-rules-editor__add-section:hover,
-        .stay-rules-editor__add-item:hover {
-            background: #EEF2E6;
-            border-color: #B7C6A4;
+        .stay-rules-editor__btn-primary {
+            flex-shrink: 0;
+            padding: 10px 14px;
+            border: 1px solid #C5D4B8;
+            background: linear-gradient(180deg, #F7FAF2 0%, #EEF3E6 100%);
+            color: #3F4A32;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
         }
-        .stay-rules-editor__add-item {
-            margin-top: 10px;
+        .stay-rules-editor__btn-primary:hover {
+            background: #E8EFD9;
+            border-color: #AFC29A;
+        }
+        .stay-rules-editor__btn-ghost {
+            align-self: flex-start;
+            margin-top: 4px;
+            padding: 8px 10px;
+            border: 1px dashed #D6D3D1;
             background: transparent;
+            color: #57534E;
         }
-        .stay-rules-editor__sections {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
+        .stay-rules-editor__btn-ghost:hover {
+            border-color: #B7C6A4;
+            background: #F7F9F3;
+            color: #3F4A32;
         }
         .stay-rules-editor__empty {
-            padding: 18px 16px;
+            padding: 20px 16px;
             border-radius: 14px;
             border: 1px dashed #D6D3D1;
             background: #FAFAF9;
@@ -239,46 +329,73 @@
             font-size: 13.5px;
             line-height: 1.45;
         }
-        .stay-rules-editor__card {
-            border-radius: 16px;
-            border: 1px solid #E7E5E4;
-            background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
-            box-shadow: 0 8px 24px rgba(28, 25, 23, 0.04);
-            padding: 14px;
-        }
-        .stay-rules-editor__card-head {
+        .stay-rules-editor__list {
             display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+        .stay-rules-editor__section {
+            min-width: 0;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid #E8E4DE;
+            background:
+                linear-gradient(180deg, #FFFFFF 0%, #FBF9F5 100%);
+            box-shadow: 0 10px 28px rgba(28, 25, 23, 0.04);
+        }
+        .stay-rules-editor__section-top {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) auto;
             align-items: center;
             gap: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            min-width: 0;
+        }
+        .stay-rules-editor__badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #EEF2E6;
+            color: #4D5C3D;
+            font-size: 12px;
+            font-weight: 800;
         }
         .stay-rules-editor__section-title {
-            flex: 1;
-            min-width: 0;
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: 100%;
+            height: 42px;
+            box-sizing: border-box;
             border: 1px solid #E7E5E4;
-            border-radius: 10px;
-            padding: 10px 12px;
+            border-radius: 11px;
+            padding: 0 12px;
+            background: #fff;
+            color: #1C1917;
             font-size: 14px;
             font-weight: 700;
-            color: #1C1917;
-            background: #FFF;
             outline: none;
         }
         .stay-rules-editor__section-title:focus {
             border-color: #A8B896;
             box-shadow: 0 0 0 3px rgba(92, 107, 75, 0.12);
         }
-        .stay-rules-editor__card-actions {
+        .stay-rules-editor__toolbar {
             display: inline-flex;
+            align-items: center;
             gap: 4px;
             flex-shrink: 0;
         }
-        .stay-rules-editor__icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
+        .stay-rules-editor__tool {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            border-radius: 10px;
             border: 1px solid #E7E5E4;
-            background: #FFF;
+            background: #fff;
             color: #57534E;
             display: inline-flex;
             align-items: center;
@@ -286,40 +403,43 @@
             cursor: pointer;
             transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }
-        .stay-rules-editor__icon-btn:hover:not(:disabled) {
+        .stay-rules-editor__tool:hover:not(:disabled) {
             background: #F5F5F4;
             border-color: #D6D3D1;
         }
-        .stay-rules-editor__icon-btn:disabled {
-            opacity: 0.35;
+        .stay-rules-editor__tool:disabled {
+            opacity: 0.32;
             cursor: not-allowed;
         }
-        .stay-rules-editor__icon-btn.is-danger:hover:not(:disabled) {
+        .stay-rules-editor__tool.is-danger:hover:not(:disabled) {
             background: #FEF2F2;
             border-color: #FECACA;
             color: #B91C1C;
         }
-        .stay-rules-editor__items {
+        .stay-rules-editor__rules {
             list-style: none;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            min-width: 0;
         }
-        .stay-rules-editor__items li {
-            display: flex;
-            align-items: center;
+        .stay-rules-editor__rules li {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) 34px;
+            align-items: start;
             gap: 8px;
-            padding: 8px 10px;
+            min-width: 0;
+            padding: 10px;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid #F0EEEA;
         }
-        .stay-rules-editor__bullet {
-            flex: 0 0 24px;
-            width: 24px;
-            height: 24px;
+        .stay-rules-editor__mark {
+            width: 28px;
+            height: 28px;
+            margin-top: 2px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -328,17 +448,49 @@
             color: #8B5E3C;
             font-size: 15px;
             font-weight: 700;
+            line-height: 1;
         }
-        .stay-rules-editor__items input {
-            flex: 1;
-            min-width: 0;
+        .stay-rules-editor__rules textarea {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100%;
+            box-sizing: border-box;
             border: none;
             background: transparent;
             outline: none;
+            resize: none;
+            overflow: hidden;
+            font-family: inherit;
             font-size: 13.5px;
             font-weight: 600;
+            line-height: 1.45;
             color: #292524;
-            padding: 4px 0;
+            padding: 5px 0 0;
+            min-height: 28px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        @media (max-width: 720px) {
+            .stay-rules-editor__meta {
+                grid-template-columns: 1fr;
+            }
+            .stay-rules-editor__section-top {
+                grid-template-columns: 28px minmax(0, 1fr);
+                grid-template-areas:
+                    "badge title"
+                    "toolbar toolbar";
+            }
+            .stay-rules-editor__badge { grid-area: badge; }
+            .stay-rules-editor__section-title { grid-area: title; width: 100% !important; }
+            .stay-rules-editor__toolbar { grid-area: toolbar; justify-content: flex-end; }
+            .stay-rules-editor__block-head {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .stay-rules-editor__btn-primary {
+                width: 100%;
+            }
         }
         .branding-logo-row {
             grid-column: 1 / -1;
