@@ -568,6 +568,15 @@ export function PublicBookingProvider({
         return;
       }
 
+      // Tap selected check-in again (before checkout) → clear selection
+      if (checkIn && !checkOut && t === checkIn.getTime()) {
+        setCheckIn(null);
+        setCheckOut(null);
+        setPostLateArrivalTime(null);
+        setCalKey((k) => k + 1);
+        return;
+      }
+
       // Keep existing range when tapping the already-selected endpoints
       if (checkIn && checkOut) {
         if (t === checkIn.getTime() || t === checkOut.getTime()) {
@@ -669,6 +678,15 @@ export function PublicBookingProvider({
 
       if (!isListSearchDateAvailable(d, runtime.rooms, opts)) {
         showPublicToast("На цю дату немає вільних будинків");
+        return;
+      }
+
+      // Tap selected check-in again (before checkout) → clear selection
+      if (checkIn && !checkOut && d.getTime() === checkIn.getTime()) {
+        setCheckIn(null);
+        setCheckOut(null);
+        setPostLateArrivalTime(null);
+        setCalKey((k) => k + 1);
         return;
       }
 
