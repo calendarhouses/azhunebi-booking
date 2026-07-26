@@ -495,7 +495,7 @@ export function DesktopBookingDrawer() {
               </div>
             </div>
 
-            <BookingStayRules />
+            <BookingStayRules branding={branding} />
           </DrawerContent>
 
           <div className="sticky-cta sticky-cta--rules">

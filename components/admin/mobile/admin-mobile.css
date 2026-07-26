@@ -4487,7 +4487,7 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 }
 
 .boso-admin-mobile #view-settings .branding-settings-section,
-.boso-admin-mobile #view-settings .branding-prepayment-accordion {
+.boso-admin-mobile #view-settings .branding-svc-accordion {
   display: block !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -4553,18 +4553,18 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   border-radius: 12px;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion {
+.boso-admin-mobile #view-settings .branding-svc-accordion {
   overflow: hidden;
   padding: 0;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__trigger {
+.boso-admin-mobile #view-settings .branding-svc-accordion .svc-accordion__trigger {
   min-height: 84px;
   padding: 16px 16px;
   background: transparent;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__icon {
+.boso-admin-mobile #view-settings .branding-svc-accordion .svc-accordion__icon {
   width: 42px;
   height: 42px;
   border-radius: 13px;
@@ -4572,19 +4572,19 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   color: var(--settings-accent);
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__label {
+.boso-admin-mobile #view-settings .branding-svc-accordion .svc-accordion__label {
   font-size: 15px;
   font-weight: 800;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__hint {
+.boso-admin-mobile #view-settings .branding-svc-accordion .svc-accordion__hint {
   margin-top: 3px;
   font-size: 12px;
   line-height: 1.35;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-collapse__content,
-.boso-admin-mobile #view-settings .branding-prepayment-collapse__content.svc-accordion__panel {
+.boso-admin-mobile #view-settings .branding-svc-collapse__content,
+.boso-admin-mobile #view-settings .branding-svc-collapse__content.svc-accordion__panel {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -4592,7 +4592,7 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   border-top: 1px solid #eff1ec;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__intro {
+.boso-admin-mobile #view-settings .branding-svc-accordion .svc-accordion__intro {
   margin: 16px 0 0 !important;
   padding: 0;
   color: var(--settings-muted);
@@ -4600,7 +4600,7 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   line-height: 1.5;
 }
 
-.boso-admin-mobile #view-settings .branding-prepayment-accordion .svc-accordion__section {
+.boso-admin-mobile #view-settings .branding-svc-accordion .svc-accordion__section {
   display: flex;
   flex-direction: column;
   gap: 12px;

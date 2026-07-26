@@ -878,7 +878,7 @@
             line-height: 1.45;
             max-width: 72ch;
         }
-        .branding-prepayment-accordion {
+        .branding-svc-accordion {
             --svc-accent: #5c6b4b;
             --svc-accent-soft: #f4f6f0;
             --svc-accent-border: #d4dcc8;
@@ -893,10 +893,10 @@
             margin: 4px 0 8px;
             align-self: stretch;
         }
-        .branding-prepayment-accordion .svc-accordion__chevron {
+        .branding-svc-accordion .svc-accordion__chevron {
             transition: transform var(--branding-prepay-duration) var(--branding-prepay-ease);
         }
-        .branding-prepayment-accordion .branding-prepayment-collapse.svc-accordion__collapse {
+        .branding-svc-accordion .branding-svc-collapse.svc-accordion__collapse {
             display: grid;
             grid-template-rows: 0fr;
             opacity: 0;
@@ -904,25 +904,25 @@
                 grid-template-rows var(--branding-prepay-duration) var(--branding-prepay-ease),
                 opacity var(--branding-prepay-duration) var(--branding-prepay-ease);
         }
-        .branding-prepayment-accordion:not(.is-open) .branding-prepayment-collapse.svc-accordion__collapse {
+        .branding-svc-accordion:not(.is-open) .branding-svc-collapse.svc-accordion__collapse {
             pointer-events: none;
         }
-        .branding-prepayment-accordion.is-open .branding-prepayment-collapse.svc-accordion__collapse {
+        .branding-svc-accordion.is-open .branding-svc-collapse.svc-accordion__collapse {
             grid-template-rows: 1fr;
             opacity: 1;
         }
-        .branding-prepayment-collapse__panel {
+        .branding-svc-collapse__panel {
             overflow: hidden;
             min-height: 0;
         }
-        .branding-prepayment-collapse__content {
+        .branding-svc-collapse__content {
             transform: translateY(-8px);
             transition: transform var(--branding-prepay-duration) var(--branding-prepay-ease);
         }
-        .branding-prepayment-accordion.is-open .branding-prepayment-collapse__content {
+        .branding-svc-accordion.is-open .branding-svc-collapse__content {
             transform: translateY(0);
         }
-        .branding-prepayment-accordion.is-open .branding-prepayment-collapse__content.svc-accordion__panel {
+        .branding-svc-accordion.is-open .branding-svc-collapse__content.svc-accordion__panel {
             border-top: 1px solid var(--svc-stone-200);
         }
         .branding-prepayment-modes {

@@ -63,6 +63,8 @@ export interface PublicBranding {
   prepayment_mode?: "percent" | "nights" | "fixed";
   /** 50 = 50%, 1 = одна ніч, 5000 = фіксована сума */
   prepayment_value?: number;
+  /** Сторінка правил перед підтвердженням броні */
+  stay_rules?: import("./stayRules").StayRulesContent;
   [key: string]: unknown;
 }
 

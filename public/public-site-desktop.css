@@ -1230,6 +1230,15 @@ body {
   text-transform: uppercase;
   color: #6B4F3A;
 }
+.stay-rules__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.stay-rules__section + .stay-rules__section {
+  padding-top: 4px;
+  border-top: 1px solid rgba(85, 107, 47, 0.08);
+}
 .stay-rules__list {
   list-style: none;
   margin: 0;

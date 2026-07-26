@@ -10,6 +10,7 @@ import type { RoomConfig } from "@/components/admin/desktop/types";
 import { formatDateKey, getBookedRanges, isStayClearOfBookings } from "@/lib/public-booking/bookedRanges";
 import { formatPriceUa } from "@/lib/public-booking/roomHelpers";
 import { usePublicBooking } from "../PublicBookingProvider";
+import { useCalendarMonthSwipe } from "../useCalendarMonthSwipe";
 
 const MONTH_NAMES = [
   "Січень",
@@ -105,6 +106,7 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
     selectDate,
     calKey,
   } = usePublicBooking();
+  const { onTouchStart, onTouchEnd } = useCalendarMonthSwipe(shiftCal);
 
   if (!runtime) return null;
 
@@ -236,7 +238,12 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
 
   if (layout === "mobile") {
     return (
-      <div className="calendar-container" key={calKey}>
+      <div
+        className="calendar-container"
+        key={calKey}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         {header}
         {grid}
         {legend}
@@ -245,7 +252,12 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
   }
 
   return (
-    <div className="cal-month" key={calKey}>
+    <div
+      className="cal-month"
+      key={calKey}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div
         className="cal-header"
         style={{

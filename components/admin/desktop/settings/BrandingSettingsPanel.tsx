@@ -11,6 +11,12 @@ import {
   readPrepaymentPolicy,
   type PrepaymentMode,
 } from "@/lib/public-booking/prepaymentPolicy";
+import {
+  resolveStayRules,
+  serializeStayRulesForSave,
+  type StayRulesContent,
+} from "@/lib/public-booking/stayRules";
+import { StayRulesSettingsAccordion } from "./StayRulesSettingsAccordion";
 import { dobaWord } from "@/components/admin/desktop/adminPlural";
 import { GuestPhoneField } from "@/components/admin/onboarding/GuestPhoneField";
 import {
@@ -66,6 +72,7 @@ export function BrandingSettingsPanel({
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [isLogoProcessing, setIsLogoProcessing] = useState(false);
   const [prepaymentOpen, setPrepaymentOpen] = useState(false);
+  const [stayRulesOpen, setStayRulesOpen] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const pendingLogoFileRef = useRef<File | null>(null);
@@ -109,6 +116,11 @@ export function BrandingSettingsPanel({
 
   const patch = useCallback((key: keyof PublicBranding, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const stayRules = resolveStayRules(form);
+  const setStayRules = useCallback((next: StayRulesContent) => {
+    setForm((prev) => ({ ...prev, stay_rules: next }));
   }, []);
 
   const prepaymentPolicy = readPrepaymentPolicy(form);
@@ -223,6 +235,7 @@ export function BrandingSettingsPanel({
         logo_url: logoUrl || undefined,
         maps_external_url: mapsExternal || undefined,
         maps_embed_url: mapsEmbed || undefined,
+        stay_rules: serializeStayRulesForSave(resolveStayRules(form)),
       };
       delete branding.site_description;
       const next: AdminSettingsPayload = {
@@ -305,8 +318,15 @@ export function BrandingSettingsPanel({
           </div>
         </section>
 
+        <StayRulesSettingsAccordion
+          open={stayRulesOpen}
+          onToggle={() => setStayRulesOpen((v) => !v)}
+          value={stayRules}
+          onChange={setStayRules}
+        />
+
         <section
-          className={`svc-accordion branding-prepayment-accordion branding-field--full${prepaymentOpen ? " is-open" : ""}`}
+          className={`svc-accordion branding-svc-accordion branding-prepayment-accordion branding-field--full${prepaymentOpen ? " is-open" : ""}`}
         >
           <button
             type="button"
@@ -329,12 +349,12 @@ export function BrandingSettingsPanel({
 
           <div
             id="branding-prepayment-panel"
-            className="branding-prepayment-collapse svc-accordion__collapse"
+            className="branding-svc-collapse branding-prepayment-collapse svc-accordion__collapse"
             aria-hidden={!prepaymentOpen}
             inert={!prepaymentOpen}
           >
-            <div className="branding-prepayment-collapse__panel">
-              <div className="branding-prepayment-collapse__content svc-accordion__panel">
+            <div className="branding-svc-collapse__panel branding-prepayment-collapse__panel">
+              <div className="branding-svc-collapse__content branding-prepayment-collapse__content svc-accordion__panel">
               <p className="svc-accordion__intro">
                 Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці при заїзді.
               </p>

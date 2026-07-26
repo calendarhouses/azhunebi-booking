@@ -1,39 +1,47 @@
 "use client";
 
-import {
-  STAY_RULES_EYEBROW,
-  STAY_RULES_INTRO,
-  STAY_RULES_PROHIBITIONS,
-  STAY_RULES_PROHIBITIONS_LABEL,
-  STAY_RULES_TITLE,
-} from "@/lib/public-booking/stayRules";
+import { resolveStayRules, type StayRulesContent } from "@/lib/public-booking/stayRules";
+import type { PublicBranding } from "@/lib/public-booking/types";
 
-export function BookingStayRules() {
+type Props = {
+  branding?: PublicBranding | null;
+  content?: StayRulesContent | null;
+};
+
+export function BookingStayRules({ branding, content }: Props) {
+  const rules = content || resolveStayRules(branding);
+
   return (
     <section className="stay-rules" aria-labelledby="stay-rules-title">
       <div className="stay-rules__glow" aria-hidden />
       <div className="stay-rules__inner">
-        <p className="stay-rules__eyebrow">{STAY_RULES_EYEBROW}</p>
+        <p className="stay-rules__eyebrow">{rules.eyebrow}</p>
         <h2 id="stay-rules-title" className="stay-rules__title">
-          {STAY_RULES_TITLE}
+          {rules.title}
         </h2>
-        <p className="stay-rules__intro">{STAY_RULES_INTRO}</p>
+        <p className="stay-rules__intro">{rules.intro}</p>
 
         <div className="stay-rules__divider" aria-hidden>
           <span />
         </div>
 
-        <p className="stay-rules__forbid-label">{STAY_RULES_PROHIBITIONS_LABEL}</p>
-        <ul className="stay-rules__list">
-          {STAY_RULES_PROHIBITIONS.map((item) => (
-            <li key={item} className="stay-rules__item">
-              <span className="stay-rules__mark" aria-hidden>
-                ×
-              </span>
-              <span className="stay-rules__text">{item}</span>
-            </li>
+        <div className="stay-rules__sections">
+          {rules.sections.map((section) => (
+            <div key={section.id} className="stay-rules__section">
+              <p className="stay-rules__forbid-label">{section.title}</p>
+              <ul className="stay-rules__list">
+                {section.items.map((item, itemIndex) => (
+                  <li key={`${section.id}-${itemIndex}`} className="stay-rules__item">
+                    <span className="stay-rules__mark" aria-hidden>
+                      ×
+                    </span>
+                    <span className="stay-rules__text">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { formatDateKey, isListSearchDateAvailable } from "@/lib/public-booking/bookedRanges";
 import { usePublicBooking } from "./PublicBookingProvider";
+import { useCalendarMonthSwipe } from "./useCalendarMonthSwipe";
 
 const MONTH_NAMES = [
   "Січень",
@@ -48,6 +49,7 @@ function StayRangeCalendar() {
     childCount,
     youngestChildAge,
   } = usePublicBooking();
+  const { onTouchStart, onTouchEnd } = useCalendarMonthSwipe(shiftCal);
 
   const base = new Date(calBase.getFullYear(), calBase.getMonth(), 1);
   const year = base.getFullYear();
@@ -105,7 +107,12 @@ function StayRangeCalendar() {
   }
 
   return (
-    <div className="stay-cal" key={calKey}>
+    <div
+      className="stay-cal"
+      key={calKey}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="stay-cal__header">
         <button
           type="button"

@@ -110,7 +110,7 @@
             line-height: 1.45;
             max-width: 72ch;
         }
-        .branding-prepayment-accordion {
+        .branding-svc-accordion {
             --svc-accent: #5c6b4b;
             --svc-accent-soft: #f4f6f0;
             --svc-accent-border: #d4dcc8;
@@ -125,10 +125,10 @@
             margin: 4px 0 8px;
             align-self: stretch;
         }
-        .branding-prepayment-accordion .svc-accordion__chevron {
+        .branding-svc-accordion .svc-accordion__chevron {
             transition: transform var(--branding-prepay-duration) var(--branding-prepay-ease);
         }
-        .branding-prepayment-accordion .branding-prepayment-collapse.svc-accordion__collapse {
+        .branding-svc-accordion .branding-svc-collapse.svc-accordion__collapse {
             display: grid;
             grid-template-rows: 0fr;
             opacity: 0;
@@ -136,25 +136,25 @@
                 grid-template-rows var(--branding-prepay-duration) var(--branding-prepay-ease),
                 opacity var(--branding-prepay-duration) var(--branding-prepay-ease);
         }
-        .branding-prepayment-accordion:not(.is-open) .branding-prepayment-collapse.svc-accordion__collapse {
+        .branding-svc-accordion:not(.is-open) .branding-svc-collapse.svc-accordion__collapse {
             pointer-events: none;
         }
-        .branding-prepayment-accordion.is-open .branding-prepayment-collapse.svc-accordion__collapse {
+        .branding-svc-accordion.is-open .branding-svc-collapse.svc-accordion__collapse {
             grid-template-rows: 1fr;
             opacity: 1;
         }
-        .branding-prepayment-collapse__panel {
+        .branding-svc-collapse__panel {
             overflow: hidden;
             min-height: 0;
         }
-        .branding-prepayment-collapse__content {
+        .branding-svc-collapse__content {
             transform: translateY(-8px);
             transition: transform var(--branding-prepay-duration) var(--branding-prepay-ease);
         }
-        .branding-prepayment-accordion.is-open .branding-prepayment-collapse__content {
+        .branding-svc-accordion.is-open .branding-svc-collapse__content {
             transform: translateY(0);
         }
-        .branding-prepayment-accordion.is-open .branding-prepayment-collapse__content.svc-accordion__panel {
+        .branding-svc-accordion.is-open .branding-svc-collapse__content.svc-accordion__panel {
             border-top: 1px solid var(--svc-stone-200);
         }
         .branding-prepayment-modes {
@@ -182,6 +182,163 @@
             font-weight: 700;
             color: #4D5C3D;
             letter-spacing: -0.01em;
+        }
+        .stay-rules-editor__hero {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .stay-rules-editor__intro {
+            resize: vertical;
+            min-height: 84px;
+            line-height: 1.45;
+            font-family: inherit;
+        }
+        .stay-rules-editor__sections-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .stay-rules-editor__add-section,
+        .stay-rules-editor__add-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #D4DCC8;
+            background: #F7F9F3;
+            color: #4D5C3D;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .stay-rules-editor__add-section:hover,
+        .stay-rules-editor__add-item:hover {
+            background: #EEF2E6;
+            border-color: #B7C6A4;
+        }
+        .stay-rules-editor__add-item {
+            margin-top: 10px;
+            background: transparent;
+        }
+        .stay-rules-editor__sections {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .stay-rules-editor__empty {
+            padding: 18px 16px;
+            border-radius: 14px;
+            border: 1px dashed #D6D3D1;
+            background: #FAFAF9;
+            color: #78716C;
+            font-size: 13.5px;
+            line-height: 1.45;
+        }
+        .stay-rules-editor__card {
+            border-radius: 16px;
+            border: 1px solid #E7E5E4;
+            background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
+            box-shadow: 0 8px 24px rgba(28, 25, 23, 0.04);
+            padding: 14px;
+        }
+        .stay-rules-editor__card-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .stay-rules-editor__section-title {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #E7E5E4;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1C1917;
+            background: #FFF;
+            outline: none;
+        }
+        .stay-rules-editor__section-title:focus {
+            border-color: #A8B896;
+            box-shadow: 0 0 0 3px rgba(92, 107, 75, 0.12);
+        }
+        .stay-rules-editor__card-actions {
+            display: inline-flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .stay-rules-editor__icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            border: 1px solid #E7E5E4;
+            background: #FFF;
+            color: #57534E;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .stay-rules-editor__icon-btn:hover:not(:disabled) {
+            background: #F5F5F4;
+            border-color: #D6D3D1;
+        }
+        .stay-rules-editor__icon-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .stay-rules-editor__icon-btn.is-danger:hover:not(:disabled) {
+            background: #FEF2F2;
+            border-color: #FECACA;
+            color: #B91C1C;
+        }
+        .stay-rules-editor__items {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .stay-rules-editor__items li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #F0EEEA;
+        }
+        .stay-rules-editor__bullet {
+            flex: 0 0 24px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(107, 79, 58, 0.08);
+            color: #8B5E3C;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .stay-rules-editor__items input {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #292524;
+            padding: 4px 0;
         }
         .branding-logo-row {
             grid-column: 1 / -1;
