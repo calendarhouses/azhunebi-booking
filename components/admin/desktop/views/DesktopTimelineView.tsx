@@ -2639,8 +2639,9 @@ export function DesktopTimelineView({
             <div
               className="timeline-mobile-board"
               style={{
-                width: gridTotalWidth + 88,
-                minWidth: gridTotalWidth + 88,
+                /* Matches --timeline-rooms-col on timeline-wrapper--numbers (44px). */
+                width: gridTotalWidth + 44,
+                minWidth: gridTotalWidth + 44,
               }}
             >
               <div className="timeline-mobile-corner">

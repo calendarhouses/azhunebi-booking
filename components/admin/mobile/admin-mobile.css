@@ -3205,13 +3205,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-mobile-board {
   /* Flat 2×2 grid: corner/dates/rooms/cells are siblings of the scrollport.
-     Nested sticky (corner inside sticky head) fails on iOS + Android. */
+     Nested sticky (corner inside sticky head) fails on iOS + Android.
+     --timeline-rooms-col: 88px default; шахматка numbers → 44px. */
   display: grid !important;
-  grid-template-columns: 88px var(--timeline-grid-width, max-content) !important;
+  grid-template-columns: var(--timeline-rooms-col, 88px) var(--timeline-grid-width, max-content) !important;
   grid-template-rows: var(--timeline-mobile-head-height, 56px) auto !important;
   align-items: stretch !important;
-  width: calc(88px + var(--timeline-grid-width, 0px)) !important;
-  min-width: calc(88px + var(--timeline-grid-width, 0px)) !important;
+  width: calc(var(--timeline-rooms-col, 88px) + var(--timeline-grid-width, 0px)) !important;
+  min-width: calc(var(--timeline-rooms-col, 88px) + var(--timeline-grid-width, 0px)) !important;
   min-height: 100%;
   overflow: visible !important;
 }
@@ -3219,9 +3220,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-mobile-corner {
   grid-column: 1 !important;
   grid-row: 1 !important;
-  width: 88px !important;
-  min-width: 88px !important;
-  max-width: 88px !important;
+  width: var(--timeline-rooms-col, 88px) !important;
+  min-width: var(--timeline-rooms-col, 88px) !important;
+  max-width: var(--timeline-rooms-col, 88px) !important;
   height: var(--timeline-mobile-head-height, 56px) !important;
   min-height: var(--timeline-mobile-head-height, 56px) !important;
   max-height: var(--timeline-mobile-head-height, 56px) !important;
@@ -3255,9 +3256,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-mobile .timeline-mobile-rooms {
   grid-column: 1 !important;
   grid-row: 2 !important;
-  width: 88px !important;
-  min-width: 88px !important;
-  max-width: 88px !important;
+  width: var(--timeline-rooms-col, 88px) !important;
+  min-width: var(--timeline-rooms-col, 88px) !important;
+  max-width: var(--timeline-rooms-col, 88px) !important;
   align-self: start !important;
   position: sticky !important;
   left: 0 !important;
@@ -3275,9 +3276,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-corner,
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-mobile-rooms {
-  width: 88px !important;
-  min-width: 88px !important;
-  max-width: 88px !important;
+  width: var(--timeline-rooms-col, 88px) !important;
+  min-width: var(--timeline-rooms-col, 88px) !important;
+  max-width: var(--timeline-rooms-col, 88px) !important;
   box-sizing: border-box !important;
   border-right: 1px solid #E5E7EB !important;
   margin: 0 !important;
@@ -3540,7 +3541,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-board .timeline-month-cell__label {
   position: sticky !important;
-  left: 88px !important;
+  left: var(--timeline-rooms-col, 88px) !important;
   z-index: 16 !important;
   background: #F9FAFB !important;
   padding-left: 10px !important;
@@ -7223,7 +7224,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 
 .boso-admin-android #view-grid .timeline-wrapper--mobile-board .timeline-month-cell__label {
   position: sticky !important;
-  left: 88px !important;
+  left: var(--timeline-rooms-col, 88px) !important;
   z-index: 16 !important;
   background: #F9FAFB !important;
   padding-left: 10px !important;
@@ -7236,7 +7237,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 
 .boso-admin-android .timeline-wrapper--mobile-board .timeline-month-cell__label {
   position: sticky !important;
-  left: 88px !important;
+  left: var(--timeline-rooms-col, 88px) !important;
   z-index: 16 !important;
   background: #F9FAFB !important;
   padding-left: 10px !important;
