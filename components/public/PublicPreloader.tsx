@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { toImageDisplaySrc } from "@/lib/driveImageUrl";
 
-const DEFAULT_LOGO_SRC = "/logo2.webp";
+const DEFAULT_LOGO_SRC = "/images/brand-icon-512.png";
 const DEFAULT_LOGO_ALT = "АЖ У НЕБІ";
 
 type PublicPreloaderProps = {

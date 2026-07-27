@@ -23,7 +23,7 @@ export default function BookRootLayout({ children }: { children: ReactNode }) {
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="icon" type="image/png" sizes="32x32" href={BRAND_ICONS.icon32} />
         <link rel="icon" type="image/png" sizes="192x192" href={BRAND_ICONS.icon192} />
-        <link rel="apple-touch-icon" sizes="180x180" href={BRAND_ICONS.icon180} />
+        <link rel="apple-touch-icon" sizes="180x180" href={BRAND_ICONS.home180} />
         <link rel="icon" href={BRAND_ICONS.favicon} sizes="any" />
         <link rel="shortcut icon" type="image/png" href={BRAND_ICONS.icon192} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

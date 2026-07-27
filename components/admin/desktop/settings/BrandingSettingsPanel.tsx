@@ -26,7 +26,7 @@ import {
 } from "@/lib/admin/onboarding/uaPhone";
 import {
   COMPRESS_FAIL_MESSAGE,
-  compressImageForUpload,
+  compressLogoForUpload,
 } from "@/lib/admin/onboarding/mediaCompression";
 import { uploadTenantLogo } from "@/utils/tenantLogoStorage";
 import { normalizeDriveImageUrl, toImageDisplaySrc } from "@/lib/driveImageUrl";
@@ -175,7 +175,7 @@ export function BrandingSettingsPanel({
       if (!file || !file.type.startsWith("image/")) return;
       setIsLogoProcessing(true);
       try {
-        const compressedFile = await compressImageForUpload(file);
+        const compressedFile = await compressLogoForUpload(file);
         setPendingLogoFile(compressedFile);
         setNextLogoPreview(URL.createObjectURL(compressedFile), true);
       } catch (error) {
@@ -472,7 +472,8 @@ export function BrandingSettingsPanel({
               ) : null}
             </div>
             <p className="branding-logo-upload__hint">
-              PNG, JPG або WebP. Відображається в адмінці та на сайті бронювання.
+              PNG без фону (прозорий). Білий фон більше не додається. Логотип
+              піде в адмінку, прелоадер, сайт і іконки біля посилання.
             </p>
           </div>
           <div className="branding-logo-row__action">

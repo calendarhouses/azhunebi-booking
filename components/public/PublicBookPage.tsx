@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Suspense, useEffect } from "react";
 import type { CSSProperties } from "react";
 import type { PublicTenantPayload } from "@/lib/public-booking/types";
+import { BrandFavicon } from "@/components/ui/BrandFavicon";
 import { PublicBookingProvider } from "./PublicBookingProvider";
 
 const PUBLIC_BRAND_ACCENT = "#556B2F";
@@ -50,6 +51,7 @@ function PublicBookPageInner({ data, variant }: Props) {
       }
     >
       <PublicBookingProvider data={data}>
+        <BrandFavicon logoUrl={(data.branding?.logo_url as string) || null} />
         {variant === "mobile" ? <PublicMobileSite /> : <PublicDesktopSite />}
       </PublicBookingProvider>
     </div>

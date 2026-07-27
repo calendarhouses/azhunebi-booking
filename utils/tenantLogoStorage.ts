@@ -19,11 +19,13 @@ function fileToBase64(file: File): Promise<string> {
 
 function logoExtension(file: File): string {
   const fromName = file.name.split(".").pop()?.toLowerCase();
-  if (fromName === "webp" || fromName === "jpg" || fromName === "jpeg") {
+  if (fromName === "webp" || fromName === "png" || fromName === "jpg" || fromName === "jpeg") {
     return fromName === "jpeg" ? "jpg" : fromName;
   }
+  if (file.type === "image/png") return "png";
   if (file.type === "image/jpeg") return "jpg";
-  return "webp";
+  if (file.type === "image/webp") return "webp";
+  return "png";
 }
 
 /** Завантажує вже стиснуте зображення через GAS API, повертає публічний URL. */
