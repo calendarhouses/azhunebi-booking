@@ -122,8 +122,12 @@ export function TimelineRoomRow({
   const number = numbersOnly ? adminRoomNumber(room) : null;
   return (
     <div className={`timeline-room ${className}`.trim()} style={style}>
-      <div className="timeline-room__label">
-        <RoomSidebarHouseIcon className="timeline-room__icon" />
+      <div
+        className={`timeline-room__label${number ? " timeline-room__label--number" : ""}`}
+      >
+        {number ? null : (
+          <RoomSidebarHouseIcon className="timeline-room__icon" />
+        )}
         <span
           className={`timeline-room__name${number ? " timeline-room__name--number" : ""}`}
           title={number ? fullLabel : undefined}

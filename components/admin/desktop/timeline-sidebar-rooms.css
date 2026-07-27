@@ -2,6 +2,16 @@
    High-specificity selectors — the mobile theme pins `.timeline-room__name`
    font sizes with !important through several layout variants. */
 
+.timeline-room .timeline-room__label--number {
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+.timeline-room .timeline-room__label--number .timeline-room__icon,
+.timeline-room .timeline-room__label--number .room-sidebar-house-icon {
+  display: none !important;
+}
+
 .timeline-room .timeline-room__label .timeline-room__name--number,
 .boso-admin-mobile .timeline-room .timeline-room__label .timeline-room__name--number {
   font-size: 16px !important;
