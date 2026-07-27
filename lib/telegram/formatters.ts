@@ -54,6 +54,46 @@ export function toDateKeyKyiv(value?: string | Date | null): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Europe/Kyiv" });
 }
 
+/**
+ * Creation day from display id `A-|B-|В-|{ms}` when the CREATED cell was
+ * overwritten by an admin save (historical bug).
+ */
+export function createdAtFromBookingId(id?: string | null): string {
+  const match = String(id || "")
+    .trim()
+    .match(/^[A-Za-zА-Яа-яІіЇїЄєҐґ]+-(\d{12,15})$/u);
+  if (!match) return "";
+  const ms = Number(match[1]);
+  if (!Number.isFinite(ms)) return "";
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "";
+  // Guard against non-epoch junk: 2020-01-01 .. now+1d
+  if (ms < 1_577_836_800_000 || ms > Date.now() + 86_400_000) return "";
+  return toDateKeyKyiv(d);
+}
+
+/**
+ * Real booking creation day for finance digests.
+ * Prefer the older of sheet createdAt vs id timestamp (recovers rewritten CREATED).
+ */
+export function bookingCreatedDateKey(booking: {
+  id?: unknown;
+  createdAt?: unknown;
+}): string {
+  const fromField = toDateKeyKyiv(
+    booking.createdAt instanceof Date || typeof booking.createdAt === "string"
+      ? booking.createdAt
+      : booking.createdAt != null
+        ? String(booking.createdAt)
+        : ""
+  );
+  const fromId = createdAtFromBookingId(
+    booking.id != null ? String(booking.id) : ""
+  );
+  if (fromId && fromField && fromId < fromField) return fromId;
+  return fromField || fromId || "";
+}
+
 export function todayKeyKyiv(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Kyiv" });
 }

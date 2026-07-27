@@ -8,7 +8,7 @@ import {
   sendFinancePeriodSummary,
   type FinancePeriodStats,
 } from "@/lib/telegram/financeNotify";
-import { toDateKeyKyiv } from "@/lib/telegram/formatters";
+import { bookingCreatedDateKey, toDateKeyKyiv } from "@/lib/telegram/formatters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -137,6 +137,7 @@ type DigestPayment = {
 };
 
 type DigestBooking = Record<string, unknown> & {
+  id?: string;
   status?: string;
   createdAt?: string;
   checkIn?: string;
@@ -167,7 +168,7 @@ function bookingPaymentsForPeriod(
 
   // Legacy fallback for older rows without payment journal: only count money on
   // the booking creation date, because exact payment dates are unknowable there.
-  const created = toDateKeyKyiv(booking.createdAt);
+  const created = bookingCreatedDateKey(booking);
   if (!created || created < start || created > end) return payments;
   addBucket(payments, booking.prepayMethod, Math.round(Number(booking.prepayAmount) || 0));
   addBucket(
@@ -192,7 +193,7 @@ function calcFinanceStats(
     const booking = b as DigestBooking;
     if (isCancelledStatus(booking.status)) continue;
 
-    const created = toDateKeyKyiv(booking.createdAt);
+    const created = bookingCreatedDateKey(booking);
     if (created && created >= start && created <= end && !isDraftStatus(booking.status)) {
       bookingsCount += 1;
     }

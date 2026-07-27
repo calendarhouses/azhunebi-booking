@@ -9,6 +9,7 @@ import {
   formatMoneyUa,
   formatTelegramDaySeparator,
   isConfirmedBookingStatus,
+  bookingCreatedDateKey,
   toDateKeyKyiv,
   todayKeyKyiv,
 } from "./formatters";
@@ -105,6 +106,7 @@ export async function sendFinancePeriodSummary(opts: {
 }
 
 export type EveningCashBooking = {
+  id?: string;
   status?: string;
   createdAt?: string;
   paidAmount?: number | string;
@@ -120,7 +122,8 @@ function collectMethodAmount(
   amount: number,
   bucket: { cash: number; card: number; fop: number }
 ) {
-  if (amount <= 0) return;
+  // Allow negative amounts (refunds) to reduce the day's received total.
+  if (amount === 0) return;
   const m = String(method || "").toLowerCase();
   if (m.includes("гот")) bucket.cash += amount;
   else if (m.includes("карт") || m.includes("mono") || m.includes("еквайр")) bucket.card += amount;
@@ -152,19 +155,26 @@ export async function sendEveningCashSummary(
   const payments = { cash: 0, card: 0, fop: 0 };
 
   for (const b of bookings) {
-    const created = toDateKeyKyiv(b.createdAt);
-    if (created !== today) continue;
     if (String(b.status || "").toLowerCase().includes("скас")) continue;
-    if (String(b.status || "").toLowerCase().includes("нова")) continue;
-    newBookingsCount += 1;
 
+    // New bookings = real creation day (not last edit).
+    const created = bookingCreatedDateKey(b);
+    if (
+      created === today &&
+      !String(b.status || "").toLowerCase().includes("нова")
+    ) {
+      newBookingsCount += 1;
+    }
+
+    // Money for the day = payments dated today (independent of creation day).
     if (Array.isArray(b.payments) && b.payments.length) {
       for (const p of b.payments) {
-        const pDate = toDateKeyKyiv(p.date) || today;
+        const pDate = toDateKeyKyiv(p.date);
         if (pDate !== today) continue;
         collectMethodAmount(p.method, Math.round(Number(p.amount) || 0), payments);
       }
-    } else {
+    } else if (created === today) {
+      // Legacy rows without journal: only attribute money on creation day.
       collectMethodAmount(
         b.prepayMethod,
         Math.round(Number(b.prepayAmount) || 0),
