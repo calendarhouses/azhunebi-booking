@@ -7,6 +7,7 @@ import { TimelineActionTooltip } from "./TimelineActionTooltip";
 import { useGridFocusModeOptional } from "./GridFocusModeContext";
 import type { RoomConfig } from "./types";
 import { adminRoomLabel, adminRoomNumber } from "@/lib/admin/roomDisplay";
+import { isHoldingRoom } from "./timelineBookingMove";
 import "./timeline-sidebar-rooms.css";
 
 export function timelineRoomsHeading(): "Будинки" {
@@ -109,7 +110,7 @@ export function TimelineRoomRow({
   numbersOnly = false,
   style,
 }: {
-  room: Pick<RoomConfig, "name" | "short" | "desc">;
+  room: Pick<RoomConfig, "id" | "name" | "short" | "desc">;
   className?: string;
   showDesc?: boolean;
   compact?: boolean;
@@ -119,23 +120,40 @@ export function TimelineRoomRow({
 }) {
   const desc = room.desc?.trim();
   const fullLabel = roomSidebarDisplayName(room);
-  const number = numbersOnly ? adminRoomNumber(room) : null;
+  const holding = isHoldingRoom(room as RoomConfig);
+  /** «Нерозподілені» — лише іконка будинку, без довгого тексту у вузькій колонці. */
+  const iconOnly = numbersOnly && holding;
+  const number = numbersOnly && !holding ? adminRoomNumber(room) : null;
+
   return (
-    <div className={`timeline-room ${className}`.trim()} style={style}>
+    <div
+      className={`timeline-room ${className}`.trim()}
+      style={style}
+      title={iconOnly ? fullLabel : undefined}
+      aria-label={iconOnly ? fullLabel : undefined}
+    >
       <div
-        className={`timeline-room__label${number ? " timeline-room__label--number" : ""}`}
+        className={[
+          "timeline-room__label",
+          number ? "timeline-room__label--number" : "",
+          iconOnly ? "timeline-room__label--icon-only" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         {number ? null : (
           <RoomSidebarHouseIcon className="timeline-room__icon" />
         )}
-        <span
-          className={`timeline-room__name${number ? " timeline-room__name--number" : ""}`}
-          title={number ? fullLabel : undefined}
-        >
-          {number || fullLabel}
-        </span>
+        {iconOnly ? null : (
+          <span
+            className={`timeline-room__name${number ? " timeline-room__name--number" : ""}`}
+            title={number ? fullLabel : undefined}
+          >
+            {number || fullLabel}
+          </span>
+        )}
       </div>
-      {showDesc && desc && !compact ? (
+      {showDesc && desc && !compact && !iconOnly ? (
         <span className="timeline-room__desc">{desc}</span>
       ) : null}
     </div>

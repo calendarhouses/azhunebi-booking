@@ -12,6 +12,48 @@
   display: none !important;
 }
 
+.timeline-room .timeline-room__label--icon-only {
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+.timeline-room .timeline-room__label--icon-only .timeline-room__icon,
+.timeline-room .timeline-room__label--icon-only .room-sidebar-house-icon {
+  display: block !important;
+  margin: 0 auto;
+}
+
+/* Dense mobile hides house icons by default — keep them for «Нерозподілені». */
+.boso-admin-mobile .timeline-wrapper--mobile-dense
+  .timeline-room__label--icon-only
+  .timeline-room__icon,
+.boso-admin-mobile .timeline-wrapper--mobile-dense
+  .timeline-room__label--icon-only
+  .room-sidebar-house-icon,
+.boso-admin-android .timeline-wrapper--android
+  .timeline-room__label--icon-only
+  .timeline-room__icon,
+.boso-admin-android .timeline-wrapper--android
+  .timeline-room__label--icon-only
+  .room-sidebar-house-icon,
+.boso-admin-ios .timeline-wrapper--mobile-dense
+  .timeline-room__label--icon-only
+  .timeline-room__icon,
+.boso-admin-ios .timeline-wrapper--mobile-dense
+  .timeline-room__label--icon-only
+  .room-sidebar-house-icon {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  margin: 0 auto !important;
+}
+
+.timeline-room--holding.timeline-room .timeline-room__label--icon-only .timeline-room__icon {
+  color: #6b6b3d;
+}
+
 .timeline-room .timeline-room__label .timeline-room__name--number,
 .boso-admin-mobile .timeline-room .timeline-room__label .timeline-room__name--number {
   font-size: 16px !important;
