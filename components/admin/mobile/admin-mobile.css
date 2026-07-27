@@ -5326,7 +5326,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
   display: grid !important;
-  grid-template-columns: 88px var(--timeline-grid-width, max-content) !important;
+  grid-template-columns: var(--timeline-rooms-col, 88px) var(--timeline-grid-width, max-content) !important;
   grid-template-rows: var(--timeline-mobile-head-height, 56px) auto !important;
   box-sizing: border-box !important;
   /* sticky chrome requires this node NOT to clip; scrollport is .timeline-mobile-scroll */

@@ -361,7 +361,7 @@ export function DesktopRestrictionsGrid({
     const el = scrollRef.current;
     if (!el) return;
     // Only pull back if we overscrolled past the real board (phantom empty columns).
-    const maxLeft = Math.max(0, gridTotalWidth + 88 - el.clientWidth);
+    const maxLeft = Math.max(0, gridTotalWidth + 44 - el.clientWidth);
     if (el.scrollLeft > maxLeft + 1) el.scrollLeft = maxLeft;
   }, [gridTotalWidth]);
 
@@ -903,6 +903,7 @@ export function DesktopRestrictionsGrid({
   const sidebarHeader = (
     <TimelineSidebarHeader
       roomCount={activeRooms.length}
+      title="№"
       className={compactGrid ? "" : "price-grid-sidebar-header"}
       showFocusToggle={!isMobile}
       focusModeActive={isFocusMode}
@@ -919,6 +920,7 @@ export function DesktopRestrictionsGrid({
       room={room}
       className="price-grid-room"
       showDesc={!isMobile && !compactGrid}
+      numbersOnly
     />
   ));
 
@@ -991,6 +993,7 @@ export function DesktopRestrictionsGrid({
 
   const wrapperClassName = [
     "timeline-wrapper",
+    "timeline-wrapper--numbers",
     "price-grid-timeline",
     compactGrid
       ? "timeline-wrapper--compact timeline-wrapper--focus-layout price-grid-timeline--focus-root"
@@ -1199,6 +1202,7 @@ export function DesktopRestrictionsGrid({
           <div
             className={[
               "timeline-wrapper",
+              "timeline-wrapper--numbers",
               "price-grid-timeline",
               "timeline-wrapper--mobile-board",
               "price-grid-timeline--mobile-board",
@@ -1240,9 +1244,9 @@ export function DesktopRestrictionsGrid({
               <div
                 className="timeline-mobile-board"
                 style={{
-                  width: gridTotalWidth + 88,
-                  minWidth: gridTotalWidth + 88,
-                  maxWidth: gridTotalWidth + 88,
+                  width: gridTotalWidth + 44,
+                  minWidth: gridTotalWidth + 44,
+                  maxWidth: gridTotalWidth + 44,
                   minHeight: 0,
                   overflow: "visible",
                   boxSizing: "border-box",

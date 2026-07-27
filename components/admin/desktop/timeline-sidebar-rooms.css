@@ -58,12 +58,16 @@
   align-items: center;
 }
 
-/* Mobile шахматка: ~2× narrower № column (88 → 44) for single digits. */
-.boso-admin-mobile .timeline-wrapper--numbers.timeline-wrapper--mobile-board {
+/* Mobile шахматка / ціни / правила: ~2× narrower № column (88 → 44). */
+.boso-admin-mobile .timeline-wrapper--numbers.timeline-wrapper--mobile-board,
+.boso-admin-mobile .timeline-wrapper--numbers.price-grid-timeline--mobile-board {
   --timeline-rooms-col: 44px;
 }
 
 .boso-admin-mobile .timeline-wrapper--numbers.timeline-wrapper--mobile-board
+  .timeline-mobile-corner
+  .timeline-sidebar-header,
+.boso-admin-mobile .timeline-wrapper--numbers.price-grid-timeline--mobile-board
   .timeline-mobile-corner
   .timeline-sidebar-header {
   padding: 0 2px !important;
@@ -71,16 +75,23 @@
 
 .boso-admin-mobile .timeline-wrapper--numbers.timeline-wrapper--mobile-board
   .timeline-sidebar-header--khata
+  .timeline-sidebar-header__title,
+.boso-admin-mobile .timeline-wrapper--numbers.price-grid-timeline--mobile-board
+  .timeline-sidebar-header--khata
   .timeline-sidebar-header__title {
   font-size: 13px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--numbers.timeline-wrapper--mobile-board
+  .timeline-room,
+.boso-admin-mobile .timeline-wrapper--numbers.price-grid-timeline--mobile-board
   .timeline-room {
   padding: 0 2px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--numbers.timeline-wrapper--mobile-board
+  .timeline-room__name--number,
+.boso-admin-mobile .timeline-wrapper--numbers.price-grid-timeline--mobile-board
   .timeline-room__name--number {
   font-size: 14px !important;
 }
