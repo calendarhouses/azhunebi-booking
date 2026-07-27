@@ -110,6 +110,74 @@ function methodBucket(method: string | undefined): "cash" | "card" | "fop" {
   return "fop";
 }
 
+function isCancelledStatus(status: unknown): boolean {
+  return String(status || "").toLowerCase().includes("скас");
+}
+
+function isDraftStatus(status: unknown): boolean {
+  const s = String(status || "").toLowerCase();
+  return s.includes("нова");
+}
+
+function addBucket(
+  bucket: { cash: number; card: number; fop: number },
+  method: string | undefined,
+  amount: number
+) {
+  const rounded = Math.round(Number(amount) || 0);
+  if (rounded === 0) return;
+  bucket[methodBucket(method)] += rounded;
+}
+
+type DigestPayment = {
+  amount?: number | string;
+  method?: string;
+  date?: string;
+  type?: string;
+};
+
+type DigestBooking = Record<string, unknown> & {
+  status?: string;
+  createdAt?: string;
+  checkIn?: string;
+  prepayAmount?: number | string;
+  prepayMethod?: string;
+  surchargeAmount?: number | string;
+  surchargeMethod?: string;
+  payments?: DigestPayment[];
+};
+
+function bookingPaymentsForPeriod(
+  booking: DigestBooking,
+  start: string,
+  end: string
+): { cash: number; card: number; fop: number } {
+  const payments = { cash: 0, card: 0, fop: 0 };
+  if (Array.isArray(booking.payments) && booking.payments.length > 0) {
+    for (const p of booking.payments) {
+      const date = toDateKeyKyiv(p?.date);
+      if (!date || date < start || date > end) continue;
+      const amount = Math.round(Number(p?.amount) || 0);
+      // Refunds/negative corrections should reduce the received money for the period.
+      if (amount === 0) continue;
+      addBucket(payments, String(p?.method || ""), amount);
+    }
+    return payments;
+  }
+
+  // Legacy fallback for older rows without payment journal: only count money on
+  // the booking creation date, because exact payment dates are unknowable there.
+  const created = toDateKeyKyiv(booking.createdAt);
+  if (!created || created < start || created > end) return payments;
+  addBucket(payments, booking.prepayMethod, Math.round(Number(booking.prepayAmount) || 0));
+  addBucket(
+    payments,
+    booking.surchargeMethod,
+    Math.round(Number(booking.surchargeAmount) || 0)
+  );
+  return payments;
+}
+
 function calcFinanceStats(
   bookings: Array<Record<string, unknown>>,
   settings: Record<string, unknown>,
@@ -121,22 +189,20 @@ function calcFinanceStats(
   let bookingIncome = 0;
 
   for (const b of bookings) {
-    const status = String(b.status || "").toLowerCase();
-    if (status.includes("скас")) continue;
-    const checkIn = toDateKeyKyiv(String(b.checkIn || ""));
-    if (!checkIn || checkIn < start || checkIn > end) continue;
-    bookingsCount += 1;
-    const paid = Math.round(Number(b.paidAmount) || 0);
-    if (paid > 0) {
-      bookingIncome += paid;
-      const prepay = Math.round(Number(b.prepayAmount) || 0);
-      const surcharge = Math.round(Number(b.surchargeAmount) || 0);
-      payments[methodBucket(String(b.prepayMethod || ""))] += prepay;
-      payments[methodBucket(String(b.surchargeMethod || ""))] += surcharge;
-      const rest = paid - prepay - surcharge;
-      if (rest > 0) payments.fop += rest;
+    const booking = b as DigestBooking;
+    if (isCancelledStatus(booking.status)) continue;
+
+    const created = toDateKeyKyiv(booking.createdAt);
+    if (created && created >= start && created <= end && !isDraftStatus(booking.status)) {
+      bookingsCount += 1;
     }
+
+    const bookingPaymentParts = bookingPaymentsForPeriod(booking, start, end);
+    payments.cash += bookingPaymentParts.cash;
+    payments.card += bookingPaymentParts.card;
+    payments.fop += bookingPaymentParts.fop;
   }
+  bookingIncome = payments.cash + payments.card + payments.fop;
 
   let totalExpense = 0;
   let manualIncome = 0;

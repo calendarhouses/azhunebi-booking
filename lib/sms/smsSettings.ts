@@ -160,7 +160,7 @@ function formatDateShortUa(value?: string): string {
 
 export function buildSmsVarsFromBooking(
   booking: GasBookingRecord,
-  extras?: { payUrl?: string; site?: string },
+  extras?: { payUrl?: string; site?: string; cottage?: string },
 ): Record<string, string> {
   const firstName =
     String(booking.name || "Гість")
@@ -169,7 +169,7 @@ export function buildSmsVarsFromBooking(
 
   return {
     name: firstName,
-    cottage: booking.cottage || "котедж",
+    cottage: extras?.cottage || booking.cottage || "котедж",
     check_in: formatDateShortUa(booking.checkIn),
     check_out: formatDateShortUa(booking.checkOut),
     pay_url: extras?.payUrl || "",

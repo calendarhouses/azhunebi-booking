@@ -1,0 +1,14 @@
+/* Шахматка sidebar: numeric room column.
+   High-specificity selectors — the mobile theme pins `.timeline-room__name`
+   font sizes with !important through several layout variants. */
+
+.timeline-room .timeline-room__label .timeline-room__name--number,
+.boso-admin-mobile .timeline-room .timeline-room__label .timeline-room__name--number {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.01em !important;
+  font-variant-numeric: tabular-nums;
+  text-align: center !important;
+  color: #111827 !important;
+}

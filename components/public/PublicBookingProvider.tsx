@@ -77,6 +77,7 @@ import {
   resolveDiscountActive,
 } from "@/components/admin/desktop/settings/discountConfig";
 import { getRoomImages } from "@/lib/public-booking/roomHelpers";
+import { adminRoomCottageValue } from "@/lib/admin/roomDisplay";
 import { buildPublicReceiptHtml, buildPublicPendingReceiptHtml } from "@/lib/public-booking/publicReceipt";
 import {
   BOOKING_STATUS_PENDING_REVIEW,
@@ -1113,7 +1114,9 @@ export function PublicBookingProvider({
         tenant_id: data.tenantId,
         checkIn: formatDateKey(checkIn),
         checkOut: formatDateKey(checkOut),
-        cottage: selectedRoom.name,
+        // Chessboard name («Будиночок 7»), not the public listing name — the
+        // whole admin side and every notification key off this value.
+        cottage: adminRoomCottageValue(selectedRoom) || selectedRoom.name,
         roomId: selectedRoom.id,
         name: `${firstName} ${lastName}`.trim(),
         phone: formatUaPhoneE164(phone),
@@ -1163,7 +1166,8 @@ export function PublicBookingProvider({
         const sessionData = {
           orderId,
           flow,
-          cottage: payload.cottage,
+          // Guest-facing screens keep the public listing name.
+          cottage: selectedRoom.name,
           checkIn: payload.checkIn,
           checkOut: payload.checkOut,
           guests: guestCount,

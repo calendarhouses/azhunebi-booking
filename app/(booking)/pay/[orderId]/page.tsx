@@ -8,6 +8,7 @@ import {
 } from "@/lib/monopay/config";
 import { isMonoPartsConfigured } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
+import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   return (
     <PayBookingPage
       orderId={id}
-      cottage={booking.cottage || "Котедж"}
+      cottage={publicCottageLabel(booking, tenant?.rooms)}
       checkInLabel={formatDateUk(booking.checkIn)}
       checkOutLabel={formatDateUk(booking.checkOut)}
       prepayAmount={prepayAmount > 0 ? prepayAmount : totalPrice}

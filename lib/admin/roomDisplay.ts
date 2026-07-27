@@ -13,6 +13,18 @@ export function adminRoomLabel(
   return room.name?.trim() || "Назва житла";
 }
 
+/**
+ * Bare house number for the шахматка column ("Будиночок 7" → "7").
+ * Returns null when the label has no digits (e.g. «Нерозподілені») so the
+ * caller can fall back to the full name.
+ */
+export function adminRoomNumber(
+  room: Pick<RoomConfig, "name" | "short"> | null | undefined
+): string | null {
+  const match = adminRoomLabel(room).match(/\d+/);
+  return match ? match[0] : null;
+}
+
 /** Value stored on booking.cottage — chessboard name when available. */
 export function adminRoomCottageValue(
   room: Pick<RoomConfig, "name" | "short"> | null | undefined

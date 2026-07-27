@@ -2124,6 +2124,7 @@ export function DesktopTimelineView({
       room={room}
       className={isHoldingRoom(room) ? "timeline-room--holding" : ""}
       compact={denseRows}
+      numbersOnly
       showDesc={!isMobile && !compactGrid}
       style={{ height: rowHeight, minHeight: rowHeight, maxHeight: rowHeight }}
     />
@@ -2644,6 +2645,7 @@ export function DesktopTimelineView({
               <div className="timeline-mobile-corner">
                 <TimelineSidebarHeader
                   roomCount={activeRooms.length}
+                  title="№"
                   showFocusToggle={false}
                   {...sidebarUndoProps}
                 />
@@ -2676,6 +2678,7 @@ export function DesktopTimelineView({
               <div className="timeline-sidebar timeline-sidebar--focus-head">
                 <TimelineSidebarHeader
                   roomCount={activeRooms.length}
+                  title="№"
                   showFocusToggle={!isMobile}
                   {...sidebarUndoProps}
                 />
@@ -2724,6 +2727,7 @@ export function DesktopTimelineView({
             <div className="timeline-sidebar">
               <TimelineSidebarHeader
                 roomCount={activeRooms.length}
+                title="№"
                 showFocusToggle={!isMobile}
                 {...sidebarUndoProps}
               />

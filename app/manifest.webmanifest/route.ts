@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { BRAND_ICON_GREEN, brandManifestIcons } from "@/lib/brandIcons";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,29 +24,10 @@ function publicManifest() {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#F7F5F2",
+    background_color: BRAND_ICON_GREEN,
     theme_color: "#F7F5F2",
     lang: "uk",
-    icons: [
-      {
-        src: "/images/logo.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/images/logo.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/images/logo.png",
-        sizes: "180x180",
-        type: "image/png",
-        purpose: "maskable",
-      },
-    ],
+    icons: brandManifestIcons,
   };
 }
 
@@ -60,29 +42,10 @@ function adminManifest() {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#F7F8F6",
+    background_color: BRAND_ICON_GREEN,
     theme_color: "#556B2F",
     lang: "uk",
-    icons: [
-      {
-        src: "/images/admin-preloader-logo.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/images/admin-preloader-logo.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/images/admin-preloader-logo.png",
-        sizes: "180x180",
-        type: "image/png",
-        purpose: "maskable",
-      },
-    ],
+    icons: brandManifestIcons,
   };
 }
 

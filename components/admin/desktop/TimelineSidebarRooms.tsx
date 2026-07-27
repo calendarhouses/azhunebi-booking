@@ -6,7 +6,8 @@ import { RoomSidebarHouseIcon } from "@/components/ui/icons/RoomSidebarHouseIcon
 import { TimelineActionTooltip } from "./TimelineActionTooltip";
 import { useGridFocusModeOptional } from "./GridFocusModeContext";
 import type { RoomConfig } from "./types";
-import { adminRoomLabel } from "@/lib/admin/roomDisplay";
+import { adminRoomLabel, adminRoomNumber } from "@/lib/admin/roomDisplay";
+import "./timeline-sidebar-rooms.css";
 
 export function timelineRoomsHeading(): "Будинки" {
   return "Будинки";
@@ -19,6 +20,7 @@ export function roomSidebarDisplayName(room: Pick<RoomConfig, "name" | "short">)
 
 export function TimelineSidebarHeader({
   roomCount: _roomCount,
+  title,
   className = "",
   showFocusToggle = false,
   focusModeActive,
@@ -28,6 +30,8 @@ export function TimelineSidebarHeader({
   isUndoing = false,
 }: {
   roomCount?: number;
+  /** Column caption; defaults to «Будинки» (шахматка passes «№»). */
+  title?: string;
   className?: string;
   showFocusToggle?: boolean;
   /** Локальний toggle (напр. сітка цін), без GridFocusModeContext */
@@ -44,7 +48,9 @@ export function TimelineSidebarHeader({
 
   return (
     <div className={`timeline-sidebar-header timeline-sidebar-header--khata ${className}`.trim()}>
-      <span className="timeline-sidebar-header__title">{timelineRoomsHeading()}</span>
+      <span className="timeline-sidebar-header__title">
+        {title || timelineRoomsHeading()}
+      </span>
       <div className="timeline-sidebar-header__actions">
         {onUndoMove ? (
           <TimelineActionTooltip
@@ -100,20 +106,30 @@ export function TimelineRoomRow({
   className = "",
   showDesc = true,
   compact = false,
+  numbersOnly = false,
   style,
 }: {
   room: Pick<RoomConfig, "name" | "short" | "desc">;
   className?: string;
   showDesc?: boolean;
   compact?: boolean;
+  /** Шахматка shows only the house number; other grids keep the full name. */
+  numbersOnly?: boolean;
   style?: CSSProperties;
 }) {
   const desc = room.desc?.trim();
+  const fullLabel = roomSidebarDisplayName(room);
+  const number = numbersOnly ? adminRoomNumber(room) : null;
   return (
     <div className={`timeline-room ${className}`.trim()} style={style}>
       <div className="timeline-room__label">
         <RoomSidebarHouseIcon className="timeline-room__icon" />
-        <span className="timeline-room__name">{roomSidebarDisplayName(room)}</span>
+        <span
+          className={`timeline-room__name${number ? " timeline-room__name--number" : ""}`}
+          title={number ? fullLabel : undefined}
+        >
+          {number || fullLabel}
+        </span>
       </div>
       {showDesc && desc && !compact ? (
         <span className="timeline-room__desc">{desc}</span>

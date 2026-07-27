@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { AdminShell } from "@/components/auth/AdminShell";
+import { brandIconMetadata } from "@/lib/brandIcons";
 import "@/components/admin/admin-preloader.css";
 import "./admin-isolation.css";
 
 export const metadata: Metadata = {
   title: "Панель Управління",
   description: "Панель управління",
-  appleWebApp: { title: "Панель Управління" },
+  applicationName: "Адмінка",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { title: "Адмінка", capable: true },
+  icons: brandIconMetadata,
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

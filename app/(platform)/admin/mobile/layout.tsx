@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { brandIconMetadata } from "@/lib/brandIcons";
 import "flatpickr/dist/flatpickr.min.css";
 import "../admin-isolation.css";
 import "@/components/admin/admin-tokens.css";
@@ -21,10 +22,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  icons: {
-    icon: [{ url: "/images/admin-preloader-logo.png", type: "image/png" }],
-    apple: [{ url: "/images/admin-preloader-logo.png" }],
-  },
+  icons: brandIconMetadata,
 };
 
 export const viewport: Viewport = {

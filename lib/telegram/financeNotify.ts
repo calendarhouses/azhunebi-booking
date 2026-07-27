@@ -31,7 +31,7 @@ export function buildFinancePeriodCaption(
   return (
     `${titleEmoji} <b>${escapeHtml(title)}</b>\n` +
     `<i>${escapeHtml(periodLabel)}</i>\n\n` +
-    `📝 Заїздів: <b>${stats.bookingsCount}</b>\n` +
+    `📝 Нових бронювань: <b>${stats.bookingsCount}</b>\n` +
     `💰 Дохід: <b>${formatMoneyUa(stats.totalIncome)}</b>\n` +
     `💵 Готівка: <b>${formatMoneyUa(stats.payments.cash)}</b>\n` +
     `💳 Картка: <b>${formatMoneyUa(stats.payments.card)}</b>\n` +
@@ -155,6 +155,7 @@ export async function sendEveningCashSummary(
     const created = toDateKeyKyiv(b.createdAt);
     if (created !== today) continue;
     if (String(b.status || "").toLowerCase().includes("скас")) continue;
+    if (String(b.status || "").toLowerCase().includes("нова")) continue;
     newBookingsCount += 1;
 
     if (Array.isArray(b.payments) && b.payments.length) {

@@ -11,6 +11,7 @@ import {
   renderSmsTemplate,
 } from "./smsSettings";
 import { makeSmsJournalEntry, recordSmsJournalEntry } from "./smsJournal";
+import { guestCottageLabel } from "./guestCottageLabel";
 
 const UK_MONTHS = [
   "січня", "лютого", "березня", "квітня", "травня", "червня",
@@ -24,14 +25,17 @@ function formatGuestDateShort(value?: string): string {
   return `${d.getDate()} ${UK_MONTHS[d.getMonth()]}`;
 }
 
-function buildRejectVars(booking: GuestMessengerBooking): Record<string, string> {
+function buildRejectVars(
+  booking: GuestMessengerBooking,
+  cottage?: string,
+): Record<string, string> {
   const firstName =
     String(booking.name || "Гість")
       .trim()
       .split(/\s+/)[0] || "Гість";
   return {
     name: firstName,
-    cottage: booking.cottage || "обраний будинок",
+    cottage: cottage || booking.cottage || "обраний будинок",
     check_in: formatGuestDateShort(booking.checkIn),
     check_out: formatGuestDateShort(booking.checkOut),
   };
@@ -48,10 +52,11 @@ function journalWebhookSecret(): string {
 export function buildGuestRejectedSmsText(
   booking: GuestMessengerBooking,
   smsSettings?: SmsSettings,
+  cottage?: string,
 ): string {
   const settings = smsSettings ?? normalizeSmsSettings(undefined);
   const template = settings.templates.reject;
-  return renderSmsTemplate(template.text, buildRejectVars(booking));
+  return renderSmsTemplate(template.text, buildRejectVars(booking, cottage));
 }
 
 export async function sendBookingRejectedSms(
@@ -70,7 +75,10 @@ export async function sendBookingRejectedSms(
     return { ok: false, error: "missing phone" };
   }
 
-  const text = buildGuestRejectedSmsText(booking, settings);
+  const cottage = template.text.includes("{cottage}")
+    ? await guestCottageLabel(booking)
+    : undefined;
+  const text = buildGuestRejectedSmsText(booking, settings, cottage);
   const orderId = String(booking.id || "").trim();
   const result = await sendTurboSms({
     phone,

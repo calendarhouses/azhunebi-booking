@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BRAND_ICONS } from "@/lib/brandIcons";
 
 /**
  * Ізольований root-layout для публічного сайту бронювання.
@@ -20,8 +21,10 @@ export default function BookRootLayout({ children }: { children: ReactNode }) {
         <meta name="apple-mobile-web-app-title" content="АЖ У НЕБІ" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="apple-touch-icon" href="/images/logo.png" />
-        <link rel="icon" type="image/png" href="/images/logo.png" />
+        <link rel="icon" href={BRAND_ICONS.favicon} sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href={BRAND_ICONS.icon32} />
+        <link rel="icon" type="image/png" sizes="192x192" href={BRAND_ICONS.icon192} />
+        <link rel="apple-touch-icon" sizes="180x180" href={BRAND_ICONS.icon180} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

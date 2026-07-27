@@ -17,6 +17,7 @@ import {
   buildSmsVarsFromBooking,
 } from "./smsSettings";
 import { makeSmsJournalEntry, recordSmsJournalEntry } from "./smsJournal";
+import { guestCottageLabel } from "./guestCottageLabel";
 
 export type BookingLifecycleSmsType = "payment_link" | "success" | "expiry";
 
@@ -48,6 +49,7 @@ export function buildBookingLifecycleSmsText(
   booking: GasBookingRecord,
   type: BookingLifecycleSmsType,
   smsSettings?: SmsSettings,
+  cottage?: string,
 ): string {
   const settings = smsSettings ?? normalizeSmsSettings(undefined);
   const template = settings.templates[type];
@@ -57,7 +59,7 @@ export function buildBookingLifecycleSmsText(
     ? `${getPublicOrigin()}/pay/${encodeURIComponent(orderId)}`
     : getPublicOrigin();
 
-  const vars = buildSmsVarsFromBooking(booking, { payUrl });
+  const vars = buildSmsVarsFromBooking(booking, { payUrl, cottage });
   return renderSmsTemplate(template.text, vars);
 }
 
@@ -99,7 +101,12 @@ export async function sendBookingLifecycleSms(
     }
   }
 
-  const text = buildBookingLifecycleSmsText(booking, type, settings);
+  // Guests only ever saw the public listing name — resolve it, but skip the
+  // lookup entirely when the template has no {cottage} placeholder.
+  const cottage = template.text.includes("{cottage}")
+    ? await guestCottageLabel(booking)
+    : undefined;
+  const text = buildBookingLifecycleSmsText(booking, type, settings, cottage);
 
   const result = await sendTurboSms({
     phone,
