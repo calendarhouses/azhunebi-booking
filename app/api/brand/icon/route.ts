@@ -64,9 +64,15 @@ async function loadLogoBuffer(logoUrl: string, size: number): Promise<Buffer | n
 
 async function composeHomeIcon(logo: Buffer, size: number): Promise<Buffer> {
   const color = parseHexColor(BRAND_ICON_GREEN);
-  const pad = Math.round(size * 0.12);
+  // Trim baked-in transparent margins so the mark fills more of the plate.
+  // ~5% edge keeps a thin green rim without looking tiny on Android/iOS.
+  const pad = Math.round(size * 0.05);
   const inner = Math.max(1, size - pad * 2);
-  const resized = await sharp(logo)
+  const trimmed = await sharp(logo)
+    .trim({ threshold: 8 })
+    .png()
+    .toBuffer();
+  const resized = await sharp(trimmed)
     .resize(inner, inner, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer();

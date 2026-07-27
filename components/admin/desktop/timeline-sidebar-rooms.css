@@ -22,3 +22,38 @@
   text-align: center !important;
   color: #111827 !important;
 }
+
+/* Desktop: narrow № column — frees calendar space (was 220px for full names). */
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-sidebar,
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-sidebar--focus-head,
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-sidebar--focus-body {
+  /* Fits «№» + undo/focus icons; still ~2× narrower than the old 220px name column. */
+  width: 96px;
+  --timeline-sidebar-padding-inline: 6px;
+}
+
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-sidebar-header--khata {
+  gap: 4px;
+  padding-inline: 6px;
+}
+
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board)
+  .timeline-sidebar-header--khata
+  .timeline-sidebar-header__title {
+  font-size: 15px;
+}
+
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-sidebar-header__actions {
+  gap: 4px;
+}
+
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-undo-btn,
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-focus-toggle {
+  width: 26px;
+  height: 26px;
+}
+
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-room {
+  padding-inline: 4px;
+  align-items: center;
+}

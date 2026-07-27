@@ -2433,6 +2433,7 @@ export function DesktopTimelineView({
 
   const wrapperClassName = [
     "timeline-wrapper",
+    "timeline-wrapper--numbers",
     isBookingDragging ? "timeline-wrapper--booking-drag" : "",
     stickyChrome ? "timeline-wrapper--focus-layout" : "",
     compactGrid ? "timeline-wrapper--compact" : "",
