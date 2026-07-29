@@ -107,11 +107,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "TELEGRAM_NOT_CONFIGURED" }, { status: 503 });
   }
 
-  const body = await request.json().catch(() => ({}));
-  // editOnly=true means only edit messages we already have message_id for (no new sends).
-  // Used by the manual "Оновити" button to prevent duplicates.
-  // Auto-triggers pass editOnly=false so genuinely new bookings get sent once.
-  const editOnly = body?.editOnly === true;
+  await request.json().catch(() => ({}));
+  // ALWAYS edit-only until state persistence is confirmed working.
+  const editOnly = true;
 
   const digest = await fetchCronTelegramDigest();
   const bookings = (digest.bookings || []) as ArrivalDepartureBooking[];
@@ -248,6 +246,19 @@ export async function POST(request: Request) {
     await upsertTelegramTurnoversState(updatedDay, patch);
   }
 
+  // Try to write state directly and read it back for diagnosis
+  let writeTestResult = "not_tested";
+  if (Object.keys(patch).length > 0) {
+    try {
+      await upsertTelegramTurnoversState(updatedDay, patch);
+      writeTestResult = "write_ok";
+    } catch (err) {
+      writeTestResult = `write_failed: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  }
+
+  const allSettingsKeys = Object.keys(settings);
+
   const result = {
     ok: true,
     edited,
@@ -262,8 +273,12 @@ export async function POST(request: Request) {
       currentArrivals: arrivalItems.filter(i => i.kind === "arrival").length,
       currentDepartures: arrivalItems.filter(i => i.kind === "departure").length,
       rawStateType: typeof (settings as any).telegramTurnoversState,
-      rawStateSnippet: JSON.stringify((settings as any).telegramTurnoversState)?.slice(0, 300) || "undefined",
+      rawStateSnippet: JSON.stringify((settings as any).telegramTurnoversState)?.slice(0, 500) || "undefined",
       editOnly,
+      writeTestResult,
+      settingsHasKey: "telegramTurnoversState" in settings,
+      allSettingsKeys: allSettingsKeys.filter(k => k.includes("telegram") || k.includes("Telegram")),
+      patchKeys: Object.keys(patch),
     },
   };
 
