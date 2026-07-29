@@ -105,11 +105,11 @@ body.public-booking-page.boso-public-mobile.ready {
 .public-mobile-brand__logo {
     width: 48px;
     height: 48px;
-    border-radius: 14px;
+    border-radius: 0;
     object-fit: contain;
-    background: #fff;
-    border: 1px solid var(--border);
-    box-shadow: var(--mobile-shadow);
+    background: transparent;
+    border: none;
+    box-shadow: none;
     flex-shrink: 0;
 }
 .public-mobile-brand__text {
@@ -138,36 +138,20 @@ body.public-booking-page.boso-public-mobile.ready {
     height: 42px;
     border-radius: 14px;
     text-decoration: none;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-    -webkit-tap-highlight-color: transparent;
-}
-.public-mobile-brand__action:active {
-    transform: scale(0.94);
-}
-.public-mobile-brand__action--phone {
     color: #095237;
     background: linear-gradient(180deg, #ffffff 0%, #f3f7f4 100%);
     border: 1px solid rgba(9, 82, 55, 0.14);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.9) inset,
       0 6px 16px rgba(18, 26, 18, 0.07);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
 }
-.public-mobile-brand__action--message {
-    color: #0f4c81;
-    background: linear-gradient(180deg, #ffffff 0%, #f0f6fb 100%);
-    border: 1px solid rgba(15, 76, 129, 0.14);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 6px 16px rgba(18, 26, 18, 0.07);
+.public-mobile-brand__action:active {
+    transform: scale(0.94);
 }
-.public-mobile-brand__action--phone:hover {
+.public-mobile-brand__action:hover {
     background: linear-gradient(180deg, #ffffff 0%, #eef5f0 100%);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.95) inset,
-      0 8px 20px rgba(18, 26, 18, 0.1);
-}
-.public-mobile-brand__action--message:hover {
-    background: linear-gradient(180deg, #ffffff 0%, #e8f2fa 100%);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.95) inset,
       0 8px 20px rgba(18, 26, 18, 0.1);

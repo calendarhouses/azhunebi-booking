@@ -3,6 +3,8 @@
 import { MessageCircle, Phone } from "lucide-react";
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
+import { toImageDisplaySrc } from "@/lib/driveImageUrl";
+import { BRAND_ICONS } from "@/lib/brandIcons";
 import { usePublicBooking } from "./PublicBookingProvider";
 import {
   PublicAvailabilityFilter,
@@ -26,7 +28,11 @@ export function PublicMobileSite() {
     successFlow,
   } = usePublicBooking();
 
-  const logoUrl = (runtime?.branding.logo_url as string) || null;
+  const logoUrl = (() => {
+    const raw = String(runtime?.branding?.logo_url || "").trim();
+    if (raw) return toImageDisplaySrc(raw, 128);
+    return BRAND_ICONS.icon192;
+  })();
   const siteTitle = (runtime?.branding.site_title as string) || runtime?.tenantName || null;
   const brandName = siteTitle || runtime?.tenantName || "Бронювання";
   const contactDigits = normalizeGuestPhone(
@@ -41,29 +47,27 @@ export function PublicMobileSite() {
 
   return (
     <>
-      <PublicPreloader visible={preloaderVisible} logoUrl={logoUrl} alt={siteTitle} />
+      <PublicPreloader visible={preloaderVisible} logoUrl={runtime?.branding?.logo_url as string | null} alt={siteTitle} />
 
       <div id="screen-list" className={`screen ${activeScreen === "list" ? "active" : ""}`}>
         <header className="public-mobile-brand">
           <div className="public-mobile-brand__inner">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="public-mobile-brand__logo" src={logoUrl} alt={brandName} />
-            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="public-mobile-brand__logo" src={logoUrl} alt={brandName} />
             <div className="public-mobile-brand__text">
               <h1 className="public-mobile-brand__title">{brandName}</h1>
             </div>
             {hasContact ? (
               <div className="public-mobile-brand__actions">
                 <a
-                  className="public-mobile-brand__action public-mobile-brand__action--phone"
+                  className="public-mobile-brand__action"
                   href={telHref}
                   aria-label="Зателефонувати"
                 >
                   <Phone size={18} strokeWidth={2.25} aria-hidden />
                 </a>
                 <a
-                  className="public-mobile-brand__action public-mobile-brand__action--message"
+                  className="public-mobile-brand__action"
                   href={telegramHref}
                   target="_blank"
                   rel="noopener noreferrer"
