@@ -115,9 +115,20 @@ export async function editTelegramMessage(
     disable_web_page_preview: true,
   };
   if (keyboard) payload.reply_markup = keyboard;
-  await fetch(`https://api.telegram.org/bot${cfg.botToken}/editMessageText`, {
+  const res = await fetch(`https://api.telegram.org/bot${cfg.botToken}/editMessageText`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+
+  if (!res.ok) {
+    // Telegram returns JSON even for 4xx; read it to expose the real reason.
+    const body = await res.json().catch(() => null);
+    const desc =
+      (body && typeof body === "object" && (body as any).description) ||
+      (body && typeof body === "object" && (body as any).error) ||
+      res.statusText ||
+      `HTTP ${res.status}`;
+    throw new Error(desc);
+  }
 }
