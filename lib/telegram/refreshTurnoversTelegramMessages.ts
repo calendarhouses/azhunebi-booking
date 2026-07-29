@@ -8,6 +8,7 @@ import {
 } from "./cleaningArrivalNotify";
 import {
   compareByCottageNumber,
+  escapeHtml,
   isConfirmedBookingStatus,
   toDateKeyKyiv,
   todayKeyKyiv,
@@ -59,9 +60,14 @@ export async function refreshTurnoversTelegramMessages(args: {
 
   const patch: TelegramTurnoversStatePatch = {};
 
+  const currentArrivalIds = new Set<string>();
+  const currentDepartureIds = new Set<string>();
+
   for (const item of arrivalItems) {
     const bId = bKey(item.booking);
     if (!bId) continue;
+    if (item.kind === "arrival") currentArrivalIds.add(bId);
+    else currentDepartureIds.add(bId);
 
     const caption = buildArrivalDepartureCaption(item.booking, item.kind);
     const kindMap = item.kind === "arrival" ? storedArrivals : storedDepartures;
@@ -84,6 +90,32 @@ export async function refreshTurnoversTelegramMessages(args: {
     } else {
       skipped += 1;
     }
+  }
+
+  // Stale arrival messages
+  for (const [bId, ref] of Object.entries(storedArrivals)) {
+    if (!ref?.messageId) continue;
+    if (currentArrivalIds.has(bId)) continue;
+    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
+    const label = booking?.cottage || bId;
+    await editTelegramMessage(
+      ref.chatId ?? arrivalTargets.chatId, ref.messageId,
+      `🛎 <b>ЗАЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`
+    ).catch(() => undefined);
+    edited += 1;
+  }
+
+  // Stale departure messages
+  for (const [bId, ref] of Object.entries(storedDepartures)) {
+    if (!ref?.messageId) continue;
+    if (currentDepartureIds.has(bId)) continue;
+    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
+    const label = booking?.cottage || bId;
+    await editTelegramMessage(
+      ref.chatId ?? arrivalTargets.chatId, ref.messageId,
+      `🛎 <b>ВИЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`
+    ).catch(() => undefined);
+    edited += 1;
   }
 
   const currentCottages = new Set(turnovers.map((t) => cKey(t.cottage)));
@@ -116,7 +148,7 @@ export async function refreshTurnoversTelegramMessages(args: {
     if (currentCottages.has(ck)) continue;
     await editTelegramMessage(
       ref.chatId ?? cleaningTargets.chatId, ref.messageId,
-      `🛎 <b>СЬОГОДНІ ПОВОРОТІВ НЕМАЄ | ${ck}</b>`
+      `🛎 <b>ПРИБИРАННЯ СКАСОВАНО | ${ck}</b>`
     ).catch(() => undefined);
     edited += 1;
   }

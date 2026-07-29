@@ -10,6 +10,7 @@ import {
   groupCleaningTurnoversByCottage,
 } from "@/lib/telegram/cleaningArrivalNotify";
 import {
+  escapeHtml,
   isConfirmedBookingStatus,
   toDateKeyKyiv,
   todayKeyKyiv,
@@ -138,9 +139,15 @@ export async function POST(request: Request) {
 
   const patch: TelegramTurnoversStatePatch = {};
 
+  // Track current booking+kind so we can detect stale stored messages.
+  const currentArrivalIds = new Set<string>();
+  const currentDepartureIds = new Set<string>();
+
   for (const item of arrivalItems) {
     const bId = bookingIdKey(item.booking);
     if (!bId) continue;
+    if (item.kind === "arrival") currentArrivalIds.add(bId);
+    else currentDepartureIds.add(bId);
 
     const caption = buildArrivalDepartureCaption(item.booking, item.kind);
     const kindMap = item.kind === "arrival" ? storedArrivals : storedDepartures;
@@ -155,7 +162,6 @@ export async function POST(request: Request) {
       ).catch(() => undefined);
       edited += 1;
     } else if (!editOnly) {
-      // Auto-trigger: send once and persist message_id for future edits.
       const res = await sendTelegramMessage(
         caption,
         keyboard,
@@ -174,6 +180,32 @@ export async function POST(request: Request) {
         }
       }
     }
+  }
+
+  // Stale arrival messages: booking no longer has arrival today.
+  for (const [bId, ref] of Object.entries(storedArrivals)) {
+    if (!ref?.messageId) continue;
+    if (currentArrivalIds.has(bId)) continue;
+    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
+    const label = booking?.cottage || bId;
+    await editTelegramMessage(
+      ref.chatId ?? arrivalsTargets.chatId, ref.messageId,
+      `🛎 <b>ЗАЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`
+    ).catch(() => undefined);
+    edited += 1;
+  }
+
+  // Stale departure messages: booking no longer has departure today.
+  for (const [bId, ref] of Object.entries(storedDepartures)) {
+    if (!ref?.messageId) continue;
+    if (currentDepartureIds.has(bId)) continue;
+    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
+    const label = booking?.cottage || bId;
+    await editTelegramMessage(
+      ref.chatId ?? arrivalsTargets.chatId, ref.messageId,
+      `🛎 <b>ВИЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`
+    ).catch(() => undefined);
+    edited += 1;
   }
 
   // Cleaning turnovers
@@ -204,8 +236,10 @@ export async function POST(request: Request) {
   for (const [cKey, ref] of Object.entries(storedCleaning)) {
     if (!ref?.messageId) continue;
     if (currentCottageKeys.has(cKey)) continue;
-    const caption = `🛎 <b>СЬОГОДНІ ПОВОРОТІВ НЕМАЄ | ${cKey}</b>`;
-    await editTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId, caption).catch(() => undefined);
+    await editTelegramMessage(
+      ref.chatId ?? cleaningTargets.chatId, ref.messageId,
+      `🛎 <b>ПРИБИРАННЯ СКАСОВАНО | ${cKey}</b>`
+    ).catch(() => undefined);
     edited += 1;
   }
 
