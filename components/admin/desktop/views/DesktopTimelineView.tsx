@@ -855,7 +855,7 @@ export function DesktopTimelineView({
         fetch("/api/admin/telegram/refresh-turnovers", {
           method: "POST",
           headers: commonHeaders,
-          body: JSON.stringify({ editOnly: true }),
+          body: JSON.stringify({}),
         }),
         fetch("/api/admin/telegram/refresh-bookings", {
           method: "POST",

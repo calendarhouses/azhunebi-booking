@@ -290,7 +290,6 @@ async function runJobs(force?: string | null) {
     results.turnoversRefresh = await refreshTurnoversTelegramMessages({
       bookings: bookings as any,
       settings,
-      editOnly: true,
     });
   }
   if (!force || force === "debt") {
