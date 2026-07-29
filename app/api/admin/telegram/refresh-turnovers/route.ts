@@ -248,11 +248,17 @@ export async function POST(request: Request) {
 
   // Always persist — even empty patch creates the Settings row for the first time.
   let writeTestResult = "not_tested";
+  let readBackSnippet = "not_tested";
   try {
     await upsertTelegramTurnoversState(updatedDay, patch);
     writeTestResult = Object.keys(patch).length > 0
       ? `write_ok_patch_${JSON.stringify(Object.keys(patch))}`
       : "write_ok_init";
+
+    // Read back immediately to verify the write actually persisted.
+    const verifyDigest = await fetchCronTelegramDigest();
+    const verifyRaw = (verifyDigest.settings as any)?.telegramTurnoversState;
+    readBackSnippet = JSON.stringify(verifyRaw)?.slice(0, 500) || "undefined";
   } catch (err) {
     writeTestResult = `write_failed: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -279,6 +285,7 @@ export async function POST(request: Request) {
       settingsHasKey: "telegramTurnoversState" in settings,
       allSettingsKeys: allSettingsKeys.filter(k => k.includes("telegram") || k.includes("Telegram")),
       patchKeys: Object.keys(patch),
+      readBackSnippet,
     },
   };
 
