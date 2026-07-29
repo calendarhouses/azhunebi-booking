@@ -112,7 +112,10 @@ body.public-booking-page.boso-public-mobile.ready {
     box-shadow: var(--mobile-shadow);
     flex-shrink: 0;
 }
-.public-mobile-brand__text { min-width: 0; }
+.public-mobile-brand__text {
+    min-width: 0;
+    flex: 1;
+}
 .public-mobile-brand__title {
     font-size: 22px;
     font-weight: 800;
@@ -120,11 +123,54 @@ body.public-booking-page.boso-public-mobile.ready {
     line-height: 1.15;
     color: var(--text);
 }
-.public-mobile-brand__sub {
-    margin-top: 4px;
-    font-size: 13px;
-    color: var(--muted);
-    font-weight: 500;
+.public-mobile-brand__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+.public-mobile-brand__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.public-mobile-brand__action:active {
+    transform: scale(0.94);
+}
+.public-mobile-brand__action--phone {
+    color: #095237;
+    background: linear-gradient(180deg, #ffffff 0%, #f3f7f4 100%);
+    border: 1px solid rgba(9, 82, 55, 0.14);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 6px 16px rgba(18, 26, 18, 0.07);
+}
+.public-mobile-brand__action--message {
+    color: #0f4c81;
+    background: linear-gradient(180deg, #ffffff 0%, #f0f6fb 100%);
+    border: 1px solid rgba(15, 76, 129, 0.14);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 6px 16px rgba(18, 26, 18, 0.07);
+}
+.public-mobile-brand__action--phone:hover {
+    background: linear-gradient(180deg, #ffffff 0%, #eef5f0 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.95) inset,
+      0 8px 20px rgba(18, 26, 18, 0.1);
+}
+.public-mobile-brand__action--message:hover {
+    background: linear-gradient(180deg, #ffffff 0%, #e8f2fa 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.95) inset,
+      0 8px 20px rgba(18, 26, 18, 0.1);
 }
 
 /* Offset under fixed header: safe-top + padding + logo row */

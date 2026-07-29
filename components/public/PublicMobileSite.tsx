@@ -1,6 +1,8 @@
 "use client";
 
+import { MessageCircle, Phone } from "lucide-react";
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
+import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { usePublicBooking } from "./PublicBookingProvider";
 import {
   PublicAvailabilityFilter,
@@ -27,6 +29,12 @@ export function PublicMobileSite() {
   const logoUrl = (runtime?.branding.logo_url as string) || null;
   const siteTitle = (runtime?.branding.site_title as string) || runtime?.tenantName || null;
   const brandName = siteTitle || runtime?.tenantName || "Бронювання";
+  const contactDigits = normalizeGuestPhone(
+    String(runtime?.branding?.contact_phone || "")
+  );
+  const hasContact = contactDigits.length >= 10;
+  const telHref = hasContact ? `tel:+${contactDigits}` : "";
+  const telegramHref = hasContact ? `https://t.me/+${contactDigits}` : "";
   const rooms = filteredRooms;
   const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
   const showLoading = !runtime || runtime.rooms.length === 0;
@@ -44,8 +52,27 @@ export function PublicMobileSite() {
             ) : null}
             <div className="public-mobile-brand__text">
               <h1 className="public-mobile-brand__title">{brandName}</h1>
-              <p className="public-mobile-brand__sub">Оберіть дати перебування</p>
             </div>
+            {hasContact ? (
+              <div className="public-mobile-brand__actions">
+                <a
+                  className="public-mobile-brand__action public-mobile-brand__action--phone"
+                  href={telHref}
+                  aria-label="Зателефонувати"
+                >
+                  <Phone size={18} strokeWidth={2.25} aria-hidden />
+                </a>
+                <a
+                  className="public-mobile-brand__action public-mobile-brand__action--message"
+                  href={telegramHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Написати в Telegram"
+                >
+                  <MessageCircle size={18} strokeWidth={2.25} aria-hidden />
+                </a>
+              </div>
+            ) : null}
           </div>
         </header>
 
