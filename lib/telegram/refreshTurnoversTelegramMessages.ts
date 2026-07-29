@@ -13,8 +13,13 @@ import {
   todayKeyKyiv,
 } from "./formatters";
 import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured } from "./config";
-import { editTelegramMessage } from "./sendMessage";
-import { type TelegramMessageRef, type TelegramTurnoversState } from "./turnoversState";
+import { editTelegramMessage, sendTelegramMessage } from "./sendMessage";
+import {
+  upsertTelegramTurnoversState,
+  type TelegramMessageRef,
+  type TelegramTurnoversState,
+  type TelegramTurnoversStatePatch,
+} from "./turnoversState";
 
 export async function refreshTurnoversTelegramMessages(args: {
   bookings: ArrivalDepartureBooking[];
@@ -39,21 +44,20 @@ export async function refreshTurnoversTelegramMessages(args: {
   const cleaningTargets = getCleaningTargets();
   const keyboard = chessboardKeyboard();
 
-  const arrivalItems = collectTodayArrivalDepartureItems(
-    bookings,
-    updatedDay
-  );
+  const arrivalItems = collectTodayArrivalDepartureItems(bookings, updatedDay);
   const turnovers = groupCleaningTurnoversByCottage(bookings, updatedDay);
 
   let edited = 0;
+  let sent = 0;
+
+  const patch: TelegramTurnoversStatePatch = {};
 
   for (const item of arrivalItems) {
     const bId = bookingIdKey(item.booking);
     if (!bId) continue;
 
     const caption = buildArrivalDepartureCaption(item.booking, item.kind);
-    const kindMap =
-      item.kind === "arrival" ? storedArrivals : storedDepartures;
+    const kindMap = item.kind === "arrival" ? storedArrivals : storedDepartures;
     const ref = kindMap[bId] as TelegramMessageRef | undefined;
 
     if (ref?.messageId != null) {
@@ -64,13 +68,28 @@ export async function refreshTurnoversTelegramMessages(args: {
         keyboard
       ).catch(() => undefined);
       edited += 1;
-      continue;
+    } else {
+      // New booking — send once and persist message_id for future edits.
+      const res = await sendTelegramMessage(
+        caption,
+        keyboard,
+        arrivalTargets.chatId,
+        arrivalTargets.threadId
+      );
+      const newRef = await extractRef(res, arrivalTargets.chatId);
+      if (newRef) {
+        sent += 1;
+        if (item.kind === "arrival") {
+          patch.arrivals = patch.arrivals || {};
+          patch.arrivals[bId] = newRef;
+        } else {
+          patch.departures = patch.departures || {};
+          patch.departures[bId] = newRef;
+        }
+      }
     }
-    // Edit-only mode: if we don't have saved message ids, do not send a new message.
-    // This prevents duplicates when refreshes overlap.
   }
 
-  // Cleaning: edit both current and stale stored cottages for this day.
   const currentCottageKeys = new Set(turnovers.map((t) => cottageKey(t.cottage)));
 
   for (const turnover of turnovers) {
@@ -79,6 +98,7 @@ export async function refreshTurnoversTelegramMessages(args: {
 
     const caption = buildCleaningTurnoverCaption(turnover);
     const ref = storedCleaning[cKey] as TelegramMessageRef | undefined;
+
     if (ref?.messageId != null) {
       await editTelegramMessage(
         ref.chatId ?? cleaningTargets.chatId,
@@ -86,9 +106,15 @@ export async function refreshTurnoversTelegramMessages(args: {
         caption
       ).catch(() => undefined);
       edited += 1;
-      continue;
+    } else {
+      const res = await sendTelegramMessage(caption, undefined, cleaningTargets.chatId, cleaningTargets.threadId);
+      const newRef = await extractRef(res, cleaningTargets.chatId);
+      if (newRef) {
+        sent += 1;
+        patch.cleaning = patch.cleaning || {};
+        patch.cleaning[cKey] = newRef;
+      }
     }
-    // Edit-only mode: skip sending if we don't have saved refs.
   }
 
   // Stale cleaning messages: cottage no longer has turnovers today.
@@ -105,7 +131,12 @@ export async function refreshTurnoversTelegramMessages(args: {
     edited += 1;
   }
 
-  return { edited, sent: 0, updatedDay };
+  // Persist new message_ids so next refresh will edit instead of send.
+  if (Object.keys(patch).length > 0) {
+    await upsertTelegramTurnoversState(updatedDay, patch);
+  }
+
+  return { edited, sent, updatedDay };
 }
 
 function bookingIdKey(booking: ArrivalDepartureBooking): string | null {
@@ -147,7 +178,6 @@ function collectTodayArrivalDepartureItems(
 function safeParseTelegramTurnoversState(raw: unknown): TelegramTurnoversState {
   if (!raw) return {};
   if (typeof raw === "object") return raw as TelegramTurnoversState;
-  // In case sheet parsing returned a raw string value, try to recover once.
   if (typeof raw === "string") {
     try {
       const parsed = JSON.parse(raw);
@@ -159,3 +189,16 @@ function safeParseTelegramTurnoversState(raw: unknown): TelegramTurnoversState {
   return {};
 }
 
+async function extractRef(
+  res: Response,
+  fallbackChatId: string | number
+): Promise<TelegramMessageRef | null> {
+  if (!res.ok) return null;
+  const json = await res.json().catch(() => null);
+  const messageId = json?.result?.message_id;
+  const chatId = json?.result?.chat?.id ?? fallbackChatId;
+  if (typeof messageId === "number" && chatId != null) {
+    return { chatId, messageId };
+  }
+  return null;
+}

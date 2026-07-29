@@ -15,9 +15,14 @@ import {
   todayKeyKyiv,
   compareByCottageNumber,
 } from "@/lib/telegram/formatters";
-import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured, type TelegramTarget } from "@/lib/telegram/config";
-import { editTelegramMessage } from "@/lib/telegram/sendMessage";
-import { type TelegramMessageRef, type TelegramTurnoversState } from "@/lib/telegram/turnoversState";
+import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured } from "@/lib/telegram/config";
+import { editTelegramMessage, sendTelegramMessage } from "@/lib/telegram/sendMessage";
+import {
+  upsertTelegramTurnoversState,
+  type TelegramMessageRef,
+  type TelegramTurnoversState,
+  type TelegramTurnoversStatePatch,
+} from "@/lib/telegram/turnoversState";
 
 export const runtime = "nodejs";
 
@@ -78,6 +83,20 @@ function safeParseTelegramTurnoversState(raw: unknown): TelegramTurnoversState {
   return {};
 }
 
+async function extractRef(
+  res: Response,
+  fallbackChatId: string | number
+): Promise<TelegramMessageRef | null> {
+  if (!res.ok) return null;
+  const json = await res.json().catch(() => null);
+  const messageId = json?.result?.message_id;
+  const chatId = json?.result?.chat?.id ?? fallbackChatId;
+  if (typeof messageId === "number" && chatId != null) {
+    return { chatId, messageId };
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id")?.trim() || null;
   const auth = await verifyAdminRequest(request, tenantId);
@@ -93,7 +112,6 @@ export async function POST(request: Request) {
 
   const updatedDay = todayKeyKyiv();
   const storedState = safeParseTelegramTurnoversState(
-    // GAS key: telegramTurnoversState
     (settings as Record<string, unknown>)["telegramTurnoversState"]
   );
 
@@ -110,17 +128,26 @@ export async function POST(request: Request) {
   const turnovers = groupCleaningTurnoversByCottage(bookings, updatedDay);
 
   let edited = 0;
-  let sent = 0; // edit-only: always 0
+  let sent = 0;
+
+  const patch: TelegramTurnoversStatePatch = {};
+
+  // Build a set of current booking+kind combos so we know which stored refs are stale.
+  const currentArrivalIds = new Set<string>();
+  const currentDepartureIds = new Set<string>();
 
   for (const item of arrivalItems) {
     const bId = bookingIdKey(item.booking);
     if (!bId) continue;
+    if (item.kind === "arrival") currentArrivalIds.add(bId);
+    else currentDepartureIds.add(bId);
 
     const caption = buildArrivalDepartureCaption(item.booking, item.kind);
     const kindMap = item.kind === "arrival" ? storedArrivals : storedDepartures;
     const ref = kindMap[bId] as TelegramMessageRef | undefined;
 
     if (ref?.messageId != null) {
+      // Already have a message — edit it with fresh data.
       await editTelegramMessage(
         ref.chatId ?? arrivalsTargets.chatId,
         ref.messageId,
@@ -128,12 +155,29 @@ export async function POST(request: Request) {
         keyboard
       ).catch(() => undefined);
       edited += 1;
-      continue;
+    } else {
+      // New booking that wasn't sent yet — send once and persist message_id.
+      const res = await sendTelegramMessage(
+        caption,
+        keyboard,
+        arrivalsTargets.chatId,
+        arrivalsTargets.threadId
+      );
+      const newRef = await extractRef(res, arrivalsTargets.chatId);
+      if (newRef) {
+        sent += 1;
+        if (item.kind === "arrival") {
+          patch.arrivals = patch.arrivals || {};
+          patch.arrivals[bId] = newRef;
+        } else {
+          patch.departures = patch.departures || {};
+          patch.departures[bId] = newRef;
+        }
+      }
     }
-    // Edit-only: if message id isn't saved, skip to prevent duplicates.
   }
 
-  // Cleaning: edit both current and stale stored cottages for this day.
+  // Cleaning turnovers
   const currentCottageKeys = new Set(turnovers.map((t) => cottageKey(t.cottage)));
 
   for (const turnover of turnovers) {
@@ -142,12 +186,19 @@ export async function POST(request: Request) {
 
     const caption = buildCleaningTurnoverCaption(turnover);
     const ref = storedCleaning[cKey] as TelegramMessageRef | undefined;
+
     if (ref?.messageId != null) {
       await editTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId, caption).catch(() => undefined);
       edited += 1;
-      continue;
+    } else {
+      const res = await sendTelegramMessage(caption, undefined, cleaningTargets.chatId, cleaningTargets.threadId);
+      const newRef = await extractRef(res, cleaningTargets.chatId);
+      if (newRef) {
+        sent += 1;
+        patch.cleaning = patch.cleaning || {};
+        patch.cleaning[cKey] = newRef;
+      }
     }
-    // Edit-only: if message id isn't saved, skip to prevent duplicates.
   }
 
   // Stale cleaning messages: cottage no longer has turnovers today.
@@ -159,6 +210,11 @@ export async function POST(request: Request) {
     edited += 1;
   }
 
+  // Persist new message_ids so next refresh will edit instead of send.
+  if (Object.keys(patch).length > 0) {
+    await upsertTelegramTurnoversState(updatedDay, patch);
+  }
+
   const result: RefreshResult = {
     ok: true,
     edited,
@@ -168,4 +224,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json(result);
 }
-
