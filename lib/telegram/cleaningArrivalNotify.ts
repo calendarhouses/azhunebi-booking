@@ -7,6 +7,7 @@ import {
 } from "./config";
 import {
   compareByCottageNumber,
+  cottageSortNumber,
   escapeHtml,
   formatTelegramDaySeparator,
   isConfirmedBookingStatus,
@@ -28,34 +29,18 @@ function guestsFromBooking(booking: ArrivalDepartureBooking): { adults: number; 
   };
 }
 
-export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
-  const cottage = booking.cottage || "Котедж";
+/** Guests label for cleaning chat: "2+1", "2", or "0" (not "—"). */
+function cleaningGuestsLabel(booking: ArrivalDepartureBooking | null | undefined): string {
+  if (!booking) return "0";
   const { adults, children } = guestsFromBooking(booking);
-  const guestsLabel = formatGuestsCompact(adults, children);
-
-  return [
-    `🛎 <b>СЬОГОДНІ ВИЇЗД | ${escapeHtml(cottage)}</b>`,
-    "",
-    "<b>ДЕТАЛІ:</b>",
-    `👥 Було ${escapeHtml(guestsLabel)}`,
-  ].join("\n");
+  if ((Number(adults) || 0) <= 0 && (Number(children) || 0) <= 0) return "0";
+  return formatGuestsCompact(adults, children);
 }
 
-export function buildCleaningArrivalSection(booking: ArrivalDepartureBooking): string {
-  const cottage = booking.cottage || "Котедж";
-  const { adults, children } = guestsFromBooking(booking);
-  const guestsLabel = formatGuestsCompact(adults, children);
-
-  return [
-    `🛎 <b>СЬОГОДНІ ЗАЇЗД | ${escapeHtml(cottage)}</b>`,
-    "",
-    "<b>ДЕТАЛІ:</b>",
-    `👥 буде ${escapeHtml(guestsLabel)}`,
-  ].join("\n");
-}
-
-export function buildCleaningNoArrivalSection(cottage: string): string {
-  return `🛎 <b>СЬОГОДНІ ЗАЇЗДУ НЕМАЄ | ${escapeHtml(cottage)}</b>`;
+function cleaningCottageLabel(cottage: string): string {
+  const num = cottageSortNumber(cottage);
+  if (Number.isFinite(num) && num !== Number.POSITIVE_INFINITY) return String(num);
+  return String(cottage || "").trim() || "?";
 }
 
 /** Одне сповіщення для чату прибирання на будинок (виїзд / заїзд / обидва). */
@@ -67,22 +52,24 @@ export function buildCleaningTurnoverCaption(params: {
   const cottage = params.cottage || "Котедж";
   const departure = params.departure ?? null;
   const arrival = params.arrival ?? null;
+  if (!departure && !arrival) return "";
 
-  if (departure && arrival) {
-    return [buildCleaningDepartureSection(departure), buildCleaningArrivalSection(arrival)].join("\n\n");
-  }
-  if (departure) {
-    return [buildCleaningDepartureSection(departure), buildCleaningNoArrivalSection(cottage)].join("\n\n");
-  }
-  if (arrival) {
-    return buildCleaningArrivalSection(arrival);
-  }
-  return "";
+  const from = cleaningGuestsLabel(departure);
+  const to = cleaningGuestsLabel(arrival);
+
+  return [
+    `⛺️ ${escapeHtml(cleaningCottageLabel(cottage))}`,
+    "",
+    `${escapeHtml(from)} ➡️  ${escapeHtml(to)}`,
+  ].join("\n");
 }
 
-/** @deprecated Use buildCleaningArrivalSection — kept for demo imports */
+/** @deprecated Use buildCleaningTurnoverCaption — kept for demo imports */
 export function buildCleaningArrivalCaption(booking: ArrivalDepartureBooking): string {
-  return buildCleaningArrivalSection(booking);
+  return buildCleaningTurnoverCaption({
+    cottage: booking.cottage || "Котедж",
+    arrival: booking,
+  });
 }
 
 type CottageTurnover = {
