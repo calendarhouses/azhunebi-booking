@@ -134,8 +134,6 @@ export async function POST(request: Request) {
 
   let edited = 0;
   let sent = 0;
-  let staleCancelled = 0;
-  const staleDetails: string[] = [];
 
   const patch: TelegramTurnoversStatePatch = {};
 
@@ -188,12 +186,10 @@ export async function POST(request: Request) {
     if (currentArrivalIds.has(bId)) continue;
     const booking = bookings.find((b) => String(b.id || "").trim() === bId);
     const label = booking?.cottage || bId;
-    const editRes = await editTelegramMessage(
+    await editTelegramMessage(
       ref.chatId ?? arrivalsTargets.chatId, ref.messageId,
       `🛎 <b>ЗАЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`
-    ).catch((e) => ({ ok: false, _err: String(e) }));
-    staleCancelled += 1;
-    staleDetails.push(`arrival:${bId}:msg${ref.messageId}:ok=${(editRes as any)?.ok}`);
+    ).catch(() => undefined);
     edited += 1;
   }
 
@@ -203,12 +199,10 @@ export async function POST(request: Request) {
     if (currentDepartureIds.has(bId)) continue;
     const booking = bookings.find((b) => String(b.id || "").trim() === bId);
     const label = booking?.cottage || bId;
-    const editRes = await editTelegramMessage(
+    await editTelegramMessage(
       ref.chatId ?? arrivalsTargets.chatId, ref.messageId,
       `🛎 <b>ВИЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`
-    ).catch((e) => ({ ok: false, _err: String(e) }));
-    staleCancelled += 1;
-    staleDetails.push(`departure:${bId}:msg${ref.messageId}:ok=${(editRes as any)?.ok}`);
+    ).catch(() => undefined);
     edited += 1;
   }
 
@@ -252,53 +246,11 @@ export async function POST(request: Request) {
     await upsertTelegramTurnoversState(updatedDay, patch);
   }
 
-  // Always persist — even empty patch creates the Settings row for the first time.
-  let writeTestResult = "not_tested";
-  let readBackSnippet = "not_tested";
-  try {
-    await upsertTelegramTurnoversState(updatedDay, patch);
-    writeTestResult = Object.keys(patch).length > 0
-      ? `write_ok_patch_${JSON.stringify(Object.keys(patch))}`
-      : "write_ok_init";
-
-    // Read back immediately to verify the write actually persisted.
-    const verifyDigest = await fetchCronTelegramDigest();
-    const verifyRaw = (verifyDigest.settings as any)?.telegramTurnoversState;
-    readBackSnippet = JSON.stringify(verifyRaw)?.slice(0, 500) || "undefined";
-  } catch (err) {
-    writeTestResult = `write_failed: ${err instanceof Error ? err.message : String(err)}`;
-  }
-
-  const allSettingsKeys = Object.keys(settings);
-
-  const result = {
+  const result: RefreshResult = {
     ok: true,
     edited,
     sent,
     updatedDay,
-    _debug: {
-      stateKeys: Object.keys(storedState),
-      dayStateKeys: Object.keys(dayState),
-      storedArrivalsCount: Object.keys(storedArrivals).length,
-      storedDeparturesCount: Object.keys(storedDepartures).length,
-      storedCleaningCount: Object.keys(storedCleaning).length,
-      currentArrivals: arrivalItems.filter(i => i.kind === "arrival").length,
-      currentDepartures: arrivalItems.filter(i => i.kind === "departure").length,
-      rawStateType: typeof (settings as any).telegramTurnoversState,
-      rawStateSnippet: JSON.stringify((settings as any).telegramTurnoversState)?.slice(0, 500) || "undefined",
-      editOnly,
-      writeTestResult,
-      settingsHasKey: "telegramTurnoversState" in settings,
-      allSettingsKeys: allSettingsKeys.filter(k => k.includes("telegram") || k.includes("Telegram")),
-      patchKeys: Object.keys(patch),
-      staleCancelled,
-      staleDetails,
-      currentArrivalIdsArr: [...currentArrivalIds],
-      currentDepartureIdsArr: [...currentDepartureIds],
-      storedArrivalIds: Object.keys(storedArrivals),
-      storedDepartureIds: Object.keys(storedDepartures),
-      readBackSnippet,
-    },
   };
 
   return NextResponse.json(result);

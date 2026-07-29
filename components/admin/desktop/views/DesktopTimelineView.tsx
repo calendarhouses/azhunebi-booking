@@ -881,10 +881,6 @@ export function DesktopTimelineView({
         } else {
           edited = Number(data.edited) || 0;
           sent = Number(data.sent) || 0;
-          // Temporary debug — remove after diagnosing
-          if (data._debug) {
-            console.log("[TG refresh debug]", JSON.stringify(data._debug));
-          }
         }
       } else {
         errors.push("Помилка оновлення Telegram (заїзди/виїзди/прибирання)");
