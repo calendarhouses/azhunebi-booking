@@ -107,9 +107,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "TELEGRAM_NOT_CONFIGURED" }, { status: 503 });
   }
 
-  await request.json().catch(() => ({}));
-  // ALWAYS edit-only until state persistence is confirmed working.
-  const editOnly = true;
+  const body = await request.json().catch(() => ({}));
+  // First call: force send + save. Subsequent calls will edit.
+  const editOnly = body?.editOnly === true;
 
   const digest = await fetchCronTelegramDigest();
   const bookings = (digest.bookings || []) as ArrivalDepartureBooking[];
@@ -246,15 +246,15 @@ export async function POST(request: Request) {
     await upsertTelegramTurnoversState(updatedDay, patch);
   }
 
-  // Try to write state directly and read it back for diagnosis
+  // Always persist — even empty patch creates the Settings row for the first time.
   let writeTestResult = "not_tested";
-  if (Object.keys(patch).length > 0) {
-    try {
-      await upsertTelegramTurnoversState(updatedDay, patch);
-      writeTestResult = "write_ok";
-    } catch (err) {
-      writeTestResult = `write_failed: ${err instanceof Error ? err.message : String(err)}`;
-    }
+  try {
+    await upsertTelegramTurnoversState(updatedDay, patch);
+    writeTestResult = Object.keys(patch).length > 0
+      ? `write_ok_patch_${JSON.stringify(Object.keys(patch))}`
+      : "write_ok_init";
+  } catch (err) {
+    writeTestResult = `write_failed: ${err instanceof Error ? err.message : String(err)}`;
   }
 
   const allSettingsKeys = Object.keys(settings);
