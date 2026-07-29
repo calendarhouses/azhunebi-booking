@@ -10,14 +10,13 @@ import {
   groupCleaningTurnoversByCottage,
 } from "@/lib/telegram/cleaningArrivalNotify";
 import {
-  escapeHtml,
   isConfirmedBookingStatus,
   toDateKeyKyiv,
   todayKeyKyiv,
   compareByCottageNumber,
 } from "@/lib/telegram/formatters";
 import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured } from "@/lib/telegram/config";
-import { editTelegramMessage, sendTelegramMessage } from "@/lib/telegram/sendMessage";
+import { deleteTelegramMessage, editTelegramMessage, sendTelegramMessage } from "@/lib/telegram/sendMessage";
 import {
   upsertTelegramTurnoversState,
   type TelegramMessageRef,
@@ -210,82 +209,28 @@ export async function POST(request: Request) {
     }
   }
 
-  // Stale arrival messages: booking no longer has arrival today.
+  // Stale arrival messages: no longer relevant — delete from Telegram + state.
   for (const [bId, ref] of Object.entries(storedArrivals)) {
     if (!ref?.messageId) continue;
     if (currentArrivalIds.has(bId)) continue;
-    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
-    const label = booking?.cottage || bId;
-    const cancelCaption = `🛎 <b>ЗАЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`;
-    try {
-      await editTelegramMessage(
-        ref.chatId ?? arrivalsTargets.chatId,
-        ref.messageId,
-        cancelCaption,
-        keyboard
-      );
-      edited += 1;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isNotModified = msg.toLowerCase().includes("not modified");
-      if (isNotModified) {
-        edited += 1;
-        continue;
-      }
-      if (!editOnly) {
-        const res = await sendTelegramMessage(
-          cancelCaption,
-          keyboard,
-          arrivalsTargets.chatId,
-          arrivalsTargets.threadId
-        );
-        const newRef = await extractRef(res, arrivalsTargets.chatId);
-        if (newRef) {
-          sent += 1;
-          patch.arrivals = patch.arrivals || {};
-          patch.arrivals[bId] = newRef;
-        }
-      }
-    }
+    await deleteTelegramMessage(ref.chatId ?? arrivalsTargets.chatId, ref.messageId).catch(
+      () => undefined
+    );
+    patch.arrivals = patch.arrivals || {};
+    patch.arrivals[bId] = null;
+    edited += 1;
   }
 
-  // Stale departure messages: booking no longer has departure today.
+  // Stale departure messages: no longer relevant — delete from Telegram + state.
   for (const [bId, ref] of Object.entries(storedDepartures)) {
     if (!ref?.messageId) continue;
     if (currentDepartureIds.has(bId)) continue;
-    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
-    const label = booking?.cottage || bId;
-    const cancelCaption = `🛎 <b>ВИЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`;
-    try {
-      await editTelegramMessage(
-        ref.chatId ?? arrivalsTargets.chatId,
-        ref.messageId,
-        cancelCaption,
-        keyboard
-      );
-      edited += 1;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isNotModified = msg.toLowerCase().includes("not modified");
-      if (isNotModified) {
-        edited += 1;
-        continue;
-      }
-      if (!editOnly) {
-        const res = await sendTelegramMessage(
-          cancelCaption,
-          keyboard,
-          arrivalsTargets.chatId,
-          arrivalsTargets.threadId
-        );
-        const newRef = await extractRef(res, arrivalsTargets.chatId);
-        if (newRef) {
-          sent += 1;
-          patch.departures = patch.departures || {};
-          patch.departures[bId] = newRef;
-        }
-      }
-    }
+    await deleteTelegramMessage(ref.chatId ?? arrivalsTargets.chatId, ref.messageId).catch(
+      () => undefined
+    );
+    patch.departures = patch.departures || {};
+    patch.departures[bId] = null;
+    edited += 1;
   }
 
   // Cleaning turnovers
@@ -335,36 +280,16 @@ export async function POST(request: Request) {
     }
   }
 
-  // Stale cleaning messages: cottage no longer has turnovers today.
+  // Stale cleaning messages: cottage no longer has turnovers — delete.
   for (const [cKey, ref] of Object.entries(storedCleaning)) {
     if (!ref?.messageId) continue;
     if (currentCottageKeys.has(cKey)) continue;
-    const cancelCaption = `🛎 <b>ПРИБИРАННЯ СКАСОВАНО | ${cKey}</b>`;
-    try {
-      await editTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId, cancelCaption);
-      edited += 1;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isNotModified = msg.toLowerCase().includes("not modified");
-      if (isNotModified) {
-        edited += 1;
-        continue;
-      }
-      if (!editOnly) {
-        const res = await sendTelegramMessage(
-          cancelCaption,
-          undefined,
-          cleaningTargets.chatId,
-          cleaningTargets.threadId
-        );
-        const newRef = await extractRef(res, cleaningTargets.chatId);
-        if (newRef) {
-          sent += 1;
-          patch.cleaning = patch.cleaning || {};
-          patch.cleaning[cKey] = newRef;
-        }
-      }
-    }
+    await deleteTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId).catch(
+      () => undefined
+    );
+    patch.cleaning = patch.cleaning || {};
+    patch.cleaning[cKey] = null;
+    edited += 1;
   }
 
   // Persist new message_ids so next refresh will edit instead of send.

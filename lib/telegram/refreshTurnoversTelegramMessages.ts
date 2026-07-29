@@ -8,13 +8,12 @@ import {
 } from "./cleaningArrivalNotify";
 import {
   compareByCottageNumber,
-  escapeHtml,
   isConfirmedBookingStatus,
   toDateKeyKyiv,
   todayKeyKyiv,
 } from "./formatters";
 import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured } from "./config";
-import { editTelegramMessage, sendTelegramMessage } from "./sendMessage";
+import { deleteTelegramMessage, editTelegramMessage, sendTelegramMessage } from "./sendMessage";
 import {
   upsertTelegramTurnoversState,
   type TelegramMessageRef,
@@ -119,82 +118,28 @@ export async function refreshTurnoversTelegramMessages(args: {
     }
   }
 
-  // Stale arrival messages
+  // Stale arrival messages — delete from Telegram + state.
   for (const [bId, ref] of Object.entries(storedArrivals)) {
     if (!ref?.messageId) continue;
     if (currentArrivalIds.has(bId)) continue;
-    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
-    const label = booking?.cottage || bId;
-    const cancelCaption = `🛎 <b>ЗАЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`;
-    try {
-      await editTelegramMessage(
-        ref.chatId ?? arrivalTargets.chatId,
-        ref.messageId,
-        cancelCaption,
-        keyboard
-      );
-      edited += 1;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isNotModified = msg.toLowerCase().includes("not modified");
-      if (isNotModified) {
-        edited += 1;
-        continue;
-      }
-      if (!editOnly) {
-        const res = await sendTelegramMessage(
-          cancelCaption,
-          keyboard,
-          arrivalTargets.chatId,
-          arrivalTargets.threadId
-        );
-        const nr = await extractRef(res, arrivalTargets.chatId);
-        if (nr) {
-          sent += 1;
-          patch.arrivals = patch.arrivals || {};
-          patch.arrivals[bId] = nr;
-        }
-      }
-    }
+    await deleteTelegramMessage(ref.chatId ?? arrivalTargets.chatId, ref.messageId).catch(
+      () => undefined
+    );
+    patch.arrivals = patch.arrivals || {};
+    patch.arrivals[bId] = null;
+    edited += 1;
   }
 
-  // Stale departure messages
+  // Stale departure messages — delete from Telegram + state.
   for (const [bId, ref] of Object.entries(storedDepartures)) {
     if (!ref?.messageId) continue;
     if (currentDepartureIds.has(bId)) continue;
-    const booking = bookings.find((b) => String(b.id || "").trim() === bId);
-    const label = booking?.cottage || bId;
-    const cancelCaption = `🛎 <b>ВИЇЗД СКАСОВАНО | ${escapeHtml(String(label))}</b>`;
-    try {
-      await editTelegramMessage(
-        ref.chatId ?? arrivalTargets.chatId,
-        ref.messageId,
-        cancelCaption,
-        keyboard
-      );
-      edited += 1;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isNotModified = msg.toLowerCase().includes("not modified");
-      if (isNotModified) {
-        edited += 1;
-        continue;
-      }
-      if (!editOnly) {
-        const res = await sendTelegramMessage(
-          cancelCaption,
-          keyboard,
-          arrivalTargets.chatId,
-          arrivalTargets.threadId
-        );
-        const nr = await extractRef(res, arrivalTargets.chatId);
-        if (nr) {
-          sent += 1;
-          patch.departures = patch.departures || {};
-          patch.departures[bId] = nr;
-        }
-      }
-    }
+    await deleteTelegramMessage(ref.chatId ?? arrivalTargets.chatId, ref.messageId).catch(
+      () => undefined
+    );
+    patch.departures = patch.departures || {};
+    patch.departures[bId] = null;
+    edited += 1;
   }
 
   const currentCottages = new Set(turnovers.map((t) => cKey(t.cottage)));
@@ -248,40 +193,16 @@ export async function refreshTurnoversTelegramMessages(args: {
     }
   }
 
-  // Stale cleaning messages
+  // Stale cleaning messages — delete from Telegram + state.
   for (const [ck, ref] of Object.entries(storedCleaning)) {
     if (!ref?.messageId) continue;
     if (currentCottages.has(ck)) continue;
-    const cancelCaption = `🛎 <b>ПРИБИРАННЯ СКАСОВАНО | ${ck}</b>`;
-    try {
-      await editTelegramMessage(
-        ref.chatId ?? cleaningTargets.chatId,
-        ref.messageId,
-        cancelCaption
-      );
-      edited += 1;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const isNotModified = msg.toLowerCase().includes("not modified");
-      if (isNotModified) {
-        edited += 1;
-        continue;
-      }
-      if (!editOnly) {
-        const res = await sendTelegramMessage(
-          cancelCaption,
-          undefined,
-          cleaningTargets.chatId,
-          cleaningTargets.threadId
-        );
-        const nr = await extractRef(res, cleaningTargets.chatId);
-        if (nr) {
-          sent += 1;
-          patch.cleaning = patch.cleaning || {};
-          patch.cleaning[ck] = nr;
-        }
-      }
-    }
+    await deleteTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId).catch(
+      () => undefined
+    );
+    patch.cleaning = patch.cleaning || {};
+    patch.cleaning[ck] = null;
+    edited += 1;
   }
 
   if (Object.keys(patch).length > 0) {

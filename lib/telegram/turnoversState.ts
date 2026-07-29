@@ -16,10 +16,11 @@ export type TelegramTurnoversStateDay = {
 
 export type TelegramTurnoversState = Record<string, TelegramTurnoversStateDay>;
 
+/** null = remove this key from stored state (after deleting Telegram message). */
 export type TelegramTurnoversStatePatch = {
-  arrivals?: Record<string, TelegramMessageRef>;
-  departures?: Record<string, TelegramMessageRef>;
-  cleaning?: Record<string, TelegramMessageRef>;
+  arrivals?: Record<string, TelegramMessageRef | null>;
+  departures?: Record<string, TelegramMessageRef | null>;
+  cleaning?: Record<string, TelegramMessageRef | null>;
 };
 
 function reviewWebhookSecret(): string {

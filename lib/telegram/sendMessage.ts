@@ -132,3 +132,28 @@ export async function editTelegramMessage(
     throw new Error(desc);
   }
 }
+
+export async function deleteTelegramMessage(
+  chatId: string | number,
+  messageId: number
+): Promise<void> {
+  const cfg = getTelegramConfig();
+  const res = await fetch(`https://api.telegram.org/bot${cfg.botToken}/deleteMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const desc =
+      (body && typeof body === "object" && (body as any).description) ||
+      (body && typeof body === "object" && (body as any).error) ||
+      res.statusText ||
+      `HTTP ${res.status}`;
+    throw new Error(desc);
+  }
+}
