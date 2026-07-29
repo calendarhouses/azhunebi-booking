@@ -248,11 +248,23 @@ export async function POST(request: Request) {
     await upsertTelegramTurnoversState(updatedDay, patch);
   }
 
-  const result: RefreshResult = {
+  const result = {
     ok: true,
     edited,
     sent,
     updatedDay,
+    _debug: {
+      stateKeys: Object.keys(storedState),
+      dayStateKeys: Object.keys(dayState),
+      storedArrivalsCount: Object.keys(storedArrivals).length,
+      storedDeparturesCount: Object.keys(storedDepartures).length,
+      storedCleaningCount: Object.keys(storedCleaning).length,
+      currentArrivals: arrivalItems.filter(i => i.kind === "arrival").length,
+      currentDepartures: arrivalItems.filter(i => i.kind === "departure").length,
+      rawStateType: typeof (settings as any).telegramTurnoversState,
+      rawStateSnippet: JSON.stringify((settings as any).telegramTurnoversState)?.slice(0, 300) || "undefined",
+      editOnly,
+    },
   };
 
   return NextResponse.json(result);
