@@ -16,8 +16,8 @@ import {
   compareByCottageNumber,
 } from "@/lib/telegram/formatters";
 import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured, type TelegramTarget } from "@/lib/telegram/config";
-import { editTelegramMessage, sendTelegramMessage } from "@/lib/telegram/sendMessage";
-import { upsertTelegramTurnoversState, type TelegramMessageRef, type TelegramTurnoversState } from "@/lib/telegram/turnoversState";
+import { editTelegramMessage } from "@/lib/telegram/sendMessage";
+import { type TelegramMessageRef, type TelegramTurnoversState } from "@/lib/telegram/turnoversState";
 
 export const runtime = "nodejs";
 
@@ -65,22 +65,17 @@ function collectTodayArrivalDepartureItems(
 }
 
 function safeParseTelegramTurnoversState(raw: unknown): TelegramTurnoversState {
-  if (!raw || typeof raw !== "object") return {};
-  return raw as TelegramTurnoversState;
-}
-
-async function extractTelegramMessageRefFromSend(
-  res: Response,
-  fallbackChatId: string | number
-): Promise<TelegramMessageRef | null> {
-  if (!res.ok) return null;
-  const json = await res.json().catch(() => null);
-  const messageId = json?.result?.message_id;
-  const chatId = json?.result?.chat?.id ?? fallbackChatId;
-  if (typeof messageId === "number" && chatId != null) {
-    return { chatId, messageId };
+  if (!raw) return {};
+  if (typeof raw === "object") return raw as TelegramTurnoversState;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed as TelegramTurnoversState;
+    } catch {
+      // ignore
+    }
   }
-  return null;
+  return {};
 }
 
 export async function POST(request: Request) {
@@ -115,13 +110,7 @@ export async function POST(request: Request) {
   const turnovers = groupCleaningTurnoversByCottage(bookings, updatedDay);
 
   let edited = 0;
-  let sent = 0;
-
-  const patch: {
-    arrivals?: Record<string, TelegramMessageRef>;
-    departures?: Record<string, TelegramMessageRef>;
-    cleaning?: Record<string, TelegramMessageRef>;
-  } = {};
+  let sent = 0; // edit-only: always 0
 
   for (const item of arrivalItems) {
     const bId = bookingIdKey(item.booking);
@@ -141,25 +130,7 @@ export async function POST(request: Request) {
       edited += 1;
       continue;
     }
-
-    // Send new + remember message id.
-    const res = await sendTelegramMessage(
-      caption,
-      keyboard,
-      arrivalsTargets.chatId,
-      arrivalsTargets.threadId
-    );
-    const ref2 = await extractTelegramMessageRefFromSend(res, arrivalsTargets.chatId);
-    if (ref2) {
-      sent += 1;
-      if (item.kind === "arrival") {
-        patch.arrivals = patch.arrivals || {};
-        patch.arrivals[bId] = ref2;
-      } else {
-        patch.departures = patch.departures || {};
-        patch.departures[bId] = ref2;
-      }
-    }
+    // Edit-only: if message id isn't saved, skip to prevent duplicates.
   }
 
   // Cleaning: edit both current and stale stored cottages for this day.
@@ -176,14 +147,7 @@ export async function POST(request: Request) {
       edited += 1;
       continue;
     }
-
-    const res = await sendTelegramMessage(caption, undefined, cleaningTargets.chatId, cleaningTargets.threadId);
-    const ref2 = await extractTelegramMessageRefFromSend(res, cleaningTargets.chatId);
-    if (ref2) {
-      sent += 1;
-      patch.cleaning = patch.cleaning || {};
-      patch.cleaning[cKey] = ref2;
-    }
+    // Edit-only: if message id isn't saved, skip to prevent duplicates.
   }
 
   // Stale cleaning messages: cottage no longer has turnovers today.
@@ -193,10 +157,6 @@ export async function POST(request: Request) {
     const caption = `🛎 <b>СЬОГОДНІ ПОВОРОТІВ НЕМАЄ | ${cKey}</b>`;
     await editTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId, caption).catch(() => undefined);
     edited += 1;
-  }
-
-  if (Object.keys(patch).length > 0) {
-    await upsertTelegramTurnoversState(updatedDay, patch);
   }
 
   const result: RefreshResult = {
