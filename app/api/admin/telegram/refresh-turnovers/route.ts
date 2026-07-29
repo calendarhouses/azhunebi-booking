@@ -106,6 +106,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "TELEGRAM_NOT_CONFIGURED" }, { status: 503 });
   }
 
+  const body = await request.json().catch(() => ({}));
+  // editOnly=true means only edit messages we already have message_id for (no new sends).
+  // Used by the manual "Оновити" button to prevent duplicates.
+  // Auto-triggers pass editOnly=false so genuinely new bookings get sent once.
+  const editOnly = body?.editOnly === true;
+
   const digest = await fetchCronTelegramDigest();
   const bookings = (digest.bookings || []) as ArrivalDepartureBooking[];
   const settings = digest.settings || {};
@@ -132,22 +138,15 @@ export async function POST(request: Request) {
 
   const patch: TelegramTurnoversStatePatch = {};
 
-  // Build a set of current booking+kind combos so we know which stored refs are stale.
-  const currentArrivalIds = new Set<string>();
-  const currentDepartureIds = new Set<string>();
-
   for (const item of arrivalItems) {
     const bId = bookingIdKey(item.booking);
     if (!bId) continue;
-    if (item.kind === "arrival") currentArrivalIds.add(bId);
-    else currentDepartureIds.add(bId);
 
     const caption = buildArrivalDepartureCaption(item.booking, item.kind);
     const kindMap = item.kind === "arrival" ? storedArrivals : storedDepartures;
     const ref = kindMap[bId] as TelegramMessageRef | undefined;
 
     if (ref?.messageId != null) {
-      // Already have a message — edit it with fresh data.
       await editTelegramMessage(
         ref.chatId ?? arrivalsTargets.chatId,
         ref.messageId,
@@ -155,8 +154,8 @@ export async function POST(request: Request) {
         keyboard
       ).catch(() => undefined);
       edited += 1;
-    } else {
-      // New booking that wasn't sent yet — send once and persist message_id.
+    } else if (!editOnly) {
+      // Auto-trigger: send once and persist message_id for future edits.
       const res = await sendTelegramMessage(
         caption,
         keyboard,
@@ -190,7 +189,7 @@ export async function POST(request: Request) {
     if (ref?.messageId != null) {
       await editTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId, caption).catch(() => undefined);
       edited += 1;
-    } else {
+    } else if (!editOnly) {
       const res = await sendTelegramMessage(caption, undefined, cleaningTargets.chatId, cleaningTargets.threadId);
       const newRef = await extractRef(res, cleaningTargets.chatId);
       if (newRef) {
