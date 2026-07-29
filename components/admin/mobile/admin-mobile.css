@@ -7815,3 +7815,8 @@ body.boso-admin-android .booking-quick-edit-sheet * {
 .boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll * {
   touch-action: pan-x !important;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

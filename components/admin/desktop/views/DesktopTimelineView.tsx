@@ -1,6 +1,6 @@
 "use client";
 
-import { Infinity as InfinityIcon, Undo2 } from "lucide-react";
+import { Infinity as InfinityIcon, RefreshCw, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
@@ -2672,17 +2672,24 @@ export function DesktopTimelineView({
               fontWeight: 700,
               width: "auto",
               flex: "0 0 auto",
-              boxSizing: "border-box",
+              boxSizing: "border-box" as const,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               borderRadius: 10,
               lineHeight: 1,
+              gap: 4,
             }
-          : undefined
+          : { display: "inline-flex", alignItems: "center", gap: 6 }
       }
     >
-      {telegramRefreshBusy ? "Оновлюю…" : isMobile ? "Оновити" : "Оновити в шахматку"}
+      <RefreshCw
+        size={isMobile ? 14 : 15}
+        strokeWidth={2.5}
+        style={telegramRefreshBusy ? { animation: "spin 0.8s linear infinite" } : undefined}
+        aria-hidden
+      />
+      {!telegramRefreshBusy && (isMobile ? "Оновити" : "Оновити сповіщення")}
     </button>
   );
 
