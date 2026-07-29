@@ -15,6 +15,7 @@ import {
 } from "./formatters";
 import { sendTelegramMessage } from "./sendMessage";
 import type { ArrivalDepartureBooking } from "./arrivalDepartureNotify";
+import { upsertTelegramTurnoversState, type TelegramMessageRef } from "./turnoversState";
 
 function cottageKey(cottage: string | undefined): string {
   return String(cottage || "").trim().toLowerCase();
@@ -129,6 +130,8 @@ export async function notifyCleaningTodayTurnovers(
   const turnovers = groupCleaningTurnoversByCottage(bookings, today);
   if (turnovers.length === 0) return 0;
 
+  const statePatch: { cleaning?: Record<string, TelegramMessageRef> } = {};
+
   const separator = await sendTelegramMessage(
     formatTelegramDaySeparator(),
     undefined,
@@ -147,9 +150,32 @@ export async function notifyCleaningTodayTurnovers(
     const caption = buildCleaningTurnoverCaption(turnover);
     if (!caption) continue;
 
-    const res = await sendTelegramMessage(caption, undefined, target.chatId, target.threadId);
-    if (res.ok) sent += 1;
-    else console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
+    const res = await sendTelegramMessage(
+      caption,
+      undefined,
+      target.chatId,
+      target.threadId
+    );
+    if (res.ok) {
+      const json = await res.json().catch(() => null);
+      const messageId = json?.result?.message_id;
+      const chatId = json?.result?.chat?.id ?? target.chatId;
+      const cKey = String(turnover.cottage || "").trim().toLowerCase();
+      if (
+        cKey &&
+        typeof messageId === "number"
+      ) {
+        statePatch.cleaning = statePatch.cleaning || {};
+        statePatch.cleaning[cKey] = { chatId, messageId };
+      }
+      sent += 1;
+    } else {
+      console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
+    }
+  }
+
+  if (statePatch.cleaning && Object.keys(statePatch.cleaning).length > 0) {
+    await upsertTelegramTurnoversState(today, statePatch);
   }
 
   return sent;

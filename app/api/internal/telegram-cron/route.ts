@@ -9,6 +9,8 @@ import {
   type FinancePeriodStats,
 } from "@/lib/telegram/financeNotify";
 import { bookingCreatedDateKey, toDateKeyKyiv } from "@/lib/telegram/formatters";
+import { refreshPaidBookingsTelegramMessages } from "@/lib/telegram/refreshPaidBookingsTelegramMessages";
+import { refreshTurnoversTelegramMessages } from "@/lib/telegram/refreshTurnoversTelegramMessages";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -155,14 +157,52 @@ function bookingPaymentsForPeriod(
 ): { cash: number; card: number; fop: number } {
   const payments = { cash: 0, card: 0, fop: 0 };
   if (Array.isArray(booking.payments) && booking.payments.length > 0) {
-    for (const p of booking.payments) {
-      const date = toDateKeyKyiv(p?.date);
-      if (!date || date < start || date > end) continue;
-      const amount = Math.round(Number(p?.amount) || 0);
-      // Refunds/negative corrections should reduce the received money for the period.
-      if (amount === 0) continue;
-      addBucket(payments, String(p?.method || ""), amount);
+    const paidAmount = Math.round(Number((booking as any)?.paidAmount) || 0);
+    const journal = booking.payments as Array<Record<string, unknown>>;
+
+    // If online amounts appear to be "paid so far", de-cumulate them into deltas.
+    const onlineAmounts = journal
+      .filter((p) => String(p?.type || "") === "online")
+      .map((p) => Math.round(Number(p?.amount) || 0))
+      .filter((n) => n !== 0);
+
+    let cumulativeOnline = false;
+    if (onlineAmounts.length >= 2 && paidAmount > 0) {
+      const sumOnline = onlineAmounts.reduce((acc, n) => acc + n, 0);
+      let nonDecreasing = true;
+      for (let i = 1; i < onlineAmounts.length; i++) {
+        if (onlineAmounts[i] < onlineAmounts[i - 1]) {
+          nonDecreasing = false;
+          break;
+        }
+      }
+      cumulativeOnline =
+        nonDecreasing && sumOnline > paidAmount * 1.3;
     }
+
+    let paidSoFar = 0;
+    for (const p of journal) {
+      const date = toDateKeyKyiv(p?.date as any);
+      const amount = Math.round(Number(p?.amount) || 0);
+      const method = String(p?.method || "");
+      const type = String(p?.type || "");
+
+      const inRange = date && date >= start && date <= end;
+      if (type === "online" || (type === "" && amount >= 0)) {
+        if (cumulativeOnline) {
+          const delta = amount - paidSoFar;
+          paidSoFar = amount;
+          if (inRange && delta !== 0) addBucket(payments, method, delta);
+        } else {
+          if (inRange && amount !== 0) addBucket(payments, method, amount);
+        }
+      } else {
+        // Refund/negative correction should reduce received money for the period.
+        if (cumulativeOnline) paidSoFar += amount;
+        if (inRange && amount !== 0) addBucket(payments, method, amount);
+      }
+    }
+
     return payments;
   }
 
@@ -239,6 +279,18 @@ async function runJobs(force?: string | null) {
       bookings as Parameters<typeof notifyTodayArrivalsAndDepartures>[0];
     results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
     results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
+  }
+  if (force === "bookings") {
+    results.bookings = await refreshPaidBookingsTelegramMessages({
+      bookings: bookings as any,
+      settings,
+    });
+  }
+  if (force === "turnoversRefresh") {
+    results.turnoversRefresh = await refreshTurnoversTelegramMessages({
+      bookings: bookings as any,
+      settings,
+    });
   }
   if (!force || force === "debt") {
     results.debt = await sendDebtReminders(

@@ -10,6 +10,8 @@ import type {
 import { parseSafeDate } from "../adminDates";
 import { bosoHover, bosoLeave } from "../adminTooltip";
 import { showToast } from "../adminGlobals";
+import { getStoredAuthToken } from "@/lib/gas-api";
+import { getAdminTenantId } from "../adminApi";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
 import { TimelineGridRow } from "../TimelineGridCells";
@@ -479,6 +481,7 @@ export function DesktopTimelineView({
   const cottageCount = Math.max(activeRooms.length, 1);
   const mobileDateHeadHeight = isAndroid ? (mobileDense ? 40 : 58) : mobileDense ? 48 : 56;
   const [androidRowHeight, setAndroidRowHeight] = useState(mobileDense ? 38 : 44);
+  const [telegramRefreshBusy, setTelegramRefreshBusy] = useState(false);
 
   const [mode, setMode] = useState<TimelineMode>(() =>
     layout === "mobile" ? "continuous" : "month"
@@ -830,6 +833,89 @@ export function DesktopTimelineView({
     // Force re-apply today scroll even if already near today.
     scrollInitKeyRef.current = "";
   }, [mode, isMobile]);
+
+  const refreshTelegramTurnovers = useCallback(async () => {
+    if (telegramRefreshBusy) return;
+    const token = getStoredAuthToken();
+    const tenantId = getAdminTenantId();
+    if (!token || !tenantId) {
+      showToast("Не авторизовано (оновлення Telegram недоступне)");
+      return;
+    }
+
+    setTelegramRefreshBusy(true);
+    try {
+      const commonHeaders = {
+        Authorization: `Bearer ${token}`,
+        "x-tenant-id": tenantId,
+        "Content-Type": "application/json",
+      };
+
+      const [turnoversRes, bookingsRes] = await Promise.allSettled([
+        fetch("/api/admin/telegram/refresh-turnovers", {
+          method: "POST",
+          headers: commonHeaders,
+          body: JSON.stringify({}),
+        }),
+        fetch("/api/admin/telegram/refresh-bookings", {
+          method: "POST",
+          headers: commonHeaders,
+          body: JSON.stringify({}),
+        }),
+      ]);
+
+      let edited = 0;
+      let sent = 0;
+      let bookingsEdited = 0;
+      let bookingsMissing = 0;
+      const errors: string[] = [];
+
+      if (turnoversRes.status === "fulfilled") {
+        const data = await turnoversRes.value.json().catch(() => null);
+        if (!turnoversRes.value.ok || !data?.ok) {
+          errors.push(
+            data?.error
+              ? String(data.error)
+              : "Не вдалося оновити сповіщення Telegram (заїзди/виїзди/прибирання)"
+          );
+        } else {
+          edited = Number(data.edited) || 0;
+          sent = Number(data.sent) || 0;
+        }
+      } else {
+        errors.push("Помилка оновлення Telegram (заїзди/виїзди/прибирання)");
+      }
+
+      if (bookingsRes.status === "fulfilled") {
+        const data = await bookingsRes.value.json().catch(() => null);
+        if (!bookingsRes.value.ok || !data?.ok) {
+          errors.push(
+            data?.error
+              ? String(data.error)
+              : "Не вдалося оновити сповіщення Telegram (бронювання)"
+          );
+        } else {
+          bookingsEdited = Number(data.edited) || 0;
+          bookingsMissing = Number(data.missingBookings) || 0;
+        }
+      } else {
+        errors.push("Помилка оновлення Telegram (бронювання)");
+      }
+
+      if (errors.length > 0) {
+        showToast(errors.join(" • "));
+        return;
+      }
+
+      showToast(
+        `Telegram оновлено: ${edited} відредаговано, ${sent} надіслано. Бронювання: ${bookingsEdited} відредаговано, ${bookingsMissing} не знайдено.`
+      );
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Помилка оновлення Telegram");
+    } finally {
+      setTelegramRefreshBusy(false);
+    }
+  }, [telegramRefreshBusy]);
 
   const syncMobileNavAnchorFromScroll = useCallback(() => {
     if (!isMobile || mode !== "continuous") return;
@@ -2568,6 +2654,38 @@ export function DesktopTimelineView({
     </div>
   );
 
+  const telegramRefreshButton = (
+    <button
+      type="button"
+      className={`btn-secondary tap-btn`}
+      onClick={() => void refreshTelegramTurnovers()}
+      disabled={telegramRefreshBusy}
+      aria-disabled={telegramRefreshBusy}
+      style={
+        isMobile
+          ? {
+              height: 40,
+              minHeight: 40,
+              maxHeight: 40,
+              padding: "0 10px",
+              fontSize: 12,
+              fontWeight: 700,
+              width: "auto",
+              flex: "0 0 auto",
+              boxSizing: "border-box",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 10,
+              lineHeight: 1,
+            }
+          : undefined
+      }
+    >
+      {telegramRefreshBusy ? "Оновлюю…" : isMobile ? "Оновити" : "Оновити в шахматку"}
+    </button>
+  );
+
   const timelineToolbar = compactGrid && !isMobile ? (
     <div className="price-grid-toolbar timeline-toolbar--focus">
       <div className="price-grid-toolbar__nav">
@@ -2575,6 +2693,7 @@ export function DesktopTimelineView({
         {timelineTodayButton}
       </div>
       <div className="price-grid-toolbar__actions">
+        {telegramRefreshButton}
         {timelineModeToggle}
         {onNewBooking ? (
           <button type="button" className="btn-primary" onClick={onNewBooking}>
@@ -2590,6 +2709,7 @@ export function DesktopTimelineView({
     <div className="timeline-toolbar">
       {isMobile ? (
         <div className="timeline-nav-row">
+          {telegramRefreshButton}
           {timelineUndoButton}
           {timelineMonthNav}
           {timelineTodayButton}
@@ -2599,6 +2719,7 @@ export function DesktopTimelineView({
           {timelineMonthNav}
           {timelineTodayButton}
           {timelineModeToggle}
+          {telegramRefreshButton}
         </>
       )}
     </div>
