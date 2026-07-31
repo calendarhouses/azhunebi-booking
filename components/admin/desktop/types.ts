@@ -166,6 +166,15 @@ export interface BookingPayment {
   note?: string;
 }
 
+export interface BookingChangeHistoryEntry {
+  id?: string;
+  at: string;
+  actorName?: string;
+  label: string;
+  from?: string;
+  to?: string;
+}
+
 export interface BookingRecord {
   row: number | string;
   id: string;
@@ -199,6 +208,8 @@ export interface BookingRecord {
   createdAt?: string;
   /** Ручний колір картки на шаховатці (#RRGGBB). Порожній = авто за статусом. */
   custom_color?: string | null;
+  /** Історія змін броні (колонка Bookings.change_history). */
+  changeHistory?: BookingChangeHistoryEntry[];
   [key: string]: unknown;
 }
 

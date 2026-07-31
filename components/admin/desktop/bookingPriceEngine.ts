@@ -27,6 +27,7 @@ import {
   arrivalAfterLateCheckout,
   buildPostLateGapNoticeHtml,
   findPrevLateCheckoutRange,
+  parsePostLateArrivalFromComment,
   timeToMinutes,
 } from "@/lib/public-booking/postLateGapStay";
 import { getBookedRanges } from "@/lib/public-booking/bookedRanges";
@@ -233,12 +234,28 @@ export function checkBookingOverlap(params: {
     }
     if (currentOut.getTime() === exIn.getTime()) {
       if (currentHasLate) {
-        return {
-          isOverlap: true,
-          overlapReason: "Наступний гість вже заїжджає. Ваш <b>Пізній виїзд</b> неможливий.",
-        };
-      }
-      if (exHasEarly) {
+        // Mirror forward path: allow late checkout if next guest arrives
+        // at least +1h after our late (post-late gap stay), e.g. late 20:00 + next 21:00.
+        const nextArrival =
+          parsePostLateArrivalFromComment(comment) ||
+          (exHasEarly
+            ? parseEarlyLateTimesFromComment(comment).earlyTime
+            : null);
+        const lateTime = selectedLateTime || "20:00";
+        const minNextArrival = arrivalAfterLateCheckout(lateTime);
+        if (
+          nextArrival &&
+          timeToMinutes(nextArrival) >= timeToMinutes(minNextArrival)
+        ) {
+          // Gap stay: next guest arrives after our late + 1h — OK.
+        } else {
+          return {
+            isOverlap: true,
+            overlapReason:
+              "Наступний гість вже заїжджає. Ваш <b>Пізній виїзд</b> неможливий.",
+          };
+        }
+      } else if (exHasEarly) {
         return {
           isOverlap: true,
           overlapReason: "Наступний гість має <b>Ранній заїзд</b>.",

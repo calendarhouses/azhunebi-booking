@@ -33,6 +33,7 @@ import {
 } from "../shared/BookingReviewActions";
 import { BookingPhoneMessengerButtons } from "../shared/BookingPhoneMessengerButtons";
 import { BookingRefundSection } from "../shared/BookingRefundSection";
+import { BookingChangeHistory } from "../shared/BookingChangeHistory";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -568,6 +569,14 @@ export function DesktopBookingDrawer({
             <BookingRefundSection
               booking={activeBooking}
               onRefunded={() => void onBookingReviewed?.()}
+            />
+          ) : null}
+          {activeBooking ? (
+            <BookingChangeHistory
+              entries={
+                (activeBooking.changeHistory as BookingRecord["changeHistory"]) ||
+                []
+              }
             />
           ) : null}
         </div>

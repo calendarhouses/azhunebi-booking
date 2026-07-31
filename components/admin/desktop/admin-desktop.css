@@ -4332,6 +4332,117 @@
             height: 46px;
             justify-content: center;
         }
+
+        /* Історія змін броні */
+        .booking-history {
+            margin-top: 22px;
+            border-top: 1px solid #E8EBE7;
+            padding-top: 6px;
+        }
+        .booking-history__trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 2px;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-main, #1a1f1c);
+            font: inherit;
+            text-align: left;
+        }
+        .booking-history__title {
+            font-size: 15px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+            flex: 1;
+        }
+        .booking-history__count {
+            min-width: 22px;
+            height: 22px;
+            padding: 0 7px;
+            border-radius: 999px;
+            background: #E8F0E4;
+            color: #3F5D36;
+            font-size: 12px;
+            font-weight: 650;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .booking-history__chevron {
+            color: #7A8478;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .booking-history.is-open .booking-history__chevron {
+            transform: rotate(180deg);
+        }
+        .booking-history__collapse {
+            padding: 0 2px 8px;
+        }
+        .booking-history__timeline {
+            list-style: none;
+            margin: 0;
+            padding: 4px 0 8px 0;
+            position: relative;
+        }
+        .booking-history__timeline::before {
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: 10px;
+            bottom: 10px;
+            width: 1px;
+            background: linear-gradient(180deg, #C5D2BF 0%, #E4EBE0 100%);
+        }
+        .booking-history__item {
+            position: relative;
+            display: flex;
+            gap: 14px;
+            padding: 0 0 18px 0;
+        }
+        .booking-history__item:last-child {
+            padding-bottom: 4px;
+        }
+        .booking-history__dot {
+            width: 15px;
+            height: 15px;
+            margin-top: 3px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background:
+                radial-gradient(circle at center, #5B7A4F 0 35%, transparent 36%),
+                #F4F7F2;
+            border: 1px solid #B7C9B0;
+            box-shadow: 0 0 0 3px #FFF;
+            z-index: 1;
+        }
+        .booking-history__body {
+            min-width: 0;
+            flex: 1;
+            padding-top: 1px;
+        }
+        .booking-history__label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1F2A1C;
+            letter-spacing: -0.01em;
+        }
+        .booking-history__detail {
+            margin-top: 3px;
+            font-size: 13px;
+            color: #4A5548;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .booking-history__meta {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #8A9486;
+            letter-spacing: 0.01em;
+        }
         
         /* Центральні модальні вікна (Налаштування) */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17,24,39,0.5); backdrop-filter: blur(4px); z-index: 2000; opacity: 0; pointer-events: none; transition: 0.3s; display: flex; align-items: center; justify-content: center; }

@@ -1054,6 +1054,115 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     min-width: 48px !important;
     flex: 0 0 48px !important;
 }
+
+/* Історія змін броні (mobile drawer) */
+.boso-admin-mobile .booking-history {
+  margin-top: 18px;
+  border-top: 1px solid #E8EBE7;
+  padding-top: 4px;
+}
+.boso-admin-mobile .booking-history__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-main, #1a1f1c);
+  font: inherit;
+  text-align: left;
+}
+.boso-admin-mobile .booking-history__title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+.boso-admin-mobile .booking-history__count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #E8F0E4;
+  color: #3F5D36;
+  font-size: 12px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.boso-admin-mobile .booking-history__chevron {
+  color: #7A8478;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.boso-admin-mobile .booking-history.is-open .booking-history__chevron {
+  transform: rotate(180deg);
+}
+.boso-admin-mobile .booking-history__collapse {
+  padding: 0 2px 8px;
+}
+.boso-admin-mobile .booking-history__timeline {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 8px 0;
+  position: relative;
+}
+.boso-admin-mobile .booking-history__timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: linear-gradient(180deg, #C5D2BF 0%, #E4EBE0 100%);
+}
+.boso-admin-mobile .booking-history__item {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 0 0 16px 0;
+}
+.boso-admin-mobile .booking-history__item:last-child {
+  padding-bottom: 4px;
+}
+.boso-admin-mobile .booking-history__dot {
+  width: 15px;
+  height: 15px;
+  margin-top: 3px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background:
+    radial-gradient(circle at center, #5B7A4F 0 35%, transparent 36%),
+    #F4F7F2;
+  border: 1px solid #B7C9B0;
+  box-shadow: 0 0 0 3px #FFF;
+  z-index: 1;
+}
+.boso-admin-mobile .booking-history__body {
+  min-width: 0;
+  flex: 1;
+  padding-top: 1px;
+}
+.boso-admin-mobile .booking-history__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2A1C;
+}
+.boso-admin-mobile .booking-history__detail {
+  margin-top: 3px;
+  font-size: 13px;
+  color: #4A5548;
+  line-height: 1.35;
+  word-break: break-word;
+}
+.boso-admin-mobile .booking-history__meta {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #8A9486;
+}
 .boso-admin-mobile .booking-quick-edit-footer .btn-secondary,
 .boso-admin-mobile .booking-quick-edit-footer .btn-primary {
     width: auto;
