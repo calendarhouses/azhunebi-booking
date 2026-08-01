@@ -21,7 +21,7 @@ import {
   filterPendingDeletedDiscounts,
   reconcilePendingDeletedDiscounts,
 } from "@/lib/admin/discountPendingDeletes";
-import { fetchAdminInitData, silentSyncAdminData } from "./adminApi";
+import { fetchAdminInitData, fetchAdminGuestProfiles, silentSyncAdminData } from "./adminApi";
 import { mergeBookingsWithPending } from "./bookingUtils";
 import { PAGE_TITLES, showToast, syncLegacyGlobals } from "./adminGlobals";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
@@ -232,6 +232,23 @@ export function useAdminApp(options?: {
         setLastAdminTenantId(tenantId);
       }
       setAppVisible(true);
+      // Guest CRM is off the critical path — hydrate after UI is up.
+      void fetchAdminGuestProfiles()
+        .then((guestProfiles) => {
+          setSettings((prev) => {
+            const merged = mergeGuestProfiles(guestProfiles, prev.guestProfiles) || guestProfiles;
+            const next = { ...prev, guestProfiles: merged };
+            syncLegacyGlobals({ settings: next });
+            return next;
+          });
+        })
+        .catch((err) => {
+          if (isAdminUnauthorizedError(err)) {
+            void expireAdminSession();
+            return;
+          }
+          console.warn("guestProfiles lazy load:", err);
+        });
     } catch (err) {
       if (isAdminUnauthorizedError(err)) {
         console.warn("[useAdminApp] Session expired, redirecting to /login");
