@@ -1,7 +1,6 @@
-import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { PublicBookPage } from "@/components/public/PublicBookPage";
-import { loadPublicBoot } from "@/lib/public-booking/loadPublicBoot";
+import type { PublicTenantPayload } from "@/lib/public-booking/types";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +8,25 @@ type PageProps = {
   params: Promise<{ tenant_id: string }>;
 };
 
+/**
+ * Do NOT await GAS on SSR. Blocking on initData made TTFB 45–60s+ and stacked
+ * the Apps Script queue whenever several visitors opened the site.
+ * Shell HTML + loading.tsx/preloader paint instantly; client loads /api/public/init.
+ */
+function shellTenant(tenantId: string): PublicTenantPayload {
+  return {
+    tenantId,
+    tenantName: "АЖ У НЕБІ",
+    subdomain: tenantId,
+    branding: { site_title: "АЖ У НЕБІ" },
+    rooms: [],
+    discounts: [],
+    customPrices: {},
+  };
+}
+
 export default async function BookTenantPage({ params }: PageProps) {
   const { tenant_id } = await params;
-  const boot = await loadPublicBoot(tenant_id);
-
-  if (!boot) {
-    notFound();
-  }
 
   const ua = (await headers()).get("user-agent") || "";
   const isMobile =
@@ -27,14 +38,7 @@ export default async function BookTenantPage({ params }: PageProps) {
   return (
     <>
       <link rel="stylesheet" href={stylesheet} />
-      <PublicBookPage
-        data={boot.tenant}
-        variant={variant}
-        initialInit={{
-          settings: boot.init.settings,
-          bookings: boot.init.bookings,
-        }}
-      />
+      <PublicBookPage data={shellTenant(tenant_id)} variant={variant} />
     </>
   );
 }

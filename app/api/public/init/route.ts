@@ -26,7 +26,8 @@ export async function GET(request: Request) {
     },
     {
       headers: {
-        "Cache-Control": "private, max-age=0, must-revalidate",
+        // Short shared cache — many tabs must not each wait on a full GAS dump.
+        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
       },
     }
   );
