@@ -12,6 +12,10 @@ import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
   consumePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
+import {
+  readAdminInitSnapshot,
+  writeAdminInitSnapshot,
+} from "@/lib/admin/adminInitCache";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -216,7 +220,9 @@ export function useAdminApp(options?: {
     const data = await silentSyncAdminData();
     if (!data) return;
     applyServerData(data, { silent: true });
-  }, [applyServerData]);
+    const tenantId = membership?.tenantId;
+    if (tenantId) writeAdminInitSnapshot(tenantId, data);
+  }, [applyServerData, membership?.tenantId]);
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
@@ -227,13 +233,31 @@ export function useAdminApp(options?: {
 
     setLoadError(null);
 
-    // Bookings drive the availability grid, so they are always fetched live —
-    // a cached snapshot here would risk showing a slot that is already taken.
-    const alreadyVisible = appVisibleRef.current;
-    if (!alreadyVisible) setIsLoading(true);
+    // Paint last known good UI immediately, then refresh live in background.
+    // Admin is not a public booking form — a brief stale/empty shell while
+    // syncing beats a 40s blank preloader every time.
+    let openedFromCache = false;
+    if (!appVisibleRef.current) {
+      const snapshot = tenantId ? readAdminInitSnapshot(tenantId) : null;
+      if (snapshot) {
+        applyServerData(snapshot);
+        setAppVisible(true);
+        setIsLoading(false);
+        openedFromCache = true;
+      } else {
+        // First visit / cleared cache: show the shell with empty data now.
+        // Timeline fills in when GAS answers — user is not stuck on preloader.
+        setAppVisible(true);
+      }
+    } else {
+      openedFromCache = true;
+    }
+
+    if (!openedFromCache) setIsLoading(true);
 
     const applyFresh = (data: AdminInitResponse) => {
-      applyServerData(data, { silent: alreadyVisible });
+      applyServerData(data, { silent: openedFromCache });
+      if (tenantId) writeAdminInitSnapshot(tenantId, data);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
         setCachedTenantLogoUrl(tenantId, logoUrl);
@@ -250,7 +274,6 @@ export function useAdminApp(options?: {
         data = prefetched ? await prefetched : await fetchAdminInitData();
       } catch (firstErr) {
         if (isAdminUnauthorizedError(firstErr)) throw firstErr;
-        // One retry — GAS flakes when Telegram cron holds the script lock.
         await new Promise((r) => setTimeout(r, 1200));
         if (gen !== loadGenRef.current) return;
         data = await fetchAdminInitData();
@@ -267,9 +290,8 @@ export function useAdminApp(options?: {
         return;
       }
       console.error("adminInitData:", err);
-      if (alreadyVisible) {
-        // Don't tear down a working screen because a background refresh failed.
-        showToast("Не вдалося оновити дані.");
+      if (openedFromCache) {
+        showToast("Не вдалося оновити дані. Показано збережену копію.");
         return;
       }
       const msg = parseAdminFetchError(err);
@@ -306,7 +328,7 @@ export function useAdminApp(options?: {
         setIsLoading(false);
         setLoadError("Завантаження зависло. Оновіть сторінку або спробуйте ще раз.");
       }
-    }, 55_000);
+    }, 100_000);
     return () => window.clearTimeout(timer);
   }, [isLoading, appVisible]);
 

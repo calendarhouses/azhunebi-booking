@@ -98,6 +98,8 @@ type Ctx = {
   runtime: PublicSiteRuntime | null;
   initLoading: boolean;
   initFailed: boolean;
+  /** Bookings/restrictions still loading — room list is already visible. */
+  availabilityLoading: boolean;
   preloaderVisible: boolean;
   activeScreen: "list" | "success";
   setActiveScreen: (s: "list" | "success") => void;
@@ -209,9 +211,17 @@ export function PublicBookingProvider({
   children: ReactNode;
 }) {
   const searchParams = useSearchParams();
-  const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(null);
-  const [initLoading, setInitLoading] = useState(true);
+  const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(() => ({
+    ...data,
+    bookings: [],
+    restrictions: {},
+    closedDates: {},
+    sysServicesList: [],
+    customServicesList: [],
+  }));
+  const [initLoading, setInitLoading] = useState(false);
   const [initFailed, setInitFailed] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("info");
@@ -261,11 +271,23 @@ export function PublicBookingProvider({
       };
     };
 
-    // Stop the spinner from running forever, but never fall back to an empty
-    // booking list: that would paint every date as free and invite overbooking.
-    const fallbackTimer = window.setTimeout(() => {
-      if (!cancelled) setInitFailed(true);
-    }, 25_000);
+    // Room list is already painted from SSR. Availability loads in the
+    // background — never block the whole page on a slow Apps Script queue.
+    setRuntime((prev) =>
+      prev
+        ? prev
+        : {
+            ...data,
+            bookings: [],
+            restrictions: {},
+            closedDates: {},
+            sysServicesList: [],
+            customServicesList: [],
+          }
+    );
+    setInitLoading(false);
+    setAvailabilityLoading(true);
+    setInitFailed(false);
 
     (async () => {
       try {
@@ -273,24 +295,23 @@ export function PublicBookingProvider({
         try {
           init = await fetchPublicInitData(data.tenantId);
         } catch {
-          await new Promise((r) => setTimeout(r, 1200));
+          await new Promise((r) => setTimeout(r, 800));
           if (cancelled) return;
           init = await fetchPublicInitData(data.tenantId);
         }
         if (cancelled) return;
         setRuntime(buildRuntime(init));
         setInitFailed(false);
-        setInitLoading(false);
       } catch (e) {
         console.error(e);
         if (!cancelled) setInitFailed(true);
       } finally {
-        window.clearTimeout(fallbackTimer);
+        if (!cancelled) setAvailabilityLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
-      window.clearTimeout(fallbackTimer);
     };
   }, [data]);
 
@@ -432,9 +453,11 @@ export function PublicBookingProvider({
   const getNextFreeForRoom = useCallback(
     (room: RoomConfig) => {
       if (!runtime) return "перевірте дати";
+      if (availabilityLoading) return "оновлюємо дати…";
+      if (initFailed) return "перевірте дати";
       return getNextFreeDateLabel(runtime.bookings, room);
     },
-    [runtime]
+    [runtime, availabilityLoading, initFailed]
   );
 
   const resetDrawerExtras = useCallback(() => {
@@ -536,6 +559,14 @@ export function PublicBookingProvider({
 
   const selectDate = useCallback(
     (ds: string) => {
+      if (availabilityLoading) {
+        showPublicToast("Зачекайте — оновлюємо вільні дати");
+        return;
+      }
+      if (initFailed) {
+        showPublicToast("Не вдалося завантажити дати. Оновіть сторінку.");
+        return;
+      }
       if (!selectedRoom || !runtime) return;
       const d = new Date(ds);
       d.setHours(0, 0, 0, 0);
@@ -671,11 +702,19 @@ export function PublicBookingProvider({
       }
       setCalKey((k) => k + 1);
     },
-    [checkIn, checkOut, runtime, selectedRoom]
+    [checkIn, checkOut, runtime, selectedRoom, availabilityLoading, initFailed]
   );
 
   const selectStayDate = useCallback(
     (ds: string) => {
+      if (availabilityLoading) {
+        showPublicToast("Зачекайте — оновлюємо вільні дати");
+        return;
+      }
+      if (initFailed) {
+        showPublicToast("Не вдалося завантажити дати. Оновіть сторінку.");
+        return;
+      }
       const d = new Date(ds);
       d.setHours(0, 0, 0, 0);
       const today = new Date();
@@ -718,7 +757,16 @@ export function PublicBookingProvider({
       }
       setCalKey((k) => k + 1);
     },
-    [checkIn, checkOut, runtime, guestCount, childCount, youngestChildAge]
+    [
+      checkIn,
+      checkOut,
+      runtime,
+      guestCount,
+      childCount,
+      youngestChildAge,
+      availabilityLoading,
+      initFailed,
+    ]
   );
 
   const listGuestMax = useMemo(() => {
@@ -733,6 +781,20 @@ export function PublicBookingProvider({
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
+    // Until availability arrives, never filter by bookings — that would look
+    // like every cottage is free / none are free incorrectly.
+    if (availabilityLoading || initFailed) {
+      return filterRoomsForStay(runtime.rooms, {
+        checkIn: null,
+        checkOut: null,
+        adults: guestCount,
+        children: childCount,
+        youngestAge: childCount > 0 ? youngestChildAge : null,
+        bookings: [],
+        closedDates: {},
+        restrictions: {},
+      });
+    }
     return filterRoomsForStay(runtime.rooms, {
       checkIn,
       checkOut,
@@ -743,7 +805,16 @@ export function PublicBookingProvider({
       closedDates: runtime.closedDates,
       restrictions: runtime.restrictions,
     });
-  }, [runtime, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
+  }, [
+    runtime,
+    checkIn,
+    checkOut,
+    guestCount,
+    childCount,
+    youngestChildAge,
+    availabilityLoading,
+    initFailed,
+  ]);
 
   const changeGuests = useCallback(
     (delta: number) => {
@@ -1291,6 +1362,7 @@ export function PublicBookingProvider({
     runtime,
     initLoading,
     initFailed,
+    availabilityLoading,
     preloaderVisible,
     activeScreen,
     setActiveScreen,

@@ -2,11 +2,14 @@ import { after, NextResponse } from "next/server";
 import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
 
 export const runtime = "nodejs";
-// GAS writes with LockService can take 10-20s; without this the gateway kills
-// the request at the platform default and returns an HTML page instead of JSON.
-export const maxDuration = 60;
+// GAS queues under load (cron + cold start) often take 40-70s; the platform
+// default would kill the request mid-flight and surface as a hard failure.
+export const maxDuration = 120;
 
-const GAS_UPSTREAM_TIMEOUT_MS = 45_000;
+const GAS_UPSTREAM_TIMEOUT_MS = 90_000;
+
+/** In-flight coalescing for public reads — no stale cache, just one live call. */
+const inflightPublicGets = new Map<string, Promise<{ status: number; text: string }>>();
 
 function getGasUrl(): string | null {
   const url = process.env.NEXT_PUBLIC_GAS_URL?.trim();
@@ -245,6 +248,8 @@ export async function GET(request: Request) {
   const incoming = new URL(request.url);
   const target = new URL(gasUrl);
   incoming.searchParams.forEach((value, key) => {
+    // Cache-busting query params must not break coalescing keys.
+    if (key === "t" || key === "_") return;
     target.searchParams.set(key, value);
   });
 
@@ -260,35 +265,77 @@ export async function GET(request: Request) {
     target.searchParams.set("token", token);
   }
 
-  try {
+  const action = target.searchParams.get("action") || "";
+  const tenantId = target.searchParams.get("tenant_id") || "";
+  const canCoalesce =
+    !bearer &&
+    !token &&
+    (action === "initData" || action === "fetchPublicTenant") &&
+    Boolean(tenantId);
+  const coalesceKey = canCoalesce ? `${action}:${tenantId}` : "";
+
+  const fetchUpstreamJson = async (): Promise<{ status: number; text: string }> => {
     let lastStatus = 0;
     let lastText = "";
-    // Reads are safe to retry: Google intermittently answers with an HTML page.
+    // Google intermittently returns an HTML 404 after a long queue wait.
+    // One retry usually clears it once the script wakes up.
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const upstream = await fetch(target.toString(), {
-        method: "GET",
-        headers: forwardHeaders(request, "GET"),
-        redirect: "follow",
-        cache: "no-store",
-        signal: upstreamSignal(),
-      });
-      const text = await upstream.text();
-      lastStatus = upstream.status;
-      lastText = text;
-      if (text.trim()) {
-        try {
-          JSON.parse(text);
-          return new NextResponse(text, {
-            status: upstream.status,
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-          });
-        } catch {
-          // fall through to retry / error
+      try {
+        const upstream = await fetch(target.toString(), {
+          method: "GET",
+          headers: forwardHeaders(request, "GET"),
+          redirect: "follow",
+          cache: "no-store",
+          signal: upstreamSignal(),
+        });
+        const text = await upstream.text();
+        lastStatus = upstream.status;
+        lastText = text;
+        if (text.trim()) {
+          try {
+            JSON.parse(text);
+            return { status: upstream.status, text };
+          } catch {
+            // HTML / truncated body — retry
+          }
         }
+      } catch (err) {
+        if (attempt === 1) throw err;
       }
-      if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
     }
-    return gasBadResponse("GET", lastStatus, lastText);
+    return { status: lastStatus, text: lastText };
+  };
+
+  try {
+    let result: { status: number; text: string };
+    if (coalesceKey) {
+      const existing = inflightPublicGets.get(coalesceKey);
+      if (existing) {
+        result = await existing;
+      } else {
+        const pending = fetchUpstreamJson().finally(() => {
+          inflightPublicGets.delete(coalesceKey);
+        });
+        inflightPublicGets.set(coalesceKey, pending);
+        result = await pending;
+      }
+    } else {
+      result = await fetchUpstreamJson();
+    }
+
+    if (result.text.trim()) {
+      try {
+        JSON.parse(result.text);
+        return new NextResponse(result.text, {
+          status: result.status,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      } catch {
+        // fall through
+      }
+    }
+    return gasBadResponse("GET", result.status, result.text);
   } catch (err) {
     return gasUnreachable("GET", err);
   }

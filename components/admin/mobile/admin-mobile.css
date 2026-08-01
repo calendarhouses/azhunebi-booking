@@ -10,6 +10,16 @@
 
 /* --- Shared tokens live in admin-tokens.css (loaded by layout) --- */
 
+.boso-admin-mobile .admin-sync-banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #E8F0E4;
+  border: 1px solid #C5D6BE;
+  color: #3F5D36;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
 .boso-admin-mobile :where(*) { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 /* Вбиваємо системні свайпи Safari (Назад/Вперед) */

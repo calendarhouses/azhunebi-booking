@@ -157,6 +157,11 @@ export function AdminMobileApp() {
           />
 
           <div className="main-content">
+            {admin.isLoading && admin.appVisible ? (
+              <div className="admin-sync-banner" role="status">
+                Оновлюємо дані з таблиці…
+              </div>
+            ) : null}
             {admin.loadError ? (
               <div
                 className="admin-load-error-banner"

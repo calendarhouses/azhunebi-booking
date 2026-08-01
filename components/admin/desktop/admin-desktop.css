@@ -5930,6 +5930,16 @@ input[type="number"] {
             gap: 8px;
         }
 
+        .admin-sync-banner {
+            margin-bottom: 12px;
+            padding: 10px 16px;
+            background: #E8F0E4;
+            border: 1px solid #C5D6BE;
+            color: #3F5D36;
+            font-size: 13px;
+            border-radius: 10px;
+        }
+
         .section-title {
             font-size: 18px;
             font-weight: 700;

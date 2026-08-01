@@ -1491,10 +1491,42 @@ body {
     animation: publicPreloaderPulse 1.5s ease-in-out infinite;
 }
 
-@keyframes publicPreloaderPulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.05); opacity: 0.82; }
-    100% { transform: scale(1); opacity: 1; }
+.calendar-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    padding: 24px;
+    font-size: 15px;
+    color: #6B7280;
+    text-align: center;
+}
+
+.availability-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #3F5D36;
+    background: #E8F0E4;
+    text-align: center;
+}
+
+.availability-banner--error {
+    color: #7F1D1D;
+    background: #FEE2E2;
+}
+
+.availability-banner button {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
 }
 
 #preloader.preloader-failed {

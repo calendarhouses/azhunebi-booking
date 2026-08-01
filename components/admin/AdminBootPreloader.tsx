@@ -10,7 +10,7 @@ import {
 } from "@/lib/admin/adminPreloaderLogo";
 
 /** Absolute ceiling — the preloader must never be the final state of the page. */
-const MAX_PRELOADER_MS = 30_000;
+const MAX_PRELOADER_MS = 95_000;
 
 export function AdminBootPreloader() {
   const { loading: authLoading, error, ready, membership, preloaderLogoUrl } = useAuth();
@@ -18,8 +18,11 @@ export function AdminBootPreloader() {
 
   const authBlocked = !authLoading && (!ready || !!error);
   const bootError = Boolean(boot.loadError) && !boot.appVisible && !boot.isLoading;
+  // Once the app shell is visible, never cover it again — background sync can
+  // finish quietly. The old `isLoading || !appVisible` rule re-trapped users
+  // behind a 30–90s blank screen whenever GAS queued.
   const wantsPreloader =
-    !authBlocked && !bootError && (authLoading || boot.isLoading || !boot.appVisible);
+    !authBlocked && !bootError && !boot.appVisible && (authLoading || boot.isLoading);
 
   const [timedOut, setTimedOut] = useState(false);
   const wantsRef = useRef(wantsPreloader);

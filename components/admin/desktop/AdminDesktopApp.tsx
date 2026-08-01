@@ -211,6 +211,11 @@ export function AdminDesktopApp() {
             headerAction={settingsHeaderAction}
             onCreateBooking={() => drawer.openNewBookingDrawer()}
           />
+          {admin.isLoading && admin.appVisible ? (
+            <div className="admin-sync-banner" role="status">
+              Оновлюємо дані з таблиці…
+            </div>
+          ) : null}
           {admin.loadError ? (
             <div className="admin-load-error-banner card">
               {admin.loadError}{" "}
