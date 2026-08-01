@@ -12,10 +12,6 @@ import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
   consumePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
-import {
-  readAdminInitSnapshot,
-  writeAdminInitSnapshot,
-} from "@/lib/admin/adminInitCache";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -220,9 +216,7 @@ export function useAdminApp(options?: {
     const data = await silentSyncAdminData();
     if (!data) return;
     applyServerData(data, { silent: true });
-    const tenantId = membership?.tenantId;
-    if (tenantId) writeAdminInitSnapshot(tenantId, data);
-  }, [applyServerData, membership?.tenantId]);
+  }, [applyServerData]);
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
@@ -233,26 +227,13 @@ export function useAdminApp(options?: {
 
     setLoadError(null);
 
-    // Instant boot: paint the last known good snapshot, refresh in background.
-    // GAS cold starts take 10-20s, so waiting on the network here reads as a hang.
-    let openedFromCache = false;
-    if (!appVisibleRef.current) {
-      const snapshot = tenantId ? readAdminInitSnapshot(tenantId) : null;
-      if (snapshot) {
-        applyServerData(snapshot);
-        setAppVisible(true);
-        setIsLoading(false);
-        openedFromCache = true;
-      }
-    } else {
-      openedFromCache = true;
-    }
-
-    if (!openedFromCache) setIsLoading(true);
+    // Bookings drive the availability grid, so they are always fetched live —
+    // a cached snapshot here would risk showing a slot that is already taken.
+    const alreadyVisible = appVisibleRef.current;
+    if (!alreadyVisible) setIsLoading(true);
 
     const applyFresh = (data: AdminInitResponse) => {
-      applyServerData(data, { silent: openedFromCache });
-      if (tenantId) writeAdminInitSnapshot(tenantId, data);
+      applyServerData(data, { silent: alreadyVisible });
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
         setCachedTenantLogoUrl(tenantId, logoUrl);
@@ -286,9 +267,9 @@ export function useAdminApp(options?: {
         return;
       }
       console.error("adminInitData:", err);
-      if (openedFromCache) {
-        // Cached UI is already usable — don't replace it with an error screen.
-        showToast("Не вдалося оновити дані. Показано збережену копію.");
+      if (alreadyVisible) {
+        // Don't tear down a working screen because a background refresh failed.
+        showToast("Не вдалося оновити дані.");
         return;
       }
       const msg = parseAdminFetchError(err);

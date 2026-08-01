@@ -4361,6 +4361,12 @@
             letter-spacing: -0.01em;
             flex: 1;
         }
+        .booking-history__status {
+            padding: 10px 2px 2px;
+            font-size: 13px;
+            color: #7A8A72;
+        }
+
         .booking-history__count {
             min-width: 22px;
             height: 22px;

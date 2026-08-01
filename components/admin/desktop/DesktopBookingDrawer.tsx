@@ -608,6 +608,7 @@ export function DesktopBookingDrawer({
           ) : null}
           {activeBooking ? (
             <BookingChangeHistory
+              bookingId={resolveBookingOrderId(activeBooking)}
               entries={
                 (activeBooking.changeHistory as BookingRecord["changeHistory"]) ||
                 []

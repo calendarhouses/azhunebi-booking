@@ -7,7 +7,11 @@ import {
   getStoredAuthToken,
 } from "@/lib/gas-api";
 import { API_URL } from "./constants";
-import type { AdminInitResponse, AdminSettingsPayload } from "./types";
+import type {
+  AdminInitResponse,
+  AdminSettingsPayload,
+  BookingChangeHistoryEntry,
+} from "./types";
 
 let tenantIdOverride: string | null = null;
 
@@ -102,6 +106,25 @@ export async function fetchAdminInitData(): Promise<AdminInitResponse> {
   }
   const token = await getAccessToken();
   return fetchInitData(tenantId, token);
+}
+
+/**
+ * Change history lives in a fat per-row cell, so it is excluded from list
+ * payloads and pulled only when the drawer section is opened.
+ */
+export async function fetchBookingChangeHistory(
+  bookingId: string
+): Promise<BookingChangeHistoryEntry[]> {
+  const tenantId = getAdminTenantId();
+  if (!tenantId) {
+    throw new AdminUnauthorizedError("MISSING_TENANT");
+  }
+  const token = await getAccessToken();
+  const data = await gasFetch<{ entries?: BookingChangeHistoryEntry[] }>(
+    { action: "bookingChangeHistory", tenant_id: tenantId, id: bookingId },
+    { authToken: token }
+  );
+  return Array.isArray(data.entries) ? data.entries : [];
 }
 
 export async function silentSyncAdminData(): Promise<AdminInitResponse | null> {

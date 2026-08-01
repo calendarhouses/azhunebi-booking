@@ -18,6 +18,7 @@ export function PublicMobileSite() {
   const {
     runtime,
     preloaderVisible,
+    initFailed,
     activeScreen,
     setActiveScreen,
     openDrawer,
@@ -47,7 +48,12 @@ export function PublicMobileSite() {
 
   return (
     <>
-      <PublicPreloader visible={preloaderVisible} logoUrl={runtime?.branding?.logo_url as string | null} alt={siteTitle} />
+      <PublicPreloader
+        visible={preloaderVisible}
+        failed={initFailed}
+        logoUrl={runtime?.branding?.logo_url as string | null}
+        alt={siteTitle}
+      />
 
       <div id="screen-list" className={`screen ${activeScreen === "list" ? "active" : ""}`}>
         <header className="public-mobile-brand">

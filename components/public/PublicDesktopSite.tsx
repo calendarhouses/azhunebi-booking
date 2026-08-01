@@ -12,6 +12,7 @@ export function PublicDesktopSite() {
   const {
     runtime,
     preloaderVisible,
+    initFailed,
     activeScreen,
     setActiveScreen,
     openDrawer,
@@ -30,7 +31,12 @@ export function PublicDesktopSite() {
 
   return (
     <>
-      <PublicPreloader visible={preloaderVisible} logoUrl={logoUrl} alt={siteTitle} />
+      <PublicPreloader
+        visible={preloaderVisible}
+        failed={initFailed}
+        logoUrl={logoUrl}
+        alt={siteTitle}
+      />
 
       <div id="screen-list" className={`screen ${activeScreen === "list" ? "active" : ""}`}>
         <div className="stay-filter-shell">

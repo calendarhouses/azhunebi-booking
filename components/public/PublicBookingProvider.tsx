@@ -48,10 +48,6 @@ import {
   submitPublicBooking,
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
-import {
-  readPublicInitSnapshot,
-  writePublicInitSnapshot,
-} from "@/lib/public-booking/publicInitCache";
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import { showPublicToast, stripHtmlTags } from "@/lib/public-booking/publicToast";
 import { formatUaPhoneE164, normalizeUaNationalPhoneDigits } from "@/lib/public-booking/uaPhone";
@@ -101,6 +97,7 @@ type DrawerStep = "info" | "calendar" | "checkout" | "rules";
 type Ctx = {
   runtime: PublicSiteRuntime | null;
   initLoading: boolean;
+  initFailed: boolean;
   preloaderVisible: boolean;
   activeScreen: "list" | "success";
   setActiveScreen: (s: "list" | "success") => void;
@@ -214,6 +211,7 @@ export function PublicBookingProvider({
   const searchParams = useSearchParams();
   const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(null);
   const [initLoading, setInitLoading] = useState(true);
+  const [initFailed, setInitFailed] = useState(false);
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("info");
@@ -263,36 +261,13 @@ export function PublicBookingProvider({
       };
     };
 
-    // Fallback: never hold the preloader on a slow GAS call. Server-rendered
-    // rooms/prices are already here; bookings land when the request resolves.
+    // Stop the spinner from running forever, but never fall back to an empty
+    // booking list: that would paint every date as free and invite overbooking.
     const fallbackTimer = window.setTimeout(() => {
-      if (cancelled) return;
-      setRuntime((prev) =>
-        prev
-          ? prev
-          : {
-              ...data,
-              bookings: [],
-              restrictions: {},
-              closedDates: {},
-              sysServicesList: [],
-              customServicesList: [],
-            }
-      );
-      setInitLoading(false);
-    }, 12_000);
+      if (!cancelled) setInitFailed(true);
+    }, 25_000);
 
     (async () => {
-      // Paint from the recent snapshot first: GAS cold starts take 10-20s and
-      // a blank preloader for that long looks like the site is broken.
-      const snapshot = readPublicInitSnapshot(data.tenantId);
-      let paintedFromCache = false;
-      if (snapshot) {
-        setRuntime(buildRuntime(snapshot));
-        setInitLoading(false);
-        paintedFromCache = true;
-      }
-
       try {
         let init: AdminInitResponse;
         try {
@@ -303,23 +278,14 @@ export function PublicBookingProvider({
           init = await fetchPublicInitData(data.tenantId);
         }
         if (cancelled) return;
-        writePublicInitSnapshot(data.tenantId, init);
         setRuntime(buildRuntime(init));
+        setInitFailed(false);
+        setInitLoading(false);
       } catch (e) {
         console.error(e);
-        if (cancelled || paintedFromCache) return;
-        // Server-rendered payload still has rooms/prices — render those.
-        setRuntime({
-          ...data,
-          bookings: [],
-          restrictions: {},
-          closedDates: {},
-          sysServicesList: [],
-          customServicesList: [],
-        });
+        if (!cancelled) setInitFailed(true);
       } finally {
         window.clearTimeout(fallbackTimer);
-        if (!cancelled) setInitLoading(false);
       }
     })();
     return () => {
@@ -1324,6 +1290,7 @@ export function PublicBookingProvider({
   const value: Ctx = {
     runtime,
     initLoading,
+    initFailed,
     preloaderVisible,
     activeScreen,
     setActiveScreen,

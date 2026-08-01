@@ -1083,6 +1083,12 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   letter-spacing: -0.01em;
   flex: 1;
 }
+.boso-admin-mobile .booking-history__status {
+  padding: 10px 2px 2px;
+  font-size: 13px;
+  color: #7A8A72;
+}
+
 .boso-admin-mobile .booking-history__count {
   min-width: 22px;
   height: 22px;

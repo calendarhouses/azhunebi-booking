@@ -701,6 +701,37 @@ body.public-booking-page.boso-public-mobile.ready {
     100% { transform: scale(1); opacity: 1; }
 }
 
+#preloader.preloader-failed {
+    flex-direction: column;
+    gap: 14px;
+    padding: 0 28px;
+}
+
+#preloader.preloader-failed .public-preloader-logo {
+    animation: none;
+    opacity: 0.55;
+}
+
+.public-preloader-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--text, #2E3A28);
+}
+
+.public-preloader-error button {
+    padding: 11px 22px;
+    border: none;
+    border-radius: 999px;
+    background: var(--accent, #4F6F45);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+}
+
 .public-amenity-icon {
     width: 20px;
     height: 20px;

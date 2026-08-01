@@ -1,7 +1,6 @@
 import "server-only";
 
-import { fetchInitData, fetchPublicTenantData } from "@/lib/gas-api";
-import type { AdminInitResponse } from "@/components/admin/desktop/types";
+import { fetchPublicTenantData } from "@/lib/gas-api";
 import type { PublicTenantPayload } from "@/lib/public-booking/types";
 
 type Entry<T> = {
@@ -21,7 +20,8 @@ type CacheOptions<T> = {
 /**
  * GAS answers in 4-20s, so every uncached page render blocks on it. Keeping a
  * short-lived copy in lambda memory turns that into a single slow request per
- * window instead of one per visitor.
+ * window instead of one per visitor. Only safe for content that cannot cause an
+ * overbooking if it is a minute out of date — never for bookings/availability.
  */
 function createSwrCache<T>(options: CacheOptions<T>) {
   const store = new Map<string, Entry<T>>();
@@ -68,6 +68,7 @@ function createSwrCache<T>(options: CacheOptions<T>) {
   };
 }
 
+// Branding, rooms and prices only — no bookings, so staleness cannot oversell.
 const tenantCache = createSwrCache<PublicTenantPayload>({
   freshMs: 60_000,
   staleMs: 30 * 60_000,
@@ -79,12 +80,6 @@ const tenantCache = createSwrCache<PublicTenantPayload>({
   },
 });
 
-const initCache = createSwrCache<AdminInitResponse>({
-  freshMs: 30_000,
-  staleMs: 30 * 60_000,
-  load: (tenantId) => fetchInitData(tenantId),
-});
-
 export async function getCachedPublicTenantData(
   tenantId: string
 ): Promise<PublicTenantPayload | null> {
@@ -93,8 +88,4 @@ export async function getCachedPublicTenantData(
   } catch {
     return null;
   }
-}
-
-export function getCachedPublicInitData(tenantId: string): Promise<AdminInitResponse> {
-  return initCache(tenantId);
 }

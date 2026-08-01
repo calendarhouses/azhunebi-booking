@@ -28,8 +28,6 @@ import {
   clearAdminInitPrefetch,
   prefetchAdminInitData,
 } from "@/lib/admin/adminInitPrefetch";
-import { clearAdminInitSnapshot } from "@/lib/admin/adminInitCache";
-
 export type TenantMembership = {
   tenantId: string;
   role: string;
@@ -183,7 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     clearAdminTenantId();
     clearAdminInitPrefetch();
-    clearAdminInitSnapshot();
     clearAuthCookie();
     await gasSignOut();
     setUser(null);
