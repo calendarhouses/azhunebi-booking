@@ -6,7 +6,7 @@ import {
   expireAdminSession,
   isAdminUnauthorizedError,
 } from "@/lib/admin/adminSession";
-import { getAdminTenantId, saveAdminSettings, type SaveAdminSettingsOptions } from "./adminApi";
+import { getAdminTenantId, saveAdminSettings, upsertAdminGuestProfile, type SaveAdminSettingsOptions } from "./adminApi";
 import {
   upsertGuestProfileInSettings,
   type GuestRating,
@@ -226,9 +226,23 @@ export function useAdminModals({
       patch: { rating?: GuestRating | null; note?: string | null }
     ) => {
       const next = upsertGuestProfileInSettings(settingsRef.current, phone, patch);
-      void persistSettings(next, { keys: ["guestProfiles"], background: true });
+      settingsRef.current = next;
+      setSettings(next);
+      void (async () => {
+        try {
+          await upsertAdminGuestProfile(phone, patch);
+        } catch (e) {
+          if (isAdminUnauthorizedError(e)) {
+            await expireAdminSession();
+            return;
+          }
+          showToast(
+            e instanceof Error ? e.message : "Не вдалося зберегти профіль гостя"
+          );
+        }
+      })();
     },
-    [persistSettings]
+    [setSettings]
   );
 
   const flushQuickEditSave = useCallback(

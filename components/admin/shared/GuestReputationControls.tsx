@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  GUEST_PROFILE_NOTE_MAX_CHARS,
   guestPhoneKey,
   guestRatingMeta,
   type GuestProfile,
@@ -103,7 +104,7 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
       <textarea
         className="guest-rep__textarea"
         rows={5}
-        maxLength={500}
+        maxLength={GUEST_PROFILE_NOTE_MAX_CHARS}
         placeholder="Наприклад: запізнюється, дуже акуратний, любить тишу…"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}

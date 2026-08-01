@@ -279,6 +279,39 @@ export async function saveAdminSettings(
   }
 }
 
+/** Single-row upsert on GuestProfiles sheet (not Settings cell). */
+export async function upsertAdminGuestProfile(
+  phone: string,
+  patch: { rating?: 1 | 2 | 3 | null; note?: string | null }
+): Promise<{ phone: string; profile: { rating?: 1 | 2 | 3; note?: string; updatedAt?: string } | null }> {
+  const token = await getAccessToken();
+  const body: Record<string, unknown> = {
+    action: "upsertGuestProfile",
+    tenant_id: getAdminTenantId(),
+    phone,
+  };
+  if ("rating" in patch) body.rating = patch.rating;
+  if ("note" in patch) body.note = patch.note;
+
+  const data = await gasPost<{
+    success?: boolean;
+    phone?: string;
+    profile?: { rating?: 1 | 2 | 3; note?: string; updatedAt?: string } | null;
+    error?: string;
+  }>(body, { authToken: token });
+
+  if (data.error === "UNAUTHORIZED") {
+    throw new AdminUnauthorizedError();
+  }
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  return {
+    phone: data.phone || phone,
+    profile: data.profile ?? null,
+  };
+}
+
 export async function fetchAdminSettings(): Promise<AdminSettingsPayload> {
   const token = await getAccessToken();
   return gasFetch<AdminSettingsPayload>(

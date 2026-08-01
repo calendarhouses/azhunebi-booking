@@ -12,6 +12,9 @@ export type GuestProfile = {
 
 export type GuestProfilesMap = Record<string, GuestProfile>;
 
+/** Per-row note limit on GuestProfiles sheet (no longer Settings cell). */
+export const GUEST_PROFILE_NOTE_MAX_CHARS = 2000;
+
 export function guestPhoneKey(rawPhone: string): string {
   return formatPhone(String(rawPhone || "").trim());
 }
@@ -51,12 +54,18 @@ export function upsertGuestProfileInSettings(
     }
   }
   if ("note" in patch) {
-    const note = String(patch.note || "").trim().slice(0, 500);
+    const note = String(patch.note || "")
+      .trim()
+      .slice(0, GUEST_PROFILE_NOTE_MAX_CHARS);
     if (note) next.note = note;
     else delete next.note;
   }
 
-  prevMap[key] = next;
+  if (!(next.rating === 1 || next.rating === 2 || next.rating === 3) && !next.note) {
+    delete prevMap[key];
+  } else {
+    prevMap[key] = next;
+  }
   return { ...settings, guestProfiles: prevMap };
 }
 
