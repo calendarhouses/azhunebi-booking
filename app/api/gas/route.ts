@@ -6,8 +6,7 @@ export const runtime = "nodejs";
 // the request at the platform default and returns an HTML page instead of JSON.
 export const maxDuration = 60;
 
-// Apps Script cold starts / queue under load often land in the 45–55s range.
-const GAS_UPSTREAM_TIMEOUT_MS = 55_000;
+const GAS_UPSTREAM_TIMEOUT_MS = 45_000;
 
 function getGasUrl(): string | null {
   const url = process.env.NEXT_PUBLIC_GAS_URL?.trim();

@@ -21,7 +21,7 @@ import {
   filterPendingDeletedDiscounts,
   reconcilePendingDeletedDiscounts,
 } from "@/lib/admin/discountPendingDeletes";
-import { fetchAdminInitData, fetchAdminGuestProfiles, silentSyncAdminData } from "./adminApi";
+import { fetchAdminInitData, silentSyncAdminData } from "./adminApi";
 import { mergeBookingsWithPending } from "./bookingUtils";
 import { PAGE_TITLES, showToast, syncLegacyGlobals } from "./adminGlobals";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
@@ -56,33 +56,6 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
 }
 
 /** Лише дані з API — без dummy fallback. */
-function mergeGuestProfiles(
-  server: AdminSettingsPayload["guestProfiles"],
-  local: AdminSettingsPayload["guestProfiles"]
-): AdminSettingsPayload["guestProfiles"] {
-  const serverMap =
-    server && typeof server === "object" && !Array.isArray(server) ? server : null;
-  const localMap =
-    local && typeof local === "object" && !Array.isArray(local) ? local : null;
-  if (!serverMap && !localMap) return undefined;
-  if (!serverMap) return localMap || undefined;
-  if (!localMap) return serverMap;
-
-  const out: NonNullable<AdminSettingsPayload["guestProfiles"]> = { ...serverMap };
-  for (const [phone, profile] of Object.entries(localMap)) {
-    if (!profile || typeof profile !== "object") continue;
-    const existing = out[phone];
-    if (!existing) {
-      out[phone] = profile;
-      continue;
-    }
-    const localTs = Date.parse(String(profile.updatedAt || "")) || 0;
-    const serverTs = Date.parse(String(existing.updatedAt || "")) || 0;
-    if (localTs >= serverTs) out[phone] = profile;
-  }
-  return out;
-}
-
 function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayload {
   const s = raw || {};
   return {
@@ -97,11 +70,6 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
     smsSettings: s.smsSettings,
-    icalSyncSettings: s.icalSyncSettings,
-    guestProfiles:
-      s.guestProfiles && typeof s.guestProfiles === "object" && !Array.isArray(s.guestProfiles)
-        ? s.guestProfiles
-        : undefined,
   };
 }
 
@@ -160,29 +128,6 @@ export function useAdminApp(options?: {
   const activeViewRef = useRef<AdminViewName>("grid");
   activeViewRef.current = activeView;
 
-  const guestProfilesLoadRef = useRef<Promise<void> | null>(null);
-
-  const ensureGuestProfilesLoaded = useCallback(() => {
-    if (guestProfilesLoadRef.current) return guestProfilesLoadRef.current;
-    guestProfilesLoadRef.current = fetchAdminGuestProfiles()
-      .then((guestProfiles) => {
-        setSettings((prev) => {
-          const merged =
-            mergeGuestProfiles(guestProfiles, prev.guestProfiles) || guestProfiles;
-          return { ...prev, guestProfiles: merged };
-        });
-      })
-      .catch((err) => {
-        guestProfilesLoadRef.current = null;
-        if (isAdminUnauthorizedError(err)) {
-          void expireAdminSession();
-          return;
-        }
-        console.warn("guestProfiles load:", err);
-      });
-    return guestProfilesLoadRef.current;
-  }, []);
-
   const applyServerData = useCallback(
     (data: AdminInitResponse, options?: { silent?: boolean }) => {
       const merged = mergeSettings(data.settings);
@@ -217,10 +162,6 @@ export function useAdminApp(options?: {
             ...nextSettings,
             discountsList: dedupeDiscountsList(serverDiscounts),
           };
-        }
-        const guestProfiles = mergeGuestProfiles(merged.guestProfiles, prev.guestProfiles);
-        if (guestProfiles) {
-          nextSettings = { ...nextSettings, guestProfiles };
         }
         syncLegacyGlobals({ bookings: mergedBookings, settings: nextSettings });
         return nextSettings;
@@ -301,7 +242,6 @@ export function useAdminApp(options?: {
       if (saved?.settingsTab) setSettingsTab(normalizeSettingsTab(saved.settingsTab));
       if (saved?.settingsExpanded && allowSettings) setSettingsExpanded(true);
       setActiveView(view);
-      if (view === "guests") void ensureGuestProfilesLoaded();
       if (platform === "mobile") {
         syncViewDom(view, {
           settingsExpanded: view === "settings" || !!saved?.settingsExpanded,
@@ -332,7 +272,7 @@ export function useAdminApp(options?: {
     }, 30000);
 
     return () => window.clearInterval(interval);
-  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports, ensureGuestProfilesLoaded]);
+  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports]);
 
   const persistNav = useCallback(
     (view: AdminViewName, tab: SettingsTabName, expanded: boolean) => {
@@ -354,7 +294,6 @@ export function useAdminApp(options?: {
       if (viewName === "settings" && !allowSettings) nextView = "grid";
       if (viewName === "reports" && !allowReports) nextView = "grid";
       setActiveView(nextView);
-      if (nextView === "guests") void ensureGuestProfilesLoaded();
       persistNav(nextView, settingsTab, settingsExpanded);
       if (platform === "mobile" && typeof document !== "undefined") {
         const main = document.querySelector(".boso-admin-mobile .main-content");
@@ -373,7 +312,7 @@ export function useAdminApp(options?: {
       }
       requestAnimationFrame(() => refreshLegacyView(nextView));
     },
-    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom, ensureGuestProfilesLoaded]
+    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom]
   );
 
   const switchSettingsTab = useCallback((tabName: SettingsTabName) => {
@@ -466,6 +405,5 @@ export function useAdminApp(options?: {
     reload: loadInitData,
     silentSync,
     applyServerData,
-    ensureGuestProfilesLoaded,
   };
 }
