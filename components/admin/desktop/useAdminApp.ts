@@ -22,7 +22,7 @@ import {
   filterPendingDeletedDiscounts,
   reconcilePendingDeletedDiscounts,
 } from "@/lib/admin/discountPendingDeletes";
-import { fetchAdminInitData, silentSyncAdminData } from "./adminApi";
+import { fetchAdminInitData, getAdminTenantId, setAdminTenantId, silentSyncAdminData } from "./adminApi";
 import { mergeBookingsWithPending } from "./bookingUtils";
 import { PAGE_TITLES, showToast, syncLegacyGlobals } from "./adminGlobals";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
@@ -124,6 +124,7 @@ export function useAdminApp(options?: {
   const [appVisible, setAppVisible] = useState(false);
   const loadedTenantIdRef = useRef<string | null>(null);
   const appVisibleRef = useRef(false);
+  const loadInFlightRef = useRef(false);
   appVisibleRef.current = appVisible;
   const initialViewBootstrapped = useRef(false);
   const activeViewRef = useRef<AdminViewName>("grid");
@@ -185,11 +186,13 @@ export function useAdminApp(options?: {
   const loadInitData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
-    setAppVisible(false);
     try {
-      const tenantId = membership?.tenantId || "";
+      const tenantId = membership?.tenantId || getAdminTenantId() || "";
+      if (tenantId) setAdminTenantId(tenantId);
       const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
-      const data = prefetched ? await prefetched : await fetchAdminInitData();
+      const data = prefetched
+        ? await prefetched
+        : await fetchAdminInitData(tenantId || undefined);
       applyServerData(data);
       if (tenantId) releasePrefetchedAdminInit(tenantId);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
@@ -221,14 +224,21 @@ export function useAdminApp(options?: {
     const tenantId = membership?.tenantId;
     if (!tenantId) {
       setIsLoading(false);
+      setLoadError("Не вдалося визначити комплекс.");
       return;
     }
 
+    // Already painted for this tenant — don't restart and hide the UI again.
     if (loadedTenantIdRef.current === tenantId && appVisibleRef.current) return;
+    // Same tenant already loading (Strict Mode / callback identity churn).
+    if (loadedTenantIdRef.current === tenantId && loadInFlightRef.current) return;
 
     loadedTenantIdRef.current = tenantId;
+    loadInFlightRef.current = true;
     setAppVisible(false);
-    void loadInitData();
+    void loadInitData().finally(() => {
+      loadInFlightRef.current = false;
+    });
   }, [authReady, membership?.tenantId, loadInitData]);
 
   useEffect(() => {

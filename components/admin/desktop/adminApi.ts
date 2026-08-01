@@ -95,10 +95,14 @@ export async function adminApiFetch(
   return res;
 }
 
-export async function fetchAdminInitData(): Promise<AdminInitResponse> {
-  const tenantId = getAdminTenantId();
+export async function fetchAdminInitData(tenantIdOverride?: string): Promise<AdminInitResponse> {
+  const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
   if (!tenantId) {
-    throw new AdminUnauthorizedError("MISSING_TENANT");
+    // Not a session error — caller should retry after tenant is set.
+    throw new Error("MISSING_TENANT");
+  }
+  if (!getAdminTenantId()) {
+    setAdminTenantId(tenantId);
   }
   const token = await getAccessToken();
   return fetchInitData(tenantId, token);

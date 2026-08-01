@@ -28,6 +28,7 @@ import {
   clearAdminInitPrefetch,
   prefetchAdminInitData,
 } from "@/lib/admin/adminInitPrefetch";
+import { consumeAdminBootHandoff } from "@/lib/admin/adminBootHandoff";
 
 export type TenantMembership = {
   tenantId: string;
@@ -143,7 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const boot = await fetchAdminBoot(token);
+      const handed = consumeAdminBootHandoff(token);
+      const boot = handed
+        ? {
+            session: handed.session,
+            membership: handed.membership,
+            error: handed.error,
+          }
+        : await fetchAdminBoot(token);
       if (cancelled) return;
 
       setUser(boot.session?.user ?? null);

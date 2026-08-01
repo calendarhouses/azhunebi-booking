@@ -2,7 +2,15 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GAS_AUTH_TOKEN_KEY, signInWithPassword } from "@/lib/gas-api";
+import {
+  fetchAdminBoot,
+  GAS_AUTH_TOKEN_KEY,
+  signInWithPassword,
+} from "@/lib/gas-api";
+import { setAdminBootHandoff } from "@/lib/admin/adminBootHandoff";
+import { prefetchAdminInitData } from "@/lib/admin/adminInitPrefetch";
+import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
+import { setAdminTenantId } from "@/components/admin/desktop/adminApi";
 import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
 import styles from "./login.module.css";
 
@@ -44,26 +52,44 @@ export default function LoginPageClient() {
     setError(null);
     setSubmitting(true);
 
-    const { session, error: signInError } = await signInWithPassword(
-      email.trim(),
-      password
-    );
+    try {
+      const { session, error: signInError } = await signInWithPassword(
+        email.trim(),
+        password
+      );
 
-    setSubmitting(false);
+      if (signInError || !session) {
+        setError(signInError || "Невірний логін або пароль");
+        return;
+      }
 
-    if (signInError || !session) {
-      setError(signInError || "Невірний логін або пароль");
-      return;
+      setAuthCookie(session.accessToken);
+
+      // Warm admin path before navigate: one adminBoot + start adminInitData in parallel.
+      // Handoff avoids a second adminBoot in AuthProvider; SPA nav keeps the prefetch alive.
+      const boot = await fetchAdminBoot(session.accessToken);
+      if (boot.session && boot.membership?.tenantId) {
+        setAdminTenantId(boot.membership.tenantId);
+        setLastAdminTenantId(boot.membership.tenantId);
+        setAdminBootHandoff({
+          token: session.accessToken,
+          session: boot.session,
+          membership: boot.membership,
+          error: boot.error,
+        });
+        void prefetchAdminInitData(boot.membership.tenantId, session.accessToken);
+      } else if (boot.error) {
+        setError(boot.error);
+        return;
+      }
+
+      const target = next.startsWith("/admin") || next === "/" ? next : defaultAdminPath();
+      // Always SPA navigate so in-memory boot handoff + init prefetch survive.
+      router.replace(target);
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
-
-    setAuthCookie(session.accessToken);
-    const target = next.startsWith("/admin") ? next : defaultAdminPath();
-    if (target === "/") {
-      window.location.replace("/");
-      return;
-    }
-    router.replace(target);
-    router.refresh();
   };
 
   return (
