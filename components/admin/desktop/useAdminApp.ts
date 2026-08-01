@@ -156,6 +156,9 @@ export function useAdminApp(options?: {
   const loadedTenantIdRef = useRef<string | null>(null);
   const appVisibleRef = useRef(false);
   appVisibleRef.current = appVisible;
+  const isLoadingRef = useRef(true);
+  isLoadingRef.current = isLoading;
+  const loadGenRef = useRef(0);
   const initialViewBootstrapped = useRef(false);
   const activeViewRef = useRef<AdminViewName>("grid");
   activeViewRef.current = activeView;
@@ -218,13 +221,30 @@ export function useAdminApp(options?: {
   silentSyncRef.current = silentSync;
 
   const loadInitData = useCallback(async () => {
+    const gen = ++loadGenRef.current;
     setIsLoading(true);
     setLoadError(null);
-    setAppVisible(false);
-    try {
-      const tenantId = membership?.tenantId || "";
+    // Don't blank an already-open admin if a concurrent reload starts.
+    if (!appVisibleRef.current) setAppVisible(false);
+
+    const tenantId = membership?.tenantId || "";
+    const loadOnce = async () => {
       const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
-      const data = prefetched ? await prefetched : await fetchAdminInitData();
+      return prefetched ? await prefetched : await fetchAdminInitData();
+    };
+
+    try {
+      let data: AdminInitResponse;
+      try {
+        data = await loadOnce();
+      } catch (firstErr) {
+        if (isAdminUnauthorizedError(firstErr)) throw firstErr;
+        // One retry — GAS often flakes under Telegram cron contention.
+        await new Promise((r) => setTimeout(r, 800));
+        if (gen !== loadGenRef.current) return;
+        data = await fetchAdminInitData();
+      }
+      if (gen !== loadGenRef.current) return;
       applyServerData(data);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
@@ -232,7 +252,9 @@ export function useAdminApp(options?: {
         setLastAdminTenantId(tenantId);
       }
       setAppVisible(true);
+      setLoadError(null);
     } catch (err) {
+      if (gen !== loadGenRef.current) return;
       if (isAdminUnauthorizedError(err)) {
         console.warn("[useAdminApp] Session expired, redirecting to /login");
         setAppVisible(false);
@@ -245,7 +267,7 @@ export function useAdminApp(options?: {
       showToast(msg.length > 80 ? "Помилка завантаження даних." : msg);
       console.error("adminInitData:", err);
     } finally {
-      setIsLoading(false);
+      if (gen === loadGenRef.current) setIsLoading(false);
     }
   }, [applyServerData, membership?.tenantId]);
 
@@ -259,11 +281,25 @@ export function useAdminApp(options?: {
     }
 
     if (loadedTenantIdRef.current === tenantId && appVisibleRef.current) return;
+    // Same tenant already loading — don't start a second request that can hide the UI.
+    if (loadedTenantIdRef.current === tenantId && isLoadingRef.current) return;
 
     loadedTenantIdRef.current = tenantId;
-    setAppVisible(false);
     void loadInitData();
   }, [authReady, membership?.tenantId, loadInitData]);
+
+  // Hard stop: never leave the preloader spinning forever (GAS flake / hung proxy).
+  useEffect(() => {
+    if (!isLoading || appVisible) return;
+    const timer = window.setTimeout(() => {
+      if (!appVisibleRef.current && isLoadingRef.current) {
+        loadGenRef.current += 1;
+        setIsLoading(false);
+        setLoadError("Завантаження зависло. Оновіть сторінку або спробуйте ще раз.");
+      }
+    }, 55_000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading, appVisible]);
 
   useEffect(() => {
     if (!appVisible) return;
