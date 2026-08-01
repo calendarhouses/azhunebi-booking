@@ -8,12 +8,11 @@ const DEFAULT_LOGO_ALT = "АЖ У НЕБІ";
 
 type PublicPreloaderProps = {
   visible: boolean;
-  failed?: boolean;
   logoUrl?: string | null;
   alt?: string | null;
 };
 
-export function PublicPreloader({ visible, failed, logoUrl, alt }: PublicPreloaderProps) {
+export function PublicPreloader({ visible, logoUrl, alt }: PublicPreloaderProps) {
   const [mounted, setMounted] = useState(visible);
   const [opaque, setOpaque] = useState(visible);
 
@@ -37,9 +36,7 @@ export function PublicPreloader({ visible, failed, logoUrl, alt }: PublicPreload
   return (
     <div
       id="preloader"
-      className={[opaque ? "" : "preloader-hidden", failed ? "preloader-failed" : ""]
-        .filter(Boolean)
-        .join(" ")}
+      className={opaque ? undefined : "preloader-hidden"}
       aria-hidden={!opaque}
       role="status"
       aria-label="Завантаження"
@@ -54,14 +51,6 @@ export function PublicPreloader({ visible, failed, logoUrl, alt }: PublicPreload
           referrerPolicy="no-referrer"
         />
       </div>
-      {failed ? (
-        <div className="public-preloader-error">
-          <p>Не вдалося завантажити вільні дати.</p>
-          <button type="button" onClick={() => window.location.reload()}>
-            Спробувати ще раз
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

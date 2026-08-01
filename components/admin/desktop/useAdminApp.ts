@@ -12,10 +12,6 @@ import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
   consumePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
-import {
-  readAdminInitSnapshot,
-  writeAdminInitSnapshot,
-} from "@/lib/admin/adminInitCache";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -60,33 +56,6 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
 }
 
 /** Лише дані з API — без dummy fallback. */
-function mergeGuestProfiles(
-  server: AdminSettingsPayload["guestProfiles"],
-  local: AdminSettingsPayload["guestProfiles"]
-): AdminSettingsPayload["guestProfiles"] {
-  const serverMap =
-    server && typeof server === "object" && !Array.isArray(server) ? server : null;
-  const localMap =
-    local && typeof local === "object" && !Array.isArray(local) ? local : null;
-  if (!serverMap && !localMap) return undefined;
-  if (!serverMap) return localMap || undefined;
-  if (!localMap) return serverMap;
-
-  const out: NonNullable<AdminSettingsPayload["guestProfiles"]> = { ...serverMap };
-  for (const [phone, profile] of Object.entries(localMap)) {
-    if (!profile || typeof profile !== "object") continue;
-    const existing = out[phone];
-    if (!existing) {
-      out[phone] = profile;
-      continue;
-    }
-    const localTs = Date.parse(String(profile.updatedAt || "")) || 0;
-    const serverTs = Date.parse(String(existing.updatedAt || "")) || 0;
-    if (localTs >= serverTs) out[phone] = profile;
-  }
-  return out;
-}
-
 function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayload {
   const s = raw || {};
   return {
@@ -101,11 +70,6 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
     smsSettings: s.smsSettings,
-    icalSyncSettings: s.icalSyncSettings,
-    guestProfiles:
-      s.guestProfiles && typeof s.guestProfiles === "object" && !Array.isArray(s.guestProfiles)
-        ? s.guestProfiles
-        : undefined,
   };
 }
 
@@ -160,9 +124,6 @@ export function useAdminApp(options?: {
   const loadedTenantIdRef = useRef<string | null>(null);
   const appVisibleRef = useRef(false);
   appVisibleRef.current = appVisible;
-  const isLoadingRef = useRef(true);
-  isLoadingRef.current = isLoading;
-  const loadGenRef = useRef(0);
   const initialViewBootstrapped = useRef(false);
   const activeViewRef = useRef<AdminViewName>("grid");
   activeViewRef.current = activeView;
@@ -202,10 +163,6 @@ export function useAdminApp(options?: {
             discountsList: dedupeDiscountsList(serverDiscounts),
           };
         }
-        const guestProfiles = mergeGuestProfiles(merged.guestProfiles, prev.guestProfiles);
-        if (guestProfiles) {
-          nextSettings = { ...nextSettings, guestProfiles };
-        }
         syncLegacyGlobals({ bookings: mergedBookings, settings: nextSettings });
         return nextSettings;
       });
@@ -218,70 +175,28 @@ export function useAdminApp(options?: {
 
   const silentSync = useCallback(async () => {
     const data = await silentSyncAdminData();
-    if (!data) return;
-    applyServerData(data, { silent: true });
-    const tenantId = membership?.tenantId;
-    if (tenantId) writeAdminInitSnapshot(tenantId, data);
-  }, [applyServerData, membership?.tenantId]);
+    if (data) applyServerData(data, { silent: true });
+  }, [applyServerData]);
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
 
   const loadInitData = useCallback(async () => {
-    const gen = ++loadGenRef.current;
-    const tenantId = membership?.tenantId || "";
-
+    setIsLoading(true);
     setLoadError(null);
-
-    // Paint last known good UI immediately, then refresh live in background.
-    // Admin is not a public booking form — a brief stale/empty shell while
-    // syncing beats a 40s blank preloader every time.
-    let openedFromCache = false;
-    if (!appVisibleRef.current) {
-      const snapshot = tenantId ? readAdminInitSnapshot(tenantId) : null;
-      if (snapshot) {
-        applyServerData(snapshot);
-        setAppVisible(true);
-        setIsLoading(false);
-        openedFromCache = true;
-      } else {
-        // First visit / cleared cache: show the shell with empty data now.
-        // Timeline fills in when GAS answers — user is not stuck on preloader.
-        setAppVisible(true);
-      }
-    } else {
-      openedFromCache = true;
-    }
-
-    if (!openedFromCache) setIsLoading(true);
-
-    const applyFresh = (data: AdminInitResponse) => {
-      applyServerData(data, { silent: openedFromCache });
-      if (tenantId) writeAdminInitSnapshot(tenantId, data);
+    setAppVisible(false);
+    try {
+      const tenantId = membership?.tenantId || "";
+      const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
+      const data = prefetched ? await prefetched : await fetchAdminInitData();
+      applyServerData(data);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
         setCachedTenantLogoUrl(tenantId, logoUrl);
         setLastAdminTenantId(tenantId);
       }
       setAppVisible(true);
-      setLoadError(null);
-    };
-
-    try {
-      let data: AdminInitResponse;
-      try {
-        const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
-        data = prefetched ? await prefetched : await fetchAdminInitData();
-      } catch (firstErr) {
-        if (isAdminUnauthorizedError(firstErr)) throw firstErr;
-        await new Promise((r) => setTimeout(r, 1200));
-        if (gen !== loadGenRef.current) return;
-        data = await fetchAdminInitData();
-      }
-      if (gen !== loadGenRef.current) return;
-      applyFresh(data);
     } catch (err) {
-      if (gen !== loadGenRef.current) return;
       if (isAdminUnauthorizedError(err)) {
         console.warn("[useAdminApp] Session expired, redirecting to /login");
         setAppVisible(false);
@@ -289,16 +204,12 @@ export function useAdminApp(options?: {
         await expireAdminSession();
         return;
       }
-      console.error("adminInitData:", err);
-      if (openedFromCache) {
-        showToast("Не вдалося оновити дані. Показано збережену копію.");
-        return;
-      }
       const msg = parseAdminFetchError(err);
       setLoadError(msg);
       showToast(msg.length > 80 ? "Помилка завантаження даних." : msg);
+      console.error("adminInitData:", err);
     } finally {
-      if (gen === loadGenRef.current) setIsLoading(false);
+      setIsLoading(false);
     }
   }, [applyServerData, membership?.tenantId]);
 
@@ -312,25 +223,11 @@ export function useAdminApp(options?: {
     }
 
     if (loadedTenantIdRef.current === tenantId && appVisibleRef.current) return;
-    // Same tenant already loading — don't start a second request that can hide the UI.
-    if (loadedTenantIdRef.current === tenantId && isLoadingRef.current) return;
 
     loadedTenantIdRef.current = tenantId;
+    setAppVisible(false);
     void loadInitData();
   }, [authReady, membership?.tenantId, loadInitData]);
-
-  // Hard stop: never leave the preloader spinning forever (GAS flake / hung proxy).
-  useEffect(() => {
-    if (!isLoading || appVisible) return;
-    const timer = window.setTimeout(() => {
-      if (!appVisibleRef.current && isLoadingRef.current) {
-        loadGenRef.current += 1;
-        setIsLoading(false);
-        setLoadError("Завантаження зависло. Оновіть сторінку або спробуйте ще раз.");
-      }
-    }, 100_000);
-    return () => window.clearTimeout(timer);
-  }, [isLoading, appVisible]);
 
   useEffect(() => {
     if (!appVisible) return;

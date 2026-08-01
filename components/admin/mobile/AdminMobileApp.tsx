@@ -157,11 +157,6 @@ export function AdminMobileApp() {
           />
 
           <div className="main-content">
-            {admin.isLoading && admin.appVisible ? (
-              <div className="admin-sync-banner" role="status">
-                Оновлюємо дані з таблиці…
-              </div>
-            ) : null}
             {admin.loadError ? (
               <div
                 className="admin-load-error-banner"
@@ -206,8 +201,6 @@ export function AdminMobileApp() {
               <DesktopGuestsView
                 layout="mobile"
                 bookings={admin.bookings}
-                guestProfiles={admin.settings.guestProfiles}
-                onUpsertGuestProfile={modals.upsertGuestProfile}
                 onShowGuestBookings={(phone, name) => {
                   setGuestFilter({ phone, name });
                   admin.switchView("list");
@@ -265,7 +258,6 @@ export function AdminMobileApp() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
-            onUpsertGuestProfile={modals.upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

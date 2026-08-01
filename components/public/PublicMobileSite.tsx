@@ -18,8 +18,6 @@ export function PublicMobileSite() {
   const {
     runtime,
     preloaderVisible,
-    initFailed,
-    availabilityLoading,
     activeScreen,
     setActiveScreen,
     openDrawer,
@@ -44,33 +42,14 @@ export function PublicMobileSite() {
   const telHref = hasContact ? `tel:+${contactDigits}` : "";
   const telegramHref = hasContact ? `https://t.me/+${contactDigits}` : "";
   const rooms = filteredRooms;
-  const showEmpty = Boolean(
-    runtime && listFilterActive && !availabilityLoading && !initFailed && rooms.length === 0
-  );
+  const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
   const showLoading = !runtime || runtime.rooms.length === 0;
 
   return (
     <>
-      <PublicPreloader
-        visible={preloaderVisible}
-        failed={false}
-        logoUrl={runtime?.branding?.logo_url as string | null}
-        alt={siteTitle}
-      />
+      <PublicPreloader visible={preloaderVisible} logoUrl={runtime?.branding?.logo_url as string | null} alt={siteTitle} />
 
       <div id="screen-list" className={`screen ${activeScreen === "list" ? "active" : ""}`}>
-        {initFailed ? (
-          <div className="availability-banner availability-banner--error" role="alert">
-            Не вдалося оновити вільні дати.{" "}
-            <button type="button" onClick={() => window.location.reload()}>
-              Спробувати ще
-            </button>
-          </div>
-        ) : availabilityLoading ? (
-          <div className="availability-banner" role="status">
-            Оновлюємо вільні дати…
-          </div>
-        ) : null}
         <header className="public-mobile-brand">
           <div className="public-mobile-brand__inner">
             {/* eslint-disable-next-line @next/next/no-img-element */}

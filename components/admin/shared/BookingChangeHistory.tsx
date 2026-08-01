@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchBookingChangeHistory } from "@/components/admin/desktop/adminApi";
+import { useMemo, useState } from "react";
 import type { BookingChangeHistoryEntry } from "@/components/admin/desktop/types";
 
 type Props = {
-  bookingId?: string | null;
   entries?: BookingChangeHistoryEntry[] | null;
 };
 
@@ -29,53 +27,15 @@ function historyTitle(label: string): string {
   return `Зміни у «${raw.toLowerCase()}»`;
 }
 
-export function BookingChangeHistory({ bookingId, entries }: Props) {
+export function BookingChangeHistory({ entries }: Props) {
   const [open, setOpen] = useState(false);
-  const [loaded, setLoaded] = useState<BookingChangeHistoryEntry[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const requestedFor = useRef<string | null>(null);
-
-  useEffect(() => {
-    setOpen(false);
-    setLoaded(null);
-    setFailed(false);
-    requestedFor.current = null;
-  }, [bookingId]);
-
-  useEffect(() => {
-    if (!open || !bookingId) return;
-    if (requestedFor.current === bookingId) return;
-    requestedFor.current = bookingId;
-
-    let cancelled = false;
-    setLoading(true);
-    setFailed(false);
-    fetchBookingChangeHistory(bookingId)
-      .then((res) => {
-        if (!cancelled) setLoaded(res);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setFailed(true);
-          requestedFor.current = null;
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, bookingId]);
 
   const items = useMemo(() => {
-    const source = loaded ?? (Array.isArray(entries) ? entries : []);
-    return source.filter((e) => e && (e.label || e.to || e.from));
-  }, [loaded, entries]);
+    if (!Array.isArray(entries)) return [];
+    return entries.filter((e) => e && (e.label || e.to || e.from));
+  }, [entries]);
 
-  if (!bookingId && items.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
     <section
@@ -89,9 +49,7 @@ export function BookingChangeHistory({ bookingId, entries }: Props) {
         aria-expanded={open}
       >
         <span className="booking-history__title">Історія змін</span>
-        {items.length > 0 ? (
-          <span className="booking-history__count">{items.length}</span>
-        ) : null}
+        <span className="booking-history__count">{items.length}</span>
         <svg
           className="booking-history__chevron"
           width="18"
@@ -107,15 +65,6 @@ export function BookingChangeHistory({ bookingId, entries }: Props) {
       </button>
 
       <div className="booking-history__collapse" hidden={!open}>
-        {loading ? (
-          <div className="booking-history__status">Завантаження…</div>
-        ) : null}
-        {failed && !loading ? (
-          <div className="booking-history__status">Не вдалося завантажити історію</div>
-        ) : null}
-        {!loading && !failed && items.length === 0 ? (
-          <div className="booking-history__status">Змін поки немає</div>
-        ) : null}
         <ol className="booking-history__timeline">
           {items.map((entry, idx) => {
             const key = entry.id || `${entry.at}-${idx}`;

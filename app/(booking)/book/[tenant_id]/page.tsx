@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { PublicBookPage } from "@/components/public/PublicBookPage";
-import { getCachedPublicTenantData } from "@/lib/public-booking/publicDataCache";
+import { fetchPublicTenantData } from "@/lib/public-booking/fetchPublicTenantData";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,7 @@ type PageProps = {
 
 export default async function BookTenantPage({ params }: PageProps) {
   const { tenant_id } = await params;
-
-  const data = await getCachedPublicTenantData(tenant_id);
+  const data = await fetchPublicTenantData(tenant_id);
 
   if (!data) {
     notFound();

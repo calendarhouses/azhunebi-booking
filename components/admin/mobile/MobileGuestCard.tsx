@@ -3,11 +3,6 @@
 import { getVisitWord } from "../desktop/guestData";
 import { copyToClipboard } from "../desktop/bookingUtils";
 import { MessengerIcon } from "../shared/MessengerButtons";
-import {
-  GuestRatingBadge,
-  GuestReputationControls,
-} from "../shared/GuestReputationControls";
-import type { GuestRating } from "@/lib/admin/guestProfiles";
 
 const iconPhone = (
   <svg width="14" height="14" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
@@ -48,25 +43,16 @@ export interface MobileGuestCardProps {
   name: string;
   phone: string;
   count: number;
-  rating?: GuestRating;
-  note?: string;
   lastVisitLabel?: string;
   onShowBookings?: (phone: string, name: string) => void;
-  onUpsertProfile?: (
-    phone: string,
-    patch: { rating?: GuestRating | null; note?: string | null }
-  ) => void;
 }
 
 export function MobileGuestCard({
   name,
   phone,
   count,
-  rating,
-  note,
   lastVisitLabel,
   onShowBookings,
-  onUpsertProfile,
 }: MobileGuestCardProps) {
   const initial = name.charAt(0).toUpperCase() || "👤";
   const callHref = telHref(phone);
@@ -77,10 +63,7 @@ export function MobileGuestCard({
         <div className="boso-mobile-card__guest-main">
           <div className="boso-mobile-card__avatar">{initial}</div>
           <div className="boso-mobile-card__guest-text">
-            <strong className="boso-mobile-card__name">
-              {name}
-              <GuestRatingBadge rating={rating} note={note} />
-            </strong>
+            <strong className="boso-mobile-card__name">{name}</strong>
             <button
               type="button"
               className="boso-mobile-card__phone tap-btn"
@@ -91,7 +74,6 @@ export function MobileGuestCard({
             {lastVisitLabel ? (
               <span className="boso-mobile-card__last-visit">{lastVisitLabel}</span>
             ) : null}
-            {note ? <span className="guest-note-preview">{note}</span> : null}
           </div>
         </div>
         <button
@@ -102,17 +84,6 @@ export function MobileGuestCard({
           {count} {getVisitWord(count)}
         </button>
       </div>
-
-      {onUpsertProfile ? (
-        <div className="boso-mobile-guest-card__rep">
-          <GuestReputationControls
-            phone={phone}
-            profile={{ rating, note }}
-            onChange={(patch) => onUpsertProfile(phone, patch)}
-            compact
-          />
-        </div>
-      ) : null}
 
       <div className="boso-mobile-card__messengers">
         {callHref ? (

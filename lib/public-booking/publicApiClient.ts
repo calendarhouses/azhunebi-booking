@@ -1,24 +1,10 @@
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import { createBooking, fetchInitData } from "@/lib/gas-api";
 
-/** Always live availability — goes through coalesced route, then GAS. */
 export async function fetchPublicInitData(
   tenantId: string
 ): Promise<AdminInitResponse> {
-  try {
-    const res = await fetch(
-      `/api/public/availability?tenant_id=${encodeURIComponent(tenantId)}`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) throw new Error(`Availability HTTP ${res.status}`);
-    const data = (await res.json()) as AdminInitResponse & { error?: string };
-    if (data.error || !data.settings) {
-      throw new Error(data.error || "Empty availability payload");
-    }
-    return data;
-  } catch {
-    return fetchInitData(tenantId);
-  }
+  return fetchInitData(tenantId);
 }
 
 export type SubmitBookingPayload = Record<string, unknown> & {

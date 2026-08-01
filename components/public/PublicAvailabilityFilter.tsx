@@ -48,8 +48,6 @@ function StayRangeCalendar() {
     guestCount,
     childCount,
     youngestChildAge,
-    availabilityLoading,
-    initFailed,
   } = usePublicBooking();
   const { onTouchStart, onTouchEnd } = useCalendarMonthSwipe(shiftCal);
 
@@ -62,16 +60,15 @@ function StayRangeCalendar() {
   today.setHours(0, 0, 0, 0);
 
   const rooms = runtime?.rooms || [];
-  const datesReady = !availabilityLoading && !initFailed;
   const availabilityOpts = {
     checkIn,
     checkOut,
     adults: guestCount,
     children: childCount,
     youngestAge: childCount > 0 ? youngestChildAge : null,
-    bookings: datesReady ? runtime?.bookings || [] : [],
-    closedDates: datesReady ? runtime?.closedDates : undefined,
-    restrictions: datesReady ? runtime?.restrictions : undefined,
+    bookings: runtime?.bookings || [],
+    closedDates: runtime?.closedDates,
+    restrictions: runtime?.restrictions,
   };
 
   const days: React.ReactNode[] = [];
@@ -85,7 +82,6 @@ function StayRangeCalendar() {
     const ds = formatDateKey(d);
     const isPast = d < today;
     const isAvailable =
-      datesReady &&
       !isPast &&
       Boolean(runtime) &&
       isListSearchDateAvailable(d, rooms, availabilityOpts);
@@ -169,8 +165,6 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     filteredRooms,
     listFilterActive,
     listGuestMax,
-    availabilityLoading,
-    initFailed,
   } = usePublicBooking();
 
   const [datesOpen, setDatesOpen] = useState(false);
@@ -208,15 +202,11 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
       ? Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000)
       : 0;
 
-  const availableLabel = availabilityLoading
-    ? "оновлюємо дати…"
-    : initFailed
-      ? "дати недоступні"
-      : listFilterActive
-        ? filteredRooms.length === 1
-          ? "1 вільний"
-          : `${filteredRooms.length} вільних`
-        : null;
+  const availableLabel = listFilterActive
+    ? filteredRooms.length === 1
+      ? "1 вільний"
+      : `${filteredRooms.length} вільних`
+    : null;
 
   return (
     <div
@@ -225,9 +215,7 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     >
       {layout === "desktop" ? (
         <h2 className="stay-filter__heading">
-          {availabilityLoading
-            ? "Завантажуємо вільні дати…"
-            : "Оберіть період — покажемо лише вільні будинки"}
+          Оберіть період — покажемо лише вільні будинки
         </h2>
       ) : null}
 

@@ -48,7 +48,6 @@ import {
   submitPublicBooking,
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
-import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import { showPublicToast, stripHtmlTags } from "@/lib/public-booking/publicToast";
 import { formatUaPhoneE164, normalizeUaNationalPhoneDigits } from "@/lib/public-booking/uaPhone";
 import {
@@ -97,9 +96,6 @@ type DrawerStep = "info" | "calendar" | "checkout" | "rules";
 type Ctx = {
   runtime: PublicSiteRuntime | null;
   initLoading: boolean;
-  initFailed: boolean;
-  /** Bookings/restrictions still loading — room list is already visible. */
-  availabilityLoading: boolean;
   preloaderVisible: boolean;
   activeScreen: "list" | "success";
   setActiveScreen: (s: "list" | "success") => void;
@@ -211,17 +207,8 @@ export function PublicBookingProvider({
   children: ReactNode;
 }) {
   const searchParams = useSearchParams();
-  const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(() => ({
-    ...data,
-    bookings: [],
-    restrictions: {},
-    closedDates: {},
-    sysServicesList: [],
-    customServicesList: [],
-  }));
-  const [initLoading, setInitLoading] = useState(false);
-  const [initFailed, setInitFailed] = useState(false);
-  const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(null);
+  const [initLoading, setInitLoading] = useState(true);
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("info");
@@ -253,63 +240,38 @@ export function PublicBookingProvider({
 
   useEffect(() => {
     let cancelled = false;
-
-    const buildRuntime = (init: AdminInitResponse): PublicSiteRuntime => {
-      const settings = init.settings || {};
-      const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
-      return {
-        ...data,
-        rooms: roomsFromApi.filter((r) => r.active !== false),
-        discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
-        customPrices: settings.customPrices || data.customPrices,
-        bookings: init.bookings || [],
-        restrictions: settings.restrictions || {},
-        closedDates: settings.closedDates || {},
-        sysServicesList: settings.sysServicesList || [],
-        customServicesList: settings.customServicesList || [],
-        flexibleScheduleSettings: settings.flexibleScheduleSettings,
-      };
-    };
-
-    // Room list is already painted from SSR. Availability loads in the
-    // background — never block the whole page on a slow Apps Script queue.
-    setRuntime((prev) =>
-      prev
-        ? prev
-        : {
-            ...data,
-            bookings: [],
-            restrictions: {},
-            closedDates: {},
-            sysServicesList: [],
-            customServicesList: [],
-          }
-    );
-    setInitLoading(false);
-    setAvailabilityLoading(true);
-    setInitFailed(false);
-
     (async () => {
       try {
-        let init: AdminInitResponse;
-        try {
-          init = await fetchPublicInitData(data.tenantId);
-        } catch {
-          await new Promise((r) => setTimeout(r, 800));
-          if (cancelled) return;
-          init = await fetchPublicInitData(data.tenantId);
-        }
+        const init = await fetchPublicInitData(data.tenantId);
         if (cancelled) return;
-        setRuntime(buildRuntime(init));
-        setInitFailed(false);
+        const settings = init.settings || {};
+        const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
+        setRuntime({
+          ...data,
+          rooms: roomsFromApi.filter((r) => r.active !== false),
+          discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
+          customPrices: settings.customPrices || data.customPrices,
+          bookings: init.bookings || [],
+          restrictions: settings.restrictions || {},
+          closedDates: settings.closedDates || {},
+          sysServicesList: settings.sysServicesList || [],
+          customServicesList: settings.customServicesList || [],
+          flexibleScheduleSettings: settings.flexibleScheduleSettings,
+        });
       } catch (e) {
         console.error(e);
-        if (!cancelled) setInitFailed(true);
+        setRuntime({
+          ...data,
+          bookings: [],
+          restrictions: {},
+          closedDates: {},
+          sysServicesList: [],
+          customServicesList: [],
+        });
       } finally {
-        if (!cancelled) setAvailabilityLoading(false);
+        if (!cancelled) setInitLoading(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
@@ -453,11 +415,9 @@ export function PublicBookingProvider({
   const getNextFreeForRoom = useCallback(
     (room: RoomConfig) => {
       if (!runtime) return "перевірте дати";
-      if (availabilityLoading) return "оновлюємо дати…";
-      if (initFailed) return "перевірте дати";
       return getNextFreeDateLabel(runtime.bookings, room);
     },
-    [runtime, availabilityLoading, initFailed]
+    [runtime]
   );
 
   const resetDrawerExtras = useCallback(() => {
@@ -559,14 +519,6 @@ export function PublicBookingProvider({
 
   const selectDate = useCallback(
     (ds: string) => {
-      if (availabilityLoading) {
-        showPublicToast("Зачекайте — оновлюємо вільні дати");
-        return;
-      }
-      if (initFailed) {
-        showPublicToast("Не вдалося завантажити дати. Оновіть сторінку.");
-        return;
-      }
       if (!selectedRoom || !runtime) return;
       const d = new Date(ds);
       d.setHours(0, 0, 0, 0);
@@ -702,19 +654,11 @@ export function PublicBookingProvider({
       }
       setCalKey((k) => k + 1);
     },
-    [checkIn, checkOut, runtime, selectedRoom, availabilityLoading, initFailed]
+    [checkIn, checkOut, runtime, selectedRoom]
   );
 
   const selectStayDate = useCallback(
     (ds: string) => {
-      if (availabilityLoading) {
-        showPublicToast("Зачекайте — оновлюємо вільні дати");
-        return;
-      }
-      if (initFailed) {
-        showPublicToast("Не вдалося завантажити дати. Оновіть сторінку.");
-        return;
-      }
       const d = new Date(ds);
       d.setHours(0, 0, 0, 0);
       const today = new Date();
@@ -757,16 +701,7 @@ export function PublicBookingProvider({
       }
       setCalKey((k) => k + 1);
     },
-    [
-      checkIn,
-      checkOut,
-      runtime,
-      guestCount,
-      childCount,
-      youngestChildAge,
-      availabilityLoading,
-      initFailed,
-    ]
+    [checkIn, checkOut, runtime, guestCount, childCount, youngestChildAge]
   );
 
   const listGuestMax = useMemo(() => {
@@ -781,20 +716,6 @@ export function PublicBookingProvider({
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
-    // Until availability arrives, never filter by bookings — that would look
-    // like every cottage is free / none are free incorrectly.
-    if (availabilityLoading || initFailed) {
-      return filterRoomsForStay(runtime.rooms, {
-        checkIn: null,
-        checkOut: null,
-        adults: guestCount,
-        children: childCount,
-        youngestAge: childCount > 0 ? youngestChildAge : null,
-        bookings: [],
-        closedDates: {},
-        restrictions: {},
-      });
-    }
     return filterRoomsForStay(runtime.rooms, {
       checkIn,
       checkOut,
@@ -805,16 +726,7 @@ export function PublicBookingProvider({
       closedDates: runtime.closedDates,
       restrictions: runtime.restrictions,
     });
-  }, [
-    runtime,
-    checkIn,
-    checkOut,
-    guestCount,
-    childCount,
-    youngestChildAge,
-    availabilityLoading,
-    initFailed,
-  ]);
+  }, [runtime, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
 
   const changeGuests = useCallback(
     (delta: number) => {
@@ -1361,8 +1273,6 @@ export function PublicBookingProvider({
   const value: Ctx = {
     runtime,
     initLoading,
-    initFailed,
-    availabilityLoading,
     preloaderVisible,
     activeScreen,
     setActiveScreen,

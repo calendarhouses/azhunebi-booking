@@ -9,34 +9,22 @@ export function prefetchAdminInitData(tenantId: string, authToken: string): Prom
     return prefetchPromise;
   }
   prefetchTenantId = tenantId;
-  const promise = fetchInitData(tenantId, authToken).then(
-    (data) => {
-      // Keep resolved data reusable briefly; clear only after consume or newer prefetch.
-      return data;
-    },
-    (err) => {
-      if (prefetchPromise === promise) {
-        prefetchTenantId = null;
-        prefetchPromise = null;
-      }
-      throw err;
-    }
-  );
-  prefetchPromise = promise;
-  return promise;
-}
-
-/** Peek in-flight/resolved prefetch without dropping it (safe for concurrent boot). */
-export function consumePrefetchedAdminInit(tenantId: string): Promise<AdminInitResponse> | null {
-  if (!prefetchPromise || prefetchTenantId !== tenantId) return null;
-  const promise = prefetchPromise;
-  return promise.finally(() => {
-    // Drop cache after this generation settles so the next visit re-fetches fresh data.
-    if (prefetchPromise === promise) {
+  prefetchPromise = fetchInitData(tenantId, authToken).catch((err) => {
+    if (prefetchTenantId === tenantId) {
       prefetchTenantId = null;
       prefetchPromise = null;
     }
+    throw err;
   });
+  return prefetchPromise;
+}
+
+export function consumePrefetchedAdminInit(tenantId: string): Promise<AdminInitResponse> | null {
+  if (!prefetchPromise || prefetchTenantId !== tenantId) return null;
+  const promise = prefetchPromise;
+  prefetchTenantId = null;
+  prefetchPromise = null;
+  return promise;
 }
 
 export function clearAdminInitPrefetch(): void {

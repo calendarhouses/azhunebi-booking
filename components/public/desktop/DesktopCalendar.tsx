@@ -105,19 +105,10 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
     checkOut,
     selectDate,
     calKey,
-    availabilityLoading,
   } = usePublicBooking();
   const { onTouchStart, onTouchEnd } = useCalendarMonthSwipe(shiftCal);
 
   if (!runtime) return null;
-
-  if (availabilityLoading) {
-    return (
-      <div className="calendar-loading" role="status">
-        Оновлюємо вільні дати…
-      </div>
-    );
-  }
 
   const base = new Date(calBase.getFullYear(), calBase.getMonth(), 1);
   const year = base.getFullYear();
