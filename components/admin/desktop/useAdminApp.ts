@@ -160,6 +160,31 @@ export function useAdminApp(options?: {
   const activeViewRef = useRef<AdminViewName>("grid");
   activeViewRef.current = activeView;
 
+  const guestProfilesLoadRef = useRef<Promise<void> | null>(null);
+
+  const ensureGuestProfilesLoaded = useCallback(() => {
+    if (guestProfilesLoadRef.current) return guestProfilesLoadRef.current;
+    guestProfilesLoadRef.current = fetchAdminGuestProfiles()
+      .then((guestProfiles) => {
+        setSettings((prev) => {
+          const merged =
+            mergeGuestProfiles(guestProfiles, prev.guestProfiles) || guestProfiles;
+          const next = { ...prev, guestProfiles: merged };
+          syncLegacyGlobals({ settings: next });
+          return next;
+        });
+      })
+      .catch((err) => {
+        guestProfilesLoadRef.current = null;
+        if (isAdminUnauthorizedError(err)) {
+          void expireAdminSession();
+          return;
+        }
+        console.warn("guestProfiles load:", err);
+      });
+    return guestProfilesLoadRef.current;
+  }, []);
+
   const applyServerData = useCallback(
     (data: AdminInitResponse, options?: { silent?: boolean }) => {
       const merged = mergeSettings(data.settings);
@@ -232,23 +257,6 @@ export function useAdminApp(options?: {
         setLastAdminTenantId(tenantId);
       }
       setAppVisible(true);
-      // Guest CRM is off the critical path — hydrate after UI is up.
-      void fetchAdminGuestProfiles()
-        .then((guestProfiles) => {
-          setSettings((prev) => {
-            const merged = mergeGuestProfiles(guestProfiles, prev.guestProfiles) || guestProfiles;
-            const next = { ...prev, guestProfiles: merged };
-            syncLegacyGlobals({ settings: next });
-            return next;
-          });
-        })
-        .catch((err) => {
-          if (isAdminUnauthorizedError(err)) {
-            void expireAdminSession();
-            return;
-          }
-          console.warn("guestProfiles lazy load:", err);
-        });
     } catch (err) {
       if (isAdminUnauthorizedError(err)) {
         console.warn("[useAdminApp] Session expired, redirecting to /login");
@@ -295,6 +303,7 @@ export function useAdminApp(options?: {
       if (saved?.settingsTab) setSettingsTab(normalizeSettingsTab(saved.settingsTab));
       if (saved?.settingsExpanded && allowSettings) setSettingsExpanded(true);
       setActiveView(view);
+      if (view === "guests") void ensureGuestProfilesLoaded();
       if (platform === "mobile") {
         syncViewDom(view, {
           settingsExpanded: view === "settings" || !!saved?.settingsExpanded,
@@ -325,7 +334,7 @@ export function useAdminApp(options?: {
     }, 30000);
 
     return () => window.clearInterval(interval);
-  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports]);
+  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports, ensureGuestProfilesLoaded]);
 
   const persistNav = useCallback(
     (view: AdminViewName, tab: SettingsTabName, expanded: boolean) => {
@@ -347,6 +356,7 @@ export function useAdminApp(options?: {
       if (viewName === "settings" && !allowSettings) nextView = "grid";
       if (viewName === "reports" && !allowReports) nextView = "grid";
       setActiveView(nextView);
+      if (nextView === "guests") void ensureGuestProfilesLoaded();
       persistNav(nextView, settingsTab, settingsExpanded);
       if (platform === "mobile" && typeof document !== "undefined") {
         const main = document.querySelector(".boso-admin-mobile .main-content");
@@ -365,7 +375,7 @@ export function useAdminApp(options?: {
       }
       requestAnimationFrame(() => refreshLegacyView(nextView));
     },
-    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom]
+    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom, ensureGuestProfilesLoaded]
   );
 
   const switchSettingsTab = useCallback((tabName: SettingsTabName) => {
@@ -458,5 +468,6 @@ export function useAdminApp(options?: {
     reload: loadInitData,
     silentSync,
     applyServerData,
+    ensureGuestProfilesLoaded,
   };
 }

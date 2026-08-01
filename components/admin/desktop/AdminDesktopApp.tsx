@@ -98,6 +98,10 @@ export function AdminDesktopApp() {
     setBookings: admin.setBookings,
   });
 
+  useEffect(() => {
+    if (drawer.drawerOpen) void admin.ensureGuestProfilesLoaded();
+  }, [drawer.drawerOpen, admin.ensureGuestProfilesLoaded]);
+
   const priceTimelineBaseDateRef = useRef(new Date());
   const restrictionsTimelineBaseDateRef = useRef(new Date());
   priceTimelineBaseDateRef.current.setDate(1);
