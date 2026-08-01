@@ -361,11 +361,19 @@ export async function fetchAdminBoot(
     }>({ action: "adminBoot" }, { authToken: token });
 
     if (data.error || !data.user) {
-      setStoredAuthToken(null);
+      const msg =
+        data.message || data.error || "Сесія закінчилась";
+      // Never wipe a fresh login token on transient/ambiguous boot failures.
+      if (
+        data.error === "UNAUTHORIZED" ||
+        /сесія закінчилась|не авторизовано/i.test(String(msg))
+      ) {
+        setStoredAuthToken(null);
+      }
       return {
         session: null,
         membership: null,
-        error: data.message || data.error || "Сесія закінчилась",
+        error: msg,
       };
     }
 

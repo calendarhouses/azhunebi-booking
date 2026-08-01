@@ -33,6 +33,27 @@ function defaultAdminPath() {
   return "/admin";
 }
 
+/** Warm admin boot/init without blocking or failing the login form. */
+function warmAdminAfterLogin(accessToken: string): void {
+  void (async () => {
+    try {
+      const boot = await fetchAdminBoot(accessToken);
+      if (!boot.session || !boot.membership?.tenantId) return;
+      setAdminTenantId(boot.membership.tenantId);
+      setLastAdminTenantId(boot.membership.tenantId);
+      setAdminBootHandoff({
+        token: accessToken,
+        session: boot.session,
+        membership: boot.membership,
+        error: boot.error,
+      });
+      void prefetchAdminInitData(boot.membership.tenantId, accessToken);
+    } catch (err) {
+      console.warn("[login] warm admin failed:", err);
+    }
+  })();
+}
+
 export default function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,27 +85,10 @@ export default function LoginPageClient() {
       }
 
       setAuthCookie(session.accessToken);
-
-      // Warm admin path before navigate: one adminBoot + start adminInitData in parallel.
-      // Handoff avoids a second adminBoot in AuthProvider; SPA nav keeps the prefetch alive.
-      const boot = await fetchAdminBoot(session.accessToken);
-      if (boot.session && boot.membership?.tenantId) {
-        setAdminTenantId(boot.membership.tenantId);
-        setLastAdminTenantId(boot.membership.tenantId);
-        setAdminBootHandoff({
-          token: session.accessToken,
-          session: boot.session,
-          membership: boot.membership,
-          error: boot.error,
-        });
-        void prefetchAdminInitData(boot.membership.tenantId, session.accessToken);
-      } else if (boot.error) {
-        setError(boot.error);
-        return;
-      }
+      // Do not await boot here — boot failures were surfacing as "bad password".
+      warmAdminAfterLogin(session.accessToken);
 
       const target = next.startsWith("/admin") || next === "/" ? next : defaultAdminPath();
-      // Always SPA navigate so in-memory boot handoff + init prefetch survive.
       router.replace(target);
       router.refresh();
     } finally {
