@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   guestPhoneKey,
   guestRatingMeta,
   type GuestProfile,
   type GuestRating,
 } from "@/lib/admin/guestProfiles";
+import { useMobileUi } from "@/components/admin/mobile/MobileUiContext";
+import { GuestCommentIcon, GuestFaceIcon } from "./GuestIcons";
 
 type Props = {
   phone: string;
@@ -18,6 +21,7 @@ type Props = {
 const RATINGS: GuestRating[] = [3, 2, 1];
 
 export function GuestReputationControls({ phone, profile, onChange, compact }: Props) {
+  const isMobile = useMobileUi();
   const hasPhone = Boolean(guestPhoneKey(phone));
   const [noteOpen, setNoteOpen] = useState(false);
   const [draft, setDraft] = useState(profile?.note || "");
@@ -28,16 +32,58 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
   }, [profile?.note, phone]);
 
   useEffect(() => {
-    if (!noteOpen) return;
+    if (!noteOpen || isMobile) return;
     const onDoc = (e: MouseEvent) => {
       if (!popRef.current?.contains(e.target as Node)) setNoteOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [noteOpen]);
+  }, [noteOpen, isMobile]);
+
+  useEffect(() => {
+    if (!noteOpen || !isMobile) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [noteOpen, isMobile]);
 
   const active = profile?.rating;
   const hasNote = Boolean(String(profile?.note || "").trim());
+
+  const closeNote = () => {
+    setDraft(profile?.note || "");
+    setNoteOpen(false);
+  };
+
+  const saveNote = () => {
+    onChange({ note: draft });
+    setNoteOpen(false);
+  };
+
+  const noteEditor = (
+    <>
+      <div className="guest-rep__popover-title">Коментар про гостя</div>
+      <textarea
+        className="guest-rep__textarea"
+        rows={5}
+        maxLength={2000}
+        placeholder="Наприклад: запізнюється, дуже акуратний, любить тишу…"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        autoFocus
+      />
+      <div className="guest-rep__popover-actions">
+        <button type="button" className="guest-rep__ghost" onClick={closeNote}>
+          Скасувати
+        </button>
+        <button type="button" className="guest-rep__save" onClick={saveNote}>
+          Зберегти
+        </button>
+      </div>
+    </>
+  );
 
   return (
     <div className={`guest-rep${compact ? " guest-rep--compact" : ""}${hasPhone ? "" : " is-disabled"}`}>
@@ -58,7 +104,7 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
                 onChange({ rating: selected ? null : r });
               }}
             >
-              <span aria-hidden>{meta.emoji}</span>
+              <GuestFaceIcon rating={r} size={compact ? 18 : 20} />
             </button>
           );
         })}
@@ -69,57 +115,48 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
           type="button"
           className={`guest-rep__note-btn${hasNote ? " has-note" : ""}`}
           disabled={!hasPhone}
-          title={hasPhone ? (hasNote ? "Редагувати коментар" : "Коментар про гостя") : "Спочатку вкажіть телефон"}
+          title={
+            hasPhone
+              ? hasNote
+                ? "Редагувати коментар"
+                : "Коментар про гостя"
+              : "Спочатку вкажіть телефон"
+          }
           aria-expanded={noteOpen}
           onClick={() => {
             if (!hasPhone) return;
             setNoteOpen((v) => !v);
           }}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h6m-6 8l-4-4V6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H9l-4 4z" />
-          </svg>
+          <GuestCommentIcon size={15} />
           {!compact ? <span>{hasNote ? "Коментар" : "Нотатка"}</span> : null}
           {hasNote ? <span className="guest-rep__note-dot" aria-hidden /> : null}
         </button>
 
-        {noteOpen ? (
+        {noteOpen && !isMobile ? (
           <div className="guest-rep__popover" role="dialog" aria-label="Коментар про гостя">
-            <div className="guest-rep__popover-title">Коментар про гостя</div>
-            <textarea
-              className="guest-rep__textarea"
-              rows={4}
-              maxLength={2000}
-              placeholder="Наприклад: запізнюється, дуже акуратний, любить тишу…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              autoFocus
-            />
-            <div className="guest-rep__popover-actions">
-              <button
-                type="button"
-                className="guest-rep__ghost"
-                onClick={() => {
-                  setDraft(profile?.note || "");
-                  setNoteOpen(false);
-                }}
-              >
-                Скасувати
-              </button>
-              <button
-                type="button"
-                className="guest-rep__save"
-                onClick={() => {
-                  onChange({ note: draft });
-                  setNoteOpen(false);
-                }}
-              >
-                Зберегти
-              </button>
-            </div>
+            {noteEditor}
           </div>
         ) : null}
       </div>
+
+      {noteOpen && isMobile && typeof document !== "undefined"
+        ? createPortal(
+            <div className="guest-rep-sheet" role="presentation">
+              <button
+                type="button"
+                className="guest-rep-sheet__backdrop"
+                aria-label="Закрити"
+                onClick={closeNote}
+              />
+              <div className="guest-rep-sheet__panel" role="dialog" aria-label="Коментар про гостя">
+                <div className="guest-rep-sheet__handle" aria-hidden />
+                {noteEditor}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
@@ -135,9 +172,16 @@ export function GuestRatingBadge({
   const hasNote = Boolean(String(note || "").trim());
   if (!meta && !hasNote) return null;
   return (
-    <span className={`guest-badge${meta ? ` guest-badge--${meta.tone}` : ""}`} title={note || meta?.label || ""}>
-      {meta ? <span className="guest-badge__emoji">{meta.emoji}</span> : null}
-      {hasNote ? <span className="guest-badge__note-icon" aria-hidden>💬</span> : null}
+    <span
+      className={`guest-badge${meta ? ` guest-badge--${meta.tone}` : ""}`}
+      title={note || meta?.label || ""}
+    >
+      {meta ? <GuestFaceIcon rating={rating!} size={16} /> : null}
+      {hasNote ? (
+        <span className="guest-badge__note-icon">
+          <GuestCommentIcon size={13} />
+        </span>
+      ) : null}
     </span>
   );
 }

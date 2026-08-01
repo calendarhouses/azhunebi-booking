@@ -795,6 +795,9 @@
         .main-content > #view-guests {
             flex: 0 0 auto;
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
         }
         .main-content > #view-grid,
         .main-content > #view-reports {
@@ -4444,7 +4447,126 @@
             letter-spacing: 0.01em;
         }
 
-        /* Guest autocomplete + reputation */
+        /* Guest autocomplete + reputation + guests table */
+        .guests-view {
+            max-width: 100%;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .guests-table-wrap {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .guests-table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        .guests-table th,
+        .guests-table td {
+            padding: 14px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #EEF1EC;
+        }
+        .guests-table th {
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #8A9486;
+            font-weight: 650;
+        }
+        .guests-table th:nth-child(1) { width: 34%; }
+        .guests-table th:nth-child(2) { width: 18%; }
+        .guests-table th:nth-child(3) { width: 14%; }
+        .guests-table th:nth-child(4) { width: 20%; }
+        .guests-table th:nth-child(5) { width: 14%; }
+        .guests-table__client {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-width: 0;
+        }
+        .guests-table__avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #F3F4F6;
+            color: #4B5563;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .guests-table__client-body {
+            min-width: 0;
+            flex: 1;
+        }
+        .guests-table__name {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .guests-table__rep {
+            margin-top: 8px;
+        }
+        .guests-table__phone {
+            cursor: pointer;
+            border: 0;
+            background: transparent;
+            border-radius: 6px;
+            padding: 2px 6px;
+            margin-left: -6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #6B7280;
+            font-size: 13px;
+            font-weight: 500;
+            font: inherit;
+        }
+        .guests-table__stat {
+            cursor: pointer;
+            padding: 6px 12px;
+        }
+        .guests-table__date {
+            color: #6B7280;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .guests-table__actions {
+            display: flex;
+            gap: 8px;
+        }
+        .guests-table__msg {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid transparent;
+            flex-shrink: 0;
+        }
+        .guests-table__msg--tg {
+            background: #EFF6FF;
+            color: #2563EB;
+            border-color: #BFDBFE;
+        }
+        .guests-table__msg--wa {
+            background: #DCFCE7;
+            color: #059669;
+            border-color: #A7F3D0;
+        }
         .guest-field-head {
             display: flex;
             align-items: center;
@@ -4481,7 +4603,6 @@
             width: 100%;
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 12px;
             padding: 10px 12px;
             border: 0;
@@ -4496,11 +4617,25 @@
         .guest-ac__option:hover {
             background: #F3F7F1;
         }
+        .guest-ac__avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #E8F0E4, #F4F7F2);
+            color: #3F5D36;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
         .guest-ac__option-main {
             display: flex;
             flex-direction: column;
             gap: 2px;
             min-width: 0;
+            flex: 1;
         }
         .guest-ac__name {
             font-weight: 650;
@@ -4510,9 +4645,8 @@
             align-items: center;
             gap: 6px;
         }
-        .guest-ac__emoji {
-            font-size: 15px;
-            line-height: 1;
+        .guest-ac__rating {
+            display: inline-flex;
         }
         .guest-ac__phone {
             font-size: 12px;
@@ -4522,6 +4656,7 @@
             font-size: 11px;
             color: #8A9486;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         .guest-rep {
             display: inline-flex;
@@ -4550,7 +4685,6 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             line-height: 1;
             transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
         }
@@ -4578,6 +4712,7 @@
         }
         .guest-rep__note-btn {
             height: 32px;
+            min-width: 32px;
             padding: 0 10px;
             border-radius: 999px;
             border: 1px solid #E2E9DE;
@@ -4585,6 +4720,7 @@
             color: #4A5548;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             cursor: pointer;
             font: inherit;
@@ -4664,23 +4800,20 @@
         .guest-badge {
             display: inline-flex;
             align-items: center;
-            gap: 2px;
+            gap: 4px;
             margin-left: 4px;
             vertical-align: middle;
-        }
-        .guest-badge__emoji {
-            font-size: 14px;
-            line-height: 1;
+            color: #5B7A4F;
         }
         .guest-badge__note-icon {
-            font-size: 11px;
-            opacity: 0.85;
+            display: inline-flex;
+            opacity: 0.9;
         }
         .guest-note-preview {
             margin-top: 4px;
             font-size: 12px;
             color: #7A8478;
-            max-width: 280px;
+            max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;

@@ -1183,26 +1183,25 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   z-index: 60;
   left: 0;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   margin: 0;
-  padding: 6px;
+  padding: 8px;
   list-style: none;
   background: #FFF;
   border: 1px solid #E3E9E0;
-  border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(31, 42, 28, 0.14);
-  max-height: 240px;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(31, 42, 28, 0.16);
+  max-height: min(42vh, 320px);
   overflow: auto;
 }
 .boso-admin-mobile .guest-ac__option {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 12px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -1210,22 +1209,55 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 .boso-admin-mobile .guest-ac__option.is-active,
 .boso-admin-mobile .guest-ac__option:hover {
-  background: #F3F7F1;
+  background: linear-gradient(180deg, #F5F9F3 0%, #EEF4EC 100%);
+}
+.boso-admin-mobile .guest-ac__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #E8F0E4, #F4F7F2);
+  color: #3F5D36;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  border: 1px solid #D7E3D2;
+}
+.boso-admin-mobile .guest-ac__option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 .boso-admin-mobile .guest-ac__name {
   font-weight: 650;
-  font-size: 14px;
+  font-size: 15px;
+  color: #1F2A1C;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  letter-spacing: -0.01em;
+}
+.boso-admin-mobile .guest-ac__rating {
+  display: inline-flex;
 }
 .boso-admin-mobile .guest-ac__phone {
-  font-size: 12px;
+  font-size: 13px;
   color: #7A8478;
+  font-variant-numeric: tabular-nums;
 }
 .boso-admin-mobile .guest-ac__meta {
   font-size: 11px;
-  color: #8A9486;
+  font-weight: 650;
+  color: #5B7A4F;
+  background: #EAF3E6;
+  border-radius: 999px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .boso-admin-mobile .guest-rep {
   display: inline-flex;
@@ -1254,7 +1286,6 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
 }
 .boso-admin-mobile .guest-rep__face.is-selected.guest-rep__face--good {
   background: #E8F5E4;
@@ -1298,62 +1329,12 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   border-radius: 50%;
   background: #5B7A4F;
 }
-.boso-admin-mobile .guest-rep__popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  width: min(300px, 82vw);
-  background: #FFF;
-  border: 1px solid #E3E9E0;
-  border-radius: 14px;
-  box-shadow: 0 16px 36px rgba(31, 42, 28, 0.16);
-  padding: 12px;
-  z-index: 80;
-}
-.boso-admin-mobile .guest-rep__popover-title {
-  font-size: 13px;
-  font-weight: 650;
-  margin-bottom: 8px;
-}
-.boso-admin-mobile .guest-rep__textarea {
-  width: 100%;
-  border: 1px solid #E2E9DE;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font: inherit;
-  font-size: 13px;
-  resize: vertical;
-  min-height: 88px;
-}
-.boso-admin-mobile .guest-rep__popover-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-.boso-admin-mobile .guest-rep__ghost,
-.boso-admin-mobile .guest-rep__save {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 9px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-}
-.boso-admin-mobile .guest-rep__ghost {
-  border: 1px solid #E2E9DE;
-  background: #FFF;
-}
-.boso-admin-mobile .guest-rep__save {
-  border: 0;
-  background: #5B7A4F;
-  color: #FFF;
-}
 .boso-admin-mobile .guest-badge {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin-left: 6px;
+  color: #5B7A4F;
 }
 .boso-admin-mobile .guest-note-preview {
   display: block;
@@ -1368,6 +1349,93 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .boso-admin-mobile .boso-mobile-guest-card__rep {
   margin: 0 0 12px;
 }
+
+/* Guest note bottom sheet (ported to body) */
+.guest-rep-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.guest-rep-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+.guest-rep-sheet__panel {
+  position: relative;
+  z-index: 1;
+  background: #FFF;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -12px 40px rgba(17, 24, 39, 0.18);
+  animation: guestRepSheetIn 0.28s ease;
+}
+.guest-rep-sheet__handle {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: #D5DDD1;
+  margin: 4px auto 14px;
+}
+.guest-rep-sheet .guest-rep__popover-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1F2A1C;
+  margin-bottom: 10px;
+}
+.guest-rep-sheet .guest-rep__textarea {
+  width: 100%;
+  border: 1px solid #E2E9DE;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  resize: vertical;
+  min-height: 130px;
+  background: #FCFDFB;
+}
+.guest-rep-sheet .guest-rep__popover-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.guest-rep-sheet .guest-rep__ghost,
+.guest-rep-sheet .guest-rep__save {
+  flex: 1;
+  height: 46px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+}
+.guest-rep-sheet .guest-rep__ghost {
+  border: 1px solid #E2E9DE;
+  background: #FFF;
+  color: #4A5548;
+}
+.guest-rep-sheet .guest-rep__save {
+  border: 0;
+  background: #5B7A4F;
+  color: #FFF;
+}
+@keyframes guestRepSheetIn {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .boso-admin-mobile .booking-quick-edit-footer .btn-secondary,
 .boso-admin-mobile .booking-quick-edit-footer .btn-primary {
     width: auto;

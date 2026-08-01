@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { searchGuests, type GuestRow } from "@/components/admin/desktop/guestData";
 import type { BookingRecord } from "@/components/admin/desktop/types";
 import { guestRatingMeta, type GuestProfilesMap } from "@/lib/admin/guestProfiles";
+import { GuestFaceIcon } from "./GuestIcons";
 
 type Mode = "name" | "phone";
 
@@ -93,6 +94,7 @@ export function GuestAutocompleteField({
         <ul id={listId} className="guest-ac__list" role="listbox">
           {matches.map((g, idx) => {
             const meta = guestRatingMeta(g.rating);
+            const initial = (g.name || "?").charAt(0).toUpperCase();
             return (
               <li key={g.phone}>
                 <button
@@ -103,10 +105,17 @@ export function GuestAutocompleteField({
                   onMouseEnter={() => setActiveIdx(idx)}
                   onClick={() => pick(g)}
                 >
+                  <span className="guest-ac__avatar" aria-hidden>
+                    {initial}
+                  </span>
                   <span className="guest-ac__option-main">
                     <span className="guest-ac__name">
-                      {meta ? <span className="guest-ac__emoji">{meta.emoji}</span> : null}
                       {g.name || "Без імені"}
+                      {meta ? (
+                        <span className="guest-ac__rating">
+                          <GuestFaceIcon rating={g.rating!} size={14} />
+                        </span>
+                      ) : null}
                     </span>
                     <span className="guest-ac__phone">+{g.phone}</span>
                   </span>
