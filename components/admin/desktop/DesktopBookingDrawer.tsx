@@ -34,6 +34,10 @@ import {
 import { BookingPhoneMessengerButtons } from "../shared/BookingPhoneMessengerButtons";
 import { BookingRefundSection } from "../shared/BookingRefundSection";
 import { BookingChangeHistory } from "../shared/BookingChangeHistory";
+import { GuestReputationBadge } from "../shared/GuestReputationBadge";
+import { GuestAutocompleteDropdown } from "../shared/GuestAutocompleteDropdown";
+import { formatPhone } from "./adminDates";
+import type { GuestRow } from "./guestData";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -69,6 +73,7 @@ export function DesktopBookingDrawer({
   void _roomsList;
   const { form, editingBookingId, editingRow, drawerTitle } = drawer;
   const isMobile = useMobileUi();
+  const [guestFieldFocus, setGuestFieldFocus] = useState<"name" | "phone" | null>(null);
   const activeBooking = useMemo(
     () => findBookingInList(bookings, editingBookingId || editingRow),
     [bookings, editingBookingId, editingRow]
@@ -276,35 +281,67 @@ export function DesktopBookingDrawer({
             <div className="form-section">
               <BookingFormSectionHeading title="Гість" />
               <div className="form-grid">
-                <div className="form-group" style={{ gridColumn: "span 2" }}>
+                <div className="form-group" style={{ gridColumn: "span 2", position: "relative" }}>
                   <label>
                     Ім&apos;я та Прізвище:
                     {isClosedBooking ? (
                       <span className="form-label-optional"> (необовʼязково)</span>
                     ) : null}
+                    {form.phone ? (
+                      <GuestReputationBadge bookings={bookings} phone={form.phone} />
+                    ) : null}
                   </label>
-                  <input
-                    type="text"
-                    id="adminName"
-                    required={!isClosedBooking}
-                    value={form.name}
-                    onChange={(e) => drawer.patchForm({ name: e.target.value })}
-                  />
+                  <div className="custom-select-wrapper">
+                    <input
+                      type="text"
+                      id="adminName"
+                      required={!isClosedBooking}
+                      value={form.name}
+                      autoComplete="off"
+                      onChange={(e) => drawer.patchForm({ name: e.target.value })}
+                      onFocus={() => setGuestFieldFocus("name")}
+                      onBlur={() => setGuestFieldFocus((f) => (f === "name" ? null : f))}
+                    />
+                    <GuestAutocompleteDropdown
+                      bookings={bookings}
+                      searchTerm={guestFieldFocus === "name" ? form.name : ""}
+                      open={guestFieldFocus === "name"}
+                      excludePhone={form.phone ? formatPhone(form.phone) : undefined}
+                      onSelect={(g: GuestRow) => {
+                        drawer.patchForm({ name: g.name, phone: g.phone });
+                        setGuestFieldFocus(null);
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ position: "relative" }}>
                   <label>
                     Телефон:
                     {isClosedBooking ? (
                       <span className="form-label-optional"> (необовʼязково)</span>
                     ) : null}
                   </label>
-                  <input
-                    type="tel"
-                    id="adminPhone"
-                    required={!isClosedBooking}
-                    value={form.phone}
-                    onChange={(e) => drawer.patchForm({ phone: e.target.value })}
-                  />
+                  <div className="custom-select-wrapper">
+                    <input
+                      type="tel"
+                      id="adminPhone"
+                      required={!isClosedBooking}
+                      value={form.phone}
+                      autoComplete="off"
+                      onChange={(e) => drawer.patchForm({ phone: e.target.value })}
+                      onFocus={() => setGuestFieldFocus("phone")}
+                      onBlur={() => setGuestFieldFocus((f) => (f === "phone" ? null : f))}
+                    />
+                    <GuestAutocompleteDropdown
+                      bookings={bookings}
+                      searchTerm={guestFieldFocus === "phone" ? form.phone : ""}
+                      open={guestFieldFocus === "phone"}
+                      onSelect={(g: GuestRow) => {
+                        drawer.patchForm({ name: g.name, phone: g.phone });
+                        setGuestFieldFocus(null);
+                      }}
+                    />
+                  </div>
                   <BookingPhoneMessengerButtons phone={form.phone} />
                 </div>
                 <div className="form-group">

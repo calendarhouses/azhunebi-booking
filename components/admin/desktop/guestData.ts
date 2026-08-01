@@ -56,3 +56,77 @@ export function formatGuestLastVisit(d: Date): string {
 }
 
 export { getVisitWord };
+
+/**
+ * Guest reputation — derived entirely from bookings already in memory
+ * (client-side, zero extra GAS calls). See lib/admin/guestCrmRules.ts.
+ */
+export type GuestReputation = {
+  phone: string;
+  name: string;
+  totalCount: number;
+  activeCount: number;
+  cancelledCount: number;
+  lastVisit: Date;
+};
+
+export function buildGuestReputation(
+  bookings: BookingRecord[],
+  rawPhone: string,
+): GuestReputation | null {
+  const phoneKey = formatPhone(rawPhone);
+  if (!phoneKey) return null;
+
+  let totalCount = 0;
+  let cancelledCount = 0;
+  let name = "";
+  let lastVisit = new Date(0);
+
+  for (const b of bookings) {
+    const bPhone = formatPhone(String(b.phone || ""));
+    if (!bPhone || bPhone !== phoneKey) continue;
+    totalCount++;
+    if (String(b.status || "").toLowerCase().includes("скас")) cancelledCount++;
+    const checkIn = parseSafeDate(b.checkIn);
+    if (!isNaN(checkIn.getTime()) && checkIn > lastVisit) {
+      lastVisit = checkIn;
+      const n = String(b.name || "").replace(" (Ручна бронь)", "").trim();
+      if (n) name = n;
+    }
+  }
+
+  if (totalCount === 0) return null;
+  return {
+    phone: phoneKey,
+    name,
+    totalCount,
+    activeCount: totalCount - cancelledCount,
+    cancelledCount,
+    lastVisit,
+  };
+}
+
+export type GuestReputationTier = "new" | "regular" | "vip" | "risky";
+
+export function getGuestReputationTier(rep: GuestReputation | null): GuestReputationTier {
+  if (!rep || rep.totalCount <= 1) return "new";
+  const cancelRatio = rep.cancelledCount / rep.totalCount;
+  if (rep.cancelledCount >= 2 && cancelRatio >= 0.5) return "risky";
+  if (rep.activeCount >= 4) return "vip";
+  if (rep.activeCount >= 2) return "regular";
+  return "new";
+}
+
+export const GUEST_REPUTATION_EMOJI: Record<GuestReputationTier, string> = {
+  new: "",
+  regular: "🙂",
+  vip: "⭐",
+  risky: "⚠️",
+};
+
+export const GUEST_REPUTATION_LABEL: Record<GuestReputationTier, string> = {
+  new: "",
+  regular: "Постійний гість",
+  vip: "VIP гість — часто бронює",
+  risky: "Часто скасовує бронювання",
+};
