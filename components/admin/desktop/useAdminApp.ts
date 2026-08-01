@@ -169,9 +169,7 @@ export function useAdminApp(options?: {
         setSettings((prev) => {
           const merged =
             mergeGuestProfiles(guestProfiles, prev.guestProfiles) || guestProfiles;
-          const next = { ...prev, guestProfiles: merged };
-          syncLegacyGlobals({ settings: next });
-          return next;
+          return { ...prev, guestProfiles: merged };
         });
       })
       .catch((err) => {
