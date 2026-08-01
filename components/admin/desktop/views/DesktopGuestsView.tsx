@@ -10,8 +10,11 @@ import {
   GuestRatingBadge,
   GuestReputationControls,
 } from "../../shared/GuestReputationControls";
+import { GuestFaceIcon } from "../../shared/GuestIcons";
+import { guestRatingMeta, type GuestProfilesMap, type GuestRating } from "@/lib/admin/guestProfiles";
 import type { BookingRecord } from "../types";
-import type { GuestProfilesMap, GuestRating } from "@/lib/admin/guestProfiles";
+
+const FILTER_RATINGS: GuestRating[] = [3, 2, 1];
 
 const iconPhone = (
   <svg width="14" height="14" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
@@ -45,33 +48,66 @@ export function DesktopGuestsView({
 }: DesktopGuestsViewProps) {
   const isMobile = layout === "mobile";
   const [search, setSearch] = useState("");
+  const [ratingFilter, setRatingFilter] = useState<GuestRating | null>(null);
 
   const guests = useMemo(
-    () => buildGuestsFromBookings(bookings, search, guestProfiles),
-    [bookings, search, guestProfiles]
+    () => buildGuestsFromBookings(bookings, search, guestProfiles, ratingFilter),
+    [bookings, search, guestProfiles, ratingFilter]
+  );
+
+  const ratingFilterBar = (
+    <div
+      className={`guests-rating-filter${isMobile ? " guests-rating-filter--mobile" : ""}`}
+      role="group"
+      aria-label="Фільтр за оцінкою гостя"
+    >
+      <span className="guests-rating-filter__label">Оцінка</span>
+      <div className="guests-rating-filter__faces">
+        {FILTER_RATINGS.map((r) => {
+          const meta = guestRatingMeta(r)!;
+          const selected = ratingFilter === r;
+          return (
+            <button
+              key={r}
+              type="button"
+              className={`guests-rating-filter__face guests-rating-filter__face--${meta.tone}${selected ? " is-selected" : ""}`}
+              title={selected ? `Показати всіх (зараз: ${meta.label})` : `Показати: ${meta.label}`}
+              aria-pressed={selected}
+              onClick={() => setRatingFilter((prev) => (prev === r ? null : r))}
+            >
+              <GuestFaceIcon rating={r} size={isMobile ? 20 : 18} />
+            </button>
+          );
+        })}
+      </div>
+      {ratingFilter ? (
+        <button
+          type="button"
+          className="guests-rating-filter__clear"
+          onClick={() => setRatingFilter(null)}
+        >
+          Скинути
+        </button>
+      ) : null}
+    </div>
   );
 
   return (
     <div id="view-guests" className={isMobile ? undefined : "card guests-view"} style={style}>
       {isMobile ? (
-        <input
-          type="text"
-          id="guestSearch"
-          placeholder="Пошук за ім'ям або телефоном..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 14,
-            borderRadius: 12,
-            border: "1px solid #D1D5DB",
-            marginBottom: 16,
-            fontSize: 14,
-            background: "#FFF",
-          }}
-        />
+        <div className="guests-toolbar guests-toolbar--mobile">
+          <input
+            type="text"
+            id="guestSearch"
+            placeholder="Пошук за ім'ям або телефоном..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="guests-toolbar__search-mobile"
+          />
+          {ratingFilterBar}
+        </div>
       ) : (
-        <div className="toolbar">
+        <div className="toolbar guests-toolbar">
           <input
             type="text"
             id="guestSearch"
@@ -80,6 +116,7 @@ export function DesktopGuestsView({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {ratingFilterBar}
         </div>
       )}
       {isMobile ? (

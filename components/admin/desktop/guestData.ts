@@ -20,7 +20,8 @@ export type GuestRow = {
 export function buildGuestsFromBookings(
   bookings: BookingRecord[],
   searchTerm = "",
-  profiles?: GuestProfilesMap | null
+  profiles?: GuestProfilesMap | null,
+  ratingFilter?: GuestRating | null
 ): GuestRow[] {
   const guestsMap: Record<string, GuestRow> = {};
 
@@ -55,6 +56,11 @@ export function buildGuestsFromBookings(
         g.phone.includes(term)
     );
   }
+
+  if (ratingFilter === 1 || ratingFilter === 2 || ratingFilter === 3) {
+    guests = guests.filter((g) => g.rating === ratingFilter);
+  }
+
   return guests.sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
 }
 

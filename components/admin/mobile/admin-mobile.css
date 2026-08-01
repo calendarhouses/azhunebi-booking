@@ -2711,15 +2711,76 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
     min-width: 0;
     max-width: 100%;
 }
-#view-guests input#guestSearch {
+#view-guests input#guestSearch,
+#view-guests .guests-toolbar__search-mobile {
     width: 100%;
     padding: 14px 16px;
     border-radius: 14px;
     border: 1px solid #E5E7EB;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     font-size: 15px;
     background: #FFF;
     box-shadow: var(--mobile-shadow);
+    min-height: var(--tap-min);
+    box-sizing: border-box;
+}
+.boso-admin-mobile .guests-toolbar--mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.boso-admin-mobile .guests-rating-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.boso-admin-mobile .guests-rating-filter__label {
+    font-size: 12px;
+    font-weight: 650;
+    color: #8A9486;
+}
+.boso-admin-mobile .guests-rating-filter__faces {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 999px;
+    background: #F4F7F2;
+    border: 1px solid #E2E9DE;
+}
+.boso-admin-mobile .guests-rating-filter__face {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.boso-admin-mobile .guests-rating-filter__face.is-selected.guests-rating-filter__face--good {
+    background: #E8F5E4;
+    box-shadow: inset 0 0 0 1.5px #6E9A62;
+}
+.boso-admin-mobile .guests-rating-filter__face.is-selected.guests-rating-filter__face--neutral {
+    background: #FFF6DF;
+    box-shadow: inset 0 0 0 1.5px #D2A74A;
+}
+.boso-admin-mobile .guests-rating-filter__face.is-selected.guests-rating-filter__face--bad {
+    background: #FDECEC;
+    box-shadow: inset 0 0 0 1.5px #C96B6B;
+}
+.boso-admin-mobile .guests-rating-filter__clear {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: #6E9A62;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+    padding: 6px 4px;
     min-height: var(--tap-min);
 }
 .boso-admin-mobile #view-grid .booking-block {
