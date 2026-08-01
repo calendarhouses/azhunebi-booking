@@ -48,6 +48,11 @@ import {
   submitPublicBooking,
   type SubmitBookingPayload,
 } from "@/lib/public-booking/publicApiClient";
+import {
+  readPublicInitSnapshot,
+  writePublicInitSnapshot,
+} from "@/lib/public-booking/publicInitCache";
+import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import { showPublicToast, stripHtmlTags } from "@/lib/public-booking/publicToast";
 import { formatUaPhoneE164, normalizeUaNationalPhoneDigits } from "@/lib/public-booking/uaPhone";
 import {
@@ -240,26 +245,70 @@ export function PublicBookingProvider({
 
   useEffect(() => {
     let cancelled = false;
+
+    const buildRuntime = (init: AdminInitResponse): PublicSiteRuntime => {
+      const settings = init.settings || {};
+      const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
+      return {
+        ...data,
+        rooms: roomsFromApi.filter((r) => r.active !== false),
+        discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
+        customPrices: settings.customPrices || data.customPrices,
+        bookings: init.bookings || [],
+        restrictions: settings.restrictions || {},
+        closedDates: settings.closedDates || {},
+        sysServicesList: settings.sysServicesList || [],
+        customServicesList: settings.customServicesList || [],
+        flexibleScheduleSettings: settings.flexibleScheduleSettings,
+      };
+    };
+
+    // Fallback: never hold the preloader on a slow GAS call. Server-rendered
+    // rooms/prices are already here; bookings land when the request resolves.
+    const fallbackTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      setRuntime((prev) =>
+        prev
+          ? prev
+          : {
+              ...data,
+              bookings: [],
+              restrictions: {},
+              closedDates: {},
+              sysServicesList: [],
+              customServicesList: [],
+            }
+      );
+      setInitLoading(false);
+    }, 12_000);
+
     (async () => {
+      // Paint from the recent snapshot first: GAS cold starts take 10-20s and
+      // a blank preloader for that long looks like the site is broken.
+      const snapshot = readPublicInitSnapshot(data.tenantId);
+      let paintedFromCache = false;
+      if (snapshot) {
+        setRuntime(buildRuntime(snapshot));
+        setInitLoading(false);
+        paintedFromCache = true;
+      }
+
       try {
-        const init = await fetchPublicInitData(data.tenantId);
+        let init: AdminInitResponse;
+        try {
+          init = await fetchPublicInitData(data.tenantId);
+        } catch {
+          await new Promise((r) => setTimeout(r, 1200));
+          if (cancelled) return;
+          init = await fetchPublicInitData(data.tenantId);
+        }
         if (cancelled) return;
-        const settings = init.settings || {};
-        const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
-        setRuntime({
-          ...data,
-          rooms: roomsFromApi.filter((r) => r.active !== false),
-          discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
-          customPrices: settings.customPrices || data.customPrices,
-          bookings: init.bookings || [],
-          restrictions: settings.restrictions || {},
-          closedDates: settings.closedDates || {},
-          sysServicesList: settings.sysServicesList || [],
-          customServicesList: settings.customServicesList || [],
-          flexibleScheduleSettings: settings.flexibleScheduleSettings,
-        });
+        writePublicInitSnapshot(data.tenantId, init);
+        setRuntime(buildRuntime(init));
       } catch (e) {
         console.error(e);
+        if (cancelled || paintedFromCache) return;
+        // Server-rendered payload still has rooms/prices — render those.
         setRuntime({
           ...data,
           bookings: [],
@@ -269,11 +318,13 @@ export function PublicBookingProvider({
           customServicesList: [],
         });
       } finally {
+        window.clearTimeout(fallbackTimer);
         if (!cancelled) setInitLoading(false);
       }
     })();
     return () => {
       cancelled = true;
+      window.clearTimeout(fallbackTimer);
     };
   }, [data]);
 

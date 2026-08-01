@@ -12,6 +12,10 @@ import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
   consumePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
+import {
+  readAdminInitSnapshot,
+  writeAdminInitSnapshot,
+} from "@/lib/admin/adminInitCache";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -214,38 +218,41 @@ export function useAdminApp(options?: {
 
   const silentSync = useCallback(async () => {
     const data = await silentSyncAdminData();
-    if (data) applyServerData(data, { silent: true });
-  }, [applyServerData]);
+    if (!data) return;
+    applyServerData(data, { silent: true });
+    const tenantId = membership?.tenantId;
+    if (tenantId) writeAdminInitSnapshot(tenantId, data);
+  }, [applyServerData, membership?.tenantId]);
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
 
   const loadInitData = useCallback(async () => {
     const gen = ++loadGenRef.current;
-    setIsLoading(true);
-    setLoadError(null);
-    // Don't blank an already-open admin if a concurrent reload starts.
-    if (!appVisibleRef.current) setAppVisible(false);
-
     const tenantId = membership?.tenantId || "";
-    const loadOnce = async () => {
-      const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
-      return prefetched ? await prefetched : await fetchAdminInitData();
-    };
 
-    try {
-      let data: AdminInitResponse;
-      try {
-        data = await loadOnce();
-      } catch (firstErr) {
-        if (isAdminUnauthorizedError(firstErr)) throw firstErr;
-        // One retry — GAS often flakes under Telegram cron contention.
-        await new Promise((r) => setTimeout(r, 800));
-        if (gen !== loadGenRef.current) return;
-        data = await fetchAdminInitData();
+    setLoadError(null);
+
+    // Instant boot: paint the last known good snapshot, refresh in background.
+    // GAS cold starts take 10-20s, so waiting on the network here reads as a hang.
+    let openedFromCache = false;
+    if (!appVisibleRef.current) {
+      const snapshot = tenantId ? readAdminInitSnapshot(tenantId) : null;
+      if (snapshot) {
+        applyServerData(snapshot);
+        setAppVisible(true);
+        setIsLoading(false);
+        openedFromCache = true;
       }
-      if (gen !== loadGenRef.current) return;
-      applyServerData(data);
+    } else {
+      openedFromCache = true;
+    }
+
+    if (!openedFromCache) setIsLoading(true);
+
+    const applyFresh = (data: AdminInitResponse) => {
+      applyServerData(data, { silent: openedFromCache });
+      if (tenantId) writeAdminInitSnapshot(tenantId, data);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
         setCachedTenantLogoUrl(tenantId, logoUrl);
@@ -253,6 +260,22 @@ export function useAdminApp(options?: {
       }
       setAppVisible(true);
       setLoadError(null);
+    };
+
+    try {
+      let data: AdminInitResponse;
+      try {
+        const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
+        data = prefetched ? await prefetched : await fetchAdminInitData();
+      } catch (firstErr) {
+        if (isAdminUnauthorizedError(firstErr)) throw firstErr;
+        // One retry — GAS flakes when Telegram cron holds the script lock.
+        await new Promise((r) => setTimeout(r, 1200));
+        if (gen !== loadGenRef.current) return;
+        data = await fetchAdminInitData();
+      }
+      if (gen !== loadGenRef.current) return;
+      applyFresh(data);
     } catch (err) {
       if (gen !== loadGenRef.current) return;
       if (isAdminUnauthorizedError(err)) {
@@ -262,10 +285,15 @@ export function useAdminApp(options?: {
         await expireAdminSession();
         return;
       }
+      console.error("adminInitData:", err);
+      if (openedFromCache) {
+        // Cached UI is already usable — don't replace it with an error screen.
+        showToast("Не вдалося оновити дані. Показано збережену копію.");
+        return;
+      }
       const msg = parseAdminFetchError(err);
       setLoadError(msg);
       showToast(msg.length > 80 ? "Помилка завантаження даних." : msg);
-      console.error("adminInitData:", err);
     } finally {
       if (gen === loadGenRef.current) setIsLoading(false);
     }

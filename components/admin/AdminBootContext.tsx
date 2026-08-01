@@ -17,13 +17,6 @@ export type AdminBootReport = {
   logoUrl: string | null;
 };
 
-const idleBootReport: AdminBootReport = {
-  isLoading: false,
-  appVisible: false,
-  loadError: null,
-  logoUrl: null,
-};
-
 const initialBootReport: AdminBootReport = {
   isLoading: true,
   appVisible: false,
@@ -57,12 +50,11 @@ export function useAdminBootState(): AdminBootReport {
 export function useAdminBootReport(state: AdminBootReport) {
   const setReport = useContext(AdminBootContext)?.setReport;
 
+  // No cleanup reset: an unmount used to publish an "idle" report (not loading,
+  // not visible, no error), which left the preloader on screen forever.
   useEffect(() => {
     if (!setReport) return;
     setReport(state);
-    return () => {
-      setReport(idleBootReport);
-    };
   }, [
     setReport,
     state.isLoading,
