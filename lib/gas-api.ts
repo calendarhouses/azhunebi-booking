@@ -41,7 +41,7 @@ export type GasApiError = {
   message?: string;
 };
 
-const GAS_FETCH_TIMEOUT_MS = 55_000;
+const GAS_FETCH_TIMEOUT_MS = 45_000;
 
 function gasFetchSignal(): AbortSignal | undefined {
   if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
