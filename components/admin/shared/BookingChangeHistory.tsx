@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { BookingChangeHistoryEntry } from "@/components/admin/desktop/types";
+import { fetchAdminBookingChangeHistory } from "@/components/admin/desktop/adminApi";
 
 type Props = {
   entries?: BookingChangeHistoryEntry[] | null;
+  /** When entries are omitted from boot, load history by id on first expand. */
+  bookingId?: string | null;
 };
 
 function formatHistoryAt(iso: string): string {
@@ -27,15 +30,49 @@ function historyTitle(label: string): string {
   return `Зміни у «${raw.toLowerCase()}»`;
 }
 
-export function BookingChangeHistory({ entries }: Props) {
+export function BookingChangeHistory({ entries, bookingId }: Props) {
   const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState<BookingChangeHistoryEntry[] | null>(
+    Array.isArray(entries) ? entries : null
+  );
+  const [loading, setLoading] = useState(false);
 
-  const items = useMemo(() => {
-    if (!Array.isArray(entries)) return [];
-    return entries.filter((e) => e && (e.label || e.to || e.from));
+  useEffect(() => {
+    if (Array.isArray(entries)) setLoaded(entries);
   }, [entries]);
 
-  if (items.length === 0) return null;
+  useEffect(() => {
+    if (!open) return;
+    if (loaded !== null) return;
+    if (!bookingId) {
+      setLoaded([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void fetchAdminBookingChangeHistory(bookingId)
+      .then((history) => {
+        if (!cancelled) setLoaded(history);
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, bookingId, loaded]);
+
+  const items = useMemo(() => {
+    if (!Array.isArray(loaded)) return [];
+    return loaded.filter((e) => e && (e.label || e.to || e.from));
+  }, [loaded]);
+
+  // Unknown until first expand when lazy — still show trigger if booking exists.
+  const showTrigger = Boolean(bookingId) || items.length > 0 || loading;
+  if (!showTrigger && items.length === 0 && loaded !== null) return null;
 
   return (
     <section
@@ -49,7 +86,9 @@ export function BookingChangeHistory({ entries }: Props) {
         aria-expanded={open}
       >
         <span className="booking-history__title">Історія змін</span>
-        <span className="booking-history__count">{items.length}</span>
+        <span className="booking-history__count">
+          {loading && loaded === null ? "…" : items.length}
+        </span>
         <svg
           className="booking-history__chevron"
           width="18"
@@ -65,30 +104,42 @@ export function BookingChangeHistory({ entries }: Props) {
       </button>
 
       <div className="booking-history__collapse" hidden={!open}>
-        <ol className="booking-history__timeline">
-          {items.map((entry, idx) => {
-            const key = entry.id || `${entry.at}-${idx}`;
-            const detail =
-              entry.from && entry.to
-                ? `${entry.from} → ${entry.to}`
-                : entry.to || entry.from || "";
-            return (
-              <li key={key} className="booking-history__item">
-                <span className="booking-history__dot" aria-hidden />
-                <div className="booking-history__body">
-                  <div className="booking-history__label">{historyTitle(entry.label)}</div>
-                  {detail ? (
-                    <div className="booking-history__detail">{detail}</div>
-                  ) : null}
-                  <div className="booking-history__meta">
-                    {formatHistoryAt(entry.at)}
-                    {entry.actorName ? ` · ${entry.actorName}` : ""}
+        {loading && items.length === 0 ? (
+          <p className="booking-history__detail" style={{ padding: "8px 0" }}>
+            Завантаження…
+          </p>
+        ) : items.length === 0 ? (
+          <p className="booking-history__detail" style={{ padding: "8px 0" }}>
+            Поки немає записів
+          </p>
+        ) : (
+          <ol className="booking-history__timeline">
+            {items.map((entry, idx) => {
+              const key = entry.id || `${entry.at}-${idx}`;
+              const detail =
+                entry.from && entry.to
+                  ? `${entry.from} → ${entry.to}`
+                  : entry.to || entry.from || "";
+              return (
+                <li key={key} className="booking-history__item">
+                  <span className="booking-history__dot" aria-hidden />
+                  <div className="booking-history__body">
+                    <div className="booking-history__label">
+                      {historyTitle(entry.label)}
+                    </div>
+                    {detail ? (
+                      <div className="booking-history__detail">{detail}</div>
+                    ) : null}
+                    <div className="booking-history__meta">
+                      {formatHistoryAt(entry.at)}
+                      {entry.actorName ? ` · ${entry.actorName}` : ""}
+                    </div>
                   </div>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </div>
     </section>
   );

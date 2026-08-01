@@ -1,5 +1,15 @@
 import { after, NextResponse } from "next/server";
 import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
+import {
+  bumpGasCacheGeneration,
+  coalesceKey,
+  isCoalescableGasAction,
+  isOccupancyCriticalAction,
+  OCCUPANCY_CACHE_TTL_MS,
+  readGasShortCache,
+  withGasInflightCoalesce,
+  writeGasShortCache,
+} from "@/lib/gas/inflightCoalesce";
 
 export const runtime = "nodejs";
 // GAS writes with LockService can take 10-20s; without this the gateway kills
@@ -18,6 +28,43 @@ function upstreamSignal(): AbortSignal | undefined {
     return AbortSignal.timeout(GAS_UPSTREAM_TIMEOUT_MS);
   }
   return undefined;
+}
+
+function tokenFingerprint(token: string | null | undefined): string {
+  return token ? String(token).slice(0, 16) : "";
+}
+
+function jsonTextResponse(text: string, status: number, extraHeaders?: Record<string, string>) {
+  return new NextResponse(text, {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...extraHeaders,
+    },
+  });
+}
+
+function shouldInvalidateCache(action: string | null | undefined, payload: Record<string, unknown> | null): boolean {
+  const a = String(action || "");
+  if (
+    a === "createBooking" ||
+    a === "deleteBooking" ||
+    a === "saveSettings" ||
+    a === "confirmBookingPayment" ||
+    a === "recordBookingRefund" ||
+    a === "expireBookingPayment" ||
+    a === "storeMonoInvoice" ||
+    a === "reviewBooking" ||
+    a === "syncBookingsAfterRoomRename" ||
+    a === "syncIcalRoomBlocks"
+  ) {
+    return true;
+  }
+  // Bare booking save body (legacy): has checkIn+name without a pure-read action
+  if (payload && payload.checkIn && payload.name && (!a || a === "createBooking")) {
+    return true;
+  }
+  return false;
 }
 
 function gasUnreachable(method: string, err: unknown): NextResponse {
@@ -260,10 +307,30 @@ export async function GET(request: Request) {
     target.searchParams.set("token", token);
   }
 
-  try {
+  const action = target.searchParams.get("action") || "";
+  const tenant =
+    target.searchParams.get("tenant_id") ||
+    request.headers.get("x-tenant-id") ||
+    "";
+  const key = coalesceKey({
+    method: "GET",
+    action,
+    tenant,
+    tokenFingerprint: tokenFingerprint(bearer || token),
+  });
+
+  if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "fetchPublicTenant") {
+    const cached = readGasShortCache(key);
+    if (cached) {
+      return jsonTextResponse(cached.body, cached.status, {
+        "x-gas-cache": "HIT",
+      });
+    }
+  }
+
+  const runFetch = async (): Promise<{ status: number; text: string }> => {
     let lastStatus = 0;
     let lastText = "";
-    // Reads are safe to retry: Google intermittently answers with an HTML page.
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const upstream = await fetch(target.toString(), {
         method: "GET",
@@ -278,18 +345,55 @@ export async function GET(request: Request) {
       if (text.trim()) {
         try {
           JSON.parse(text);
-          return new NextResponse(text, {
-            status: upstream.status,
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-          });
+          return { status: upstream.status, text };
         } catch {
           // fall through to retry / error
         }
       }
       if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
     }
-    return gasBadResponse("GET", lastStatus, lastText);
+    return { status: lastStatus, text: lastText };
+  };
+
+  try {
+    const t0 = Date.now();
+    if (isCoalescableGasAction(action)) {
+      const { text, shared } = await withGasInflightCoalesce(key, async () => {
+        const res = await runFetch();
+        if (!res.text.trim()) throw new Error("empty GAS body");
+        try {
+          JSON.parse(res.text);
+        } catch {
+          throw new Error("non-JSON GAS body");
+        }
+        if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "fetchPublicTenant") {
+          writeGasShortCache(key, res.text, res.status, OCCUPANCY_CACHE_TTL_MS);
+        }
+        return res.text;
+      });
+      const status = 200;
+      console.info(
+        `[GAS proxy] GET ${action} ${Date.now() - t0}ms shared=${shared} bytes=${text.length}`
+      );
+      return jsonTextResponse(text, status, {
+        "x-gas-cache": shared ? "COALESCE" : "MISS",
+      });
+    }
+
+    const res = await runFetch();
+    try {
+      JSON.parse(res.text);
+      console.info(
+        `[GAS proxy] GET ${action} ${Date.now() - t0}ms bytes=${res.text.length}`
+      );
+      return jsonTextResponse(res.text, res.status);
+    } catch {
+      return gasBadResponse("GET", res.status, res.text);
+    }
   } catch (err) {
+    if (err instanceof Error && /empty GAS|non-JSON/.test(err.message)) {
+      return gasBadResponse("GET", 502, "");
+    }
     return gasUnreachable("GET", err);
   }
 }
@@ -315,22 +419,79 @@ export async function POST(request: Request) {
     const local = await handleLocalTelegramActions(request, payload);
     if (local) return local;
 
-    const upstream = await fetch(gasUrl, {
+    const action = payload?.action != null ? String(payload.action) : "";
+    const tenant =
+      String(payload?.tenant_id || payload?.tenantId || "") ||
+      request.headers.get("x-tenant-id") ||
+      "";
+    const authHeader = request.headers.get("authorization");
+    const bearer = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : request.headers.get("x-gas-token");
+    const key = coalesceKey({
       method: "POST",
-      headers: forwardHeaders(request, "POST"),
-      body,
-      redirect: "follow",
-      cache: "no-store",
-      signal: upstreamSignal(),
+      action,
+      tenant,
+      tokenFingerprint: tokenFingerprint(bearer),
     });
-    const responseText = await upstream.text();
+
+    const t0 = Date.now();
+    let upstreamStatus = 0;
+    let responseText = "";
+    let shared = false;
+
+    if (isCoalescableGasAction(action)) {
+      const cached = readGasShortCache(key);
+      if (cached) {
+        return jsonTextResponse(cached.body, cached.status, { "x-gas-cache": "HIT" });
+      }
+      const coalesced = await withGasInflightCoalesce(key, async () => {
+        const upstream = await fetch(gasUrl, {
+          method: "POST",
+          headers: forwardHeaders(request, "POST"),
+          body,
+          redirect: "follow",
+          cache: "no-store",
+          signal: upstreamSignal(),
+        });
+        const text = await upstream.text();
+        upstreamStatus = upstream.status;
+        JSON.parse(text);
+        if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "settings") {
+          writeGasShortCache(key, text, upstream.status, OCCUPANCY_CACHE_TTL_MS);
+        }
+        return text;
+      });
+      responseText = coalesced.text;
+      shared = coalesced.shared;
+      if (!upstreamStatus) upstreamStatus = 200;
+    } else {
+      const upstream = await fetch(gasUrl, {
+        method: "POST",
+        headers: forwardHeaders(request, "POST"),
+        body,
+        redirect: "follow",
+        cache: "no-store",
+        signal: upstreamSignal(),
+      });
+      upstreamStatus = upstream.status;
+      responseText = await upstream.text();
+    }
+
+    console.info(
+      `[GAS proxy] POST ${action || "bookingSave"} ${Date.now() - t0}ms shared=${shared} bytes=${responseText.length}`
+    );
 
     let result: Record<string, unknown> | null = null;
     try {
       result = JSON.parse(responseText) as Record<string, unknown>;
     } catch {
       // Writes are never retried here: the upstream may have applied the change.
-      return gasBadResponse("POST", upstream.status, responseText);
+      return gasBadResponse("POST", upstreamStatus, responseText);
+    }
+
+    if (upstreamStatus >= 200 && upstreamStatus < 300 && shouldInvalidateCache(action, payload)) {
+      bumpGasCacheGeneration();
     }
 
     const isPendingReview =
@@ -338,7 +499,8 @@ export async function POST(request: Request) {
       isPendingReviewStatus(String(payload?.status || ""));
 
     if (
-      upstream.ok &&
+      upstreamStatus >= 200 &&
+      upstreamStatus < 300 &&
       result?.success !== false &&
       !result?.error &&
       payload?.source === "Сайт" &&
@@ -373,7 +535,8 @@ export async function POST(request: Request) {
     }
 
     if (
-      upstream.ok &&
+      upstreamStatus >= 200 &&
+      upstreamStatus < 300 &&
       result?.success !== false &&
       !result?.error &&
       payload?.source === "Сайт" &&
@@ -400,7 +563,8 @@ export async function POST(request: Request) {
     }
 
     if (
-      upstream.ok &&
+      upstreamStatus >= 200 &&
+      upstreamStatus < 300 &&
       result?.success !== false &&
       !result?.error &&
       payload &&
@@ -415,7 +579,7 @@ export async function POST(request: Request) {
       });
     }
 
-    if (upstream.ok && result?.activity && typeof result.activity === "object") {
+    if (upstreamStatus >= 200 && upstreamStatus < 300 && result?.activity && typeof result.activity === "object") {
       after(async () => {
         try {
           const { notifyActivityChange } = await import(
@@ -448,7 +612,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json(result, { status: upstream.status });
+    return NextResponse.json(result, { status: upstreamStatus });
   } catch (err) {
     return gasUnreachable("POST", err);
   }

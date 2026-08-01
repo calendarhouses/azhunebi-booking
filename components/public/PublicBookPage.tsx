@@ -24,9 +24,13 @@ const PublicMobileSite = dynamic(
 type Props = {
   data: PublicTenantPayload;
   variant: "desktop" | "mobile";
+  initialInit?: {
+    settings?: import("@/components/admin/desktop/types").AdminSettingsPayload;
+    bookings?: import("@/components/admin/desktop/types").BookingRecord[];
+  } | null;
 };
 
-function PublicBookPageInner({ data, variant }: Props) {
+function PublicBookPageInner({ data, variant, initialInit }: Props) {
   useEffect(() => {
     document.body.classList.remove("boso-public-mobile", "boso-public-desktop");
     document.body.classList.add(
@@ -50,7 +54,7 @@ function PublicBookPageInner({ data, variant }: Props) {
         } as CSSProperties
       }
     >
-      <PublicBookingProvider data={data}>
+      <PublicBookingProvider data={data} initialInit={initialInit}>
         <BrandFavicon logoUrl={(data.branding?.logo_url as string) || null} />
         {variant === "mobile" ? <PublicMobileSite /> : <PublicDesktopSite />}
       </PublicBookingProvider>

@@ -116,6 +116,59 @@ export async function silentSyncAdminData(): Promise<AdminInitResponse | null> {
   }
 }
 
+/** Full booking row (payments + changeHistory) — lazy, after drawer open. */
+export async function fetchAdminBookingDetail(bookingId: string): Promise<{
+  booking: import("./types").BookingRecord;
+} | null> {
+  const token = await getAccessToken();
+  if (!token || !bookingId) return null;
+  const data = await gasPost<{
+    booking?: import("./types").BookingRecord;
+    error?: string;
+  }>(
+    {
+      action: "getBookingDetail",
+      tenant_id: getAdminTenantId(),
+      id: bookingId,
+    },
+    { authToken: token }
+  );
+  if (data.error || !data.booking) return null;
+  return { booking: data.booking };
+}
+
+export async function fetchAdminBookingChangeHistory(
+  bookingId: string
+): Promise<import("./types").BookingChangeHistoryEntry[]> {
+  const token = await getAccessToken();
+  if (!token || !bookingId) return [];
+  const data = await gasPost<{
+    changeHistory?: import("./types").BookingChangeHistoryEntry[];
+    error?: string;
+  }>(
+    {
+      action: "getBookingChangeHistory",
+      tenant_id: getAdminTenantId(),
+      id: bookingId,
+    },
+    { authToken: token }
+  );
+  if (data.error || !Array.isArray(data.changeHistory)) return [];
+  return data.changeHistory;
+}
+
+/** Transactions omitted from boot — load when opening Reports. */
+export async function fetchAdminTransactions(): Promise<
+  NonNullable<AdminSettingsPayload["transactions"]>
+> {
+  const token = await getAccessToken();
+  const settings = await gasFetch<AdminSettingsPayload>(
+    { action: "settings", tenant_id: getAdminTenantId() },
+    { authToken: token }
+  );
+  return Array.isArray(settings.transactions) ? settings.transactions : [];
+}
+
 export async function submitBookingReview(params: {
   orderId: string;
   decision: "approve" | "reject";

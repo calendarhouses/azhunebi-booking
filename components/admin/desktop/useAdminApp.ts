@@ -11,6 +11,7 @@ import { setCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
 import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
   consumePrefetchedAdminInit,
+  releasePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -190,6 +191,7 @@ export function useAdminApp(options?: {
       const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
       const data = prefetched ? await prefetched : await fetchAdminInitData();
       applyServerData(data);
+      if (tenantId) releasePrefetchedAdminInit(tenantId);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
         setCachedTenantLogoUrl(tenantId, logoUrl);
@@ -269,7 +271,7 @@ export function useAdminApp(options?: {
       const modal = document.getElementById("genericModal")?.classList.contains("active");
       const dragging = (window as Window & { isGridDragging?: boolean }).isGridDragging;
       if (!drawer && !modal && !dragging) void silentSyncRef.current();
-    }, 30000);
+    }, 60000);
 
     return () => window.clearInterval(interval);
   }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports]);

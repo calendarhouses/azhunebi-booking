@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { PublicBookPage } from "@/components/public/PublicBookPage";
-import { fetchPublicTenantData } from "@/lib/public-booking/fetchPublicTenantData";
+import { loadPublicBoot } from "@/lib/public-booking/loadPublicBoot";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +11,9 @@ type PageProps = {
 
 export default async function BookTenantPage({ params }: PageProps) {
   const { tenant_id } = await params;
-  const data = await fetchPublicTenantData(tenant_id);
+  const boot = await loadPublicBoot(tenant_id);
 
-  if (!data) {
+  if (!boot) {
     notFound();
   }
 
@@ -27,7 +27,14 @@ export default async function BookTenantPage({ params }: PageProps) {
   return (
     <>
       <link rel="stylesheet" href={stylesheet} />
-      <PublicBookPage data={data} variant={variant} />
+      <PublicBookPage
+        data={boot.tenant}
+        variant={variant}
+        initialInit={{
+          settings: boot.init.settings,
+          bookings: boot.init.bookings,
+        }}
+      />
     </>
   );
 }

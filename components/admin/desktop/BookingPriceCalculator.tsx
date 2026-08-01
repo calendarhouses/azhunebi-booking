@@ -691,6 +691,27 @@ export function BookingPriceCalculator({
     }
   }, [paymentsBootKey, savedBooking]);
 
+  // Slim boot omits payments journal — hydrate from getBookingDetail once.
+  useEffect(() => {
+    const id = String(editingBookingId || savedBooking?.id || "").trim();
+    if (!id) return;
+    if (Array.isArray(savedBooking?.payments) && savedBooking.payments.length > 0) {
+      return;
+    }
+    let cancelled = false;
+    void import("@/components/admin/desktop/adminApi").then(({ fetchAdminBookingDetail }) =>
+      fetchAdminBookingDetail(id).then((res) => {
+        if (cancelled || !res?.booking) return;
+        if (Array.isArray(res.booking.payments) && res.booking.payments.length > 0) {
+          setPayments(getBookingPayments(res.booking));
+        }
+      })
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [editingBookingId, savedBooking?.id, savedBooking?.payments]);
+
   useEffect(() => {
     const w = window as Window & {
       _bookingPayments?: BookingPayment[];

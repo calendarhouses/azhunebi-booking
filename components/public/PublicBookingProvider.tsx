@@ -201,14 +201,20 @@ function emptyPrice(): PublicPriceBreakdown {
 
 export function PublicBookingProvider({
   data,
+  initialInit,
   children,
 }: {
   data: PublicTenantPayload;
+  /** SSR already loaded initData — skip second GAS round-trip. */
+  initialInit?: {
+    settings?: AdminSettingsPayload;
+    bookings?: BookingRecord[];
+  } | null;
   children: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(null);
-  const [initLoading, setInitLoading] = useState(true);
+  const [initLoading, setInitLoading] = useState(!initialInit);
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("info");
@@ -240,24 +246,38 @@ export function PublicBookingProvider({
 
   useEffect(() => {
     let cancelled = false;
+
+    const applyInit = (init: {
+      settings?: AdminSettingsPayload;
+      bookings?: BookingRecord[];
+    }) => {
+      const settings = init.settings || {};
+      const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
+      setRuntime({
+        ...data,
+        rooms: roomsFromApi.filter((r) => r.active !== false),
+        discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
+        customPrices: settings.customPrices || data.customPrices,
+        bookings: init.bookings || [],
+        restrictions: settings.restrictions || {},
+        closedDates: settings.closedDates || {},
+        sysServicesList: settings.sysServicesList || [],
+        customServicesList: settings.customServicesList || [],
+        flexibleScheduleSettings: settings.flexibleScheduleSettings,
+      });
+    };
+
+    if (initialInit) {
+      applyInit(initialInit);
+      setInitLoading(false);
+      return;
+    }
+
     (async () => {
       try {
         const init = await fetchPublicInitData(data.tenantId);
         if (cancelled) return;
-        const settings = init.settings || {};
-        const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
-        setRuntime({
-          ...data,
-          rooms: roomsFromApi.filter((r) => r.active !== false),
-          discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
-          customPrices: settings.customPrices || data.customPrices,
-          bookings: init.bookings || [],
-          restrictions: settings.restrictions || {},
-          closedDates: settings.closedDates || {},
-          sysServicesList: settings.sysServicesList || [],
-          customServicesList: settings.customServicesList || [],
-          flexibleScheduleSettings: settings.flexibleScheduleSettings,
-        });
+        applyInit(init);
       } catch (e) {
         console.error(e);
         setRuntime({
@@ -275,7 +295,7 @@ export function PublicBookingProvider({
     return () => {
       cancelled = true;
     };
-  }, [data]);
+  }, [data, initialInit]);
 
   useEffect(() => {
     const paymentReturn = searchParams.get("payment") === "return";

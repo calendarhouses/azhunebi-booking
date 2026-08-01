@@ -573,9 +573,11 @@ export function DesktopBookingDrawer({
           ) : null}
           {activeBooking ? (
             <BookingChangeHistory
+              bookingId={String(activeBooking.id || "") || null}
               entries={
-                (activeBooking.changeHistory as BookingRecord["changeHistory"]) ||
-                []
+                Array.isArray(activeBooking.changeHistory)
+                  ? (activeBooking.changeHistory as BookingRecord["changeHistory"])
+                  : null
               }
             />
           ) : null}
