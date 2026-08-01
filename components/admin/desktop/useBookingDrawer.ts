@@ -879,7 +879,9 @@ export function useBookingDrawer({
 
   const handleStatusFromPayment = useCallback(
     (status: "Очікує оплату" | "Підтверджено") => {
-      if (form.status === "Скасовано" || form.status === "Закрито") return;
+      if (form.status === "Скасовано") return;
+      // Allow «Закрито» → «Підтверджено» when money is entered; never demote «Закрито».
+      if (form.status === "Закрито" && status !== "Підтверджено") return;
       if (form.status !== status) {
         setBookingStatus(status);
         patchForm({ status });

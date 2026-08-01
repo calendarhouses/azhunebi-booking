@@ -13,6 +13,14 @@ import {
   consumePrefetchedAdminInit,
   releasePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
+import {
+  fetchGuestProfilesRemote,
+  guestPhoneKey,
+  saveGuestProfileRemote,
+  type GuestProfile,
+  type GuestProfilesMap,
+  type GuestRating,
+} from "@/lib/admin/guestProfiles";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -122,6 +130,8 @@ export function useAdminApp(options?: {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appVisible, setAppVisible] = useState(false);
+  const [guestProfiles, setGuestProfiles] = useState<GuestProfilesMap>({});
+  const guestProfilesLoadedRef = useRef(false);
   const loadedTenantIdRef = useRef<string | null>(null);
   const appVisibleRef = useRef(false);
   const loadInFlightRef = useRef(false);
@@ -240,6 +250,56 @@ export function useAdminApp(options?: {
       loadInFlightRef.current = false;
     });
   }, [authReady, membership?.tenantId, loadInitData]);
+
+  // Guest CRM ratings — lazy, standalone GAS action, fetched once per session
+  // only AFTER the app has painted. Never part of adminInitData/adminBoot;
+  // see lib/admin/guestProfiles.ts.
+  useEffect(() => {
+    if (!appVisible || guestProfilesLoadedRef.current) return;
+    guestProfilesLoadedRef.current = true;
+    void fetchGuestProfilesRemote()
+      .then((profiles) => setGuestProfiles(profiles))
+      .catch((err) => {
+        guestProfilesLoadedRef.current = false;
+        console.warn("[useAdminApp] guestProfiles load failed:", err);
+      });
+  }, [appVisible]);
+
+  const upsertGuestProfile = useCallback(
+    (rawPhone: string, patch: { rating?: GuestRating | null; note?: string | null }) => {
+      const phone = guestPhoneKey(rawPhone);
+      if (!phone) return;
+      let mergedProfile: GuestProfile = {};
+      setGuestProfiles((prev) => {
+        const nextProfile: GuestProfile = { ...(prev[phone] || {}) };
+        if ("rating" in patch) {
+          if (patch.rating) nextProfile.rating = patch.rating;
+          else delete nextProfile.rating;
+        }
+        if ("note" in patch) {
+          const note = String(patch.note || "").trim();
+          if (note) nextProfile.note = note;
+          else delete nextProfile.note;
+        }
+        mergedProfile = nextProfile;
+        if (!nextProfile.rating && !nextProfile.note) {
+          if (!(phone in prev)) return prev;
+          const next = { ...prev };
+          delete next[phone];
+          return next;
+        }
+        return { ...prev, [phone]: nextProfile };
+      });
+      void saveGuestProfileRemote(phone, {
+        rating: mergedProfile.rating ?? null,
+        note: mergedProfile.note ?? null,
+      }).catch((err) => {
+        console.error("[useAdminApp] saveGuestProfile failed:", err);
+        showToast("Не вдалося зберегти оцінку гостя.");
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     if (!appVisible) return;
@@ -406,6 +466,8 @@ export function useAdminApp(options?: {
     settings,
     setBookings,
     setSettings,
+    guestProfiles,
+    upsertGuestProfile,
     isLoading,
     loadError,
     appVisible,

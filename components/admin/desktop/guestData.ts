@@ -1,15 +1,28 @@
 import { formatPhone, parseSafeDate } from "./adminDates";
 import { getVisitWord } from "./adminPlural";
 import type { BookingRecord } from "./types";
+import {
+  getGuestProfile,
+  type GuestProfile,
+  type GuestProfilesMap,
+  type GuestRating,
+} from "@/lib/admin/guestProfiles";
 
 export type GuestRow = {
   name: string;
   phone: string;
   count: number;
   lastVisit: Date;
+  rating?: GuestRating;
+  note?: string;
 };
 
-export function buildGuestsFromBookings(bookings: BookingRecord[], searchTerm = ""): GuestRow[] {
+export function buildGuestsFromBookings(
+  bookings: BookingRecord[],
+  searchTerm = "",
+  profiles?: GuestProfilesMap | null,
+  ratingFilter?: GuestRating | null
+): GuestRow[] {
   const guestsMap: Record<string, GuestRow> = {};
 
   for (const b of bookings) {
@@ -28,24 +41,59 @@ export function buildGuestsFromBookings(bookings: BookingRecord[], searchTerm = 
     }
   }
 
-  let guests = Object.values(guestsMap);
+  let guests = Object.values(guestsMap).map((g) => {
+    const profile = getGuestProfile(profiles, g.phone);
+    return mergeGuestProfile(g, profile);
+  });
+
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
+    const digits = searchTerm.replace(/\D/g, "");
     guests = guests.filter(
-      (g) => g.name.toLowerCase().includes(term) || g.phone.includes(term)
+      (g) =>
+        g.name.toLowerCase().includes(term) ||
+        (digits.length >= 2 && g.phone.includes(digits)) ||
+        g.phone.includes(term)
     );
   }
+
+  if (ratingFilter === 1 || ratingFilter === 2 || ratingFilter === 3) {
+    guests = guests.filter((g) => g.rating === ratingFilter);
+  }
+
   return guests.sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
+}
+
+function mergeGuestProfile(row: GuestRow, profile: GuestProfile | null): GuestRow {
+  if (!profile) return row;
+  return {
+    ...row,
+    rating: profile.rating,
+    note: profile.note ? String(profile.note) : undefined,
+  };
+}
+
+/** Typeahead search by name or phone (min ~2 meaningful chars). */
+export function searchGuests(
+  bookings: BookingRecord[],
+  query: string,
+  limit = 8,
+  profiles?: GuestProfilesMap | null
+): GuestRow[] {
+  const q = String(query || "").trim();
+  if (q.length < 2) return [];
+  return buildGuestsFromBookings(bookings, q, profiles).slice(0, limit);
 }
 
 /** Find guest profile by phone digits (matches Guests section logic). */
 export function lookupGuestByPhone(
   bookings: BookingRecord[],
   rawPhone: string,
+  profiles?: GuestProfilesMap | null
 ): GuestRow | null {
   const phoneKey = formatPhone(rawPhone);
   if (!phoneKey) return null;
-  const guests = buildGuestsFromBookings(bookings);
+  const guests = buildGuestsFromBookings(bookings, "", profiles);
   return guests.find((g) => g.phone === phoneKey) ?? null;
 }
 
@@ -56,77 +104,3 @@ export function formatGuestLastVisit(d: Date): string {
 }
 
 export { getVisitWord };
-
-/**
- * Guest reputation — derived entirely from bookings already in memory
- * (client-side, zero extra GAS calls). See lib/admin/guestCrmRules.ts.
- */
-export type GuestReputation = {
-  phone: string;
-  name: string;
-  totalCount: number;
-  activeCount: number;
-  cancelledCount: number;
-  lastVisit: Date;
-};
-
-export function buildGuestReputation(
-  bookings: BookingRecord[],
-  rawPhone: string,
-): GuestReputation | null {
-  const phoneKey = formatPhone(rawPhone);
-  if (!phoneKey) return null;
-
-  let totalCount = 0;
-  let cancelledCount = 0;
-  let name = "";
-  let lastVisit = new Date(0);
-
-  for (const b of bookings) {
-    const bPhone = formatPhone(String(b.phone || ""));
-    if (!bPhone || bPhone !== phoneKey) continue;
-    totalCount++;
-    if (String(b.status || "").toLowerCase().includes("скас")) cancelledCount++;
-    const checkIn = parseSafeDate(b.checkIn);
-    if (!isNaN(checkIn.getTime()) && checkIn > lastVisit) {
-      lastVisit = checkIn;
-      const n = String(b.name || "").replace(" (Ручна бронь)", "").trim();
-      if (n) name = n;
-    }
-  }
-
-  if (totalCount === 0) return null;
-  return {
-    phone: phoneKey,
-    name,
-    totalCount,
-    activeCount: totalCount - cancelledCount,
-    cancelledCount,
-    lastVisit,
-  };
-}
-
-export type GuestReputationTier = "new" | "regular" | "vip" | "risky";
-
-export function getGuestReputationTier(rep: GuestReputation | null): GuestReputationTier {
-  if (!rep || rep.totalCount <= 1) return "new";
-  const cancelRatio = rep.cancelledCount / rep.totalCount;
-  if (rep.cancelledCount >= 2 && cancelRatio >= 0.5) return "risky";
-  if (rep.activeCount >= 4) return "vip";
-  if (rep.activeCount >= 2) return "regular";
-  return "new";
-}
-
-export const GUEST_REPUTATION_EMOJI: Record<GuestReputationTier, string> = {
-  new: "",
-  regular: "🙂",
-  vip: "⭐",
-  risky: "⚠️",
-};
-
-export const GUEST_REPUTATION_LABEL: Record<GuestReputationTier, string> = {
-  new: "",
-  regular: "Постійний гість",
-  vip: "VIP гість — часто бронює",
-  risky: "Часто скасовує бронювання",
-};

@@ -34,10 +34,13 @@ import {
 import { BookingPhoneMessengerButtons } from "../shared/BookingPhoneMessengerButtons";
 import { BookingRefundSection } from "../shared/BookingRefundSection";
 import { BookingChangeHistory } from "../shared/BookingChangeHistory";
-import { GuestReputationBadge } from "../shared/GuestReputationBadge";
-import { GuestAutocompleteDropdown } from "../shared/GuestAutocompleteDropdown";
-import { formatPhone } from "./adminDates";
-import type { GuestRow } from "./guestData";
+import { GuestAutocompleteField } from "../shared/GuestAutocompleteField";
+import { GuestReputationControls } from "../shared/GuestReputationControls";
+import {
+  getGuestProfile,
+  type GuestProfilesMap,
+  type GuestRating,
+} from "@/lib/admin/guestProfiles";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -61,6 +64,11 @@ export interface DesktopBookingDrawerProps {
   settings: AdminSettingsPayload;
   bookings: BookingRecord[];
   onBookingReviewed?: () => void | Promise<void>;
+  guestProfiles?: GuestProfilesMap | null;
+  onUpsertGuestProfile?: (
+    phone: string,
+    patch: { rating?: GuestRating | null; note?: string | null }
+  ) => void;
 }
 
 export function DesktopBookingDrawer({
@@ -69,11 +77,12 @@ export function DesktopBookingDrawer({
   settings,
   bookings,
   onBookingReviewed,
+  guestProfiles,
+  onUpsertGuestProfile,
 }: DesktopBookingDrawerProps) {
   void _roomsList;
   const { form, editingBookingId, editingRow, drawerTitle } = drawer;
   const isMobile = useMobileUi();
-  const [guestFieldFocus, setGuestFieldFocus] = useState<"name" | "phone" | null>(null);
   const activeBooking = useMemo(
     () => findBookingInList(bookings, editingBookingId || editingRow),
     [bookings, editingBookingId, editingRow]
@@ -281,67 +290,59 @@ export function DesktopBookingDrawer({
             <div className="form-section">
               <BookingFormSectionHeading title="Гість" />
               <div className="form-grid">
-                <div className="form-group" style={{ gridColumn: "span 2", position: "relative" }}>
-                  <label>
-                    Ім&apos;я та Прізвище:
-                    {isClosedBooking ? (
-                      <span className="form-label-optional"> (необовʼязково)</span>
-                    ) : null}
-                    {form.phone ? (
-                      <GuestReputationBadge bookings={bookings} phone={form.phone} />
-                    ) : null}
-                  </label>
-                  <div className="custom-select-wrapper">
-                    <input
-                      type="text"
-                      id="adminName"
-                      required={!isClosedBooking}
-                      value={form.name}
-                      autoComplete="off"
-                      onChange={(e) => drawer.patchForm({ name: e.target.value })}
-                      onFocus={() => setGuestFieldFocus("name")}
-                      onBlur={() => setGuestFieldFocus((f) => (f === "name" ? null : f))}
-                    />
-                    <GuestAutocompleteDropdown
-                      bookings={bookings}
-                      searchTerm={guestFieldFocus === "name" ? form.name : ""}
-                      open={guestFieldFocus === "name"}
-                      excludePhone={form.phone ? formatPhone(form.phone) : undefined}
-                      onSelect={(g: GuestRow) => {
-                        drawer.patchForm({ name: g.name, phone: g.phone });
-                        setGuestFieldFocus(null);
-                      }}
+                <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <div className="guest-field-head">
+                    <label>
+                      Ім&apos;я та Прізвище:
+                      {isClosedBooking ? (
+                        <span className="form-label-optional"> (необовʼязково)</span>
+                      ) : null}
+                    </label>
+                    <GuestReputationControls
+                      phone={form.phone}
+                      profile={getGuestProfile(guestProfiles, form.phone)}
+                      onChange={(patch) => onUpsertGuestProfile?.(form.phone, patch)}
+                      compact
                     />
                   </div>
+                  <GuestAutocompleteField
+                    mode="name"
+                    id="adminName"
+                    required={!isClosedBooking}
+                    value={form.name}
+                    bookings={bookings}
+                    guestProfiles={guestProfiles}
+                    onChange={(name) => drawer.patchForm({ name })}
+                    onPickGuest={(g) =>
+                      drawer.patchForm({
+                        name: g.name || form.name,
+                        phone: g.phone ? `+${g.phone}` : form.phone,
+                      })
+                    }
+                  />
                 </div>
-                <div className="form-group" style={{ position: "relative" }}>
+                <div className="form-group">
                   <label>
                     Телефон:
                     {isClosedBooking ? (
                       <span className="form-label-optional"> (необовʼязково)</span>
                     ) : null}
                   </label>
-                  <div className="custom-select-wrapper">
-                    <input
-                      type="tel"
-                      id="adminPhone"
-                      required={!isClosedBooking}
-                      value={form.phone}
-                      autoComplete="off"
-                      onChange={(e) => drawer.patchForm({ phone: e.target.value })}
-                      onFocus={() => setGuestFieldFocus("phone")}
-                      onBlur={() => setGuestFieldFocus((f) => (f === "phone" ? null : f))}
-                    />
-                    <GuestAutocompleteDropdown
-                      bookings={bookings}
-                      searchTerm={guestFieldFocus === "phone" ? form.phone : ""}
-                      open={guestFieldFocus === "phone"}
-                      onSelect={(g: GuestRow) => {
-                        drawer.patchForm({ name: g.name, phone: g.phone });
-                        setGuestFieldFocus(null);
-                      }}
-                    />
-                  </div>
+                  <GuestAutocompleteField
+                    mode="phone"
+                    id="adminPhone"
+                    required={!isClosedBooking}
+                    value={form.phone}
+                    bookings={bookings}
+                    guestProfiles={guestProfiles}
+                    onChange={(phone) => drawer.patchForm({ phone })}
+                    onPickGuest={(g) =>
+                      drawer.patchForm({
+                        name: g.name || form.name,
+                        phone: g.phone ? `+${g.phone}` : form.phone,
+                      })
+                    }
+                  />
                   <BookingPhoneMessengerButtons phone={form.phone} />
                 </div>
                 <div className="form-group">
