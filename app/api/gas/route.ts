@@ -159,6 +159,60 @@ function forwardHeaders(request: Request, method: "GET" | "POST"): Headers {
   return headers;
 }
 
+/**
+ * Apps Script occasionally receives an empty postData under concurrent load and
+ * falls back to its default `{status:"ok",action:null}` response — a valid JSON
+ * body that silently looks like success while actually meaning "your POST never
+ * arrived". Detect that specific shape and retry once with the same body.
+ */
+function looksLikeEmptyPostFallback(parsed: unknown, requestedAction: string): boolean {
+  if (!requestedAction) return false;
+  if (!parsed || typeof parsed !== "object") return false;
+  const r = parsed as Record<string, unknown>;
+  return r.status === "ok" && r.action === null;
+}
+
+async function postToGas(
+  gasUrl: string,
+  request: Request,
+  body: string,
+  requestedAction: string
+): Promise<{ status: number; text: string; parsed: Record<string, unknown> | null }> {
+  let lastStatus = 0;
+  let lastText = "";
+  let lastParsed: Record<string, unknown> | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const upstream = await fetch(gasUrl, {
+      method: "POST",
+      headers: forwardHeaders(request, "POST"),
+      body,
+      redirect: "follow",
+      cache: "no-store",
+      signal: upstreamSignal(),
+    });
+    const text = await upstream.text();
+    lastStatus = upstream.status;
+    lastText = text;
+    let parsed: Record<string, unknown> | null = null;
+    try {
+      parsed = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      parsed = null;
+    }
+    lastParsed = parsed;
+    if (parsed && !looksLikeEmptyPostFallback(parsed, requestedAction)) {
+      return { status: upstream.status, text, parsed };
+    }
+    if (attempt === 0) {
+      console.warn(
+        `[GAS proxy] POST ${requestedAction} got empty-postData fallback, retrying`
+      );
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+  return { status: lastStatus, text: lastText, parsed: lastParsed };
+}
+
 function extractBearer(request: Request): string | null {
   const auth = request.headers.get("authorization") || "";
   if (auth.startsWith("Bearer ")) return auth.slice(7).trim() || null;
@@ -446,36 +500,21 @@ export async function POST(request: Request) {
         return jsonTextResponse(cached.body, cached.status, { "x-gas-cache": "HIT" });
       }
       const coalesced = await withGasInflightCoalesce(key, async () => {
-        const upstream = await fetch(gasUrl, {
-          method: "POST",
-          headers: forwardHeaders(request, "POST"),
-          body,
-          redirect: "follow",
-          cache: "no-store",
-          signal: upstreamSignal(),
-        });
-        const text = await upstream.text();
-        upstreamStatus = upstream.status;
-        JSON.parse(text);
+        const res = await postToGas(gasUrl, request, body, action);
+        upstreamStatus = res.status;
+        if (!res.parsed) throw new Error("non-JSON GAS body");
         if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "settings") {
-          writeGasShortCache(key, text, upstream.status, OCCUPANCY_CACHE_TTL_MS);
+          writeGasShortCache(key, res.text, res.status, OCCUPANCY_CACHE_TTL_MS);
         }
-        return text;
+        return res.text;
       });
       responseText = coalesced.text;
       shared = coalesced.shared;
       if (!upstreamStatus) upstreamStatus = 200;
     } else {
-      const upstream = await fetch(gasUrl, {
-        method: "POST",
-        headers: forwardHeaders(request, "POST"),
-        body,
-        redirect: "follow",
-        cache: "no-store",
-        signal: upstreamSignal(),
-      });
-      upstreamStatus = upstream.status;
-      responseText = await upstream.text();
+      const res = await postToGas(gasUrl, request, body, action);
+      upstreamStatus = res.status;
+      responseText = res.text;
     }
 
     console.info(
