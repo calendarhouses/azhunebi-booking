@@ -103,7 +103,7 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
       <textarea
         className="guest-rep__textarea"
         rows={5}
-        maxLength={2000}
+        maxLength={500}
         placeholder="Наприклад: запізнюється, дуже акуратний, любить тишу…"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
