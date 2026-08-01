@@ -51,7 +51,7 @@ export function upsertGuestProfileInSettings(
     }
   }
   if ("note" in patch) {
-    const note = String(patch.note || "").trim().slice(0, 2000);
+    const note = String(patch.note || "").trim().slice(0, 500);
     if (note) next.note = note;
     else delete next.note;
   }
