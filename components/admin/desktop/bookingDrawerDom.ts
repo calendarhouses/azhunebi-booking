@@ -73,13 +73,13 @@ export function calculateBalanceLive(): void {
 
   const activeStatusBtn = document.querySelector(".status-btn.active");
   const currentStatus = activeStatusBtn?.getAttribute("data-status") || "";
-  if (currentStatus !== "Скасовано" && currentStatus !== "Закрито") {
+  if (currentStatus === "Скасовано") return;
+  if (paid > 0) {
     document.querySelectorAll(".status-btn").forEach((b) => b.classList.remove("active"));
-    if (paid > 0) {
-      document.querySelector('.status-btn[data-status="Підтверджено"]')?.classList.add("active");
-    } else {
-      document.querySelector('.status-btn[data-status="Очікує оплату"]')?.classList.add("active");
-    }
+    document.querySelector('.status-btn[data-status="Підтверджено"]')?.classList.add("active");
+  } else if (currentStatus === "Підтверджено") {
+    document.querySelectorAll(".status-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelector('.status-btn[data-status="Очікує оплату"]')?.classList.add("active");
   }
 }
 

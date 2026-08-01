@@ -34,6 +34,12 @@ import {
 import { BookingPhoneMessengerButtons } from "../shared/BookingPhoneMessengerButtons";
 import { BookingRefundSection } from "../shared/BookingRefundSection";
 import { BookingChangeHistory } from "../shared/BookingChangeHistory";
+import { GuestAutocompleteField } from "../shared/GuestAutocompleteField";
+import { GuestReputationControls } from "../shared/GuestReputationControls";
+import {
+  getGuestProfile,
+  type GuestRating,
+} from "@/lib/admin/guestProfiles";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -57,6 +63,10 @@ export interface DesktopBookingDrawerProps {
   settings: AdminSettingsPayload;
   bookings: BookingRecord[];
   onBookingReviewed?: () => void | Promise<void>;
+  onUpsertGuestProfile?: (
+    phone: string,
+    patch: { rating?: GuestRating | null; note?: string | null }
+  ) => void;
 }
 
 export function DesktopBookingDrawer({
@@ -65,6 +75,7 @@ export function DesktopBookingDrawer({
   settings,
   bookings,
   onBookingReviewed,
+  onUpsertGuestProfile,
 }: DesktopBookingDrawerProps) {
   void _roomsList;
   const { form, editingBookingId, editingRow, drawerTitle } = drawer;
@@ -277,18 +288,34 @@ export function DesktopBookingDrawer({
               <BookingFormSectionHeading title="Гість" />
               <div className="form-grid">
                 <div className="form-group" style={{ gridColumn: "span 2" }}>
-                  <label>
-                    Ім&apos;я та Прізвище:
-                    {isClosedBooking ? (
-                      <span className="form-label-optional"> (необовʼязково)</span>
-                    ) : null}
-                  </label>
-                  <input
-                    type="text"
+                  <div className="guest-field-head">
+                    <label>
+                      Ім&apos;я та Прізвище:
+                      {isClosedBooking ? (
+                        <span className="form-label-optional"> (необовʼязково)</span>
+                      ) : null}
+                    </label>
+                    <GuestReputationControls
+                      phone={form.phone}
+                      profile={getGuestProfile(settings.guestProfiles, form.phone)}
+                      onChange={(patch) => onUpsertGuestProfile?.(form.phone, patch)}
+                      compact
+                    />
+                  </div>
+                  <GuestAutocompleteField
+                    mode="name"
                     id="adminName"
                     required={!isClosedBooking}
                     value={form.name}
-                    onChange={(e) => drawer.patchForm({ name: e.target.value })}
+                    bookings={bookings}
+                    guestProfiles={settings.guestProfiles}
+                    onChange={(name) => drawer.patchForm({ name })}
+                    onPickGuest={(g) =>
+                      drawer.patchForm({
+                        name: g.name || form.name,
+                        phone: g.phone ? `+${g.phone}` : form.phone,
+                      })
+                    }
                   />
                 </div>
                 <div className="form-group">
@@ -298,12 +325,20 @@ export function DesktopBookingDrawer({
                       <span className="form-label-optional"> (необовʼязково)</span>
                     ) : null}
                   </label>
-                  <input
-                    type="tel"
+                  <GuestAutocompleteField
+                    mode="phone"
                     id="adminPhone"
                     required={!isClosedBooking}
                     value={form.phone}
-                    onChange={(e) => drawer.patchForm({ phone: e.target.value })}
+                    bookings={bookings}
+                    guestProfiles={settings.guestProfiles}
+                    onChange={(phone) => drawer.patchForm({ phone })}
+                    onPickGuest={(g) =>
+                      drawer.patchForm({
+                        name: g.name || form.name,
+                        phone: g.phone ? `+${g.phone}` : form.phone,
+                      })
+                    }
                   />
                   <BookingPhoneMessengerButtons phone={form.phone} />
                 </div>

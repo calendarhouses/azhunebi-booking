@@ -201,6 +201,8 @@ export function AdminMobileApp() {
               <DesktopGuestsView
                 layout="mobile"
                 bookings={admin.bookings}
+                guestProfiles={admin.settings.guestProfiles}
+                onUpsertGuestProfile={modals.upsertGuestProfile}
                 onShowGuestBookings={(phone, name) => {
                   setGuestFilter({ phone, name });
                   admin.switchView("list");
@@ -258,6 +260,7 @@ export function AdminMobileApp() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
+            onUpsertGuestProfile={modals.upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

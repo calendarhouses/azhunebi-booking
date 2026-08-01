@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
@@ -247,6 +247,8 @@ export function AdminDesktopApp() {
           <DesktopGuestsView
             style={getAdminViewStyle("guests", admin.activeView)}
             bookings={admin.bookings}
+            guestProfiles={admin.settings.guestProfiles}
+            onUpsertGuestProfile={modals.upsertGuestProfile}
             onShowGuestBookings={(phone, name) => {
               setGuestFilter({ phone, name });
               admin.switchView("list");
@@ -287,6 +289,7 @@ export function AdminDesktopApp() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
+            onUpsertGuestProfile={modals.upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />
