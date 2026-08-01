@@ -7,6 +7,10 @@ import {
   isAdminUnauthorizedError,
 } from "@/lib/admin/adminSession";
 import { getAdminTenantId, saveAdminSettings, type SaveAdminSettingsOptions } from "./adminApi";
+import {
+  upsertGuestProfileInSettings,
+  type GuestRating,
+} from "@/lib/admin/guestProfiles";
 import { showToast, showPublishingToast, syncLegacyGlobals } from "./adminGlobals";
 import {
   buildCustomServiceForm,
@@ -214,6 +218,17 @@ export function useAdminModals({
       await run;
     },
     [bookings, setSettings, onAfterSettingsSave]
+  );
+
+  const upsertGuestProfile = useCallback(
+    (
+      phone: string,
+      patch: { rating?: GuestRating | null; note?: string | null }
+    ) => {
+      const next = upsertGuestProfileInSettings(settingsRef.current, phone, patch);
+      void persistSettings(next, { keys: ["guestProfiles"], background: true });
+    },
+    [persistSettings]
   );
 
   const flushQuickEditSave = useCallback(
@@ -1275,6 +1290,7 @@ export function useAdminModals({
     confirmDesc,
     openCustomConfirm,
     persistSettings,
+    upsertGuestProfile,
     patchRoomQuickEdit,
     closeCustomConfirm,
     runConfirmAction,

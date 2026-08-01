@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
@@ -34,7 +34,6 @@ import { getAdminViewStyle } from "./adminViewDom";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
 import { DiscountTemplatesToggleButton } from "./settings/DiscountTemplatesToggleButton";
 import { RedirectPhoneToMobileAdmin } from "@/components/admin/RedirectPhoneToMobileAdmin";
-import { upsertGuestProfileInSettings, type GuestRating } from "@/lib/admin/guestProfiles";
 import "./settings/settings-side-drawer.css";
 import "./settings/settings-discounts.css";
 import "./settings/settings-additional-services.css";
@@ -134,17 +133,6 @@ export function AdminDesktopApp() {
   ]);
 
   useEffect(() => registerAdminDesktopHandlers(modals), [modals]);
-
-  const upsertGuestProfile = useCallback(
-    (
-      phone: string,
-      patch: { rating?: GuestRating | null; note?: string | null }
-    ) => {
-      const next = upsertGuestProfileInSettings(admin.settings, phone, patch);
-      void modals.persistSettings(next, { keys: ["guestProfiles"], background: true });
-    },
-    [admin.settings, modals]
-  );
 
   const [guestFilter, setGuestFilter] = useState<{ name: string; phone: string } | null>(null);
   const [sidebarLogoPreviewUrl, setSidebarLogoPreviewUrl] = useState<string | null>(null);
@@ -260,7 +248,7 @@ export function AdminDesktopApp() {
             style={getAdminViewStyle("guests", admin.activeView)}
             bookings={admin.bookings}
             guestProfiles={admin.settings.guestProfiles}
-            onUpsertGuestProfile={upsertGuestProfile}
+            onUpsertGuestProfile={modals.upsertGuestProfile}
             onShowGuestBookings={(phone, name) => {
               setGuestFilter({ phone, name });
               admin.switchView("list");
@@ -301,7 +289,7 @@ export function AdminDesktopApp() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
-            onUpsertGuestProfile={upsertGuestProfile}
+            onUpsertGuestProfile={modals.upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

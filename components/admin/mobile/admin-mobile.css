@@ -325,8 +325,11 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 .boso-mobile-guest-card .boso-mobile-card__phone {
     font-size: 13px;
-    background: #F9FAFB;
+    background: transparent;
     gap: 6px;
+    padding: 0;
+    margin-left: 0;
+    border-radius: 0;
 }
 .boso-mobile-card__cottage-wrap {
     flex: 1;
@@ -1322,12 +1325,14 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 .boso-admin-mobile .guest-rep__note-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 1px;
+  right: 1px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: #5B7A4F;
+  box-shadow: 0 0 0 1.5px #FFF;
+  pointer-events: none;
 }
 .boso-admin-mobile .guest-badge {
   display: inline-flex;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   guestPhoneKey,
@@ -20,21 +20,56 @@ type Props = {
 
 const RATINGS: GuestRating[] = [3, 2, 1];
 
+type PopoverPos = { top: number; left: number; width: number };
+
 export function GuestReputationControls({ phone, profile, onChange, compact }: Props) {
   const isMobile = useMobileUi();
   const hasPhone = Boolean(guestPhoneKey(phone));
   const [noteOpen, setNoteOpen] = useState(false);
   const [draft, setDraft] = useState(profile?.note || "");
-  const popRef = useRef<HTMLDivElement | null>(null);
+  const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
+  const noteBtnRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setDraft(profile?.note || "");
   }, [profile?.note, phone]);
 
+  useLayoutEffect(() => {
+    if (!noteOpen || isMobile) {
+      setPopoverPos(null);
+      return;
+    }
+    const update = () => {
+      const btn = noteBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const width = Math.min(320, Math.max(260, window.innerWidth - 24));
+      let left = rect.right - width;
+      left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+      let top = rect.bottom + 8;
+      const estimatedHeight = 240;
+      if (top + estimatedHeight > window.innerHeight - 12) {
+        top = Math.max(12, rect.top - estimatedHeight - 8);
+      }
+      setPopoverPos({ top, left, width });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [noteOpen, isMobile]);
+
   useEffect(() => {
     if (!noteOpen || isMobile) return;
     const onDoc = (e: MouseEvent) => {
-      if (!popRef.current?.contains(e.target as Node)) setNoteOpen(false);
+      const t = e.target as Node;
+      if (noteBtnRef.current?.contains(t)) return;
+      if (popoverRef.current?.contains(t)) return;
+      setNoteOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -110,8 +145,9 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
         })}
       </div>
 
-      <div className="guest-rep__note-wrap" ref={popRef}>
+      <div className="guest-rep__note-wrap">
         <button
+          ref={noteBtnRef}
           type="button"
           className={`guest-rep__note-btn${hasNote ? " has-note" : ""}`}
           disabled={!hasPhone}
@@ -132,13 +168,26 @@ export function GuestReputationControls({ phone, profile, onChange, compact }: P
           {!compact ? <span>{hasNote ? "Коментар" : "Нотатка"}</span> : null}
           {hasNote ? <span className="guest-rep__note-dot" aria-hidden /> : null}
         </button>
-
-        {noteOpen && !isMobile ? (
-          <div className="guest-rep__popover" role="dialog" aria-label="Коментар про гостя">
-            {noteEditor}
-          </div>
-        ) : null}
       </div>
+
+      {noteOpen && !isMobile && popoverPos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={popoverRef}
+              className="guest-rep__popover guest-rep__popover--portal"
+              role="dialog"
+              aria-label="Коментар про гостя"
+              style={{
+                top: popoverPos.top,
+                left: popoverPos.left,
+                width: popoverPos.width,
+              }}
+            >
+              {noteEditor}
+            </div>,
+            document.body
+          )
+        : null}
 
       {noteOpen && isMobile && typeof document !== "undefined"
         ? createPortal(

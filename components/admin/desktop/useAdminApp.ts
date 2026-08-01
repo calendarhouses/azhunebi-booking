@@ -56,6 +56,33 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
 }
 
 /** Лише дані з API — без dummy fallback. */
+function mergeGuestProfiles(
+  server: AdminSettingsPayload["guestProfiles"],
+  local: AdminSettingsPayload["guestProfiles"]
+): AdminSettingsPayload["guestProfiles"] {
+  const serverMap =
+    server && typeof server === "object" && !Array.isArray(server) ? server : null;
+  const localMap =
+    local && typeof local === "object" && !Array.isArray(local) ? local : null;
+  if (!serverMap && !localMap) return undefined;
+  if (!serverMap) return localMap || undefined;
+  if (!localMap) return serverMap;
+
+  const out: NonNullable<AdminSettingsPayload["guestProfiles"]> = { ...serverMap };
+  for (const [phone, profile] of Object.entries(localMap)) {
+    if (!profile || typeof profile !== "object") continue;
+    const existing = out[phone];
+    if (!existing) {
+      out[phone] = profile;
+      continue;
+    }
+    const localTs = Date.parse(String(profile.updatedAt || "")) || 0;
+    const serverTs = Date.parse(String(existing.updatedAt || "")) || 0;
+    if (localTs >= serverTs) out[phone] = profile;
+  }
+  return out;
+}
+
 function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayload {
   const s = raw || {};
   return {
@@ -70,6 +97,11 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
     smsSettings: s.smsSettings,
+    icalSyncSettings: s.icalSyncSettings,
+    guestProfiles:
+      s.guestProfiles && typeof s.guestProfiles === "object" && !Array.isArray(s.guestProfiles)
+        ? s.guestProfiles
+        : undefined,
   };
 }
 
@@ -162,6 +194,10 @@ export function useAdminApp(options?: {
             ...nextSettings,
             discountsList: dedupeDiscountsList(serverDiscounts),
           };
+        }
+        const guestProfiles = mergeGuestProfiles(merged.guestProfiles, prev.guestProfiles);
+        if (guestProfiles) {
+          nextSettings = { ...nextSettings, guestProfiles };
         }
         syncLegacyGlobals({ bookings: mergedBookings, settings: nextSettings });
         return nextSettings;
