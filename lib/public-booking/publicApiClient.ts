@@ -1,10 +1,33 @@
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import { createBooking, fetchInitData } from "@/lib/gas-api";
 
+const PUBLIC_INIT_TIMEOUT_MS = 20_000;
+
+/**
+ * Goes through our own cached route instead of GAS directly — a cold Apps
+ * Script call costs 10-20s and would hold the preloader for every visitor.
+ */
 export async function fetchPublicInitData(
   tenantId: string
 ): Promise<AdminInitResponse> {
-  return fetchInitData(tenantId);
+  try {
+    const res = await fetch(
+      `/api/public/init?tenant_id=${encodeURIComponent(tenantId)}`,
+      {
+        cache: "no-store",
+        signal:
+          typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+            ? AbortSignal.timeout(PUBLIC_INIT_TIMEOUT_MS)
+            : undefined,
+      }
+    );
+    if (!res.ok) throw new Error(`Init HTTP ${res.status}`);
+    const data = (await res.json()) as AdminInitResponse & { error?: string };
+    if (data.error || !data.settings) throw new Error(data.error || "Empty init payload");
+    return data;
+  } catch {
+    return fetchInitData(tenantId);
+  }
 }
 
 export type SubmitBookingPayload = Record<string, unknown> & {
