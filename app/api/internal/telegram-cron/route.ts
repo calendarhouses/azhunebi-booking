@@ -280,13 +280,13 @@ async function runJobs(force?: string | null) {
     results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
     results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
   }
-  if (force === "bookings") {
+  if (force === "bookings" || force === "messagesRefresh") {
     results.bookings = await refreshPaidBookingsTelegramMessages({
       bookings: bookings as any,
       settings,
     });
   }
-  if (force === "turnoversRefresh") {
+  if (force === "turnoversRefresh" || force === "messagesRefresh") {
     results.turnoversRefresh = await refreshTurnoversTelegramMessages({
       bookings: bookings as any,
       settings,
