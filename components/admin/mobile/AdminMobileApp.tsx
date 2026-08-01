@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isAndroidUserAgent, isIOSUserAgent } from "@/lib/isMobileUserAgent";
 import { AdminGridDashboard } from "@/components/admin/dashboard/AdminGridDashboard";
 import { useAdminUndo, resolveActiveUndoScope } from "@/components/admin/undo/useAdminUndo";
@@ -9,6 +9,7 @@ import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
 import { expireAdminSession } from "@/lib/admin/adminSession";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
 import { isDiscountDraftId } from "@/lib/admin/discountDraft";
+import { upsertGuestProfileInSettings, type GuestRating } from "@/lib/admin/guestProfiles";
 import { DesktopBookingDrawer } from "../desktop/DesktopBookingDrawer";
 import { DesktopModals } from "../desktop/DesktopModals";
 import { DesktopOverlays } from "../desktop/DesktopOverlays";
@@ -103,6 +104,17 @@ export function AdminMobileApp() {
   ]);
 
   useEffect(() => registerAdminDesktopHandlers(modals), [modals]);
+
+  const upsertGuestProfile = useCallback(
+    (
+      phone: string,
+      patch: { rating?: GuestRating | null; note?: string | null }
+    ) => {
+      const next = upsertGuestProfileInSettings(admin.settings, phone, patch);
+      void modals.persistSettings(next, { keys: ["guestProfiles"], background: true });
+    },
+    [admin.settings, modals]
+  );
 
   const [guestFilter, setGuestFilter] = useState<{ name: string; phone: string } | null>(null);
 
@@ -201,6 +213,8 @@ export function AdminMobileApp() {
               <DesktopGuestsView
                 layout="mobile"
                 bookings={admin.bookings}
+                guestProfiles={admin.settings.guestProfiles}
+                onUpsertGuestProfile={upsertGuestProfile}
                 onShowGuestBookings={(phone, name) => {
                   setGuestFilter({ phone, name });
                   admin.switchView("list");
@@ -258,6 +272,7 @@ export function AdminMobileApp() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
+            onUpsertGuestProfile={upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

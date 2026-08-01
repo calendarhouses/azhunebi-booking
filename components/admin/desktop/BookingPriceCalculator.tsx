@@ -665,10 +665,17 @@ export function BookingPriceCalculator({
 
   const paymentStatusRef = useRef<string | null>(null);
   useEffect(() => {
-    if (bookingStatus === "Скасовано" || bookingStatus === "Закрито") return;
+    if (bookingStatus === "Скасовано") return;
     const paid = prepay + surcharge;
-    const next = paid > 0 ? "Підтверджено" : "Очікує оплату";
-    if (paymentStatusRef.current === next) return;
+    let next: "Очікує оплату" | "Підтверджено" | null = null;
+    if (paid > 0) {
+      next = "Підтверджено";
+    } else if (bookingStatus === "Підтверджено") {
+      // Demote only from confirmed when money cleared — never demote «Закрито».
+      next = "Очікує оплату";
+    }
+    if (!next) return;
+    if (paymentStatusRef.current === next && bookingStatus === next) return;
     paymentStatusRef.current = next;
     onStatusFromPayment?.(next);
   }, [prepay, surcharge, bookingStatus, onStatusFromPayment]);

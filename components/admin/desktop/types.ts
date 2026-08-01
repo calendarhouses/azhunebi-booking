@@ -226,6 +226,8 @@ export interface AdminSettingsPayload {
   flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
   icalSyncSettings?: import("@/lib/ical").IcalSyncSettings;
   smsSettings?: import("@/lib/sms/smsSettings").SmsSettings;
+  /** CRM-профілі гостей за нормалізованим телефоном. */
+  guestProfiles?: import("@/lib/admin/guestProfiles").GuestProfilesMap;
 }
 
 export interface AdminInitResponse {
