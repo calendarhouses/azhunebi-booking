@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  fetchAdminBoot,
   getStoredAuthToken,
   GAS_AUTH_TOKEN_KEY,
   signOut as gasSignOut,
@@ -28,7 +27,12 @@ import {
   clearAdminInitPrefetch,
   prefetchAdminInitData,
 } from "@/lib/admin/adminInitPrefetch";
-import { consumeAdminBootHandoff } from "@/lib/admin/adminBootHandoff";
+import { clearAdminDeferredPrefetch } from "@/lib/admin/adminDeferredPrefetch";
+import {
+  clearAdminBootHandoff,
+  resolveAdminBoot,
+} from "@/lib/admin/adminBootHandoff";
+import { clearGuestProfilesPrefetch } from "@/lib/admin/guestProfiles";
 
 export type TenantMembership = {
   tenantId: string;
@@ -96,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       clearAdminTenantId();
       clearAdminInitPrefetch();
+      clearAdminDeferredPrefetch();
+      clearGuestProfilesPrefetch();
     }
   }, [syncPreloaderLogo]);
 
@@ -107,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       return;
     }
-    const boot = await fetchAdminBoot(token);
+    const boot = await resolveAdminBoot(token);
     setUser(boot.session?.user ?? null);
     if (!boot.session) {
       applyMembership(null);
@@ -129,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = getStoredAuthToken();
       const lastTenantId = getLastAdminTenantId();
-      // Start heavy init immediately in parallel with auth boot.
+      // Start chessboard immediately in parallel with auth boot when possible.
       if (token && lastTenantId) {
         setAdminTenantId(lastTenantId);
         void prefetchAdminInitData(lastTenantId, token);
@@ -144,14 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const handed = consumeAdminBootHandoff(token);
-      const boot = handed
-        ? {
-            session: handed.session,
-            membership: handed.membership,
-            error: handed.error,
-          }
-        : await fetchAdminBoot(token);
+      // One shared adminBoot with login warm (in-flight or handoff peek).
+      const boot = await resolveAdminBoot(token);
       if (cancelled) return;
 
       setUser(boot.session?.user ?? null);
@@ -166,7 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applyMembership(boot.membership);
       setError(boot.error);
       if (boot.membership?.tenantId) {
-        // Ensure prefetch is running for the confirmed tenant (may already be in flight).
         void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
       }
       setLoading(false);
@@ -190,6 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     clearAdminTenantId();
     clearAdminInitPrefetch();
+    clearAdminDeferredPrefetch();
+    clearGuestProfilesPrefetch();
+    clearAdminBootHandoff();
     clearAuthCookie();
     await gasSignOut();
     setUser(null);
@@ -197,7 +199,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     window.location.replace("/login");
   }, [applyMembership]);
-
   const ready = !loading && !!user && !!membership?.tenantId && !error;
 
   const value = useMemo(

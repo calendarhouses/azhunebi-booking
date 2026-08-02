@@ -37,6 +37,11 @@ export function guestRatingMeta(rating: GuestRating | null | undefined): {
   return null;
 }
 
+let guestProfilesPromise: Promise<GuestProfilesMap> | null = null;
+let guestProfilesResolved: GuestProfilesMap | null = null;
+let guestProfilesResolvedAt = 0;
+const GUEST_PROFILES_TTL_MS = 120_000;
+
 /**
  * Guest CRM ratings live in a dedicated "GuestProfiles" sheet (one row per
  * guest), fetched lazily via a standalone action — NEVER as part of
@@ -46,13 +51,37 @@ export function guestRatingMeta(rating: GuestRating | null | undefined): {
  * azhunebi-script/guestProfiles.js.
  */
 export async function fetchGuestProfilesRemote(): Promise<GuestProfilesMap> {
-  const data = await gasFetch<{
-    profiles?: GuestProfilesMap;
-    error?: string;
-    message?: string;
-  }>({ action: "getGuestProfiles" }, { authToken: getStoredAuthToken() });
-  if (data.error) throw new Error(data.message || data.error);
-  return data.profiles && typeof data.profiles === "object" ? data.profiles : {};
+  if (
+    guestProfilesResolved &&
+    Date.now() - guestProfilesResolvedAt < GUEST_PROFILES_TTL_MS
+  ) {
+    return guestProfilesResolved;
+  }
+  if (guestProfilesPromise) return guestProfilesPromise;
+
+  guestProfilesPromise = (async () => {
+    const data = await gasFetch<{
+      profiles?: GuestProfilesMap;
+      error?: string;
+      message?: string;
+    }>({ action: "getGuestProfiles" }, { authToken: getStoredAuthToken() });
+    if (data.error) throw new Error(data.message || data.error);
+    const profiles =
+      data.profiles && typeof data.profiles === "object" ? data.profiles : {};
+    guestProfilesResolved = profiles;
+    guestProfilesResolvedAt = Date.now();
+    return profiles;
+  })().finally(() => {
+    guestProfilesPromise = null;
+  });
+
+  return guestProfilesPromise;
+}
+
+export function clearGuestProfilesPrefetch(): void {
+  guestProfilesPromise = null;
+  guestProfilesResolved = null;
+  guestProfilesResolvedAt = 0;
 }
 
 export async function saveGuestProfileRemote(
@@ -76,5 +105,7 @@ export async function saveGuestProfileRemote(
     { authToken: getStoredAuthToken() }
   );
   if (data.error) throw new Error(data.message || data.error);
+  // Local cache may be stale after write — drop so next open refreshes.
+  clearGuestProfilesPrefetch();
   return data.profile ?? null;
 }

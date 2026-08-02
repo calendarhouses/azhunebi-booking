@@ -14,6 +14,10 @@ import {
   releasePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
 import {
+  fetchAdminDeferredOnce,
+  fetchAdminSyncOnce,
+} from "@/lib/admin/adminDeferredPrefetch";
+import {
   fetchGuestProfilesRemote,
   guestPhoneKey,
   saveGuestProfileRemote,
@@ -32,10 +36,8 @@ import {
 } from "@/lib/admin/discountPendingDeletes";
 import {
   fetchAdminChessboardData,
-  fetchAdminDeferredData,
   getAdminTenantId,
   setAdminTenantId,
-  silentSyncAdminData,
 } from "./adminApi";
 import { mergeBookingsWithPending } from "./bookingUtils";
 import { PAGE_TITLES, showToast, syncLegacyGlobals } from "./adminGlobals";
@@ -260,9 +262,16 @@ export function useAdminApp(options?: {
   );
 
   const silentSync = useCallback(async () => {
-    const data = await silentSyncAdminData();
-    if (data) applyServerData(data, { silent: true });
-  }, [applyServerData]);
+    const tenantId = membership?.tenantId || getAdminTenantId() || "";
+    if (!tenantId) return;
+    try {
+      const data = await fetchAdminSyncOnce(tenantId);
+      if (data) applyServerData(data, { silent: true });
+    } catch (err) {
+      if (isAdminUnauthorizedError(err)) throw err;
+      console.error("Помилка фонового оновлення:", err);
+    }
+  }, [applyServerData, membership?.tenantId]);
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
@@ -308,9 +317,11 @@ export function useAdminApp(options?: {
 
   const loadDeferredData = useCallback(async () => {
     if (deferredLoadedRef.current) return;
+    const tenantId = membership?.tenantId || getAdminTenantId() || "";
+    if (!tenantId) return;
     deferredLoadedRef.current = true;
     try {
-      const data = await fetchAdminDeferredData();
+      const data = await fetchAdminDeferredOnce(tenantId);
       if (data) applyServerData(data, { silent: true });
     } catch (err) {
       deferredLoadedRef.current = false;
@@ -321,8 +332,7 @@ export function useAdminApp(options?: {
       }
       console.warn("[useAdminApp] adminDeferred failed:", err);
     }
-  }, [applyServerData]);
-  useEffect(() => {
+  }, [applyServerData, membership?.tenantId]);  useEffect(() => {
     if (!authReady) return;
 
     const tenantId = membership?.tenantId;

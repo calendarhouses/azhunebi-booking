@@ -111,7 +111,8 @@ export function isCoalescableGasAction(action: string | null | undefined): boole
     a === "adminBoot" ||
     a === "fetchPublicTenant" ||
     a === "settings" ||
-    a === "getAllBookings"
+    a === "getAllBookings" ||
+    a === "getGuestProfiles"
   );
 }
 
@@ -130,6 +131,7 @@ export function gasActionCacheTtlMs(action: string | null | undefined): number {
   const a = String(action || "");
   if (a === "adminChessboard" || a === "adminSync") return CHESSBOARD_CACHE_TTL_MS;
   if (a === "adminDeferred" || a === "settings") return SETTINGS_CACHE_TTL_MS;
+  if (a === "getGuestProfiles") return SETTINGS_CACHE_TTL_MS;
   if (a === "adminBoot" || a === "fetchPublicTenant") return OCCUPANCY_CACHE_TTL_MS;
   if (isOccupancyCriticalAction(a)) return OCCUPANCY_CACHE_TTL_MS;
   return 0;

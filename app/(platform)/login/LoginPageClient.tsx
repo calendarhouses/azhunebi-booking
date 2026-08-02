@@ -3,11 +3,10 @@
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  fetchAdminBoot,
   GAS_AUTH_TOKEN_KEY,
   signInWithPassword,
 } from "@/lib/gas-api";
-import { setAdminBootHandoff } from "@/lib/admin/adminBootHandoff";
+import { resolveAdminBoot } from "@/lib/admin/adminBootHandoff";
 import { prefetchAdminInitData } from "@/lib/admin/adminInitPrefetch";
 import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import { setAdminTenantId } from "@/components/admin/desktop/adminApi";
@@ -37,16 +36,11 @@ function defaultAdminPath() {
 function warmAdminAfterLogin(accessToken: string): void {
   void (async () => {
     try {
-      const boot = await fetchAdminBoot(accessToken);
+      // Shares one GAS adminBoot with AuthProvider via resolveAdminBoot.
+      const boot = await resolveAdminBoot(accessToken);
       if (!boot.session || !boot.membership?.tenantId) return;
       setAdminTenantId(boot.membership.tenantId);
       setLastAdminTenantId(boot.membership.tenantId);
-      setAdminBootHandoff({
-        token: accessToken,
-        session: boot.session,
-        membership: boot.membership,
-        error: boot.error,
-      });
       void prefetchAdminInitData(boot.membership.tenantId, accessToken);
     } catch (err) {
       console.warn("[login] warm admin failed:", err);
