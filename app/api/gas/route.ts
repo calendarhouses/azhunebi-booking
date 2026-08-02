@@ -11,6 +11,11 @@ import {
   withGasInflightCoalesce,
   writeGasShortCache,
 } from "@/lib/gas/inflightCoalesce";
+import {
+  invalidateSharedGasCache,
+  readSharedGasCache,
+  writeSharedGasCache,
+} from "@/lib/gas/sharedReadCache";
 
 export const runtime = "nodejs";
 // GAS writes with LockService can take 10-20s; without this the gateway kills
@@ -391,6 +396,13 @@ export async function GET(request: Request) {
         "x-gas-cache": "HIT",
       });
     }
+    const shared = await readSharedGasCache(cacheKey);
+    if (shared) {
+      writeGasShortCache(cacheKey, shared.body, shared.status, gasActionCacheTtlMs(action));
+      return jsonTextResponse(shared.body, shared.status, {
+        "x-gas-cache": "REDIS_HIT",
+      });
+    }
   }
 
   const runFetch = async (): Promise<{ status: number; text: string }> => {
@@ -452,6 +464,7 @@ export async function GET(request: Request) {
         const ttl = gasActionCacheTtlMs(action);
         if (ttl > 0) {
           writeGasShortCache(cacheKey, res.text, res.status, ttl);
+          await writeSharedGasCache(cacheKey, res.text, res.status, ttl);
         }
         return res.text;
       });
@@ -539,6 +552,18 @@ export async function POST(request: Request) {
       if (cached) {
         return jsonTextResponse(cached.body, cached.status, { "x-gas-cache": "HIT" });
       }
+      const sharedCached = await readSharedGasCache(cacheKey);
+      if (sharedCached) {
+        writeGasShortCache(
+          cacheKey,
+          sharedCached.body,
+          sharedCached.status,
+          gasActionCacheTtlMs(action)
+        );
+        return jsonTextResponse(sharedCached.body, sharedCached.status, {
+          "x-gas-cache": "REDIS_HIT",
+        });
+      }
       const coalesced = await withGasInflightCoalesce(inflightKey, async () => {
         const res = await postToGas(gasUrl, request, body, action);
         upstreamStatus = res.status;
@@ -553,7 +578,9 @@ export async function POST(request: Request) {
           throw err;
         }
         if (gasActionCacheTtlMs(action) > 0) {
-          writeGasShortCache(cacheKey, res.text, res.status, gasActionCacheTtlMs(action));
+          const ttl = gasActionCacheTtlMs(action);
+          writeGasShortCache(cacheKey, res.text, res.status, ttl);
+          await writeSharedGasCache(cacheKey, res.text, res.status, ttl);
         }
         return res.text;
       });
@@ -580,6 +607,7 @@ export async function POST(request: Request) {
 
     if (upstreamStatus >= 200 && upstreamStatus < 300 && shouldInvalidateCache(action, payload)) {
       bumpGasCacheGeneration();
+      await invalidateSharedGasCache();
     }
 
     const isPendingReview =

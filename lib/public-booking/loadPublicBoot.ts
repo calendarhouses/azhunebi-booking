@@ -10,8 +10,12 @@ import {
   withGasInflightCoalesce,
   writeGasShortCache,
 } from "@/lib/gas/inflightCoalesce";
+import {
+  readSharedGasCache,
+  writeSharedGasCache,
+} from "@/lib/gas/sharedReadCache";
 
-const PUBLIC_INIT_TTL_MS = Math.max(OCCUPANCY_CACHE_TTL_MS, 15_000);
+const PUBLIC_INIT_TTL_MS = OCCUPANCY_CACHE_TTL_MS;
 
 function tenantFromInit(tenantId: string, init: AdminInitResponse): PublicTenantPayload {
   const settings = init.settings || {};
@@ -39,8 +43,8 @@ function tenantFromInit(tenantId: string, init: AdminInitResponse): PublicTenant
 }
 
 /**
- * Single GAS round-trip for public boot, coalesced + short-TTL cached in-process
- * so N tabs don't each enqueue a full Apps Script dump.
+ * Single GAS round-trip for public boot, coalesced + short-TTL cached
+ * (in-process + shared Redis) so N tabs/devices don't each hit Apps Script.
  */
 export async function loadPublicBoot(tenantId: string): Promise<{
   tenant: PublicTenantPayload;
@@ -59,10 +63,18 @@ export async function loadPublicBoot(tenantId: string): Promise<{
       return { tenant: tenantFromInit(tenantId, init), init };
     }
 
+    const shared = await readSharedGasCache(key);
+    if (shared?.body) {
+      writeGasShortCache(key, shared.body, shared.status, PUBLIC_INIT_TTL_MS);
+      const init = JSON.parse(shared.body) as AdminInitResponse;
+      return { tenant: tenantFromInit(tenantId, init), init };
+    }
+
     const { text } = await withGasInflightCoalesce(key, async () => {
       const init = await fetchInitData(tenantId);
       const body = JSON.stringify(init);
       writeGasShortCache(key, body, 200, PUBLIC_INIT_TTL_MS);
+      await writeSharedGasCache(key, body, 200, PUBLIC_INIT_TTL_MS);
       return body;
     });
 

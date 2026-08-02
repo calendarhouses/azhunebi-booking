@@ -118,9 +118,11 @@ export function isSuccessfulGasReadBody(body: string): boolean {
   }
 }
 
-export const OCCUPANCY_CACHE_TTL_MS = 8_000;
-/** Stage-A: chessboard / sync payloads — longer so reopen is near-instant. */
-export const CHESSBOARD_CACHE_TTL_MS = 60_000;
+/** Public / occupancy reads — shared Redis TTL (admin accepts ≤30s cross-device). */
+export const OCCUPANCY_CACHE_TTL_MS = 30_000;
+/** Chessboard / sync — 30s across instances; writer invalidates on save. */
+export const CHESSBOARD_CACHE_TTL_MS = 30_000;
+/** Deferred settings / guest profiles — less volatile. */
 export const SETTINGS_CACHE_TTL_MS = 120_000;
 
 export function isCoalescableGasAction(action: string | null | undefined): boolean {
