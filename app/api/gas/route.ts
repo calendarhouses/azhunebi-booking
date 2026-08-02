@@ -55,7 +55,8 @@ function shouldInvalidateCache(action: string | null | undefined, payload: Recor
     a === "storeMonoInvoice" ||
     a === "reviewBooking" ||
     a === "syncBookingsAfterRoomRename" ||
-    a === "syncIcalRoomBlocks"
+    a === "syncIcalRoomBlocks" ||
+    a === "saveGuestProfile"
   ) {
     return true;
   }
