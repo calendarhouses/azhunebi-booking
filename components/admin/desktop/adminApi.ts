@@ -1,9 +1,6 @@
 import { AdminUnauthorizedError } from "@/lib/admin/adminSession";
 import {
   createBooking,
-  fetchAdminChessboard,
-  fetchAdminDeferred,
-  fetchAdminSync,
   fetchInitData,
   gasFetch,
   gasPost,
@@ -98,137 +95,18 @@ export async function adminApiFetch(
   return res;
 }
 
-export async function fetchAdminInitData(tenantIdOverride?: string): Promise<AdminInitResponse> {
-  const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
+export async function fetchAdminInitData(): Promise<AdminInitResponse> {
+  const tenantId = getAdminTenantId();
   if (!tenantId) {
-    // Not a session error — caller should retry after tenant is set.
-    throw new Error("MISSING_TENANT");
-  }
-  if (!getAdminTenantId()) {
-    setAdminTenantId(tenantId);
+    throw new AdminUnauthorizedError("MISSING_TENANT");
   }
   const token = await getAccessToken();
   return fetchInitData(tenantId, token);
 }
 
-/** Stage-A first paint — slim rooms + chessboard bookings. */
-export async function fetchAdminChessboardData(
-  tenantIdOverride?: string
-): Promise<AdminInitResponse> {
-  const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
-  if (!tenantId) {
-    throw new Error("MISSING_TENANT");
-  }
-  if (!getAdminTenantId()) {
-    setAdminTenantId(tenantId);
-  }
-  const token = await getAccessToken();
-  return fetchAdminChessboard(tenantId, token);
-}
-
-function isTransientChessboardError(err: unknown): boolean {
-  if (err instanceof AdminUnauthorizedError) return false;
-  const msg = err instanceof Error ? err.message : String(err || "");
-  const lower = msg.toLowerCase();
-  if (lower.includes("missing_tenant") || lower.includes("unauthorized")) return false;
-  return (
-    lower.includes("502") ||
-    lower.includes("504") ||
-    lower.includes("gas_bad_response") ||
-    lower.includes("gas_timeout") ||
-    lower.includes("gas_unreachable") ||
-    lower.includes("gas_rate_limited") ||
-    lower.includes("не json") ||
-    lower.includes("timeout") ||
-    lower.includes("aborted") ||
-    lower.includes("failed to fetch") ||
-    lower.includes("network") ||
-    lower.includes("invalid chessboard") ||
-    lower.includes("не вдалося завантажити шахматку")
-  );
-}
-
-function isValidChessboard(data: AdminInitResponse | null | undefined): boolean {
-  if (!data || typeof data !== "object") return false;
-  if ((data as { error?: string }).error) return false;
-  if (!data.settings || typeof data.settings !== "object") return false;
-  return Array.isArray(data.bookings);
-}
-
-/**
- * Chessboard boot with retries. Prefetch failures must not stick — we clear
- * and fetch fresh so a 502 while Google is busy does not permanently block paint.
- */
-export async function fetchAdminChessboardWithRetry(
-  tenantIdOverride?: string,
-  options?: { attempts?: number }
-): Promise<AdminInitResponse> {
-  const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
-  if (!tenantId) throw new Error("MISSING_TENANT");
-
-  const { consumePrefetchedAdminInit, clearAdminInitPrefetch } = await import(
-    "@/lib/admin/adminInitPrefetch"
-  );
-
-  const prefetched = consumePrefetchedAdminInit(tenantId);
-  if (prefetched) {
-    try {
-      const data = await prefetched;
-      if (isValidChessboard(data)) return data;
-      clearAdminInitPrefetch();
-    } catch {
-      clearAdminInitPrefetch();
-    }
-  }
-
-  const attempts = options?.attempts ?? 3;
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i += 1) {
-    try {
-      const data = await fetchAdminChessboardData(tenantId);
-      if (!isValidChessboard(data)) {
-        throw new Error("Не вдалося завантажити шахматку");
-      }
-      return data;
-    } catch (err) {
-      lastErr = err;
-      if (!isTransientChessboardError(err) || i === attempts - 1) throw err;
-      const waitMs = 1200 * (i + 1);
-      console.warn(
-        `[adminChessboard] transient failure, retry ${i + 1}/${attempts} in ${waitMs}ms`,
-        err
-      );
-      await new Promise((r) => setTimeout(r, waitMs));
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error("Не вдалося завантажити шахматку");
-}
-
-/** Stage-A after paint — full settings + list bookings. */
-export async function fetchAdminDeferredData(
-  tenantIdOverride?: string
-): Promise<AdminInitResponse | null> {
-  try {
-    const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
-    if (!tenantId) return null;
-    const token = await getAccessToken();
-    return await fetchAdminDeferred(tenantId, token);
-  } catch (e) {
-    if (e instanceof AdminUnauthorizedError) {
-      throw e;
-    }
-    console.error("Помилка довантаження налаштувань:", e);
-    return null;
-  }
-}
-
-/** Stage-A silent sync — chessboard-sized, not full adminInitData. */
 export async function silentSyncAdminData(): Promise<AdminInitResponse | null> {
   try {
-    const tenantId = getAdminTenantId().trim();
-    if (!tenantId) return null;
-    const token = await getAccessToken();
-    return await fetchAdminSync(tenantId, token);
+    return await fetchAdminInitData();
   } catch (e) {
     if (e instanceof AdminUnauthorizedError) {
       throw e;
@@ -236,59 +114,6 @@ export async function silentSyncAdminData(): Promise<AdminInitResponse | null> {
     console.error("Помилка фонового оновлення:", e);
     return null;
   }
-}
-
-/** Full booking row (payments + changeHistory) — lazy, after drawer open. */
-export async function fetchAdminBookingDetail(bookingId: string): Promise<{
-  booking: import("./types").BookingRecord;
-} | null> {
-  const token = await getAccessToken();
-  if (!token || !bookingId) return null;
-  const data = await gasPost<{
-    booking?: import("./types").BookingRecord;
-    error?: string;
-  }>(
-    {
-      action: "getBookingDetail",
-      tenant_id: getAdminTenantId(),
-      id: bookingId,
-    },
-    { authToken: token }
-  );
-  if (data.error || !data.booking) return null;
-  return { booking: data.booking };
-}
-
-export async function fetchAdminBookingChangeHistory(
-  bookingId: string
-): Promise<import("./types").BookingChangeHistoryEntry[]> {
-  const token = await getAccessToken();
-  if (!token || !bookingId) return [];
-  const data = await gasPost<{
-    changeHistory?: import("./types").BookingChangeHistoryEntry[];
-    error?: string;
-  }>(
-    {
-      action: "getBookingChangeHistory",
-      tenant_id: getAdminTenantId(),
-      id: bookingId,
-    },
-    { authToken: token }
-  );
-  if (data.error || !Array.isArray(data.changeHistory)) return [];
-  return data.changeHistory;
-}
-
-/** Transactions omitted from boot — load when opening Reports. */
-export async function fetchAdminTransactions(): Promise<
-  NonNullable<AdminSettingsPayload["transactions"]>
-> {
-  const token = await getAccessToken();
-  const settings = await gasFetch<AdminSettingsPayload>(
-    { action: "settings", tenant_id: getAdminTenantId() },
-    { authToken: token }
-  );
-  return Array.isArray(settings.transactions) ? settings.transactions : [];
 }
 
 export async function submitBookingReview(params: {

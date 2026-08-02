@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  fetchAdminBoot,
   getStoredAuthToken,
   GAS_AUTH_TOKEN_KEY,
   signOut as gasSignOut,
@@ -27,12 +28,6 @@ import {
   clearAdminInitPrefetch,
   prefetchAdminInitData,
 } from "@/lib/admin/adminInitPrefetch";
-import { clearAdminDeferredPrefetch } from "@/lib/admin/adminDeferredPrefetch";
-import {
-  clearAdminBootHandoff,
-  resolveAdminBoot,
-} from "@/lib/admin/adminBootHandoff";
-import { clearGuestProfilesPrefetch } from "@/lib/admin/guestProfiles";
 
 export type TenantMembership = {
   tenantId: string;
@@ -100,8 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       clearAdminTenantId();
       clearAdminInitPrefetch();
-      clearAdminDeferredPrefetch();
-      clearGuestProfilesPrefetch();
     }
   }, [syncPreloaderLogo]);
 
@@ -113,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       return;
     }
-    const boot = await resolveAdminBoot(token);
+    const boot = await fetchAdminBoot(token);
     setUser(boot.session?.user ?? null);
     if (!boot.session) {
       applyMembership(null);
@@ -133,43 +126,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       setLoading(true);
 
-      try {
-        const token = getStoredAuthToken();
-        const lastTenantId = getLastAdminTenantId();
-        // Start chessboard immediately in parallel with auth boot when possible.
-        if (token && lastTenantId) {
-          setAdminTenantId(lastTenantId);
-          void prefetchAdminInitData(lastTenantId, token);
-        }
-
-        if (!token) {
-          if (cancelled) return;
-          setUser(null);
-          applyMembership(null);
-          setError(null);
-          return;
-        }
-
-        // One shared adminBoot with login warm (in-flight or handoff peek).
-        const boot = await resolveAdminBoot(token);
-        if (cancelled) return;
-
-        setUser(boot.session?.user ?? null);
-
-        if (!boot.session) {
-          applyMembership(null);
-          setError(boot.error);
-          return;
-        }
-
-        applyMembership(boot.membership);
-        setError(boot.error);
-        if (boot.membership?.tenantId) {
-          void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      const token = getStoredAuthToken();
+      const lastTenantId = getLastAdminTenantId();
+      // Start heavy init immediately in parallel with auth boot.
+      if (token && lastTenantId) {
+        setAdminTenantId(lastTenantId);
+        void prefetchAdminInitData(lastTenantId, token);
       }
+
+      if (!token) {
+        if (cancelled) return;
+        setUser(null);
+        applyMembership(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      const boot = await fetchAdminBoot(token);
+      if (cancelled) return;
+
+      setUser(boot.session?.user ?? null);
+
+      if (!boot.session) {
+        applyMembership(null);
+        setError(boot.error);
+        setLoading(false);
+        return;
+      }
+
+      applyMembership(boot.membership);
+      setError(boot.error);
+      if (boot.membership?.tenantId) {
+        // Ensure prefetch is running for the confirmed tenant (may already be in flight).
+        void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
+      }
+      setLoading(false);
     };
 
     void init();
@@ -190,9 +182,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     clearAdminTenantId();
     clearAdminInitPrefetch();
-    clearAdminDeferredPrefetch();
-    clearGuestProfilesPrefetch();
-    clearAdminBootHandoff();
     clearAuthCookie();
     await gasSignOut();
     setUser(null);
@@ -201,8 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.replace("/login");
   }, [applyMembership]);
 
-  // Membership+user is enough — soft error banners must not block the gate.
-  const ready = !loading && !!user && !!membership?.tenantId;
+  const ready = !loading && !!user && !!membership?.tenantId && !error;
 
   const value = useMemo(
     () => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { Infinity as InfinityIcon, RefreshCw, Undo2 } from "lucide-react";
+import { Infinity as InfinityIcon, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
@@ -10,8 +10,6 @@ import type {
 import { parseSafeDate } from "../adminDates";
 import { bosoHover, bosoLeave } from "../adminTooltip";
 import { showToast } from "../adminGlobals";
-import { getStoredAuthToken } from "@/lib/gas-api";
-import { getAdminTenantId } from "../adminApi";
 import { useGridFocusModeOptional } from "../GridFocusModeContext";
 import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
 import { TimelineGridRow } from "../TimelineGridCells";
@@ -83,7 +81,7 @@ import {
   handleBookingTouchStart,
   TOUCH_TOOLTIP_HOLD_SLOP_PX,
 } from "../timelineBookingTouch";
-import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "../types";
+import type { BookingRecord, RoomConfig } from "../types";
 import {
   getTimelineBookingBlockLayout,
   TIMELINE_BOOKING_BLOCK_LAYOUT,
@@ -103,8 +101,6 @@ export interface DesktopTimelineViewProps {
   useViewRootId?: boolean;
   roomsList?: RoomConfig[];
   bookings?: BookingRecord[];
-  /** Needed so "Оновити сповіщення" can edit existing Telegram messages without a slow GAS digest. */
-  settings?: AdminSettingsPayload;
   onOpenBooking: (event: React.MouseEvent | null, row: number | string) => void;
   onCreateBooking: (room: string, checkIn: string, checkOut: string) => void;
   /** Кнопка «Нова бронь» у розгорнутому вигляді (коли хедер прихований). */
@@ -118,8 +114,6 @@ export interface DesktopTimelineViewProps {
   onUndoMove?: () => void;
   canUndoMove?: boolean;
   isUndoing?: boolean;
-  /** Persist refreshed Telegram message_id map into admin settings cache. */
-  onTelegramTurnoversState?: (state: Record<string, unknown>) => void;
 }
 
 type TimelineDay = {
@@ -444,7 +438,6 @@ export function DesktopTimelineView({
   useViewRootId = true,
   roomsList = [],
   bookings = [],
-  settings,
   onOpenBooking,
   onCreateBooking,
   onNewBooking,
@@ -452,7 +445,6 @@ export function DesktopTimelineView({
   onUndoMove,
   canUndoMove = false,
   isUndoing = false,
-  onTelegramTurnoversState,
 }: DesktopTimelineViewProps) {
   const isMobile = layout === "mobile";
   const isAndroid = isMobile && isAndroidUserAgent(
@@ -487,7 +479,6 @@ export function DesktopTimelineView({
   const cottageCount = Math.max(activeRooms.length, 1);
   const mobileDateHeadHeight = isAndroid ? (mobileDense ? 40 : 58) : mobileDense ? 48 : 56;
   const [androidRowHeight, setAndroidRowHeight] = useState(mobileDense ? 38 : 44);
-  const [telegramRefreshBusy, setTelegramRefreshBusy] = useState(false);
 
   const [mode, setMode] = useState<TimelineMode>(() =>
     layout === "mobile" ? "continuous" : "month"
@@ -839,105 +830,6 @@ export function DesktopTimelineView({
     // Force re-apply today scroll even if already near today.
     scrollInitKeyRef.current = "";
   }, [mode, isMobile]);
-
-  const refreshTelegramTurnovers = useCallback(async () => {
-    if (telegramRefreshBusy) return;
-    const token = getStoredAuthToken();
-    const tenantId = getAdminTenantId();
-    if (!token || !tenantId) {
-      showToast("Не авторизовано (оновлення Telegram недоступне)");
-      return;
-    }
-
-    setTelegramRefreshBusy(true);
-    try {
-      const commonHeaders = {
-        Authorization: `Bearer ${token}`,
-        "x-tenant-id": tenantId,
-        "Content-Type": "application/json",
-      };
-
-      const payload = JSON.stringify({
-        // Use chessboard data (already has cottage move / guest edits).
-        bookings,
-        settings: settings
-          ? {
-              telegramTurnoversState: settings.telegramTurnoversState,
-              telegramBookingsState: settings.telegramBookingsState,
-            }
-          : undefined,
-      });
-
-      const [turnoversRes, bookingsRes] = await Promise.allSettled([
-        fetch("/api/admin/telegram/refresh-turnovers", {
-          method: "POST",
-          headers: commonHeaders,
-          body: payload,
-        }),
-        fetch("/api/admin/telegram/refresh-bookings", {
-          method: "POST",
-          headers: commonHeaders,
-          body: payload,
-        }),
-      ]);
-
-      let edited = 0;
-      let sent = 0;
-      let bookingsEdited = 0;
-      let bookingsMissing = 0;
-      const errors: string[] = [];
-
-      if (turnoversRes.status === "fulfilled") {
-        const data = await turnoversRes.value.json().catch(() => null);
-        if (!turnoversRes.value.ok || !data?.ok) {
-          errors.push(
-            data?.error
-              ? String(data.error)
-              : "Не вдалося оновити сповіщення Telegram (заїзди/виїзди/прибирання)"
-          );
-        } else {
-          edited = Number(data.edited) || 0;
-          sent = Number(data.sent) || 0;
-          if (data.telegramTurnoversState && typeof data.telegramTurnoversState === "object") {
-            onTelegramTurnoversState?.(data.telegramTurnoversState as Record<string, unknown>);
-          }
-        }
-      } else {
-        errors.push("Помилка оновлення Telegram (заїзди/виїзди/прибирання)");
-      }
-
-      if (bookingsRes.status === "fulfilled") {
-        const data = await bookingsRes.value.json().catch(() => null);
-        if (!bookingsRes.value.ok || !data?.ok) {
-          errors.push(
-            data?.error
-              ? String(data.error)
-              : "Не вдалося оновити сповіщення Telegram (бронювання)"
-          );
-        } else {
-          bookingsEdited = Number(data.edited) || 0;
-          bookingsMissing = Number(data.missingBookings) || 0;
-        }
-      } else {
-        errors.push("Помилка оновлення Telegram (бронювання)");
-      }
-
-      if (errors.length > 0) {
-        showToast(errors.join(" • "));
-        return;
-      }
-
-      showToast(
-        edited + sent + bookingsEdited > 0
-          ? `Telegram оновлено: ${edited} відредаговано, ${sent} надіслано. Бронювання: ${bookingsEdited} відредаговано, ${bookingsMissing} не знайдено.`
-          : "Немає змін у Telegram (перевірте, що заїзд/виїзд саме на сьогодні, і що бронь збережена)."
-      );
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "Помилка оновлення Telegram");
-    } finally {
-      setTelegramRefreshBusy(false);
-    }
-  }, [telegramRefreshBusy, bookings, settings, onTelegramTurnoversState]);
 
   const syncMobileNavAnchorFromScroll = useCallback(() => {
     if (!isMobile || mode !== "continuous") return;
@@ -2676,45 +2568,6 @@ export function DesktopTimelineView({
     </div>
   );
 
-  const telegramRefreshButton = (
-    <button
-      type="button"
-      className={`btn-secondary tap-btn`}
-      onClick={() => void refreshTelegramTurnovers()}
-      disabled={telegramRefreshBusy}
-      aria-disabled={telegramRefreshBusy}
-      style={
-        isMobile
-          ? {
-              height: 40,
-              minHeight: 40,
-              maxHeight: 40,
-              padding: "0 10px",
-              fontSize: 12,
-              fontWeight: 700,
-              width: "auto",
-              flex: "0 0 auto",
-              boxSizing: "border-box" as const,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 10,
-              lineHeight: 1,
-              gap: 4,
-            }
-          : { display: "inline-flex", alignItems: "center", gap: 6 }
-      }
-    >
-      <RefreshCw
-        size={isMobile ? 14 : 15}
-        strokeWidth={2.5}
-        style={telegramRefreshBusy ? { animation: "spin 0.8s linear infinite" } : undefined}
-        aria-hidden
-      />
-      {!telegramRefreshBusy && (isMobile ? "Оновити" : "Оновити сповіщення")}
-    </button>
-  );
-
   const timelineToolbar = compactGrid && !isMobile ? (
     <div className="price-grid-toolbar timeline-toolbar--focus">
       <div className="price-grid-toolbar__nav">
@@ -2722,7 +2575,6 @@ export function DesktopTimelineView({
         {timelineTodayButton}
       </div>
       <div className="price-grid-toolbar__actions">
-        {telegramRefreshButton}
         {timelineModeToggle}
         {onNewBooking ? (
           <button type="button" className="btn-primary" onClick={onNewBooking}>
@@ -2738,7 +2590,6 @@ export function DesktopTimelineView({
     <div className="timeline-toolbar">
       {isMobile ? (
         <div className="timeline-nav-row">
-          {telegramRefreshButton}
           {timelineUndoButton}
           {timelineMonthNav}
           {timelineTodayButton}
@@ -2748,7 +2599,6 @@ export function DesktopTimelineView({
           {timelineMonthNav}
           {timelineTodayButton}
           {timelineModeToggle}
-          {telegramRefreshButton}
         </>
       )}
     </div>

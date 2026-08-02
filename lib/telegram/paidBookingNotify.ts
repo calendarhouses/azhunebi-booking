@@ -9,7 +9,6 @@ import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { getBookingsTargets, isTelegramConfigured } from "./config";
-import { upsertTelegramBookingsState } from "./bookingsState";
 import { sendTelegramMessage } from "./sendMessage";
 
 const UK_MONTHS = [
@@ -111,28 +110,7 @@ export async function notifyPaidBooking(booking: GasBookingRecord): Promise<bool
     target.chatId,
     target.threadId
   );
-
-  if (response.ok) {
-    // Persist `message_id/chat_id` so we can edit this booking message later.
-    try {
-      const json = await response.json().catch(() => null);
-      const messageId = json?.result?.message_id;
-      const chatId = json?.result?.chat?.id ?? target.chatId;
-      const bookingId = String(booking.id || "").trim();
-      if (
-        bookingId &&
-        typeof messageId === "number" &&
-        (typeof chatId === "string" || typeof chatId === "number")
-      ) {
-        await upsertTelegramBookingsState({
-          [bookingId]: { chatId, messageId },
-        });
-      }
-    } catch (err) {
-      console.warn("[TG paid booking] Failed to persist message state", err);
-    }
-    return true;
-  }
+  if (response.ok) return true;
   const body = await response.text().catch(() => "");
   console.error("[TG] Paid booking notify failed", response.status, body);
   return false;

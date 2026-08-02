@@ -34,12 +34,7 @@ export default function BookRootLayout({ children }: { children: ReactNode }) {
         />
         <link href="/public-booking-overrides.css" rel="stylesheet" />
       </head>
-      <body
-        className="public-booking-page"
-        style={{ margin: 0, background: "#F7F5F2", minHeight: "100vh" }}
-      >
-        {children}
-      </body>
+      <body className="public-booking-page">{children}</body>
     </html>
   );
 }

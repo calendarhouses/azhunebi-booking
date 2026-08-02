@@ -1,28 +1,10 @@
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
-import { createBooking } from "@/lib/gas-api";
+import { createBooking, fetchInitData } from "@/lib/gas-api";
 
-/**
- * Public boot via Next route (server coalesce + short cache), not a second
- * direct GAS pile-up from every browser tab.
- */
 export async function fetchPublicInitData(
   tenantId: string
 ): Promise<AdminInitResponse> {
-  const url = `/api/public/init?tenant_id=${encodeURIComponent(tenantId)}&t=${Date.now()}`;
-  const res = await fetch(url, { cache: "no-store" });
-  const data = (await res.json()) as AdminInitResponse & {
-    error?: string;
-    message?: string;
-    settings?: AdminInitResponse["settings"];
-    bookings?: AdminInitResponse["bookings"];
-  };
-  if (!res.ok || data.error) {
-    throw new Error(data.message || data.error || `HTTP ${res.status}`);
-  }
-  return {
-    settings: data.settings || {},
-    bookings: data.bookings || [],
-  };
+  return fetchInitData(tenantId);
 }
 
 export type SubmitBookingPayload = Record<string, unknown> & {

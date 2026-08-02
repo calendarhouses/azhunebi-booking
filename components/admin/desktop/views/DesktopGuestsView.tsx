@@ -2,19 +2,12 @@
 
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
+import { formatPhone } from "../adminDates";
 import { buildGuestsFromBookings, formatGuestLastVisit, getVisitWord } from "../guestData";
 import { copyToClipboard } from "../bookingUtils";
 import { MobileGuestCard } from "../../mobile/MobileGuestCard";
 import { MessengerIcon } from "../../shared/MessengerButtons";
-import {
-  GuestRatingBadge,
-  GuestReputationControls,
-} from "../../shared/GuestReputationControls";
-import { GuestFaceIcon } from "../../shared/GuestIcons";
-import { guestRatingMeta, type GuestProfilesMap, type GuestRating } from "@/lib/admin/guestProfiles";
 import type { BookingRecord } from "../types";
-
-const FILTER_RATINGS: GuestRating[] = [3, 2, 1];
 
 const iconPhone = (
   <svg width="14" height="14" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
@@ -30,11 +23,6 @@ export interface DesktopGuestsViewProps {
   style?: CSSProperties;
   layout?: "desktop" | "mobile";
   bookings?: BookingRecord[];
-  guestProfiles?: GuestProfilesMap | null;
-  onUpsertGuestProfile?: (
-    phone: string,
-    patch: { rating?: GuestRating | null; note?: string | null }
-  ) => void;
   onShowGuestBookings?: (phone: string, name: string) => void;
 }
 
@@ -42,72 +30,34 @@ export function DesktopGuestsView({
   style,
   layout = "desktop",
   bookings = [],
-  guestProfiles,
-  onUpsertGuestProfile,
   onShowGuestBookings,
 }: DesktopGuestsViewProps) {
   const isMobile = layout === "mobile";
   const [search, setSearch] = useState("");
-  const [ratingFilter, setRatingFilter] = useState<GuestRating | null>(null);
 
-  const guests = useMemo(
-    () => buildGuestsFromBookings(bookings, search, guestProfiles, ratingFilter),
-    [bookings, search, guestProfiles, ratingFilter]
-  );
-
-  const ratingFilterBar = (
-    <div
-      className={`guests-rating-filter${isMobile ? " guests-rating-filter--mobile" : ""}`}
-      role="group"
-      aria-label="Фільтр за оцінкою гостя"
-    >
-      <span className="guests-rating-filter__label">Оцінка</span>
-      <div className="guests-rating-filter__faces">
-        {FILTER_RATINGS.map((r) => {
-          const meta = guestRatingMeta(r)!;
-          const selected = ratingFilter === r;
-          return (
-            <button
-              key={r}
-              type="button"
-              className={`guests-rating-filter__face guests-rating-filter__face--${meta.tone}${selected ? " is-selected" : ""}`}
-              title={selected ? `Показати всіх (зараз: ${meta.label})` : `Показати: ${meta.label}`}
-              aria-pressed={selected}
-              onClick={() => setRatingFilter((prev) => (prev === r ? null : r))}
-            >
-              <GuestFaceIcon rating={r} size={isMobile ? 20 : 18} />
-            </button>
-          );
-        })}
-      </div>
-      {ratingFilter ? (
-        <button
-          type="button"
-          className="guests-rating-filter__clear"
-          onClick={() => setRatingFilter(null)}
-        >
-          Скинути
-        </button>
-      ) : null}
-    </div>
-  );
+  const guests = useMemo(() => buildGuestsFromBookings(bookings, search), [bookings, search]);
 
   return (
-    <div id="view-guests" className={isMobile ? undefined : "card guests-view"} style={style}>
+    <div id="view-guests" className={isMobile ? undefined : "card"} style={style}>
       {isMobile ? (
-        <div className="guests-toolbar guests-toolbar--mobile">
-          <input
-            type="text"
-            id="guestSearch"
-            placeholder="Пошук за ім'ям або телефоном..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="guests-toolbar__search-mobile"
-          />
-          {ratingFilterBar}
-        </div>
+        <input
+          type="text"
+          id="guestSearch"
+          placeholder="Пошук за ім'ям або телефоном..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: "100%",
+            padding: 14,
+            borderRadius: 12,
+            border: "1px solid #D1D5DB",
+            marginBottom: 16,
+            fontSize: 14,
+            background: "#FFF",
+          }}
+        />
       ) : (
-        <div className="toolbar guests-toolbar">
+        <div className="toolbar">
           <input
             type="text"
             id="guestSearch"
@@ -116,7 +66,6 @@ export function DesktopGuestsView({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {ratingFilterBar}
         </div>
       )}
       {isMobile ? (
@@ -130,115 +79,164 @@ export function DesktopGuestsView({
                 name={g.name}
                 phone={g.phone}
                 count={g.count}
-                rating={g.rating}
-                note={g.note}
                 lastVisitLabel={formatGuestLastVisit(g.lastVisit)}
                 onShowBookings={onShowGuestBookings}
-                onUpsertProfile={onUpsertGuestProfile}
               />
             ))
           )}
         </div>
       ) : (
-        <div className="guests-table-wrap">
-          <table className="guests-table">
-            <thead>
-              <tr>
-                <th>Клієнт</th>
-                <th>Телефон</th>
-                <th>Статистика</th>
-                <th>Остання бронь</th>
-                <th>Дія</th>
-              </tr>
-            </thead>
-            <tbody id="guestsTableBody">
-              {guests.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: 30, color: "#9CA3AF" }}>
-                    Гостей не знайдено
+      <table>
+        <thead>
+            <tr>
+              <th>Ім&apos;я Клієнта</th>
+              <th>Телефон</th>
+              <th>Статистика</th>
+              <th>Остання бронь</th>
+              <th>Дія</th>
+            </tr>
+          </thead>
+        <tbody id="guestsTableBody">
+          {guests.length === 0 ? (
+            <tr>
+              <td colSpan={5} style={{ textAlign: "center", padding: 30, color: "#9CA3AF" }}>
+                Гостей не знайдено
+              </td>
+            </tr>
+          ) : (
+            guests.map((g) => {
+              const cleanPhone = g.phone;
+              const initial = g.name.charAt(0).toUpperCase() || "👤";
+              return (
+                <tr
+                  key={cleanPhone}
+                  style={{ transition: "background 0.2s ease" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#F9FAFB";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <td style={{ padding: "16px 20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          background: "#F3F4F6",
+                          color: "#4B5563",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                          fontSize: 14,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initial}
+                      </div>
+                      <div style={{ fontWeight: 600, color: "var(--text-main)", fontSize: 14 }}>
+                        {g.name}
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: "16px 20px" }}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      title="Скопіювати номер"
+                      style={{
+                        cursor: "pointer",
+                        borderRadius: 6,
+                        padding: "2px 6px",
+                        marginLeft: -6,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: "#6B7280",
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}
+                      onClick={(e) => void copyToClipboard(`+${cleanPhone}`, e)}
+                    >
+                      {iconPhone}+{cleanPhone}
+                    </div>
+                  </td>
+                  <td style={{ padding: "16px 20px" }}>
+                    <span
+                      className="badge new"
+                      style={{
+                        cursor: "pointer",
+                        transition: "0.2s",
+                        padding: "6px 12px",
+                        boxShadow: "0 2px 4px rgba(30, 64, 175, 0.1)",
+                      }}
+                      onClick={() => onShowGuestBookings?.(cleanPhone, g.name)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "scale(1.05)";
+                        e.currentTarget.style.background = "#BFDBFE";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "scale(1)";
+                        e.currentTarget.style.background = "";
+                      }}
+                    >
+                      {g.count} {getVisitWord(g.count)}
+                    </span>
+                  </td>
+                  <td style={{ padding: "16px 20px", color: "#6B7280", fontSize: 13, fontWeight: 500 }}>
+                    {formatGuestLastVisit(g.lastVisit)}
+                  </td>
+                  <td style={{ padding: "16px 20px" }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a
+                        href={`https://t.me/+${cleanPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-action"
+                        style={{
+                          background: "#EFF6FF",
+                          color: "#2563EB",
+                          fontWeight: 600,
+                          fontSize: 13,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          border: "1px solid #BFDBFE",
+                        }}
+                      >
+                        <MessengerIcon kind="telegram" size={14} />
+                        Telegram
+                      </a>
+                      <a
+                        href={`https://wa.me/${cleanPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-action"
+                        style={{
+                          background: "#DCFCE7",
+                          color: "#059669",
+                          fontWeight: 600,
+                          fontSize: 13,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          border: "1px solid #A7F3D0",
+                        }}
+                      >
+                        <MessengerIcon kind="whatsapp" size={14} />
+                        WhatsApp
+                      </a>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                guests.map((g) => {
-                  const cleanPhone = g.phone;
-                  const initial = g.name.charAt(0).toUpperCase() || "?";
-                  return (
-                    <tr key={cleanPhone}>
-                      <td>
-                        <div className="guests-table__client">
-                          <div className="guests-table__avatar">{initial}</div>
-                          <div className="guests-table__client-body">
-                            <div className="guests-table__name">
-                              {g.name}
-                              <GuestRatingBadge rating={g.rating} note={g.note} />
-                            </div>
-                            {g.note ? (
-                              <div className="guest-note-preview" title={g.note}>
-                                {g.note}
-                              </div>
-                            ) : null}
-                            <div className="guests-table__rep">
-                              <GuestReputationControls
-                                phone={cleanPhone}
-                                profile={{ rating: g.rating, note: g.note }}
-                                onChange={(patch) => onUpsertGuestProfile?.(cleanPhone, patch)}
-                                compact
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="guests-table__phone"
-                          title="Скопіювати номер"
-                          onClick={(e) => void copyToClipboard(`+${cleanPhone}`, e)}
-                        >
-                          {iconPhone}+{cleanPhone}
-                        </button>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="badge new guests-table__stat"
-                          onClick={() => onShowGuestBookings?.(cleanPhone, g.name)}
-                        >
-                          {g.count} {getVisitWord(g.count)}
-                        </button>
-                      </td>
-                      <td className="guests-table__date">{formatGuestLastVisit(g.lastVisit)}</td>
-                      <td>
-                        <div className="guests-table__actions">
-                          <a
-                            href={`https://t.me/+${cleanPhone}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="guests-table__msg guests-table__msg--tg"
-                            title="Telegram"
-                            aria-label="Telegram"
-                          >
-                            <MessengerIcon kind="telegram" size={15} />
-                          </a>
-                          <a
-                            href={`https://wa.me/${cleanPhone}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="guests-table__msg guests-table__msg--wa"
-                            title="WhatsApp"
-                            aria-label="WhatsApp"
-                          >
-                            <MessengerIcon kind="whatsapp" size={15} />
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              );
+            })
+          )}
+        </tbody>
+      </table>
       )}
     </div>
   );

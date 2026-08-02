@@ -60,8 +60,9 @@ export function useAdminBootReport(state: AdminBootReport) {
   useEffect(() => {
     if (!setReport) return;
     setReport(state);
-    // Do NOT reset to idle on cleanup — that sets appVisible:false and leaves the
-    // shell preloader spinning forever across Strict Mode remounts / logo updates.
+    return () => {
+      setReport(idleBootReport);
+    };
   }, [
     setReport,
     state.isLoading,

@@ -18,7 +18,6 @@ import {
   todayKeyKyiv,
 } from "./formatters";
 import { sendTelegramMessage } from "./sendMessage";
-import { upsertTelegramTurnoversState, type TelegramMessageRef } from "./turnoversState";
 
 export type ArrivalDepartureBooking = {
   id?: string;
@@ -136,11 +135,6 @@ export async function notifyTodayArrivalsAndDepartures(
   let arrivals = 0;
   let departures = 0;
 
-  const statePatch: {
-    arrivals?: Record<string, TelegramMessageRef>;
-    departures?: Record<string, TelegramMessageRef>;
-  } = {};
-
   if (items.length === 0) {
     return { arrivals: 0, departures: 0 };
   }
@@ -159,36 +153,21 @@ export async function notifyTodayArrivalsAndDepartures(
   }
 
   for (const item of items) {
-    const caption = buildArrivalDepartureCaption(item.booking, item.kind);
-    const res = await sendTelegramMessage(caption, keyboard, target.chatId, target.threadId);
+    const res = await sendTelegramMessage(
+      buildArrivalDepartureCaption(item.booking, item.kind),
+      keyboard,
+      target.chatId,
+      target.threadId
+    );
     if (res.ok) {
-      const json = await res.json().catch(() => null);
-      const messageId = json?.result?.message_id;
-      const chatId = json?.result?.chat?.id ?? target.chatId;
-      const bookingId = String(item.booking.id || "").trim();
-      if (
-        bookingId &&
-        typeof messageId === "number" &&
-        (item.kind === "arrival" || item.kind === "departure")
-      ) {
-        if (item.kind === "arrival") {
-          statePatch.arrivals = statePatch.arrivals || {};
-          statePatch.arrivals[bookingId] = { chatId, messageId };
-        } else {
-          statePatch.departures = statePatch.departures || {};
-          statePatch.departures[bookingId] = { chatId, messageId };
-        }
-      }
-
       if (item.kind === "arrival") arrivals += 1;
       else departures += 1;
     } else {
-      console.error(`[TG] ${item.kind} notify failed`, await res.text().catch(() => ""));
+      console.error(
+        `[TG] ${item.kind} notify failed`,
+        await res.text().catch(() => "")
+      );
     }
-  }
-
-  if (Object.keys(statePatch).length > 0) {
-    await upsertTelegramTurnoversState(today, statePatch);
   }
 
   return { arrivals, departures };

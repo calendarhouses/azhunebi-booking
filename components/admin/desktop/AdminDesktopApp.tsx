@@ -33,7 +33,7 @@ import { useBookingDrawer } from "./useBookingDrawer";
 import { getAdminViewStyle } from "./adminViewDom";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
 import { DiscountTemplatesToggleButton } from "./settings/DiscountTemplatesToggleButton";
-import { usePhoneDesktopBounce } from "@/components/admin/RedirectPhoneToMobileAdmin";
+import { RedirectPhoneToMobileAdmin } from "@/components/admin/RedirectPhoneToMobileAdmin";
 import "./settings/settings-side-drawer.css";
 import "./settings/settings-discounts.css";
 import "./settings/settings-additional-services.css";
@@ -58,12 +58,6 @@ function AdminMainContent({
 }
 
 export function AdminDesktopApp() {
-  const bounceToMobile = usePhoneDesktopBounce();
-  if (bounceToMobile) return null;
-  return <AdminDesktopAppLoaded />;
-}
-
-function AdminDesktopAppLoaded() {
   const { signOut, membership, user } = useAuth();
   const publicBookUrl = membership?.tenantId
     ? `/book/${membership.tenantId}`
@@ -187,6 +181,7 @@ function AdminDesktopAppLoaded() {
 
   return (
     <GridFocusModeProvider tenantId={membership?.tenantId}>
+      <RedirectPhoneToMobileAdmin />
       <AdminDocumentTitleSync siteTitle={sidebarBrandName} enabled={admin.appVisible} />
       <div id="admin-app" className={admin.appVisible ? "is-visible" : undefined}>
         <DesktopSidebar
@@ -248,13 +243,10 @@ function AdminDesktopAppLoaded() {
             }
             onNewBooking={() => drawer.openNewBookingDrawer()}
             adminUndo={adminUndo}
-            onSettingsChange={admin.setSettings}
           />
           <DesktopGuestsView
             style={getAdminViewStyle("guests", admin.activeView)}
             bookings={admin.bookings}
-            guestProfiles={admin.guestProfiles}
-            onUpsertGuestProfile={admin.upsertGuestProfile}
             onShowGuestBookings={(phone, name) => {
               setGuestFilter({ phone, name });
               admin.switchView("list");
@@ -295,8 +287,6 @@ function AdminDesktopAppLoaded() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
-            guestProfiles={admin.guestProfiles}
-            onUpsertGuestProfile={admin.upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

@@ -145,11 +145,6 @@ export async function gasFetch<T>(
       `HTTP ${res.status}`;
     throw new Error(msg);
   }
-  // GAS always returns HTTP 200 — treat embedded error as failure.
-  const embedded = data as GasApiError;
-  if (embedded.error) {
-    throw new Error(embedded.message || embedded.error);
-  }
   return data;
 }
 
@@ -193,10 +188,6 @@ export async function gasPost<T>(
       (data as GasApiError).error ||
       `HTTP ${res.status}`;
     throw new Error(msg);
-  }
-  const embedded = data as GasApiError;
-  if (embedded.error) {
-    throw new Error(embedded.message || embedded.error);
   }
   return data;
 }
@@ -370,19 +361,11 @@ export async function fetchAdminBoot(
     }>({ action: "adminBoot" }, { authToken: token });
 
     if (data.error || !data.user) {
-      const msg =
-        data.message || data.error || "Сесія закінчилась";
-      // Never wipe a fresh login token on transient/ambiguous boot failures.
-      if (
-        data.error === "UNAUTHORIZED" ||
-        /сесія закінчилась|не авторизовано/i.test(String(msg))
-      ) {
-        setStoredAuthToken(null);
-      }
+      setStoredAuthToken(null);
       return {
         session: null,
         membership: null,
-        error: msg,
+        error: data.message || data.error || "Сесія закінчилась",
       };
     }
 
@@ -482,39 +465,6 @@ export async function fetchInitData(
   const action = authToken ? "adminInitData" : "initData";
   return gasFetch<AdminInitResponse>(
     { action, tenant_id: tenantId, t: Date.now() },
-    { authToken: authToken ?? undefined }
-  );
-}
-
-/** Stage-A: rooms + slim bookings for first paint (≤5s target). */
-export async function fetchAdminChessboard(
-  tenantId: string,
-  authToken?: string | null
-): Promise<AdminInitResponse> {
-  return gasFetch<AdminInitResponse>(
-    { action: "adminChessboard", tenant_id: tenantId, t: Date.now() },
-    { authToken: authToken ?? undefined }
-  );
-}
-
-/** Stage-A: heavy settings + list bookings after UI is visible. */
-export async function fetchAdminDeferred(
-  tenantId: string,
-  authToken?: string | null
-): Promise<AdminInitResponse> {
-  return gasFetch<AdminInitResponse>(
-    { action: "adminDeferred", tenant_id: tenantId, t: Date.now() },
-    { authToken: authToken ?? undefined }
-  );
-}
-
-/** Stage-A: light silent sync (chessboard-sized, not full dump). */
-export async function fetchAdminSync(
-  tenantId: string,
-  authToken?: string | null
-): Promise<AdminInitResponse> {
-  return gasFetch<AdminInitResponse>(
-    { action: "adminSync", tenant_id: tenantId, t: Date.now() },
     { authToken: authToken ?? undefined }
   );
 }

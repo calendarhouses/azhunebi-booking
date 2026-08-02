@@ -10,20 +10,8 @@ import { parseAdminFetchError } from "@/lib/admin/parseAdminApiError";
 import { setCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
 import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
-  releasePrefetchedAdminInit,
+  consumePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
-import {
-  fetchAdminDeferredOnce,
-  fetchAdminSyncOnce,
-} from "@/lib/admin/adminDeferredPrefetch";
-import {
-  fetchGuestProfilesRemote,
-  guestPhoneKey,
-  saveGuestProfileRemote,
-  type GuestProfile,
-  type GuestProfilesMap,
-  type GuestRating,
-} from "@/lib/admin/guestProfiles";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -33,11 +21,7 @@ import {
   filterPendingDeletedDiscounts,
   reconcilePendingDeletedDiscounts,
 } from "@/lib/admin/discountPendingDeletes";
-import {
-  fetchAdminChessboardWithRetry,
-  getAdminTenantId,
-  setAdminTenantId,
-} from "./adminApi";
+import { fetchAdminInitData, silentSyncAdminData } from "./adminApi";
 import { mergeBookingsWithPending } from "./bookingUtils";
 import { PAGE_TITLES, showToast, syncLegacyGlobals } from "./adminGlobals";
 import { getSettingsTabPageMeta } from "./settingsTabMeta";
@@ -86,70 +70,7 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
     smsSettings: s.smsSettings,
-    telegramTurnoversState: s.telegramTurnoversState,
-    telegramBookingsState: s.telegramBookingsState,
   };
-}
-
-/**
- * Chessboard / silent sync stubs empty price grids — keep deferred-loaded maps.
- */
-function mergeSettingsPreservingHeavy(
-  raw: AdminSettingsPayload | undefined,
-  prev: AdminSettingsPayload
-): AdminSettingsPayload {
-  const incoming = mergeSettings(raw);
-  const keepMap = <T extends Record<string, unknown>>(next: T, prior: T | undefined): T => {
-    if (prior && Object.keys(prior).length > 0 && Object.keys(next).length === 0) {
-      return prior;
-    }
-    return next;
-  };
-  const keepList = <T>(next: T[], prior: T[] | undefined): T[] => {
-    if (prior && prior.length > 0 && next.length === 0) return prior;
-    return next;
-  };
-  return {
-    ...incoming,
-    roomsList:
-      (incoming.roomsList || []).length > 0 ? incoming.roomsList : prev.roomsList || [],
-    discountsList: keepList(incoming.discountsList || [], prev.discountsList),
-    customServicesList: keepList(incoming.customServicesList || [], prev.customServicesList),
-    sysServicesList: keepList(incoming.sysServicesList || [], prev.sysServicesList),
-    customPrices: keepMap(incoming.customPrices || {}, prev.customPrices),
-    restrictions: keepMap(incoming.restrictions || {}, prev.restrictions),
-    closedDates: keepMap(incoming.closedDates || {}, prev.closedDates),
-    flexibleScheduleSettings:
-      incoming.flexibleScheduleSettings ?? prev.flexibleScheduleSettings,
-    smsSettings: incoming.smsSettings ?? prev.smsSettings,
-    telegramTurnoversState:
-      incoming.telegramTurnoversState ?? prev.telegramTurnoversState,
-    telegramBookingsState:
-      incoming.telegramBookingsState ?? prev.telegramBookingsState,
-    branding: incoming.branding ?? prev.branding,
-    transactions:
-      (incoming.transactions || []).length > 0
-        ? incoming.transactions
-        : prev.transactions || [],
-  };
-}
-
-/** Slim chessboard rows overwrite grid fields; keep deferred extras on same id. */
-function mergeSlimBookingsOntoLocal(
-  serverBookings: BookingRecord[],
-  localBookings: BookingRecord[]
-): BookingRecord[] {
-  const localById = new Map(localBookings.map((b) => [String(b.id), b]));
-  const enriched = serverBookings.map((server) => {
-    const prev = localById.get(String(server.id));
-    if (!prev) return server;
-    return { ...prev, ...server };
-  });
-  return mergeBookingsWithPending(enriched, localBookings);
-}
-
-function isSlimBootPhase(phase: AdminInitResponse["bootPhase"] | undefined): boolean {
-  return phase === "chessboard";
 }
 
 function refreshLegacyView(view: AdminViewName) {
@@ -200,11 +121,8 @@ export function useAdminApp(options?: {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appVisible, setAppVisible] = useState(false);
-  const [guestProfiles, setGuestProfiles] = useState<GuestProfilesMap>({});
-  const guestProfilesLoadedRef = useRef(false);
   const loadedTenantIdRef = useRef<string | null>(null);
   const appVisibleRef = useRef(false);
-  const loadInFlightRef = useRef(false);
   appVisibleRef.current = appVisible;
   const initialViewBootstrapped = useRef(false);
   const activeViewRef = useRef<AdminViewName>("grid");
@@ -212,22 +130,17 @@ export function useAdminApp(options?: {
 
   const applyServerData = useCallback(
     (data: AdminInitResponse, options?: { silent?: boolean }) => {
-      const slim = isSlimBootPhase(data.bootPhase);
+      const merged = mergeSettings(data.settings);
       const serverBookings = data.bookings || [];
       let mergedBookings: BookingRecord[] = serverBookings;
 
       setBookings((prev) => {
-        mergedBookings = slim
-          ? mergeSlimBookingsOntoLocal(serverBookings, prev)
-          : mergeBookingsWithPending(serverBookings, prev);
+        mergedBookings = mergeBookingsWithPending(serverBookings, prev);
         window.allBookings = mergedBookings;
         return mergedBookings;
       });
 
       setSettings((prev) => {
-        const merged = slim
-          ? mergeSettingsPreservingHeavy(data.settings, prev)
-          : mergeSettings(data.settings);
         const localRoomDrafts = (prev.roomsList || []).filter((r) => isRoomDraftId(r.id));
         const localDiscountDrafts = (prev.discountsList || []).filter((d) => isDiscountDraftId(d.id));
         let nextSettings: AdminSettingsPayload = merged;
@@ -261,39 +174,27 @@ export function useAdminApp(options?: {
   );
 
   const silentSync = useCallback(async () => {
-    const tenantId = membership?.tenantId || getAdminTenantId() || "";
-    if (!tenantId) return;
-    try {
-      const data = await fetchAdminSyncOnce(tenantId);
-      if (data) applyServerData(data, { silent: true });
-    } catch (err) {
-      if (isAdminUnauthorizedError(err)) throw err;
-      console.error("Помилка фонового оновлення:", err);
-    }
-  }, [applyServerData, membership?.tenantId]);
+    const data = await silentSyncAdminData();
+    if (data) applyServerData(data, { silent: true });
+  }, [applyServerData]);
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
 
-  const deferredLoadedRef = useRef(false);
-
   const loadInitData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
-    deferredLoadedRef.current = false;
+    setAppVisible(false);
     try {
-      const tenantId = membership?.tenantId || getAdminTenantId() || "";
-      if (tenantId) setAdminTenantId(tenantId);
-      // Retries through 502 / Google HTML errors; ignores a failed prefetch.
-      const data = await fetchAdminChessboardWithRetry(tenantId || undefined);
+      const tenantId = membership?.tenantId || "";
+      const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
+      const data = prefetched ? await prefetched : await fetchAdminInitData();
       applyServerData(data);
-      if (tenantId) releasePrefetchedAdminInit(tenantId);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));
       if (tenantId && logoUrl) {
         setCachedTenantLogoUrl(tenantId, logoUrl);
         setLastAdminTenantId(tenantId);
       }
-      // Paint immediately after chessboard — do not wait for deferred.
       setAppVisible(true);
     } catch (err) {
       if (isAdminUnauthorizedError(err)) {
@@ -306,28 +207,9 @@ export function useAdminApp(options?: {
       const msg = parseAdminFetchError(err);
       setLoadError(msg);
       showToast(msg.length > 80 ? "Помилка завантаження даних." : msg);
-      console.error("adminChessboard:", err);
+      console.error("adminInitData:", err);
     } finally {
       setIsLoading(false);
-    }
-  }, [applyServerData, membership?.tenantId]);
-
-  const loadDeferredData = useCallback(async () => {
-    if (deferredLoadedRef.current) return;
-    const tenantId = membership?.tenantId || getAdminTenantId() || "";
-    if (!tenantId) return;
-    deferredLoadedRef.current = true;
-    try {
-      const data = await fetchAdminDeferredOnce(tenantId);
-      if (data) applyServerData(data, { silent: true });
-    } catch (err) {
-      deferredLoadedRef.current = false;
-      if (isAdminUnauthorizedError(err)) {
-        console.warn("[useAdminApp] Session expired during deferred load");
-        await expireAdminSession();
-        return;
-      }
-      console.warn("[useAdminApp] adminDeferred failed:", err);
     }
   }, [applyServerData, membership?.tenantId]);
 
@@ -337,84 +219,15 @@ export function useAdminApp(options?: {
     const tenantId = membership?.tenantId;
     if (!tenantId) {
       setIsLoading(false);
-      setLoadError("Не вдалося визначити комплекс.");
       return;
     }
 
-    // Already painted for this tenant — don't restart and hide the UI again.
     if (loadedTenantIdRef.current === tenantId && appVisibleRef.current) return;
-    // Same tenant already loading (Strict Mode / callback identity churn).
-    if (loadedTenantIdRef.current === tenantId && loadInFlightRef.current) return;
 
     loadedTenantIdRef.current = tenantId;
-    loadInFlightRef.current = true;
-    deferredLoadedRef.current = false;
     setAppVisible(false);
-    void loadInitData().finally(() => {
-      loadInFlightRef.current = false;
-    });
+    void loadInitData();
   }, [authReady, membership?.tenantId, loadInitData]);
-
-  // Guest CRM — only after paint, and only after deferred had a head start so
-  // it does not fight chessboard/boot when two devices log in together.
-  useEffect(() => {
-    if (!appVisible || guestProfilesLoadedRef.current) return;
-    guestProfilesLoadedRef.current = true;
-    const timer = window.setTimeout(() => {
-      void fetchGuestProfilesRemote()
-        .then((profiles) => setGuestProfiles(profiles))
-        .catch((err) => {
-          guestProfilesLoadedRef.current = false;
-          console.warn("[useAdminApp] guestProfiles load failed:", err);
-        });
-    }, 4000);
-    return () => window.clearTimeout(timer);
-  }, [appVisible]);
-
-  // Stage-A: enrich prices after chessboard paint — slight delay so paint path
-  // stays alone on the GAS queue when another device is booting too.
-  useEffect(() => {
-    if (!appVisible) return;
-    const timer = window.setTimeout(() => {
-      void loadDeferredData();
-    }, 1500);
-    return () => window.clearTimeout(timer);
-  }, [appVisible, loadDeferredData]);
-  const upsertGuestProfile = useCallback(
-    (rawPhone: string, patch: { rating?: GuestRating | null; note?: string | null }) => {
-      const phone = guestPhoneKey(rawPhone);
-      if (!phone) return;
-      let mergedProfile: GuestProfile = {};
-      setGuestProfiles((prev) => {
-        const nextProfile: GuestProfile = { ...(prev[phone] || {}) };
-        if ("rating" in patch) {
-          if (patch.rating) nextProfile.rating = patch.rating;
-          else delete nextProfile.rating;
-        }
-        if ("note" in patch) {
-          const note = String(patch.note || "").trim();
-          if (note) nextProfile.note = note;
-          else delete nextProfile.note;
-        }
-        mergedProfile = nextProfile;
-        if (!nextProfile.rating && !nextProfile.note) {
-          if (!(phone in prev)) return prev;
-          const next = { ...prev };
-          delete next[phone];
-          return next;
-        }
-        return { ...prev, [phone]: nextProfile };
-      });
-      void saveGuestProfileRemote(phone, {
-        rating: mergedProfile.rating ?? null,
-        note: mergedProfile.note ?? null,
-      }).catch((err) => {
-        console.error("[useAdminApp] saveGuestProfile failed:", err);
-        showToast("Не вдалося зберегти оцінку гостя.");
-      });
-    },
-    []
-  );
 
   useEffect(() => {
     if (!appVisible) return;
@@ -456,7 +269,7 @@ export function useAdminApp(options?: {
       const modal = document.getElementById("genericModal")?.classList.contains("active");
       const dragging = (window as Window & { isGridDragging?: boolean }).isGridDragging;
       if (!drawer && !modal && !dragging) void silentSyncRef.current();
-    }, 60000);
+    }, 30000);
 
     return () => window.clearInterval(interval);
   }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports]);
@@ -581,8 +394,6 @@ export function useAdminApp(options?: {
     settings,
     setBookings,
     setSettings,
-    guestProfiles,
-    upsertGuestProfile,
     isLoading,
     loadError,
     appVisible,

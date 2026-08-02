@@ -195,15 +195,12 @@ export function AdminMobileApp() {
                   drawer.openNewBookingDrawer(room, checkIn, checkOut)
                 }
                 adminUndo={adminUndo}
-                onSettingsChange={admin.setSettings}
               />
             ) : null}
             <AdminViewPane view="guests" active={admin.activeView}>
               <DesktopGuestsView
                 layout="mobile"
                 bookings={admin.bookings}
-                guestProfiles={admin.guestProfiles}
-                onUpsertGuestProfile={admin.upsertGuestProfile}
                 onShowGuestBookings={(phone, name) => {
                   setGuestFilter({ phone, name });
                   admin.switchView("list");
@@ -261,8 +258,6 @@ export function AdminMobileApp() {
             settings={admin.settings}
             bookings={admin.bookings}
             onBookingReviewed={() => admin.silentSync()}
-            guestProfiles={admin.guestProfiles}
-            onUpsertGuestProfile={admin.upsertGuestProfile}
           />
           <DesktopModals modals={modals} settings={admin.settings} />
           <DesktopOverlays />

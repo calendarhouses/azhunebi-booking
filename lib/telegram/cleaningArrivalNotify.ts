@@ -7,7 +7,6 @@ import {
 } from "./config";
 import {
   compareByCottageNumber,
-  cottageSortNumber,
   escapeHtml,
   formatTelegramDaySeparator,
   isConfirmedBookingStatus,
@@ -16,7 +15,6 @@ import {
 } from "./formatters";
 import { sendTelegramMessage } from "./sendMessage";
 import type { ArrivalDepartureBooking } from "./arrivalDepartureNotify";
-import { upsertTelegramTurnoversState, type TelegramMessageRef } from "./turnoversState";
 
 function cottageKey(cottage: string | undefined): string {
   return String(cottage || "").trim().toLowerCase();
@@ -29,18 +27,34 @@ function guestsFromBooking(booking: ArrivalDepartureBooking): { adults: number; 
   };
 }
 
-/** Guests label for cleaning chat: "2+1", "2", or "0" (not "—"). */
-function cleaningGuestsLabel(booking: ArrivalDepartureBooking | null | undefined): string {
-  if (!booking) return "0";
+export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
+  const cottage = booking.cottage || "Котедж";
   const { adults, children } = guestsFromBooking(booking);
-  if ((Number(adults) || 0) <= 0 && (Number(children) || 0) <= 0) return "0";
-  return formatGuestsCompact(adults, children);
+  const guestsLabel = formatGuestsCompact(adults, children);
+
+  return [
+    `🛎 <b>СЬОГОДНІ ВИЇЗД | ${escapeHtml(cottage)}</b>`,
+    "",
+    "<b>ДЕТАЛІ:</b>",
+    `👥 Було ${escapeHtml(guestsLabel)}`,
+  ].join("\n");
 }
 
-function cleaningCottageLabel(cottage: string): string {
-  const num = cottageSortNumber(cottage);
-  if (Number.isFinite(num) && num !== Number.POSITIVE_INFINITY) return String(num);
-  return String(cottage || "").trim() || "?";
+export function buildCleaningArrivalSection(booking: ArrivalDepartureBooking): string {
+  const cottage = booking.cottage || "Котедж";
+  const { adults, children } = guestsFromBooking(booking);
+  const guestsLabel = formatGuestsCompact(adults, children);
+
+  return [
+    `🛎 <b>СЬОГОДНІ ЗАЇЗД | ${escapeHtml(cottage)}</b>`,
+    "",
+    "<b>ДЕТАЛІ:</b>",
+    `👥 буде ${escapeHtml(guestsLabel)}`,
+  ].join("\n");
+}
+
+export function buildCleaningNoArrivalSection(cottage: string): string {
+  return `🛎 <b>СЬОГОДНІ ЗАЇЗДУ НЕМАЄ | ${escapeHtml(cottage)}</b>`;
 }
 
 /** Одне сповіщення для чату прибирання на будинок (виїзд / заїзд / обидва). */
@@ -52,24 +66,22 @@ export function buildCleaningTurnoverCaption(params: {
   const cottage = params.cottage || "Котедж";
   const departure = params.departure ?? null;
   const arrival = params.arrival ?? null;
-  if (!departure && !arrival) return "";
 
-  const from = cleaningGuestsLabel(departure);
-  const to = cleaningGuestsLabel(arrival);
-
-  return [
-    `⛺️ ${escapeHtml(cleaningCottageLabel(cottage))}`,
-    "",
-    `${escapeHtml(from)} ➡️  ${escapeHtml(to)}`,
-  ].join("\n");
+  if (departure && arrival) {
+    return [buildCleaningDepartureSection(departure), buildCleaningArrivalSection(arrival)].join("\n\n");
+  }
+  if (departure) {
+    return [buildCleaningDepartureSection(departure), buildCleaningNoArrivalSection(cottage)].join("\n\n");
+  }
+  if (arrival) {
+    return buildCleaningArrivalSection(arrival);
+  }
+  return "";
 }
 
-/** @deprecated Use buildCleaningTurnoverCaption — kept for demo imports */
+/** @deprecated Use buildCleaningArrivalSection — kept for demo imports */
 export function buildCleaningArrivalCaption(booking: ArrivalDepartureBooking): string {
-  return buildCleaningTurnoverCaption({
-    cottage: booking.cottage || "Котедж",
-    arrival: booking,
-  });
+  return buildCleaningArrivalSection(booking);
 }
 
 type CottageTurnover = {
@@ -117,8 +129,6 @@ export async function notifyCleaningTodayTurnovers(
   const turnovers = groupCleaningTurnoversByCottage(bookings, today);
   if (turnovers.length === 0) return 0;
 
-  const statePatch: { cleaning?: Record<string, TelegramMessageRef> } = {};
-
   const separator = await sendTelegramMessage(
     formatTelegramDaySeparator(),
     undefined,
@@ -137,32 +147,9 @@ export async function notifyCleaningTodayTurnovers(
     const caption = buildCleaningTurnoverCaption(turnover);
     if (!caption) continue;
 
-    const res = await sendTelegramMessage(
-      caption,
-      undefined,
-      target.chatId,
-      target.threadId
-    );
-    if (res.ok) {
-      const json = await res.json().catch(() => null);
-      const messageId = json?.result?.message_id;
-      const chatId = json?.result?.chat?.id ?? target.chatId;
-      const cKey = String(turnover.cottage || "").trim().toLowerCase();
-      if (
-        cKey &&
-        typeof messageId === "number"
-      ) {
-        statePatch.cleaning = statePatch.cleaning || {};
-        statePatch.cleaning[cKey] = { chatId, messageId };
-      }
-      sent += 1;
-    } else {
-      console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
-    }
-  }
-
-  if (statePatch.cleaning && Object.keys(statePatch.cleaning).length > 0) {
-    await upsertTelegramTurnoversState(today, statePatch);
+    const res = await sendTelegramMessage(caption, undefined, target.chatId, target.threadId);
+    if (res.ok) sent += 1;
+    else console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
   }
 
   return sent;

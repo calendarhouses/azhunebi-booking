@@ -12,7 +12,7 @@ export function AdminBootPreloader() {
   const { loading: authLoading, error, ready, membership, preloaderLogoUrl } = useAuth();
   const boot = useAdminBootState();
 
-  const authBlocked = !authLoading && !ready;
+  const authBlocked = !authLoading && (!ready || !!error);
   const bootError = Boolean(boot.loadError) && !boot.appVisible && !boot.isLoading;
   const visible =
     !authBlocked && !bootError && (authLoading || boot.isLoading || !boot.appVisible);

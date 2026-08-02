@@ -1,25 +1,5 @@
 import { after, NextResponse } from "next/server";
 import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/public-booking/bookingReview";
-import {
-  bumpGasCacheGeneration,
-  coalesceKey,
-  actionCacheUsesToken,
-  gasActionCacheTtlMs,
-  isCoalescableGasAction,
-  isSuccessfulGasReadBody,
-  readGasShortCache,
-  withGasInflightCoalesce,
-  writeGasShortCache,
-} from "@/lib/gas/inflightCoalesce";
-import {
-  invalidateSharedGasCache,
-  isCacheableGasReadBody,
-  readLastGoodGasCache,
-  readSharedGasCache,
-  syncSharedCacheGeneration,
-  withSharedSingleflight,
-  writeSharedGasCache,
-} from "@/lib/gas/sharedReadCache";
 
 export const runtime = "nodejs";
 // GAS writes with LockService can take 10-20s; without this the gateway kills
@@ -38,44 +18,6 @@ function upstreamSignal(): AbortSignal | undefined {
     return AbortSignal.timeout(GAS_UPSTREAM_TIMEOUT_MS);
   }
   return undefined;
-}
-
-function tokenFingerprint(token: string | null | undefined): string {
-  return token ? String(token).slice(0, 16) : "";
-}
-
-function jsonTextResponse(text: string, status: number, extraHeaders?: Record<string, string>) {
-  return new NextResponse(text, {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      ...extraHeaders,
-    },
-  });
-}
-
-function shouldInvalidateCache(action: string | null | undefined, payload: Record<string, unknown> | null): boolean {
-  const a = String(action || "");
-  if (
-    a === "createBooking" ||
-    a === "deleteBooking" ||
-    a === "saveSettings" ||
-    a === "confirmBookingPayment" ||
-    a === "recordBookingRefund" ||
-    a === "expireBookingPayment" ||
-    a === "storeMonoInvoice" ||
-    a === "reviewBooking" ||
-    a === "syncBookingsAfterRoomRename" ||
-    a === "syncIcalRoomBlocks" ||
-    a === "saveGuestProfile"
-  ) {
-    return true;
-  }
-  // Bare booking save body (legacy): has checkIn+name without a pure-read action
-  if (payload && payload.checkIn && payload.name && (!a || a === "createBooking")) {
-    return true;
-  }
-  return false;
 }
 
 function gasUnreachable(method: string, err: unknown): NextResponse {
@@ -168,60 +110,6 @@ function forwardHeaders(request: Request, method: "GET" | "POST"): Headers {
   if (tenant) headers.set("x-tenant-id", tenant);
 
   return headers;
-}
-
-/**
- * Apps Script occasionally receives an empty postData under concurrent load and
- * falls back to its default `{status:"ok",action:null}` response — a valid JSON
- * body that silently looks like success while actually meaning "your POST never
- * arrived". Detect that specific shape and retry once with the same body.
- */
-function looksLikeEmptyPostFallback(parsed: unknown, requestedAction: string): boolean {
-  if (!requestedAction) return false;
-  if (!parsed || typeof parsed !== "object") return false;
-  const r = parsed as Record<string, unknown>;
-  return r.status === "ok" && r.action === null;
-}
-
-async function postToGas(
-  gasUrl: string,
-  request: Request,
-  body: string,
-  requestedAction: string
-): Promise<{ status: number; text: string; parsed: Record<string, unknown> | null }> {
-  let lastStatus = 0;
-  let lastText = "";
-  let lastParsed: Record<string, unknown> | null = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const upstream = await fetch(gasUrl, {
-      method: "POST",
-      headers: forwardHeaders(request, "POST"),
-      body,
-      redirect: "follow",
-      cache: "no-store",
-      signal: upstreamSignal(),
-    });
-    const text = await upstream.text();
-    lastStatus = upstream.status;
-    lastText = text;
-    let parsed: Record<string, unknown> | null = null;
-    try {
-      parsed = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      parsed = null;
-    }
-    lastParsed = parsed;
-    if (parsed && !looksLikeEmptyPostFallback(parsed, requestedAction)) {
-      return { status: upstream.status, text, parsed };
-    }
-    if (attempt === 0) {
-      console.warn(
-        `[GAS proxy] POST ${requestedAction} got empty-postData fallback, retrying`
-      );
-      await new Promise((r) => setTimeout(r, 600));
-    }
-  }
-  return { status: lastStatus, text: lastText, parsed: lastParsed };
 }
 
 function extractBearer(request: Request): string | null {
@@ -372,51 +260,11 @@ export async function GET(request: Request) {
     target.searchParams.set("token", token);
   }
 
-  const action = target.searchParams.get("action") || "";
-  const tenant =
-    target.searchParams.get("tenant_id") ||
-    request.headers.get("x-tenant-id") ||
-    "";
-  // In-flight always includes token so one bad session cannot fail teammates.
-  // Successful responses may also be stored under a tenant-wide cache key.
-  const tokenFp = tokenFingerprint(bearer || token);
-  const inflightKey = coalesceKey({
-    method: "GET",
-    action,
-    tenant,
-    tokenFingerprint: tokenFp,
-  });
-  const cacheKey = coalesceKey({
-    method: "GET",
-    action,
-    tenant,
-    tokenFingerprint: actionCacheUsesToken(action) ? tokenFp : null,
-  });
-
-  if (gasActionCacheTtlMs(action) > 0) {
-    await syncSharedCacheGeneration();
-    const cached = readGasShortCache(cacheKey);
-    if (cached) {
-      return jsonTextResponse(cached.body, cached.status, {
-        "x-gas-cache": "HIT",
-      });
-    }
-    const shared = await readSharedGasCache(cacheKey);
-    if (shared) {
-      writeGasShortCache(cacheKey, shared.body, shared.status, gasActionCacheTtlMs(action));
-      return jsonTextResponse(shared.body, shared.status, {
-        "x-gas-cache": "REDIS_HIT",
-      });
-    }
-  }
-
-  const runFetch = async (): Promise<{ status: number; text: string }> => {
+  try {
     let lastStatus = 0;
     let lastText = "";
-    // Under GAS queue pressure, blind retries double the flood. Only retry
-    // fast empty/non-JSON flakes (<4s), not slow overloaded responses.
+    // Reads are safe to retry: Google intermittently answers with an HTML page.
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const attemptStarted = Date.now();
       const upstream = await fetch(target.toString(), {
         method: "GET",
         headers: forwardHeaders(request, "GET"),
@@ -427,98 +275,21 @@ export async function GET(request: Request) {
       const text = await upstream.text();
       lastStatus = upstream.status;
       lastText = text;
-      const elapsed = Date.now() - attemptStarted;
       if (text.trim()) {
         try {
           JSON.parse(text);
-          return { status: upstream.status, text };
+          return new NextResponse(text, {
+            status: upstream.status,
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+          });
         } catch {
-          // fall through
+          // fall through to retry / error
         }
       }
-      if (attempt === 0 && elapsed < 4_000) {
-        await new Promise((r) => setTimeout(r, 700));
-        continue;
-      }
-      break;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
     }
-    return { status: lastStatus, text: lastText };
-  };
-
-  try {
-    const t0 = Date.now();
-    if (isCoalescableGasAction(action)) {
-      const runCoalescedFetch = async (): Promise<string> => {
-        const { text } = await withSharedSingleflight(cacheKey, async () => {
-          const res = await runFetch();
-          if (!res.text.trim()) throw new Error("empty GAS body");
-          try {
-            JSON.parse(res.text);
-          } catch {
-            throw new Error("non-JSON GAS body");
-          }
-          if (!isSuccessfulGasReadBody(res.text)) {
-            const err = new Error("GAS_ERROR_BODY") as Error & {
-              body?: string;
-              status?: number;
-            };
-            err.body = res.text;
-            err.status = res.status || 200;
-            throw err;
-          }
-          return res.text;
-        });
-        return text;
-      };
-
-      const { text, shared } = await withGasInflightCoalesce(inflightKey, async () => {
-        const body = await runCoalescedFetch();
-        const ttl = gasActionCacheTtlMs(action);
-        if (ttl > 0 && isCacheableGasReadBody(action, body)) {
-          writeGasShortCache(cacheKey, body, 200, ttl);
-          await writeSharedGasCache(cacheKey, body, 200, ttl, action);
-        }
-        return body;
-      });
-      console.info(
-        `[GAS proxy] GET ${action} ${Date.now() - t0}ms shared=${shared} bytes=${text.length}`
-      );
-      return jsonTextResponse(text, 200, {
-        "x-gas-cache": shared ? "COALESCE" : "MISS",
-      });
-    }
-
-    const res = await runFetch();
-    try {
-      JSON.parse(res.text);
-      console.info(
-        `[GAS proxy] GET ${action} ${Date.now() - t0}ms bytes=${res.text.length}`
-      );
-      return jsonTextResponse(res.text, res.status);
-    } catch {
-      return gasBadResponse("GET", res.status, res.text);
-    }
+    return gasBadResponse("GET", lastStatus, lastText);
   } catch (err) {
-    if (err instanceof Error && err.message === "GAS_ERROR_BODY") {
-      const e = err as Error & { body?: string; status?: number };
-      return jsonTextResponse(e.body || '{"error":"UNAUTHORIZED"}', e.status || 200);
-    }
-    // Serve last-good snapshot when GAS times out / floods — better than hard fail.
-    if (gasActionCacheTtlMs(action) > 0) {
-      const stale = await readLastGoodGasCache(cacheKey);
-      if (stale) {
-        writeGasShortCache(cacheKey, stale.body, stale.status, gasActionCacheTtlMs(action));
-        console.warn(
-          `[GAS proxy] GET ${action} serving STALE last-good after upstream failure`
-        );
-        return jsonTextResponse(stale.body, stale.status, {
-          "x-gas-cache": "STALE",
-        });
-      }
-    }
-    if (err instanceof Error && /empty GAS|non-JSON|GAS error body/.test(err.message)) {
-      return gasBadResponse("GET", 502, "");
-    }
     return gasUnreachable("GET", err);
   }
 }
@@ -540,109 +311,26 @@ export async function POST(request: Request) {
     payload = null;
   }
 
-  const action = payload?.action != null ? String(payload.action) : "";
-  const tenant =
-    String(payload?.tenant_id || payload?.tenantId || "") ||
-    request.headers.get("x-tenant-id") ||
-    "";
-  const authHeader = request.headers.get("authorization");
-  const bearer = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7).trim()
-    : request.headers.get("x-gas-token");
-  const tokenFp = tokenFingerprint(bearer);
-  const inflightKey = coalesceKey({
-    method: "POST",
-    action,
-    tenant,
-    tokenFingerprint: tokenFp,
-  });
-  const cacheKey = coalesceKey({
-    method: "POST",
-    action,
-    tenant,
-    tokenFingerprint: actionCacheUsesToken(action) ? tokenFp : null,
-  });
-
   try {
     const local = await handleLocalTelegramActions(request, payload);
     if (local) return local;
 
-    const t0 = Date.now();
-    let upstreamStatus = 0;
-    let responseText = "";
-    let shared = false;
-
-    if (isCoalescableGasAction(action)) {
-      if (gasActionCacheTtlMs(action) > 0) {
-        await syncSharedCacheGeneration();
-      }
-      const cached = readGasShortCache(cacheKey);
-      if (cached) {
-        return jsonTextResponse(cached.body, cached.status, { "x-gas-cache": "HIT" });
-      }
-      const sharedCached = await readSharedGasCache(cacheKey);
-      if (sharedCached) {
-        writeGasShortCache(
-          cacheKey,
-          sharedCached.body,
-          sharedCached.status,
-          gasActionCacheTtlMs(action)
-        );
-        return jsonTextResponse(sharedCached.body, sharedCached.status, {
-          "x-gas-cache": "REDIS_HIT",
-        });
-      }
-      const coalesced = await withGasInflightCoalesce(inflightKey, async () => {
-        const { text, shared: lockShared } = await withSharedSingleflight(
-          cacheKey,
-          async () => {
-            const res = await postToGas(gasUrl, request, body, action);
-            upstreamStatus = res.status;
-            if (!res.parsed) throw new Error("non-JSON GAS body");
-            if (!isSuccessfulGasReadBody(res.text)) {
-              const err = new Error("GAS_ERROR_BODY") as Error & {
-                body?: string;
-                status?: number;
-              };
-              err.body = res.text;
-              err.status = res.status || 200;
-              throw err;
-            }
-            return res.text;
-          }
-        );
-        if (lockShared) shared = true;
-        if (gasActionCacheTtlMs(action) > 0 && isCacheableGasReadBody(action, text)) {
-          const ttl = gasActionCacheTtlMs(action);
-          writeGasShortCache(cacheKey, text, 200, ttl);
-          await writeSharedGasCache(cacheKey, text, 200, ttl, action);
-        }
-        return text;
-      });
-      responseText = coalesced.text;
-      shared = shared || coalesced.shared;
-      if (!upstreamStatus) upstreamStatus = 200;
-    } else {
-      const res = await postToGas(gasUrl, request, body, action);
-      upstreamStatus = res.status;
-      responseText = res.text;
-    }
-
-    console.info(
-      `[GAS proxy] POST ${action || "bookingSave"} ${Date.now() - t0}ms shared=${shared} bytes=${responseText.length}`
-    );
+    const upstream = await fetch(gasUrl, {
+      method: "POST",
+      headers: forwardHeaders(request, "POST"),
+      body,
+      redirect: "follow",
+      cache: "no-store",
+      signal: upstreamSignal(),
+    });
+    const responseText = await upstream.text();
 
     let result: Record<string, unknown> | null = null;
     try {
       result = JSON.parse(responseText) as Record<string, unknown>;
     } catch {
       // Writes are never retried here: the upstream may have applied the change.
-      return gasBadResponse("POST", upstreamStatus, responseText);
-    }
-
-    if (upstreamStatus >= 200 && upstreamStatus < 300 && shouldInvalidateCache(action, payload)) {
-      bumpGasCacheGeneration();
-      await invalidateSharedGasCache();
+      return gasBadResponse("POST", upstream.status, responseText);
     }
 
     const isPendingReview =
@@ -650,8 +338,7 @@ export async function POST(request: Request) {
       isPendingReviewStatus(String(payload?.status || ""));
 
     if (
-      upstreamStatus >= 200 &&
-      upstreamStatus < 300 &&
+      upstream.ok &&
       result?.success !== false &&
       !result?.error &&
       payload?.source === "Сайт" &&
@@ -686,8 +373,7 @@ export async function POST(request: Request) {
     }
 
     if (
-      upstreamStatus >= 200 &&
-      upstreamStatus < 300 &&
+      upstream.ok &&
       result?.success !== false &&
       !result?.error &&
       payload?.source === "Сайт" &&
@@ -714,8 +400,7 @@ export async function POST(request: Request) {
     }
 
     if (
-      upstreamStatus >= 200 &&
-      upstreamStatus < 300 &&
+      upstream.ok &&
       result?.success !== false &&
       !result?.error &&
       payload &&
@@ -730,7 +415,7 @@ export async function POST(request: Request) {
       });
     }
 
-    if (upstreamStatus >= 200 && upstreamStatus < 300 && result?.activity && typeof result.activity === "object") {
+    if (upstream.ok && result?.activity && typeof result.activity === "object") {
       after(async () => {
         try {
           const { notifyActivityChange } = await import(
@@ -763,24 +448,8 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json(result, { status: upstreamStatus });
+    return NextResponse.json(result, { status: upstream.status });
   } catch (err) {
-    if (err instanceof Error && err.message === "GAS_ERROR_BODY") {
-      const e = err as Error & { body?: string; status?: number };
-      return jsonTextResponse(e.body || '{"error":"UNAUTHORIZED"}', e.status || 200);
-    }
-    if (gasActionCacheTtlMs(action) > 0) {
-      const stale = await readLastGoodGasCache(cacheKey);
-      if (stale) {
-        writeGasShortCache(cacheKey, stale.body, stale.status, gasActionCacheTtlMs(action));
-        console.warn(
-          `[GAS proxy] POST ${action} serving STALE last-good after upstream failure`
-        );
-        return jsonTextResponse(stale.body, stale.status, {
-          "x-gas-cache": "STALE",
-        });
-      }
-    }
     return gasUnreachable("POST", err);
   }
 }

@@ -665,17 +665,10 @@ export function BookingPriceCalculator({
 
   const paymentStatusRef = useRef<string | null>(null);
   useEffect(() => {
-    if (bookingStatus === "Скасовано") return;
+    if (bookingStatus === "Скасовано" || bookingStatus === "Закрито") return;
     const paid = prepay + surcharge;
-    let next: "Очікує оплату" | "Підтверджено" | null = null;
-    if (paid > 0) {
-      next = "Підтверджено";
-    } else if (bookingStatus === "Підтверджено") {
-      // Demote only from confirmed when money cleared — never demote «Закрито».
-      next = "Очікує оплату";
-    }
-    if (!next) return;
-    if (paymentStatusRef.current === next && bookingStatus === next) return;
+    const next = paid > 0 ? "Підтверджено" : "Очікує оплату";
+    if (paymentStatusRef.current === next) return;
     paymentStatusRef.current = next;
     onStatusFromPayment?.(next);
   }, [prepay, surcharge, bookingStatus, onStatusFromPayment]);
@@ -697,27 +690,6 @@ export function BookingPriceCalculator({
       setPayments([]);
     }
   }, [paymentsBootKey, savedBooking]);
-
-  // Slim boot omits payments journal — hydrate from getBookingDetail once.
-  useEffect(() => {
-    const id = String(editingBookingId || savedBooking?.id || "").trim();
-    if (!id) return;
-    if (Array.isArray(savedBooking?.payments) && savedBooking.payments.length > 0) {
-      return;
-    }
-    let cancelled = false;
-    void import("@/components/admin/desktop/adminApi").then(({ fetchAdminBookingDetail }) =>
-      fetchAdminBookingDetail(id).then((res) => {
-        if (cancelled || !res?.booking) return;
-        if (Array.isArray(res.booking.payments) && res.booking.payments.length > 0) {
-          setPayments(getBookingPayments(res.booking));
-        }
-      })
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [editingBookingId, savedBooking?.id, savedBooking?.payments]);
 
   useEffect(() => {
     const w = window as Window & {

@@ -130,73 +130,6 @@ function collectMethodAmount(
   else bucket.fop += amount;
 }
 
-function normalizePaymentAmount(value: unknown): number {
-  return Math.round(Number(value) || 0);
-}
-
-function likelyCumulativeOnline(payments: Array<{ amount?: unknown; type?: unknown }>, paidAmount: number): boolean {
-  const online = payments.filter((p) => String(p?.type || "") === "online");
-  if (online.length < 2) return false;
-
-  const amounts = online
-    .map((p) => normalizePaymentAmount(p?.amount))
-    .filter((n) => n !== 0);
-  if (amounts.length < 2) return false;
-
-  // Heuristic: if online "paid so far" sums much more than final paidAmount,
-  // it is likely cumulative.
-  const sumOnline = amounts.reduce((acc, n) => acc + n, 0);
-  if (!(paidAmount > 0)) return false;
-  if (sumOnline <= paidAmount * 1.3) return false;
-
-  // Also require non-decreasing order.
-  for (let i = 1; i < amounts.length; i++) {
-    if (amounts[i] < amounts[i - 1]) return false;
-  }
-  return true;
-}
-
-function addJournalPaymentsToBucketForRange(opts: {
-  payments: Array<{ amount?: unknown; method?: string; date?: string; type?: unknown }>;
-  paidAmount: number;
-  start: string;
-  end: string;
-  bucket: { cash: number; card: number; fop: number };
-}) {
-  const { payments, paidAmount, start, end, bucket } = opts;
-  const cumulative = likelyCumulativeOnline(payments as any, paidAmount);
-
-  // Track "paid so far" to convert cumulative online amounts into delta.
-  let paidSoFar = 0;
-
-  for (const p of payments) {
-    const date = toDateKeyKyiv(p?.date as any);
-    const amount = normalizePaymentAmount(p?.amount);
-    const method = String(p?.method || "");
-    const type = String(p?.type || "");
-
-    if (type === "online" || (type === "" && amount >= 0)) {
-      if (cumulative) {
-        const delta = amount - paidSoFar;
-        paidSoFar = amount;
-        if (date && date >= start && date <= end && delta !== 0) {
-          collectMethodAmount(method, delta, bucket);
-        }
-      } else {
-        if (date && date >= start && date <= end && amount !== 0) {
-          collectMethodAmount(method, amount, bucket);
-        }
-      }
-    } else {
-      // Refund/negative adjustments are stored as negative deltas.
-      if (cumulative) paidSoFar += amount;
-      if (date && date >= start && date <= end && amount !== 0) {
-        collectMethodAmount(method, amount, bucket);
-      }
-    }
-  }
-}
-
 export function buildEveningCashCaption(opts: {
   newBookingsCount: number;
   payments: { cash: number; card: number; fop: number };
@@ -235,13 +168,11 @@ export async function sendEveningCashSummary(
 
     // Money for the day = payments dated today (independent of creation day).
     if (Array.isArray(b.payments) && b.payments.length) {
-      addJournalPaymentsToBucketForRange({
-        payments: b.payments,
-        paidAmount: Math.round(Number(b.paidAmount) || 0),
-        start: today,
-        end: today,
-        bucket: payments,
-      });
+      for (const p of b.payments) {
+        const pDate = toDateKeyKyiv(p.date);
+        if (pDate !== today) continue;
+        collectMethodAmount(p.method, Math.round(Number(p.amount) || 0), payments);
+      }
     } else if (created === today) {
       // Legacy rows without journal: only attribute money on creation day.
       collectMethodAmount(

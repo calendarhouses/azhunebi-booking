@@ -9,8 +9,6 @@ import {
   type FinancePeriodStats,
 } from "@/lib/telegram/financeNotify";
 import { bookingCreatedDateKey, toDateKeyKyiv } from "@/lib/telegram/formatters";
-import { refreshPaidBookingsTelegramMessages } from "@/lib/telegram/refreshPaidBookingsTelegramMessages";
-import { refreshTurnoversTelegramMessages } from "@/lib/telegram/refreshTurnoversTelegramMessages";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -157,52 +155,14 @@ function bookingPaymentsForPeriod(
 ): { cash: number; card: number; fop: number } {
   const payments = { cash: 0, card: 0, fop: 0 };
   if (Array.isArray(booking.payments) && booking.payments.length > 0) {
-    const paidAmount = Math.round(Number((booking as any)?.paidAmount) || 0);
-    const journal = booking.payments as Array<Record<string, unknown>>;
-
-    // If online amounts appear to be "paid so far", de-cumulate them into deltas.
-    const onlineAmounts = journal
-      .filter((p) => String(p?.type || "") === "online")
-      .map((p) => Math.round(Number(p?.amount) || 0))
-      .filter((n) => n !== 0);
-
-    let cumulativeOnline = false;
-    if (onlineAmounts.length >= 2 && paidAmount > 0) {
-      const sumOnline = onlineAmounts.reduce((acc, n) => acc + n, 0);
-      let nonDecreasing = true;
-      for (let i = 1; i < onlineAmounts.length; i++) {
-        if (onlineAmounts[i] < onlineAmounts[i - 1]) {
-          nonDecreasing = false;
-          break;
-        }
-      }
-      cumulativeOnline =
-        nonDecreasing && sumOnline > paidAmount * 1.3;
-    }
-
-    let paidSoFar = 0;
-    for (const p of journal) {
-      const date = toDateKeyKyiv(p?.date as any);
+    for (const p of booking.payments) {
+      const date = toDateKeyKyiv(p?.date);
+      if (!date || date < start || date > end) continue;
       const amount = Math.round(Number(p?.amount) || 0);
-      const method = String(p?.method || "");
-      const type = String(p?.type || "");
-
-      const inRange = date && date >= start && date <= end;
-      if (type === "online" || (type === "" && amount >= 0)) {
-        if (cumulativeOnline) {
-          const delta = amount - paidSoFar;
-          paidSoFar = amount;
-          if (inRange && delta !== 0) addBucket(payments, method, delta);
-        } else {
-          if (inRange && amount !== 0) addBucket(payments, method, amount);
-        }
-      } else {
-        // Refund/negative correction should reduce received money for the period.
-        if (cumulativeOnline) paidSoFar += amount;
-        if (inRange && amount !== 0) addBucket(payments, method, amount);
-      }
+      // Refunds/negative corrections should reduce the received money for the period.
+      if (amount === 0) continue;
+      addBucket(payments, String(p?.method || ""), amount);
     }
-
     return payments;
   }
 
@@ -267,21 +227,6 @@ function calcFinanceStats(
   };
 }
 
-/** One job must not fail the whole cron (GAS marks the trigger red on HTTP 5xx). */
-async function runSafe(
-  name: string,
-  results: Record<string, unknown>,
-  fn: () => Promise<unknown>
-) {
-  try {
-    results[name] = await fn();
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[TG cron] ${name}`, err);
-    results[name] = { ok: false, error: message };
-  }
-}
-
 async function runJobs(force?: string | null) {
   const digest = await fetchCronTelegramDigest();
   const bookings = digest.bookings;
@@ -292,68 +237,39 @@ async function runJobs(force?: string | null) {
   if (!force || force === "arrivals") {
     const arrivalBookings =
       bookings as Parameters<typeof notifyTodayArrivalsAndDepartures>[0];
-    await runSafe("arrivals", results, () =>
-      notifyTodayArrivalsAndDepartures(arrivalBookings)
-    );
-    await runSafe("cleaningTurnovers", results, () =>
-      notifyCleaningTodayTurnovers(arrivalBookings)
-    );
-  }
-  if (force === "bookings") {
-    await runSafe("bookings", results, () =>
-      refreshPaidBookingsTelegramMessages({
-        bookings: bookings as any,
-        settings,
-      })
-    );
-  }
-  if (force === "turnoversRefresh") {
-    // editOnly:false — after a cottage move, the new cottage has no stored
-    // message_id yet; we must send (and delete the stale cottage message).
-    await runSafe("turnoversRefresh", results, () =>
-      refreshTurnoversTelegramMessages({
-        bookings: bookings as any,
-        settings,
-        editOnly: false,
-      })
-    );
+    results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
+    results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
   }
   if (!force || force === "debt") {
-    await runSafe("debt", results, () =>
-      sendDebtReminders(bookings as Parameters<typeof sendDebtReminders>[0])
+    results.debt = await sendDebtReminders(
+      bookings as Parameters<typeof sendDebtReminders>[0]
     );
   }
   if (force === "evening") {
-    await runSafe("evening", results, () =>
-      sendEveningCashSummary(
-        bookings as Parameters<typeof sendEveningCashSummary>[0]
-      )
+    results.evening = await sendEveningCashSummary(
+      bookings as Parameters<typeof sendEveningCashSummary>[0]
     );
   }
 
   if (force === "weekly" || (!force && now.weekday === "Sun")) {
     const range = weekRangeKyiv();
     const stats = calcFinanceStats(bookings, settings, range.start, range.end);
-    await runSafe("weekly", results, () =>
-      sendFinancePeriodSummary({
-        titleEmoji: "📊",
-        title: "ТИЖНЕВЕ ЗВЕДЕННЯ",
-        periodLabel: range.label,
-        stats,
-      })
-    );
+    results.weekly = await sendFinancePeriodSummary({
+      titleEmoji: "📊",
+      title: "ТИЖНЕВЕ ЗВЕДЕННЯ",
+      periodLabel: range.label,
+      stats,
+    });
   }
   if ((force === "monthly" || !force) && lastDayOfMonthKyiv()) {
     const range = monthRangeKyiv();
     const stats = calcFinanceStats(bookings, settings, range.start, range.end);
-    await runSafe("monthly", results, () =>
-      sendFinancePeriodSummary({
-        titleEmoji: "📆",
-        title: "МІСЯЧНЕ ЗВЕДЕННЯ",
-        periodLabel: range.label,
-        stats,
-      })
-    );
+    results.monthly = await sendFinancePeriodSummary({
+      titleEmoji: "📆",
+      title: "МІСЯЧНЕ ЗВЕДЕННЯ",
+      periodLabel: range.label,
+      stats,
+    });
   }
 
   return results;

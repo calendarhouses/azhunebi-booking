@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, type CSSProperties, type MouseEvent } from "react";
 import { buildIncomeCategories, EXPENSE_CATEGORIES } from "../types";
 import type { AdminSettingsPayload, BookingRecord, TransactionConfig } from "../types";
 import { getCategoryIconPath, INLINE_CARD_CAT_ICONS, DEFAULT_CAT_ICON } from "../reports/financeCategoryIcons";
@@ -62,7 +62,7 @@ export function DesktopReportsView({
   style,
   layout = "desktop",
   bookings,
-  transactions: transactionsProp,
+  transactions,
   roomsList = [],
   customPrices,
   settings,
@@ -71,30 +71,6 @@ export function DesktopReportsView({
   isActive = true,
 }: DesktopReportsViewProps) {
   const isMobile = layout === "mobile";
-  const [transactions, setTransactions] = useState(transactionsProp || []);
-
-  useEffect(() => {
-    setTransactions(transactionsProp || []);
-  }, [transactionsProp]);
-
-  useEffect(() => {
-    if (!isActive) return;
-    if ((transactionsProp || []).length > 0) return;
-    let cancelled = false;
-    void import("../adminApi").then(({ fetchAdminTransactions }) =>
-      fetchAdminTransactions()
-        .then((txs) => {
-          if (cancelled || !txs.length) return;
-          setTransactions(txs);
-          onSettingsChange({ ...settings, transactions: txs });
-        })
-        .catch((err) => console.warn("lazy transactions:", err))
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [isActive, transactionsProp, onSettingsChange, settings]);
-
   const r = useReportsAnalytics({
     bookings,
     transactions,
