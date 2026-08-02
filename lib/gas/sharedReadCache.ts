@@ -7,7 +7,10 @@
  */
 
 import { Redis } from "@upstash/redis";
-import { isSuccessfulGasReadBody } from "@/lib/gas/inflightCoalesce";
+import {
+  bumpGasCacheGeneration,
+  isSuccessfulGasReadBody,
+} from "@/lib/gas/inflightCoalesce";
 
 const GEN_KEY = "gas:read:gen";
 const KEY_PREFIX = "gas:read:";
@@ -18,6 +21,8 @@ type SharedEntry = {
 };
 
 let redisSingleton: Redis | null | undefined;
+/** Last seen Redis generation in this isolate — mismatch clears local Map. */
+let localSeenGen: string | null = null;
 
 function getRedis(): Redis | null {
   if (redisSingleton !== undefined) return redisSingleton;
@@ -45,6 +50,24 @@ async function currentGeneration(redis: Redis): Promise<string> {
   }
 }
 
+/**
+ * If another instance invalidated Redis, drop this isolate's memory cache
+ * so we don't serve up to 30s of stale HIT after a write.
+ */
+export async function syncSharedCacheGeneration(): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    const gen = await currentGeneration(redis);
+    if (localSeenGen !== null && localSeenGen !== gen) {
+      bumpGasCacheGeneration();
+    }
+    localSeenGen = gen;
+  } catch (err) {
+    console.warn("[sharedReadCache] gen sync failed:", err);
+  }
+}
+
 function entryKey(gen: string, cacheKey: string): string {
   return `${KEY_PREFIX}${gen}:${cacheKey}`;
 }
@@ -55,7 +78,8 @@ export async function readSharedGasCache(
   const redis = getRedis();
   if (!redis) return null;
   try {
-    const gen = await currentGeneration(redis);
+    await syncSharedCacheGeneration();
+    const gen = localSeenGen || (await currentGeneration(redis));
     const raw = await redis.get<SharedEntry | string>(entryKey(gen, cacheKey));
     if (!raw) return null;
     const entry: SharedEntry =
@@ -79,7 +103,8 @@ export async function writeSharedGasCache(
   if (!redis || ttlMs <= 0 || status !== 200) return;
   if (!isSuccessfulGasReadBody(body)) return;
   try {
-    const gen = await currentGeneration(redis);
+    await syncSharedCacheGeneration();
+    const gen = localSeenGen || (await currentGeneration(redis));
     const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
     const payload: SharedEntry = { body, status };
     await redis.set(entryKey(gen, cacheKey), payload, { ex: ttlSec });
@@ -93,7 +118,8 @@ export async function invalidateSharedGasCache(): Promise<void> {
   const redis = getRedis();
   if (!redis) return;
   try {
-    await redis.incr(GEN_KEY);
+    const next = await redis.incr(GEN_KEY);
+    localSeenGen = String(next);
   } catch (err) {
     console.warn("[sharedReadCache] invalidate failed:", err);
   }

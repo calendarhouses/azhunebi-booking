@@ -14,6 +14,7 @@ import {
 import {
   invalidateSharedGasCache,
   readSharedGasCache,
+  syncSharedCacheGeneration,
   writeSharedGasCache,
 } from "@/lib/gas/sharedReadCache";
 
@@ -390,6 +391,7 @@ export async function GET(request: Request) {
   });
 
   if (gasActionCacheTtlMs(action) > 0) {
+    await syncSharedCacheGeneration();
     const cached = readGasShortCache(cacheKey);
     if (cached) {
       return jsonTextResponse(cached.body, cached.status, {
@@ -548,6 +550,9 @@ export async function POST(request: Request) {
     let shared = false;
 
     if (isCoalescableGasAction(action)) {
+      if (gasActionCacheTtlMs(action) > 0) {
+        await syncSharedCacheGeneration();
+      }
       const cached = readGasShortCache(cacheKey);
       if (cached) {
         return jsonTextResponse(cached.body, cached.status, { "x-gas-cache": "HIT" });

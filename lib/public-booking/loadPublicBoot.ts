@@ -12,6 +12,7 @@ import {
 } from "@/lib/gas/inflightCoalesce";
 import {
   readSharedGasCache,
+  syncSharedCacheGeneration,
   writeSharedGasCache,
 } from "@/lib/gas/sharedReadCache";
 
@@ -58,6 +59,7 @@ export async function loadPublicBoot(tenantId: string): Promise<{
   });
 
   try {
+    await syncSharedCacheGeneration();
     const cached = readGasShortCache(key);
     if (cached?.body) {
       const init = JSON.parse(cached.body) as AdminInitResponse;
