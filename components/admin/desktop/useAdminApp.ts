@@ -332,7 +332,9 @@ export function useAdminApp(options?: {
       }
       console.warn("[useAdminApp] adminDeferred failed:", err);
     }
-  }, [applyServerData, membership?.tenantId]);  useEffect(() => {
+  }, [applyServerData, membership?.tenantId]);
+
+  useEffect(() => {
     if (!authReady) return;
 
     const tenantId = membership?.tenantId;
@@ -356,24 +358,30 @@ export function useAdminApp(options?: {
     });
   }, [authReady, membership?.tenantId, loadInitData]);
 
-  // Guest CRM ratings — lazy, standalone GAS action, fetched once per session
-  // only AFTER the app has painted. Never part of adminInitData/adminBoot;
-  // see lib/admin/guestProfiles.ts.
+  // Guest CRM — only after paint, and only after deferred had a head start so
+  // it does not fight chessboard/boot when two devices log in together.
   useEffect(() => {
     if (!appVisible || guestProfilesLoadedRef.current) return;
     guestProfilesLoadedRef.current = true;
-    void fetchGuestProfilesRemote()
-      .then((profiles) => setGuestProfiles(profiles))
-      .catch((err) => {
-        guestProfilesLoadedRef.current = false;
-        console.warn("[useAdminApp] guestProfiles load failed:", err);
-      });
+    const timer = window.setTimeout(() => {
+      void fetchGuestProfilesRemote()
+        .then((profiles) => setGuestProfiles(profiles))
+        .catch((err) => {
+          guestProfilesLoadedRef.current = false;
+          console.warn("[useAdminApp] guestProfiles load failed:", err);
+        });
+    }, 4000);
+    return () => window.clearTimeout(timer);
   }, [appVisible]);
 
-  // Stage-A: enrich prices / restrictions / list bookings after chessboard paint.
+  // Stage-A: enrich prices after chessboard paint — slight delay so paint path
+  // stays alone on the GAS queue when another device is booting too.
   useEffect(() => {
     if (!appVisible) return;
-    void loadDeferredData();
+    const timer = window.setTimeout(() => {
+      void loadDeferredData();
+    }, 1500);
+    return () => window.clearTimeout(timer);
   }, [appVisible, loadDeferredData]);
   const upsertGuestProfile = useCallback(
     (rawPhone: string, patch: { rating?: GuestRating | null; note?: string | null }) => {

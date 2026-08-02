@@ -97,7 +97,7 @@ export function writeGasShortCache(
 
 export const OCCUPANCY_CACHE_TTL_MS = 8_000;
 /** Stage-A: chessboard / sync payloads — longer so reopen is near-instant. */
-export const CHESSBOARD_CACHE_TTL_MS = 45_000;
+export const CHESSBOARD_CACHE_TTL_MS = 60_000;
 export const SETTINGS_CACHE_TTL_MS = 120_000;
 
 export function isCoalescableGasAction(action: string | null | undefined): boolean {
@@ -125,6 +125,16 @@ export function isOccupancyCriticalAction(action: string | null | undefined): bo
     a === "adminSync" ||
     a === "getAllBookings"
   );
+}
+
+/**
+ * Same-tenant admin reads (chessboard/deferred/…) are identical for every
+ * logged-in teammate. Keying by token made PC+phone dig twice into GAS.
+ * Session-specific actions (adminBoot) still include the token fingerprint.
+ */
+export function actionCacheUsesToken(action: string | null | undefined): boolean {
+  const a = String(action || "");
+  return a === "adminBoot";
 }
 
 export function gasActionCacheTtlMs(action: string | null | undefined): number {

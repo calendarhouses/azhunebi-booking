@@ -3,6 +3,7 @@ import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/publ
 import {
   bumpGasCacheGeneration,
   coalesceKey,
+  actionCacheUsesToken,
   gasActionCacheTtlMs,
   isCoalescableGasAction,
   readGasShortCache,
@@ -370,7 +371,9 @@ export async function GET(request: Request) {
     method: "GET",
     action,
     tenant,
-    tokenFingerprint: tokenFingerprint(bearer || token),
+    tokenFingerprint: actionCacheUsesToken(action)
+      ? tokenFingerprint(bearer || token)
+      : null,
   });
 
   if (gasActionCacheTtlMs(action) > 0) {
@@ -385,7 +388,10 @@ export async function GET(request: Request) {
   const runFetch = async (): Promise<{ status: number; text: string }> => {
     let lastStatus = 0;
     let lastText = "";
+    // Under GAS queue pressure, blind retries double the flood. Only retry
+    // fast empty/non-JSON flakes (<4s), not slow overloaded responses.
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      const attemptStarted = Date.now();
       const upstream = await fetch(target.toString(), {
         method: "GET",
         headers: forwardHeaders(request, "GET"),
@@ -396,15 +402,20 @@ export async function GET(request: Request) {
       const text = await upstream.text();
       lastStatus = upstream.status;
       lastText = text;
+      const elapsed = Date.now() - attemptStarted;
       if (text.trim()) {
         try {
           JSON.parse(text);
           return { status: upstream.status, text };
         } catch {
-          // fall through to retry / error
+          // fall through
         }
       }
-      if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
+      if (attempt === 0 && elapsed < 4_000) {
+        await new Promise((r) => setTimeout(r, 700));
+        continue;
+      }
+      break;
     }
     return { status: lastStatus, text: lastText };
   };
@@ -487,7 +498,9 @@ export async function POST(request: Request) {
       method: "POST",
       action,
       tenant,
-      tokenFingerprint: tokenFingerprint(bearer),
+      tokenFingerprint: actionCacheUsesToken(action)
+        ? tokenFingerprint(bearer)
+        : null,
     });
 
     const t0 = Date.now();
