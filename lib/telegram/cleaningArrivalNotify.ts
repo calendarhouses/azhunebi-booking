@@ -7,6 +7,7 @@ import {
 } from "./config";
 import {
   compareByCottageNumber,
+  cottageSortNumber,
   escapeHtml,
   formatTelegramDaySeparator,
   isConfirmedBookingStatus,
@@ -27,56 +28,83 @@ function guestsFromBooking(booking: ArrivalDepartureBooking): { adults: number; 
   };
 }
 
-export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
-  const cottage = booking.cottage || "Котедж";
+/** Компактно: «2», «2+1», або «0» якщо броні/гостей немає. */
+function guestsLabelOrZero(booking: ArrivalDepartureBooking | null | undefined): string {
+  if (!booking) return "0";
   const { adults, children } = guestsFromBooking(booking);
-  const guestsLabel = formatGuestsCompact(adults, children);
-
-  return [
-    `🛎 <b>СЬОГОДНІ ВИЇЗД | ${escapeHtml(cottage)}</b>`,
-    "",
-    "<b>ДЕТАЛІ:</b>",
-    `👥 Було ${escapeHtml(guestsLabel)}`,
-  ].join("\n");
+  if (adults <= 0 && children <= 0) return "0";
+  return formatGuestsCompact(adults, children);
 }
 
-export function buildCleaningArrivalSection(booking: ArrivalDepartureBooking): string {
-  const cottage = booking.cottage || "Котедж";
-  const { adults, children } = guestsFromBooking(booking);
-  const guestsLabel = formatGuestsCompact(adults, children);
-
-  return [
-    `🛎 <b>СЬОГОДНІ ЗАЇЗД | ${escapeHtml(cottage)}</b>`,
-    "",
-    "<b>ДЕТАЛІ:</b>",
-    `👥 буде ${escapeHtml(guestsLabel)}`,
-  ].join("\n");
+/** «Будиночок 7» → «7»; без номера — повна назва. */
+export function cleaningCottageLabel(cottage: string): string {
+  const raw = String(cottage || "").trim() || "Котедж";
+  const n = cottageSortNumber(raw);
+  if (Number.isFinite(n) && n !== Number.POSITIVE_INFINITY) return String(n);
+  return raw;
 }
 
-export function buildCleaningNoArrivalSection(cottage: string): string {
-  return `🛎 <b>СЬОГОДНІ ЗАЇЗДУ НЕМАЄ | ${escapeHtml(cottage)}</b>`;
-}
-
-/** Одне сповіщення для чату прибирання на будинок (виїзд / заїзд / обидва). */
+/**
+ * Формат для чату прибирання:
+ * ⛺️ 7
+ *
+ * 2+2 ➡️  0   — лише виїзд (заїзду немає)
+ * 0 ➡️  2     — лише заїзд (виїзду немає)
+ * 2+1 ➡️  3+1 — виїзд + заїзд
+ */
 export function buildCleaningTurnoverCaption(params: {
   cottage: string;
   departure?: ArrivalDepartureBooking | null;
   arrival?: ArrivalDepartureBooking | null;
 }): string {
-  const cottage = params.cottage || "Котедж";
   const departure = params.departure ?? null;
   const arrival = params.arrival ?? null;
+  if (!departure && !arrival) return "";
 
-  if (departure && arrival) {
-    return [buildCleaningDepartureSection(departure), buildCleaningArrivalSection(arrival)].join("\n\n");
-  }
-  if (departure) {
-    return [buildCleaningDepartureSection(departure), buildCleaningNoArrivalSection(cottage)].join("\n\n");
-  }
-  if (arrival) {
-    return buildCleaningArrivalSection(arrival);
-  }
-  return "";
+  const label = cleaningCottageLabel(params.cottage || "Котедж");
+  const from = guestsLabelOrZero(departure);
+  const to = guestsLabelOrZero(arrival);
+
+  return `⛺️ ${escapeHtml(label)}\n\n${escapeHtml(from)} ➡️  ${escapeHtml(to)}`;
+}
+
+/** Усі будиночки одним дайджестом (як у прикладі з кількома ⛺️). */
+export function buildCleaningTurnoversDigest(
+  turnovers: Array<{
+    cottage: string;
+    departure?: ArrivalDepartureBooking | null;
+    arrival?: ArrivalDepartureBooking | null;
+  }>
+): string {
+  return turnovers
+    .map((t) => buildCleaningTurnoverCaption(t))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** @deprecated Kept for older call sites / demos */
+export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
+  return buildCleaningTurnoverCaption({
+    cottage: booking.cottage || "Котедж",
+    departure: booking,
+  });
+}
+
+/** @deprecated Kept for older call sites / demos */
+export function buildCleaningArrivalSection(booking: ArrivalDepartureBooking): string {
+  return buildCleaningTurnoverCaption({
+    cottage: booking.cottage || "Котедж",
+    arrival: booking,
+  });
+}
+
+/** @deprecated */
+export function buildCleaningNoArrivalSection(cottage: string): string {
+  return buildCleaningTurnoverCaption({
+    cottage,
+    // Fake non-null departure so caption renders «… ➡️  0»; callers should pass real booking.
+    departure: { cottage, guests: 0, status: "Підтверджено" } as ArrivalDepartureBooking,
+  });
 }
 
 /** @deprecated Use buildCleaningArrivalSection — kept for demo imports */
@@ -142,12 +170,30 @@ export async function notifyCleaningTodayTurnovers(
     );
   }
 
-  let sent = 0;
-  for (const turnover of turnovers) {
-    const caption = buildCleaningTurnoverCaption(turnover);
-    if (!caption) continue;
+  const digest = buildCleaningTurnoversDigest(turnovers);
+  if (!digest) return 0;
 
-    const res = await sendTelegramMessage(caption, undefined, target.chatId, target.threadId);
+  // Telegram message limit ~4096; split only if needed.
+  const chunks: string[] = [];
+  if (digest.length <= 3900) {
+    chunks.push(digest);
+  } else {
+    let buf = "";
+    for (const block of digest.split("\n\n")) {
+      const next = buf ? `${buf}\n\n${block}` : block;
+      if (next.length > 3900 && buf) {
+        chunks.push(buf);
+        buf = block;
+      } else {
+        buf = next;
+      }
+    }
+    if (buf) chunks.push(buf);
+  }
+
+  let sent = 0;
+  for (const chunk of chunks) {
+    const res = await sendTelegramMessage(chunk, undefined, target.chatId, target.threadId);
     if (res.ok) sent += 1;
     else console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
   }
