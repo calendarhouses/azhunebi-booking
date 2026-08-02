@@ -3906,7 +3906,6 @@
             flex-shrink: 0;
         }
         .price-grid-toolbar__actions .btn-primary,
-        .price-grid-toolbar__actions .btn-secondary,
         .price-grid-toolbar__actions .btn-outline-danger {
             padding: 7px 12px;
             font-size: 13px;

@@ -172,7 +172,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
       status: "Підтверджено",
     };
     const res = await sendTelegramMessage(
-      "🧪 <b>ТЕСТ прибирання</b>\n\n" +
+      "🧪 <b>ТЕСТ turnover</b>\n\n" +
         buildCleaningTurnoverCaption({
           cottage: "Будиночок 11",
           departure: departureBooking,
@@ -186,7 +186,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
   }
   {
     const res = await sendTelegramMessage(
-      "🧪 <b>ТЕСТ прибирання</b>\n\n" +
+      "🧪 <b>ТЕСТ turnover</b>\n\n" +
         buildCleaningTurnoverCaption({
           cottage: "Будиночок 11",
           departure: {
@@ -205,7 +205,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
   }
   {
     const res = await sendTelegramMessage(
-      "🧪 <b>ТЕСТ прибирання</b>\n\n" +
+      "🧪 <b>ТЕСТ turnover</b>\n\n" +
         buildCleaningTurnoverCaption({
           cottage: "Будиночок 11",
           arrival: {
