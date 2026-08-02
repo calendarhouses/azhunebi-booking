@@ -191,6 +191,28 @@ export function useAdminApp(options?: {
 
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
+  const silentSyncInFlightRef = useRef(false);
+
+  /** Rare background refresh — was 30s and hammered GAS (adminInitData + 504s). */
+  const SILENT_SYNC_MS = 120_000;
+
+  const maybeSilentSync = useCallback(() => {
+    if (!authReady) return;
+    if (pauseSilentSyncRef?.current) return;
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    if (silentSyncInFlightRef.current) return;
+    const drawer = document.getElementById("bookingDrawer")?.classList.contains("active");
+    const modal = document.getElementById("genericModal")?.classList.contains("active");
+    const dragging = (window as Window & { isGridDragging?: boolean }).isGridDragging;
+    if (drawer || modal || dragging) return;
+    silentSyncInFlightRef.current = true;
+    void silentSyncRef
+      .current()
+      .catch(() => {})
+      .finally(() => {
+        silentSyncInFlightRef.current = false;
+      });
+  }, [authReady, pauseSilentSyncRef]);
 
   /**
    * Guest CRM — only when opening Guests view or booking drawer.
@@ -330,16 +352,30 @@ export function useAdminApp(options?: {
     tg?.expand?.();
 
     const interval = window.setInterval(() => {
-      if (!authReady) return;
-      if (pauseSilentSyncRef?.current) return;
-      const drawer = document.getElementById("bookingDrawer")?.classList.contains("active");
-      const modal = document.getElementById("genericModal")?.classList.contains("active");
-      const dragging = (window as Window & { isGridDragging?: boolean }).isGridDragging;
-      if (!drawer && !modal && !dragging) void silentSyncRef.current();
-    }, 30000);
+      maybeSilentSync();
+    }, SILENT_SYNC_MS);
 
-    return () => window.clearInterval(interval);
-  }, [appVisible, authReady, membership?.tenantId, platform, settingsTab, syncViewDom, allowSettings, allowReports]);
+    const onVisibility = () => {
+      // When returning to the tab — one sync, not a storm while hidden.
+      if (document.visibilityState === "visible") maybeSilentSync();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [
+    appVisible,
+    authReady,
+    membership?.tenantId,
+    platform,
+    settingsTab,
+    syncViewDom,
+    allowSettings,
+    allowReports,
+    maybeSilentSync,
+  ]);
 
   const persistNav = useCallback(
     (view: AdminViewName, tab: SettingsTabName, expanded: boolean) => {
