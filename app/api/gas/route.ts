@@ -248,6 +248,10 @@ export async function GET(request: Request) {
     target.searchParams.set(key, value);
   });
 
+  console.info(
+    `[GAS proxy] GET action=${incoming.searchParams.get("action") || "(none)"}`
+  );
+
   const token = incoming.searchParams.get("token");
   const headerToken = request.headers.get("x-gas-token");
   const authHeader = request.headers.get("authorization");
@@ -310,6 +314,11 @@ export async function POST(request: Request) {
   } catch {
     payload = null;
   }
+
+  const postAction =
+    (payload && typeof payload.action === "string" && payload.action) ||
+    (payload && payload.checkIn && payload.name ? "createBooking(bare)" : "(none)");
+  console.info(`[GAS proxy] POST action=${postAction}`);
 
   try {
     const local = await handleLocalTelegramActions(request, payload);
