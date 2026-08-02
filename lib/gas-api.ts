@@ -859,53 +859,6 @@ export async function listTeamMembers(): Promise<{
   };
 }
 
-export type ActivityChangeLine = {
-  label?: string;
-  from?: string;
-  to?: string;
-};
-
-export type ActivityLogEntry = {
-  id: string;
-  at: string;
-  type: string;
-  summary: string;
-  details?: {
-    orderId?: string;
-    name?: string;
-    cottage?: string;
-    saveKeys?: string[];
-    changes?: ActivityChangeLine[];
-    [key: string]: unknown;
-  };
-  actor?: {
-    userId?: string;
-    name?: string;
-    email?: string;
-    role?: string;
-  };
-};
-
-export async function listActivityLog(): Promise<{
-  items: ActivityLogEntry[];
-  total: number;
-}> {
-  const data = await gasFetch<{
-    items?: ActivityLogEntry[];
-    total?: number;
-    error?: string;
-    message?: string;
-  }>({ action: "listActivityLog" }, { authToken: getStoredAuthToken() });
-  if (data.error) {
-    throw new Error(data.message || data.error);
-  }
-  return {
-    items: Array.isArray(data.items) ? data.items : [],
-    total: Number(data.total) || 0,
-  };
-}
-
-/** Один рядок історії змін броні (розгорнутий з activityLog). */
 export type BookingActivityItem = {
   id: string;
   at: string;
