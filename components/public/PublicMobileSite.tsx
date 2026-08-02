@@ -89,7 +89,7 @@ export function PublicMobileSite() {
             {showLoading ? (
               <div className="loading-state">
                 <div className="loader" />
-                Котеджів не знайдено
+                {!runtime ? "Завантаження…" : "Котеджів не знайдено"}
               </div>
             ) : showEmpty ? (
               <PublicCabinsEmptyState />
