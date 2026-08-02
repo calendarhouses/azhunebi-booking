@@ -5,14 +5,18 @@ import type { AdminInitResponse } from "@/components/admin/desktop/types";
 import type { PublicTenantPayload } from "@/lib/public-booking/types";
 import {
   coalesceKey,
+  isSuccessfulGasReadBody,
   OCCUPANCY_CACHE_TTL_MS,
   readGasShortCache,
   withGasInflightCoalesce,
   writeGasShortCache,
 } from "@/lib/gas/inflightCoalesce";
 import {
+  isCacheableGasReadBody,
+  readLastGoodGasCache,
   readSharedGasCache,
   syncSharedCacheGeneration,
+  withSharedSingleflight,
   writeSharedGasCache,
 } from "@/lib/gas/sharedReadCache";
 
@@ -43,6 +47,10 @@ function tenantFromInit(tenantId: string, init: AdminInitResponse): PublicTenant
   };
 }
 
+function parseInit(body: string): AdminInitResponse {
+  return JSON.parse(body) as AdminInitResponse;
+}
+
 /**
  * Single GAS round-trip for public boot, coalesced + short-TTL cached
  * (in-process + shared Redis) so N tabs/devices don't each hit Apps Script.
@@ -50,7 +58,7 @@ function tenantFromInit(tenantId: string, init: AdminInitResponse): PublicTenant
 export async function loadPublicBoot(tenantId: string): Promise<{
   tenant: PublicTenantPayload;
   init: AdminInitResponse;
-  cache: "HIT" | "REDIS_HIT" | "MISS" | "COALESCE";
+  cache: "HIT" | "REDIS_HIT" | "MISS" | "COALESCE" | "STALE";
 } | null> {
   const key = coalesceKey({
     method: "GET",
@@ -61,15 +69,15 @@ export async function loadPublicBoot(tenantId: string): Promise<{
   try {
     await syncSharedCacheGeneration();
     const cached = readGasShortCache(key);
-    if (cached?.body) {
-      const init = JSON.parse(cached.body) as AdminInitResponse;
+    if (cached?.body && isCacheableGasReadBody("initData", cached.body)) {
+      const init = parseInit(cached.body);
       return { tenant: tenantFromInit(tenantId, init), init, cache: "HIT" };
     }
 
     const shared = await readSharedGasCache(key);
-    if (shared?.body) {
+    if (shared?.body && isCacheableGasReadBody("initData", shared.body)) {
       writeGasShortCache(key, shared.body, shared.status, PUBLIC_INIT_TTL_MS);
-      const init = JSON.parse(shared.body) as AdminInitResponse;
+      const init = parseInit(shared.body);
       return {
         tenant: tenantFromInit(tenantId, init),
         init,
@@ -78,14 +86,21 @@ export async function loadPublicBoot(tenantId: string): Promise<{
     }
 
     const { text, shared: coalesced } = await withGasInflightCoalesce(key, async () => {
-      const init = await fetchInitData(tenantId);
-      const body = JSON.stringify(init);
-      writeGasShortCache(key, body, 200, PUBLIC_INIT_TTL_MS);
-      await writeSharedGasCache(key, body, 200, PUBLIC_INIT_TTL_MS);
+      const { text: body } = await withSharedSingleflight(key, async () => {
+        const init = await fetchInitData(tenantId);
+        return JSON.stringify(init);
+      });
+      if (!isSuccessfulGasReadBody(body)) {
+        throw new Error("GAS_ERROR_BODY");
+      }
+      if (isCacheableGasReadBody("initData", body)) {
+        writeGasShortCache(key, body, 200, PUBLIC_INIT_TTL_MS);
+        await writeSharedGasCache(key, body, 200, PUBLIC_INIT_TTL_MS, "initData");
+      }
       return body;
     });
 
-    const init = JSON.parse(text) as AdminInitResponse;
+    const init = parseInit(text);
     return {
       tenant: tenantFromInit(tenantId, init),
       init,
@@ -93,6 +108,16 @@ export async function loadPublicBoot(tenantId: string): Promise<{
     };
   } catch (err) {
     console.error("loadPublicBoot:", err);
+    const stale = await readLastGoodGasCache(key);
+    if (stale?.body && isCacheableGasReadBody("initData", stale.body)) {
+      writeGasShortCache(key, stale.body, stale.status, PUBLIC_INIT_TTL_MS);
+      const init = parseInit(stale.body);
+      return {
+        tenant: tenantFromInit(tenantId, init),
+        init,
+        cache: "STALE",
+      };
+    }
     return null;
   }
 }
