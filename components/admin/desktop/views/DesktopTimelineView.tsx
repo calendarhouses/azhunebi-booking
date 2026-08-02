@@ -114,6 +114,9 @@ export interface DesktopTimelineViewProps {
   onUndoMove?: () => void;
   canUndoMove?: boolean;
   isUndoing?: boolean;
+  /** Оновити сповіщення в групі ПРИБИРАННЯ. */
+  onSyncCleaning?: () => void | Promise<void>;
+  cleaningSyncBusy?: boolean;
 }
 
 type TimelineDay = {
@@ -445,6 +448,8 @@ export function DesktopTimelineView({
   onUndoMove,
   canUndoMove = false,
   isUndoing = false,
+  onSyncCleaning,
+  cleaningSyncBusy = false,
 }: DesktopTimelineViewProps) {
   const isMobile = layout === "mobile";
   const isAndroid = isMobile && isAndroidUserAgent(
@@ -2576,6 +2581,17 @@ export function DesktopTimelineView({
       </div>
       <div className="price-grid-toolbar__actions">
         {timelineModeToggle}
+        {onSyncCleaning ? (
+          <button
+            type="button"
+            className={`btn-secondary${cleaningSyncBusy ? " is-busy" : ""}`}
+            onClick={() => void onSyncCleaning()}
+            disabled={cleaningSyncBusy}
+            title="Оновити сповіщення в групі ПРИБИРАННЯ"
+          >
+            {cleaningSyncBusy ? "Оновлення…" : "Оновити"}
+          </button>
+        ) : null}
         {onNewBooking ? (
           <button type="button" className="btn-primary" onClick={onNewBooking}>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2599,8 +2615,32 @@ export function DesktopTimelineView({
           {timelineMonthNav}
           {timelineTodayButton}
           {timelineModeToggle}
+          {onSyncCleaning ? (
+            <button
+              type="button"
+              className={`btn-secondary${cleaningSyncBusy ? " is-busy" : ""}`}
+              onClick={() => void onSyncCleaning()}
+              disabled={cleaningSyncBusy}
+              title="Оновити сповіщення в групі ПРИБИРАННЯ"
+            >
+              {cleaningSyncBusy ? "Оновлення…" : "Оновити"}
+            </button>
+          ) : null}
         </>
       )}
+      {isMobile && onSyncCleaning ? (
+        <div className="timeline-toolbar-actions">
+          <button
+            type="button"
+            className={`btn-secondary tap-btn${cleaningSyncBusy ? " is-busy" : ""}`}
+            onClick={() => void onSyncCleaning()}
+            disabled={cleaningSyncBusy}
+            title="Оновити сповіщення в групі ПРИБИРАННЯ"
+          >
+            {cleaningSyncBusy ? "Оновлення…" : "Оновити"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 

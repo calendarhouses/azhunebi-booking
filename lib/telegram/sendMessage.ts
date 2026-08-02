@@ -100,12 +100,49 @@ export async function answerTelegramCallback(
   });
 }
 
+export type TelegramApiResult = {
+  ok: boolean;
+  messageId?: number;
+  description?: string;
+  /** True when Telegram says the text was already the same. */
+  notModified?: boolean;
+};
+
+async function parseTelegramApiResponse(res: Response): Promise<TelegramApiResult> {
+  const json = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    description?: string;
+    result?: { message_id?: number };
+  } | null;
+  const description = json?.description || (!res.ok ? `HTTP ${res.status}` : undefined);
+  const notModified = Boolean(
+    description && /message is not modified/i.test(description)
+  );
+  const messageId = Number(json?.result?.message_id);
+  return {
+    ok: Boolean(json?.ok) || notModified,
+    messageId: Number.isFinite(messageId) && messageId > 0 ? messageId : undefined,
+    description,
+    notModified,
+  };
+}
+
+export async function sendTelegramMessageResult(
+  text: string,
+  keyboard?: unknown,
+  chatId?: string,
+  threadId?: number | null
+): Promise<TelegramApiResult> {
+  const res = await sendTelegramMessage(text, keyboard, chatId, threadId);
+  return parseTelegramApiResponse(res);
+}
+
 export async function editTelegramMessage(
   chatId: string | number,
   messageId: number,
   text: string,
   keyboard?: unknown
-): Promise<void> {
+): Promise<TelegramApiResult> {
   const cfg = getTelegramConfig();
   const payload: Record<string, unknown> = {
     chat_id: chatId,
@@ -115,9 +152,32 @@ export async function editTelegramMessage(
     disable_web_page_preview: true,
   };
   if (keyboard) payload.reply_markup = keyboard;
-  await fetch(`https://api.telegram.org/bot${cfg.botToken}/editMessageText`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const res = await fetch(
+    `https://api.telegram.org/bot${cfg.botToken}/editMessageText`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+  return parseTelegramApiResponse(res);
+}
+
+export async function deleteTelegramMessage(
+  chatId: string | number,
+  messageId: number
+): Promise<TelegramApiResult> {
+  const cfg = getTelegramConfig();
+  const res = await fetch(
+    `https://api.telegram.org/bot${cfg.botToken}/deleteMessage`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+      }),
+    }
+  );
+  return parseTelegramApiResponse(res);
 }
