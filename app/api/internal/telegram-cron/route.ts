@@ -267,6 +267,21 @@ function calcFinanceStats(
   };
 }
 
+/** One job must not fail the whole cron (GAS marks the trigger red on HTTP 5xx). */
+async function runSafe(
+  name: string,
+  results: Record<string, unknown>,
+  fn: () => Promise<unknown>
+) {
+  try {
+    results[name] = await fn();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[TG cron] ${name}`, err);
+    results[name] = { ok: false, error: message };
+  }
+}
+
 async function runJobs(force?: string | null) {
   const digest = await fetchCronTelegramDigest();
   const bookings = digest.bookings;
@@ -277,52 +292,66 @@ async function runJobs(force?: string | null) {
   if (!force || force === "arrivals") {
     const arrivalBookings =
       bookings as Parameters<typeof notifyTodayArrivalsAndDepartures>[0];
-    results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
-    results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
+    await runSafe("arrivals", results, () =>
+      notifyTodayArrivalsAndDepartures(arrivalBookings)
+    );
+    await runSafe("cleaningTurnovers", results, () =>
+      notifyCleaningTodayTurnovers(arrivalBookings)
+    );
   }
   if (force === "bookings") {
-    results.bookings = await refreshPaidBookingsTelegramMessages({
-      bookings: bookings as any,
-      settings,
-    });
+    await runSafe("bookings", results, () =>
+      refreshPaidBookingsTelegramMessages({
+        bookings: bookings as any,
+        settings,
+      })
+    );
   }
   if (force === "turnoversRefresh") {
-    results.turnoversRefresh = await refreshTurnoversTelegramMessages({
-      bookings: bookings as any,
-      settings,
-      editOnly: true,
-    });
+    await runSafe("turnoversRefresh", results, () =>
+      refreshTurnoversTelegramMessages({
+        bookings: bookings as any,
+        settings,
+        editOnly: true,
+      })
+    );
   }
   if (!force || force === "debt") {
-    results.debt = await sendDebtReminders(
-      bookings as Parameters<typeof sendDebtReminders>[0]
+    await runSafe("debt", results, () =>
+      sendDebtReminders(bookings as Parameters<typeof sendDebtReminders>[0])
     );
   }
   if (force === "evening") {
-    results.evening = await sendEveningCashSummary(
-      bookings as Parameters<typeof sendEveningCashSummary>[0]
+    await runSafe("evening", results, () =>
+      sendEveningCashSummary(
+        bookings as Parameters<typeof sendEveningCashSummary>[0]
+      )
     );
   }
 
   if (force === "weekly" || (!force && now.weekday === "Sun")) {
     const range = weekRangeKyiv();
     const stats = calcFinanceStats(bookings, settings, range.start, range.end);
-    results.weekly = await sendFinancePeriodSummary({
-      titleEmoji: "📊",
-      title: "ТИЖНЕВЕ ЗВЕДЕННЯ",
-      periodLabel: range.label,
-      stats,
-    });
+    await runSafe("weekly", results, () =>
+      sendFinancePeriodSummary({
+        titleEmoji: "📊",
+        title: "ТИЖНЕВЕ ЗВЕДЕННЯ",
+        periodLabel: range.label,
+        stats,
+      })
+    );
   }
   if ((force === "monthly" || !force) && lastDayOfMonthKyiv()) {
     const range = monthRangeKyiv();
     const stats = calcFinanceStats(bookings, settings, range.start, range.end);
-    results.monthly = await sendFinancePeriodSummary({
-      titleEmoji: "📆",
-      title: "МІСЯЧНЕ ЗВЕДЕННЯ",
-      periodLabel: range.label,
-      stats,
-    });
+    await runSafe("monthly", results, () =>
+      sendFinancePeriodSummary({
+        titleEmoji: "📆",
+        title: "МІСЯЧНЕ ЗВЕДЕННЯ",
+        periodLabel: range.label,
+        stats,
+      })
+    );
   }
 
   return results;
