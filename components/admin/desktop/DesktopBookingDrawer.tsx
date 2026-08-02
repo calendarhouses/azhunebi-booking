@@ -33,6 +33,7 @@ import {
 } from "../shared/BookingReviewActions";
 import { BookingPhoneMessengerButtons } from "../shared/BookingPhoneMessengerButtons";
 import { BookingRefundSection } from "../shared/BookingRefundSection";
+import { BookingChangeHistory } from "../shared/BookingChangeHistory";
 import type { useBookingDrawer } from "./useBookingDrawer";
 import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "./types";
 
@@ -570,6 +571,7 @@ export function DesktopBookingDrawer({
               onRefunded={() => void onBookingReviewed?.()}
             />
           ) : null}
+          {reviewOrderId ? <BookingChangeHistory orderId={reviewOrderId} /> : null}
         </div>
         <div className={`drawer-footer${isMobile ? " drawer-footer--mobile" : ""}`}>
           <div className="drawer-footer-actions">

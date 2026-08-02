@@ -905,6 +905,45 @@ export async function listActivityLog(): Promise<{
   };
 }
 
+/** Один рядок історії змін броні (розгорнутий з activityLog). */
+export type BookingActivityItem = {
+  id: string;
+  at: string;
+  type: string;
+  label: string;
+  from: string;
+  to: string;
+  actorName: string;
+  summary: string;
+};
+
+/** On-demand: історія змін з клітинки цієї броні (не activityLog, не boot). */
+export async function listBookingActivity(orderId: string): Promise<{
+  items: BookingActivityItem[];
+  total: number;
+}> {
+  const id = String(orderId || "").trim();
+  if (!id) {
+    return { items: [], total: 0 };
+  }
+  const data = await gasFetch<{
+    items?: BookingActivityItem[];
+    total?: number;
+    error?: string;
+    message?: string;
+  }>(
+    { action: "listBookingActivity", orderId: id },
+    { authToken: getStoredAuthToken() }
+  );
+  if (data.error) {
+    throw new Error(data.message || data.error);
+  }
+  return {
+    items: Array.isArray(data.items) ? data.items : [],
+    total: Number(data.total) || 0,
+  };
+}
+
 export async function createTeamMember(input: {
   name: string;
   email: string;

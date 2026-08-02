@@ -88,7 +88,7 @@ export function resolveBookingOrderId(
 ): string {
   const fromBooking = String(booking?.id || "").trim();
   if (fromBooking) return fromBooking;
-  const fromTitle = String(fallbackTitle || "").match(/B-\d+/)?.[0];
+  const fromTitle = String(fallbackTitle || "").match(/[A-Z]-\d+/)?.[0];
   return fromTitle || "";
 }
 
