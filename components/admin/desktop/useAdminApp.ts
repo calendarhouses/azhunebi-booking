@@ -10,7 +10,6 @@ import { parseAdminFetchError } from "@/lib/admin/parseAdminApiError";
 import { setCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
 import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
-  consumePrefetchedAdminInit,
   releasePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
 import {
@@ -35,7 +34,7 @@ import {
   reconcilePendingDeletedDiscounts,
 } from "@/lib/admin/discountPendingDeletes";
 import {
-  fetchAdminChessboardData,
+  fetchAdminChessboardWithRetry,
   getAdminTenantId,
   setAdminTenantId,
 } from "./adminApi";
@@ -285,19 +284,8 @@ export function useAdminApp(options?: {
     try {
       const tenantId = membership?.tenantId || getAdminTenantId() || "";
       if (tenantId) setAdminTenantId(tenantId);
-      const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
-      const data = prefetched
-        ? await prefetched
-        : await fetchAdminChessboardData(tenantId || undefined);
-      if (
-        !data ||
-        typeof data !== "object" ||
-        (data as { error?: string }).error ||
-        !data.settings ||
-        !Array.isArray(data.bookings)
-      ) {
-        throw new Error("Не вдалося завантажити шахматку");
-      }
+      // Retries through 502 / Google HTML errors; ignores a failed prefetch.
+      const data = await fetchAdminChessboardWithRetry(tenantId || undefined);
       applyServerData(data);
       if (tenantId) releasePrefetchedAdminInit(tenantId);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));

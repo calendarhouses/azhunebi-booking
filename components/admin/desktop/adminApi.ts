@@ -126,6 +126,84 @@ export async function fetchAdminChessboardData(
   return fetchAdminChessboard(tenantId, token);
 }
 
+function isTransientChessboardError(err: unknown): boolean {
+  if (err instanceof AdminUnauthorizedError) return false;
+  const msg = err instanceof Error ? err.message : String(err || "");
+  const lower = msg.toLowerCase();
+  if (lower.includes("missing_tenant") || lower.includes("unauthorized")) return false;
+  return (
+    lower.includes("502") ||
+    lower.includes("504") ||
+    lower.includes("gas_bad_response") ||
+    lower.includes("gas_timeout") ||
+    lower.includes("gas_unreachable") ||
+    lower.includes("gas_rate_limited") ||
+    lower.includes("не json") ||
+    lower.includes("timeout") ||
+    lower.includes("aborted") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("network") ||
+    lower.includes("invalid chessboard") ||
+    lower.includes("не вдалося завантажити шахматку")
+  );
+}
+
+function isValidChessboard(data: AdminInitResponse | null | undefined): boolean {
+  if (!data || typeof data !== "object") return false;
+  if ((data as { error?: string }).error) return false;
+  if (!data.settings || typeof data.settings !== "object") return false;
+  return Array.isArray(data.bookings);
+}
+
+/**
+ * Chessboard boot with retries. Prefetch failures must not stick — we clear
+ * and fetch fresh so a 502 while Google is busy does not permanently block paint.
+ */
+export async function fetchAdminChessboardWithRetry(
+  tenantIdOverride?: string,
+  options?: { attempts?: number }
+): Promise<AdminInitResponse> {
+  const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
+  if (!tenantId) throw new Error("MISSING_TENANT");
+
+  const { consumePrefetchedAdminInit, clearAdminInitPrefetch } = await import(
+    "@/lib/admin/adminInitPrefetch"
+  );
+
+  const prefetched = consumePrefetchedAdminInit(tenantId);
+  if (prefetched) {
+    try {
+      const data = await prefetched;
+      if (isValidChessboard(data)) return data;
+      clearAdminInitPrefetch();
+    } catch {
+      clearAdminInitPrefetch();
+    }
+  }
+
+  const attempts = options?.attempts ?? 3;
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const data = await fetchAdminChessboardData(tenantId);
+      if (!isValidChessboard(data)) {
+        throw new Error("Не вдалося завантажити шахматку");
+      }
+      return data;
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientChessboardError(err) || i === attempts - 1) throw err;
+      const waitMs = 1200 * (i + 1);
+      console.warn(
+        `[adminChessboard] transient failure, retry ${i + 1}/${attempts} in ${waitMs}ms`,
+        err
+      );
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Не вдалося завантажити шахматку");
+}
+
 /** Stage-A after paint — full settings + list bookings. */
 export async function fetchAdminDeferredData(
   tenantIdOverride?: string
