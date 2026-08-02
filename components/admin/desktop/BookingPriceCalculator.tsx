@@ -665,8 +665,15 @@ export function BookingPriceCalculator({
 
   const paymentStatusRef = useRef<string | null>(null);
   useEffect(() => {
-    if (bookingStatus === "Скасовано" || bookingStatus === "Закрито") return;
+    if (bookingStatus === "Скасовано") return;
     const paid = prepay + surcharge;
+    // «Закрито» → «Підтверджено» лише коли зʼявилась оплата/аванс; назад не відкочуємо.
+    if (bookingStatus === "Закрито") {
+      if (paid <= 0) return;
+      paymentStatusRef.current = "Підтверджено";
+      onStatusFromPayment?.("Підтверджено");
+      return;
+    }
     const next = paid > 0 ? "Підтверджено" : "Очікує оплату";
     if (paymentStatusRef.current === next) return;
     paymentStatusRef.current = next;
