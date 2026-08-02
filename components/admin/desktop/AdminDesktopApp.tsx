@@ -243,6 +243,7 @@ export function AdminDesktopApp() {
             }
             onNewBooking={() => drawer.openNewBookingDrawer()}
             adminUndo={adminUndo}
+            onSettingsChange={admin.setSettings}
           />
           <DesktopGuestsView
             style={getAdminViewStyle("guests", admin.activeView)}

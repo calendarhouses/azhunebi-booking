@@ -7,12 +7,7 @@ import { refreshPaidBookingsTelegramMessages } from "@/lib/telegram/refreshPaidB
 import { type GasBookingRecord } from "@/lib/gas-api";
 
 export const runtime = "nodejs";
-
-type RefreshResult = {
-  ok: boolean;
-  edited: number;
-  missingBookings: number;
-};
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id")?.trim() || null;
@@ -23,19 +18,52 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "TELEGRAM_NOT_CONFIGURED" }, { status: 503 });
   }
 
-  const digest = await fetchCronTelegramDigest();
-  const bookings = (digest.bookings || []) as GasBookingRecord[];
-  const settings = digest.settings || {};
+  const body = (await request.json().catch(() => ({}))) as {
+    bookings?: GasBookingRecord[];
+    settings?: Record<string, unknown>;
+  };
 
-  const { edited, missingBookings } =
-    await refreshPaidBookingsTelegramMessages({ bookings, settings });
+  const clientBookings = Array.isArray(body.bookings) ? body.bookings : null;
+  const clientSettings =
+    body.settings && typeof body.settings === "object" ? body.settings : null;
+  const clientHasBookingsState =
+    Boolean(clientSettings) &&
+    Object.prototype.hasOwnProperty.call(clientSettings, "telegramBookingsState");
 
-  const result: RefreshResult = {
+  let bookings = clientBookings;
+  let settings = clientSettings || {};
+
+  if (!bookings || !clientHasBookingsState) {
+    try {
+      const digest = await fetchCronTelegramDigest();
+      if (!bookings) bookings = (digest.bookings || []) as GasBookingRecord[];
+      if (!clientHasBookingsState) {
+        settings = {
+          ...settings,
+          telegramBookingsState: digest.settings?.telegramBookingsState,
+        };
+      }
+    } catch (err) {
+      if (!bookings) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Не вдалося завантажити дані для Telegram",
+          },
+          { status: 502 }
+        );
+      }
+    }
+  }
+
+  const { edited, missingBookings } = await refreshPaidBookingsTelegramMessages({
+    bookings: bookings || [],
+    settings,
+  });
+
+  return NextResponse.json({
     ok: true,
     edited,
     missingBookings,
-  };
-
-  return NextResponse.json(result);
+  });
 }
-

@@ -195,6 +195,7 @@ export function AdminMobileApp() {
                   drawer.openNewBookingDrawer(room, checkIn, checkOut)
                 }
                 adminUndo={adminUndo}
+                onSettingsChange={admin.setSettings}
               />
             ) : null}
             <AdminViewPane view="guests" active={admin.activeView}>

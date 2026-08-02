@@ -83,7 +83,7 @@ import {
   handleBookingTouchStart,
   TOUCH_TOOLTIP_HOLD_SLOP_PX,
 } from "../timelineBookingTouch";
-import type { BookingRecord, RoomConfig } from "../types";
+import type { AdminSettingsPayload, BookingRecord, RoomConfig } from "../types";
 import {
   getTimelineBookingBlockLayout,
   TIMELINE_BOOKING_BLOCK_LAYOUT,
@@ -103,6 +103,8 @@ export interface DesktopTimelineViewProps {
   useViewRootId?: boolean;
   roomsList?: RoomConfig[];
   bookings?: BookingRecord[];
+  /** Needed so "Оновити сповіщення" can edit existing Telegram messages without a slow GAS digest. */
+  settings?: AdminSettingsPayload;
   onOpenBooking: (event: React.MouseEvent | null, row: number | string) => void;
   onCreateBooking: (room: string, checkIn: string, checkOut: string) => void;
   /** Кнопка «Нова бронь» у розгорнутому вигляді (коли хедер прихований). */
@@ -116,6 +118,8 @@ export interface DesktopTimelineViewProps {
   onUndoMove?: () => void;
   canUndoMove?: boolean;
   isUndoing?: boolean;
+  /** Persist refreshed Telegram message_id map into admin settings cache. */
+  onTelegramTurnoversState?: (state: Record<string, unknown>) => void;
 }
 
 type TimelineDay = {
@@ -440,6 +444,7 @@ export function DesktopTimelineView({
   useViewRootId = true,
   roomsList = [],
   bookings = [],
+  settings,
   onOpenBooking,
   onCreateBooking,
   onNewBooking,
@@ -447,6 +452,7 @@ export function DesktopTimelineView({
   onUndoMove,
   canUndoMove = false,
   isUndoing = false,
+  onTelegramTurnoversState,
 }: DesktopTimelineViewProps) {
   const isMobile = layout === "mobile";
   const isAndroid = isMobile && isAndroidUserAgent(
@@ -851,16 +857,27 @@ export function DesktopTimelineView({
         "Content-Type": "application/json",
       };
 
+      const payload = JSON.stringify({
+        // Use chessboard data (already has cottage move / guest edits).
+        bookings,
+        settings: settings
+          ? {
+              telegramTurnoversState: settings.telegramTurnoversState,
+              telegramBookingsState: settings.telegramBookingsState,
+            }
+          : undefined,
+      });
+
       const [turnoversRes, bookingsRes] = await Promise.allSettled([
         fetch("/api/admin/telegram/refresh-turnovers", {
           method: "POST",
           headers: commonHeaders,
-          body: JSON.stringify({}),
+          body: payload,
         }),
         fetch("/api/admin/telegram/refresh-bookings", {
           method: "POST",
           headers: commonHeaders,
-          body: JSON.stringify({}),
+          body: payload,
         }),
       ]);
 
@@ -881,6 +898,9 @@ export function DesktopTimelineView({
         } else {
           edited = Number(data.edited) || 0;
           sent = Number(data.sent) || 0;
+          if (data.telegramTurnoversState && typeof data.telegramTurnoversState === "object") {
+            onTelegramTurnoversState?.(data.telegramTurnoversState as Record<string, unknown>);
+          }
         }
       } else {
         errors.push("Помилка оновлення Telegram (заїзди/виїзди/прибирання)");
@@ -908,14 +928,16 @@ export function DesktopTimelineView({
       }
 
       showToast(
-        `Telegram оновлено: ${edited} відредаговано, ${sent} надіслано. Бронювання: ${bookingsEdited} відредаговано, ${bookingsMissing} не знайдено.`
+        edited + sent + bookingsEdited > 0
+          ? `Telegram оновлено: ${edited} відредаговано, ${sent} надіслано. Бронювання: ${bookingsEdited} відредаговано, ${bookingsMissing} не знайдено.`
+          : "Немає змін у Telegram (перевірте, що заїзд/виїзд саме на сьогодні, і що бронь збережена)."
       );
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Помилка оновлення Telegram");
     } finally {
       setTelegramRefreshBusy(false);
     }
-  }, [telegramRefreshBusy]);
+  }, [telegramRefreshBusy, bookings, settings, onTelegramTurnoversState]);
 
   const syncMobileNavAnchorFromScroll = useCallback(() => {
     if (!isMobile || mode !== "continuous") return;

@@ -24,27 +24,41 @@ import {
 /**
  * Refresh today's arrival/departure/cleaning Telegram messages.
  *
- * editOnly=true  → only edit messages we already have message_id for (manual button).
+ * editOnly=true  → only edit messages we already have message_id for.
  * editOnly=false → also send new messages for bookings without stored message_id,
- *                  then persist the new message_ids (auto-trigger).
+ *                  then persist the new message_ids (manual button + cron).
  */
 export async function refreshTurnoversTelegramMessages(args: {
   bookings: ArrivalDepartureBooking[];
   settings: Record<string, unknown>;
   editOnly?: boolean;
-}): Promise<{ edited: number; sent: number; skipped: number; updatedDay: string }> {
+}): Promise<{
+  edited: number;
+  sent: number;
+  skipped: number;
+  updatedDay: string;
+  /** Full turnovers state map after applying this run's patch (for client cache). */
+  telegramTurnoversState: TelegramTurnoversState;
+}> {
   if (!isTelegramConfigured()) {
-    return { edited: 0, sent: 0, skipped: 0, updatedDay: todayKeyKyiv() };
+    const updatedDay = todayKeyKyiv();
+    return {
+      edited: 0,
+      sent: 0,
+      skipped: 0,
+      updatedDay,
+      telegramTurnoversState: safeParse(args.settings.telegramTurnoversState),
+    };
   }
 
   const { bookings, settings, editOnly = false } = args;
   const updatedDay = todayKeyKyiv();
   const storedState = safeParse(settings.telegramTurnoversState);
 
-  const dayState = storedState[updatedDay] || {};
-  const storedArrivals = dayState.arrivals || {};
-  const storedDepartures = dayState.departures || {};
-  const storedCleaning = dayState.cleaning || {};
+  const dayState = { ...(storedState[updatedDay] || {}) };
+  const storedArrivals = { ...(dayState.arrivals || {}) };
+  const storedDepartures = { ...(dayState.departures || {}) };
+  const storedCleaning = { ...(dayState.cleaning || {}) };
 
   const arrivalTargets = getArrivalsTargets();
   const cleaningTargets = getCleaningTargets();
@@ -101,6 +115,8 @@ export async function refreshTurnoversTelegramMessages(args: {
             const bucket = item.kind === "arrival" ? "arrivals" : "departures";
             patch[bucket] = patch[bucket] || {};
             patch[bucket]![bId] = nr;
+            if (item.kind === "arrival") storedArrivals[bId] = nr;
+            else storedDepartures[bId] = nr;
           }
         }
       }
@@ -112,13 +128,14 @@ export async function refreshTurnoversTelegramMessages(args: {
         const bucket = item.kind === "arrival" ? "arrivals" : "departures";
         patch[bucket] = patch[bucket] || {};
         patch[bucket]![bId] = nr;
+        if (item.kind === "arrival") storedArrivals[bId] = nr;
+        else storedDepartures[bId] = nr;
       }
     } else {
       skipped += 1;
     }
   }
 
-  // Stale arrival messages — delete from Telegram + state.
   for (const [bId, ref] of Object.entries(storedArrivals)) {
     if (!ref?.messageId) continue;
     if (currentArrivalIds.has(bId)) continue;
@@ -127,10 +144,10 @@ export async function refreshTurnoversTelegramMessages(args: {
     );
     patch.arrivals = patch.arrivals || {};
     patch.arrivals[bId] = null;
+    delete storedArrivals[bId];
     edited += 1;
   }
 
-  // Stale departure messages — delete from Telegram + state.
   for (const [bId, ref] of Object.entries(storedDepartures)) {
     if (!ref?.messageId) continue;
     if (currentDepartureIds.has(bId)) continue;
@@ -139,6 +156,7 @@ export async function refreshTurnoversTelegramMessages(args: {
     );
     patch.departures = patch.departures || {};
     patch.departures[bId] = null;
+    delete storedDepartures[bId];
     edited += 1;
   }
 
@@ -177,6 +195,7 @@ export async function refreshTurnoversTelegramMessages(args: {
             sent += 1;
             patch.cleaning = patch.cleaning || {};
             patch.cleaning[ck] = nr;
+            storedCleaning[ck] = nr;
           }
         }
       }
@@ -187,13 +206,13 @@ export async function refreshTurnoversTelegramMessages(args: {
         sent += 1;
         patch.cleaning = patch.cleaning || {};
         patch.cleaning[ck] = nr;
+        storedCleaning[ck] = nr;
       }
     } else {
       skipped += 1;
     }
   }
 
-  // Stale cleaning messages — delete from Telegram + state.
   for (const [ck, ref] of Object.entries(storedCleaning)) {
     if (!ref?.messageId) continue;
     if (currentCottages.has(ck)) continue;
@@ -202,6 +221,7 @@ export async function refreshTurnoversTelegramMessages(args: {
     );
     patch.cleaning = patch.cleaning || {};
     patch.cleaning[ck] = null;
+    delete storedCleaning[ck];
     edited += 1;
   }
 
@@ -209,7 +229,14 @@ export async function refreshTurnoversTelegramMessages(args: {
     await upsertTelegramTurnoversState(updatedDay, patch);
   }
 
-  return { edited, sent, skipped, updatedDay };
+  const nextState: TelegramTurnoversState = { ...storedState };
+  nextState[updatedDay] = {
+    arrivals: storedArrivals,
+    departures: storedDepartures,
+    cleaning: storedCleaning,
+  };
+
+  return { edited, sent, skipped, updatedDay, telegramTurnoversState: nextState };
 }
 
 function bKey(b: ArrivalDepartureBooking): string | null {

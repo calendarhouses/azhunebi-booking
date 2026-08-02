@@ -226,6 +226,10 @@ export interface AdminSettingsPayload {
   flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
   icalSyncSettings?: import("@/lib/ical").IcalSyncSettings;
   smsSettings?: import("@/lib/sms/smsSettings").SmsSettings;
+  /** Message ids for today's arrivals/departures/cleaning Telegram posts. */
+  telegramTurnoversState?: Record<string, unknown>;
+  /** Message ids for paid-booking Telegram posts. */
+  telegramBookingsState?: Record<string, unknown>;
 }
 
 export interface AdminInitResponse {

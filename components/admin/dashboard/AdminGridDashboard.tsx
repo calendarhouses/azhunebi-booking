@@ -21,6 +21,7 @@ export type AdminGridDashboardProps = {
   onCreateBooking: (room: string, checkIn: string, checkOut: string) => void;
   onNewBooking?: () => void;
   adminUndo: AdminUndoApi;
+  onSettingsChange?: (next: AdminSettingsPayload) => void;
 };
 
 /** Шахматка бронювань. */
@@ -34,6 +35,7 @@ export function AdminGridDashboard({
   onCreateBooking,
   onNewBooking,
   adminUndo,
+  onSettingsChange,
 }: AdminGridDashboardProps) {
   const isMobile = layout === "mobile";
   const [pendingMove, setPendingMove] = useState<{
@@ -124,6 +126,7 @@ export function AdminGridDashboard({
           }}
           roomsList={roomsList}
           bookings={displayBookings}
+          settings={settings}
           onOpenBooking={onOpenBooking}
           onCreateBooking={onCreateBooking}
           onNewBooking={onNewBooking}
@@ -131,6 +134,12 @@ export function AdminGridDashboard({
           onUndoMove={() => adminUndo.undoLastInScope("booking")}
           canUndoMove={adminUndo.undoAvailable.booking}
           isUndoing={adminUndo.isUndoing}
+          onTelegramTurnoversState={
+            onSettingsChange
+              ? (telegramTurnoversState) =>
+                  onSettingsChange({ ...settings, telegramTurnoversState })
+              : undefined
+          }
         />
         {pendingMove ? (
           <div

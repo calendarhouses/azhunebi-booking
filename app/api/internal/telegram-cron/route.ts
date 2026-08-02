@@ -308,11 +308,13 @@ async function runJobs(force?: string | null) {
     );
   }
   if (force === "turnoversRefresh") {
+    // editOnly:false — after a cottage move, the new cottage has no stored
+    // message_id yet; we must send (and delete the stale cottage message).
     await runSafe("turnoversRefresh", results, () =>
       refreshTurnoversTelegramMessages({
         bookings: bookings as any,
         settings,
-        editOnly: true,
+        editOnly: false,
       })
     );
   }

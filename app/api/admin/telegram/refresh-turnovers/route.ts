@@ -1,102 +1,20 @@
 import { NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/admin/verifyAdminRequest";
 import { fetchCronTelegramDigest } from "@/lib/telegram/cronDigest";
-import {
-  buildArrivalDepartureCaption,
-  type ArrivalDepartureBooking,
-} from "@/lib/telegram/arrivalDepartureNotify";
-import {
-  buildCleaningTurnoverCaption,
-  groupCleaningTurnoversByCottage,
-} from "@/lib/telegram/cleaningArrivalNotify";
-import {
-  isConfirmedBookingStatus,
-  toDateKeyKyiv,
-  todayKeyKyiv,
-  compareByCottageNumber,
-} from "@/lib/telegram/formatters";
-import { chessboardKeyboard, getArrivalsTargets, getCleaningTargets, isTelegramConfigured } from "@/lib/telegram/config";
-import { deleteTelegramMessage, editTelegramMessage, sendTelegramMessage } from "@/lib/telegram/sendMessage";
-import {
-  upsertTelegramTurnoversState,
-  type TelegramMessageRef,
-  type TelegramTurnoversState,
-  type TelegramTurnoversStatePatch,
-} from "@/lib/telegram/turnoversState";
+import { isTelegramConfigured } from "@/lib/telegram/config";
+import type { ArrivalDepartureBooking } from "@/lib/telegram/arrivalDepartureNotify";
+import { refreshTurnoversTelegramMessages } from "@/lib/telegram/refreshTurnoversTelegramMessages";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
-type RefreshResult = {
-  ok: boolean;
-  edited: number;
-  sent: number;
-  updatedDay: string;
-};
-
-function bookingIdKey(booking: ArrivalDepartureBooking): string | null {
-  const id = String(booking.id || "").trim();
-  return id ? id : null;
-}
-
-function cottageKey(cottage: unknown): string {
-  return String(cottage || "")
-    .trim()
-    .toLowerCase();
-}
-
-function collectTodayArrivalDepartureItems(
-  bookings: ArrivalDepartureBooking[],
-  today: string
-): Array<{ booking: ArrivalDepartureBooking; kind: "arrival" | "departure" }> {
-  const items: Array<{ booking: ArrivalDepartureBooking; kind: "arrival" | "departure" }> = [];
-  for (const booking of bookings) {
-    if (!isConfirmedBookingStatus(booking.status)) continue;
-    const checkIn = toDateKeyKyiv(booking.checkIn);
-    const checkOut = toDateKeyKyiv(booking.checkOut);
-    const isArrival = checkIn === today;
-    const isDeparture = checkOut === today;
-    if (!isArrival && !isDeparture) continue;
-    if (isDeparture) items.push({ booking, kind: "departure" });
-    if (isArrival) items.push({ booking, kind: "arrival" });
-  }
-
-  items.sort((a, b) => {
-    const byCottage = compareByCottageNumber(a.booking.cottage, b.booking.cottage);
-    if (byCottage !== 0) return byCottage;
-    if (a.kind === b.kind) return 0;
-    return a.kind === "departure" ? -1 : 1;
-  });
-  return items;
-}
-
-function safeParseTelegramTurnoversState(raw: unknown): TelegramTurnoversState {
-  if (!raw) return {};
-  if (typeof raw === "object") return raw as TelegramTurnoversState;
-  if (typeof raw === "string") {
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed as TelegramTurnoversState;
-    } catch {
-      // ignore
-    }
-  }
-  return {};
-}
-
-async function extractRef(
-  res: Response,
-  fallbackChatId: string | number
-): Promise<TelegramMessageRef | null> {
-  if (!res.ok) return null;
-  const json = await res.json().catch(() => null);
-  const messageId = json?.result?.message_id;
-  const chatId = json?.result?.chat?.id ?? fallbackChatId;
-  if (typeof messageId === "number" && chatId != null) {
-    return { chatId, messageId };
-  }
-  return null;
-}
-
+/**
+ * Manual "Оновити сповіщення" from the chessboard.
+ *
+ * Prefer bookings (+ telegramTurnoversState) from the admin client — those are
+ * what the user just edited. Re-fetching a full GAS digest is slow and often
+ * returns pre-save cottage/guests, so Telegram looks "stuck".
+ */
 export async function POST(request: Request) {
   const tenantId = request.headers.get("x-tenant-id")?.trim() || null;
   const auth = await verifyAdminRequest(request, tenantId);
@@ -106,203 +24,59 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "TELEGRAM_NOT_CONFIGURED" }, { status: 503 });
   }
 
-  const body = await request.json().catch(() => ({}));
-  // First call: force send + save. Subsequent calls will edit.
-  const editOnly = body?.editOnly === true;
-
-  const digest = await fetchCronTelegramDigest();
-  const bookings = (digest.bookings || []) as ArrivalDepartureBooking[];
-  const settings = digest.settings || {};
-
-  const updatedDay = todayKeyKyiv();
-  const storedState = safeParseTelegramTurnoversState(
-    (settings as Record<string, unknown>)["telegramTurnoversState"]
-  );
-
-  const dayState = storedState[updatedDay] || {};
-  const storedArrivals = dayState.arrivals || {};
-  const storedDepartures = dayState.departures || {};
-  const storedCleaning = dayState.cleaning || {};
-
-  const arrivalsTargets = getArrivalsTargets();
-  const cleaningTargets = getCleaningTargets();
-  const keyboard = chessboardKeyboard();
-
-  const arrivalItems = collectTodayArrivalDepartureItems(bookings, updatedDay);
-  const turnovers = groupCleaningTurnoversByCottage(bookings, updatedDay);
-
-  let edited = 0;
-  let sent = 0;
-
-  const patch: TelegramTurnoversStatePatch = {};
-
-  // Track current booking+kind so we can detect stale stored messages.
-  const currentArrivalIds = new Set<string>();
-  const currentDepartureIds = new Set<string>();
-
-  for (const item of arrivalItems) {
-    const bId = bookingIdKey(item.booking);
-    if (!bId) continue;
-    if (item.kind === "arrival") currentArrivalIds.add(bId);
-    else currentDepartureIds.add(bId);
-
-    const caption = buildArrivalDepartureCaption(item.booking, item.kind);
-    const kindMap = item.kind === "arrival" ? storedArrivals : storedDepartures;
-    const ref = kindMap[bId] as TelegramMessageRef | undefined;
-
-    if (ref?.messageId != null) {
-      try {
-        await editTelegramMessage(
-          ref.chatId ?? arrivalsTargets.chatId,
-          ref.messageId,
-          caption,
-          keyboard
-        );
-        edited += 1;
-      } catch (err) {
-        // If the stored message was manually deleted or can't be edited,
-        // fall back to sending a fresh message and update state.
-        const msg = err instanceof Error ? err.message : String(err);
-        const isNotModified = msg.toLowerCase().includes("not modified");
-        if (isNotModified) {
-          edited += 1;
-          continue;
-        }
-        if (!editOnly) {
-          const res = await sendTelegramMessage(
-            caption,
-            keyboard,
-            arrivalsTargets.chatId,
-            arrivalsTargets.threadId
-          );
-          const newRef = await extractRef(res, arrivalsTargets.chatId);
-          if (newRef) {
-            sent += 1;
-            if (item.kind === "arrival") {
-              patch.arrivals = patch.arrivals || {};
-              patch.arrivals[bId] = newRef;
-            } else {
-              patch.departures = patch.departures || {};
-              patch.departures[bId] = newRef;
-            }
-          }
-        }
-      }
-    } else if (!editOnly) {
-      const res = await sendTelegramMessage(
-        caption,
-        keyboard,
-        arrivalsTargets.chatId,
-        arrivalsTargets.threadId
-      );
-      const newRef = await extractRef(res, arrivalsTargets.chatId);
-      if (newRef) {
-        sent += 1;
-        if (item.kind === "arrival") {
-          patch.arrivals = patch.arrivals || {};
-          patch.arrivals[bId] = newRef;
-        } else {
-          patch.departures = patch.departures || {};
-          patch.departures[bId] = newRef;
-        }
-      }
-    }
-  }
-
-  // Stale arrival messages: no longer relevant — delete from Telegram + state.
-  for (const [bId, ref] of Object.entries(storedArrivals)) {
-    if (!ref?.messageId) continue;
-    if (currentArrivalIds.has(bId)) continue;
-    await deleteTelegramMessage(ref.chatId ?? arrivalsTargets.chatId, ref.messageId).catch(
-      () => undefined
-    );
-    patch.arrivals = patch.arrivals || {};
-    patch.arrivals[bId] = null;
-    edited += 1;
-  }
-
-  // Stale departure messages: no longer relevant — delete from Telegram + state.
-  for (const [bId, ref] of Object.entries(storedDepartures)) {
-    if (!ref?.messageId) continue;
-    if (currentDepartureIds.has(bId)) continue;
-    await deleteTelegramMessage(ref.chatId ?? arrivalsTargets.chatId, ref.messageId).catch(
-      () => undefined
-    );
-    patch.departures = patch.departures || {};
-    patch.departures[bId] = null;
-    edited += 1;
-  }
-
-  // Cleaning turnovers
-  const currentCottageKeys = new Set(turnovers.map((t) => cottageKey(t.cottage)));
-
-  for (const turnover of turnovers) {
-    const cKey = cottageKey(turnover.cottage);
-    if (!cKey) continue;
-
-    const caption = buildCleaningTurnoverCaption(turnover);
-    const ref = storedCleaning[cKey] as TelegramMessageRef | undefined;
-
-    if (ref?.messageId != null) {
-      try {
-        await editTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId, caption);
-        edited += 1;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const isNotModified = msg.toLowerCase().includes("not modified");
-        if (isNotModified) {
-          edited += 1;
-          continue;
-        }
-        if (!editOnly) {
-          const res = await sendTelegramMessage(
-            caption,
-            undefined,
-            cleaningTargets.chatId,
-            cleaningTargets.threadId
-          );
-          const newRef = await extractRef(res, cleaningTargets.chatId);
-          if (newRef) {
-            sent += 1;
-            patch.cleaning = patch.cleaning || {};
-            patch.cleaning[cKey] = newRef;
-          }
-        }
-      }
-    } else if (!editOnly) {
-      const res = await sendTelegramMessage(caption, undefined, cleaningTargets.chatId, cleaningTargets.threadId);
-      const newRef = await extractRef(res, cleaningTargets.chatId);
-      if (newRef) {
-        sent += 1;
-        patch.cleaning = patch.cleaning || {};
-        patch.cleaning[cKey] = newRef;
-      }
-    }
-  }
-
-  // Stale cleaning messages: cottage no longer has turnovers — delete.
-  for (const [cKey, ref] of Object.entries(storedCleaning)) {
-    if (!ref?.messageId) continue;
-    if (currentCottageKeys.has(cKey)) continue;
-    await deleteTelegramMessage(ref.chatId ?? cleaningTargets.chatId, ref.messageId).catch(
-      () => undefined
-    );
-    patch.cleaning = patch.cleaning || {};
-    patch.cleaning[cKey] = null;
-    edited += 1;
-  }
-
-  // Persist new message_ids so next refresh will edit instead of send.
-  if (Object.keys(patch).length > 0) {
-    await upsertTelegramTurnoversState(updatedDay, patch);
-  }
-
-  const result: RefreshResult = {
-    ok: true,
-    edited,
-    sent,
-    updatedDay,
+  const body = (await request.json().catch(() => ({}))) as {
+    bookings?: ArrivalDepartureBooking[];
+    settings?: Record<string, unknown>;
   };
 
-  return NextResponse.json(result);
+  const clientBookings = Array.isArray(body.bookings) ? body.bookings : null;
+  const clientSettings =
+    body.settings && typeof body.settings === "object" ? body.settings : null;
+  const clientHasTurnoversState =
+    Boolean(clientSettings) &&
+    Object.prototype.hasOwnProperty.call(clientSettings, "telegramTurnoversState");
+
+  let bookings = clientBookings;
+  let settings = clientSettings || {};
+
+  // Need message_id map and/or bookings — fall back to digest only for missing parts.
+  if (!bookings || !clientHasTurnoversState) {
+    try {
+      const digest = await fetchCronTelegramDigest();
+      if (!bookings) bookings = (digest.bookings || []) as ArrivalDepartureBooking[];
+      if (!clientHasTurnoversState) {
+        settings = {
+          ...settings,
+          telegramTurnoversState: digest.settings?.telegramTurnoversState,
+        };
+      }
+    } catch (err) {
+      if (!bookings) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Не вдалося завантажити дані для Telegram",
+          },
+          { status: 502 }
+        );
+      }
+      // Have client bookings but no state — refresh can still send new messages.
+    }
+  }
+
+  const result = await refreshTurnoversTelegramMessages({
+    bookings: bookings || [],
+    settings,
+    // Manual button: edit existing + send missing (e.g. after cottage move).
+    editOnly: false,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    edited: result.edited,
+    sent: result.sent,
+    skipped: result.skipped,
+    updatedDay: result.updatedDay,
+    telegramTurnoversState: result.telegramTurnoversState,
+  });
 }
