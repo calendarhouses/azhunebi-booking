@@ -3,9 +3,8 @@ import { BOOKING_STATUS_PENDING_REVIEW, isPendingReviewStatus } from "@/lib/publ
 import {
   bumpGasCacheGeneration,
   coalesceKey,
+  gasActionCacheTtlMs,
   isCoalescableGasAction,
-  isOccupancyCriticalAction,
-  OCCUPANCY_CACHE_TTL_MS,
   readGasShortCache,
   withGasInflightCoalesce,
   writeGasShortCache,
@@ -373,7 +372,7 @@ export async function GET(request: Request) {
     tokenFingerprint: tokenFingerprint(bearer || token),
   });
 
-  if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "fetchPublicTenant") {
+  if (gasActionCacheTtlMs(action) > 0) {
     const cached = readGasShortCache(key);
     if (cached) {
       return jsonTextResponse(cached.body, cached.status, {
@@ -420,8 +419,9 @@ export async function GET(request: Request) {
         } catch {
           throw new Error("non-JSON GAS body");
         }
-        if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "fetchPublicTenant") {
-          writeGasShortCache(key, res.text, res.status, OCCUPANCY_CACHE_TTL_MS);
+        const ttl = gasActionCacheTtlMs(action);
+        if (ttl > 0) {
+          writeGasShortCache(key, res.text, res.status, ttl);
         }
         return res.text;
       });
@@ -503,8 +503,8 @@ export async function POST(request: Request) {
         const res = await postToGas(gasUrl, request, body, action);
         upstreamStatus = res.status;
         if (!res.parsed) throw new Error("non-JSON GAS body");
-        if (isOccupancyCriticalAction(action) || action === "adminBoot" || action === "settings") {
-          writeGasShortCache(key, res.text, res.status, OCCUPANCY_CACHE_TTL_MS);
+        if (gasActionCacheTtlMs(action) > 0) {
+          writeGasShortCache(key, res.text, res.status, gasActionCacheTtlMs(action));
         }
         return res.text;
       });

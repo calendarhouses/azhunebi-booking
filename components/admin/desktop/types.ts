@@ -235,6 +235,8 @@ export interface AdminSettingsPayload {
 export interface AdminInitResponse {
   settings: AdminSettingsPayload;
   bookings: BookingRecord[];
+  /** Stage-A: chessboard = first paint; deferred = enrich after paint. */
+  bootPhase?: "chessboard" | "deferred" | "full";
 }
 
 export const BASE_INCOME_CATEGORIES = [

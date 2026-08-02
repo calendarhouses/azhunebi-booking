@@ -96,6 +96,8 @@ export function writeGasShortCache(
 }
 
 export const OCCUPANCY_CACHE_TTL_MS = 8_000;
+/** Stage-A: chessboard / sync payloads — longer so reopen is near-instant. */
+export const CHESSBOARD_CACHE_TTL_MS = 45_000;
 export const SETTINGS_CACHE_TTL_MS = 120_000;
 
 export function isCoalescableGasAction(action: string | null | undefined): boolean {
@@ -103,6 +105,9 @@ export function isCoalescableGasAction(action: string | null | undefined): boole
   return (
     a === "initData" ||
     a === "adminInitData" ||
+    a === "adminChessboard" ||
+    a === "adminDeferred" ||
+    a === "adminSync" ||
     a === "adminBoot" ||
     a === "fetchPublicTenant" ||
     a === "settings" ||
@@ -112,5 +117,20 @@ export function isCoalescableGasAction(action: string | null | undefined): boole
 
 export function isOccupancyCriticalAction(action: string | null | undefined): boolean {
   const a = String(action || "");
-  return a === "initData" || a === "adminInitData" || a === "getAllBookings";
+  return (
+    a === "initData" ||
+    a === "adminInitData" ||
+    a === "adminChessboard" ||
+    a === "adminSync" ||
+    a === "getAllBookings"
+  );
+}
+
+export function gasActionCacheTtlMs(action: string | null | undefined): number {
+  const a = String(action || "");
+  if (a === "adminChessboard" || a === "adminSync") return CHESSBOARD_CACHE_TTL_MS;
+  if (a === "adminDeferred" || a === "settings") return SETTINGS_CACHE_TTL_MS;
+  if (a === "adminBoot" || a === "fetchPublicTenant") return OCCUPANCY_CACHE_TTL_MS;
+  if (isOccupancyCriticalAction(a)) return OCCUPANCY_CACHE_TTL_MS;
+  return 0;
 }

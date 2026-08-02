@@ -1,6 +1,9 @@
 import { AdminUnauthorizedError } from "@/lib/admin/adminSession";
 import {
   createBooking,
+  fetchAdminChessboard,
+  fetchAdminDeferred,
+  fetchAdminSync,
   fetchInitData,
   gasFetch,
   gasPost,
@@ -108,9 +111,46 @@ export async function fetchAdminInitData(tenantIdOverride?: string): Promise<Adm
   return fetchInitData(tenantId, token);
 }
 
+/** Stage-A first paint — slim rooms + chessboard bookings. */
+export async function fetchAdminChessboardData(
+  tenantIdOverride?: string
+): Promise<AdminInitResponse> {
+  const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
+  if (!tenantId) {
+    throw new Error("MISSING_TENANT");
+  }
+  if (!getAdminTenantId()) {
+    setAdminTenantId(tenantId);
+  }
+  const token = await getAccessToken();
+  return fetchAdminChessboard(tenantId, token);
+}
+
+/** Stage-A after paint — full settings + list bookings. */
+export async function fetchAdminDeferredData(
+  tenantIdOverride?: string
+): Promise<AdminInitResponse | null> {
+  try {
+    const tenantId = (tenantIdOverride || getAdminTenantId()).trim();
+    if (!tenantId) return null;
+    const token = await getAccessToken();
+    return await fetchAdminDeferred(tenantId, token);
+  } catch (e) {
+    if (e instanceof AdminUnauthorizedError) {
+      throw e;
+    }
+    console.error("Помилка довантаження налаштувань:", e);
+    return null;
+  }
+}
+
+/** Stage-A silent sync — chessboard-sized, not full adminInitData. */
 export async function silentSyncAdminData(): Promise<AdminInitResponse | null> {
   try {
-    return await fetchAdminInitData();
+    const tenantId = getAdminTenantId().trim();
+    if (!tenantId) return null;
+    const token = await getAccessToken();
+    return await fetchAdminSync(tenantId, token);
   } catch (e) {
     if (e instanceof AdminUnauthorizedError) {
       throw e;

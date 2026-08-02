@@ -477,6 +477,39 @@ export async function fetchInitData(
   );
 }
 
+/** Stage-A: rooms + slim bookings for first paint (≤5s target). */
+export async function fetchAdminChessboard(
+  tenantId: string,
+  authToken?: string | null
+): Promise<AdminInitResponse> {
+  return gasFetch<AdminInitResponse>(
+    { action: "adminChessboard", tenant_id: tenantId, t: Date.now() },
+    { authToken: authToken ?? undefined }
+  );
+}
+
+/** Stage-A: heavy settings + list bookings after UI is visible. */
+export async function fetchAdminDeferred(
+  tenantId: string,
+  authToken?: string | null
+): Promise<AdminInitResponse> {
+  return gasFetch<AdminInitResponse>(
+    { action: "adminDeferred", tenant_id: tenantId, t: Date.now() },
+    { authToken: authToken ?? undefined }
+  );
+}
+
+/** Stage-A: light silent sync (chessboard-sized, not full dump). */
+export async function fetchAdminSync(
+  tenantId: string,
+  authToken?: string | null
+): Promise<AdminInitResponse> {
+  return gasFetch<AdminInitResponse>(
+    { action: "adminSync", tenant_id: tenantId, t: Date.now() },
+    { authToken: authToken ?? undefined }
+  );
+}
+
 export async function fetchPublicTenantData(
   tenantId: string
 ): Promise<PublicTenantPayload | null> {

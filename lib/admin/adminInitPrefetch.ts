@@ -1,15 +1,19 @@
-import { fetchInitData } from "@/lib/gas-api";
+import { fetchAdminChessboard } from "@/lib/gas-api";
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
 
 let prefetchTenantId: string | null = null;
 let prefetchPromise: Promise<AdminInitResponse> | null = null;
 
+/**
+ * Warm Stage-A chessboard payload (rooms + slim bookings) during login / auth.
+ * Does NOT prefetch the heavy adminDeferred dump — that runs after paint.
+ */
 export function prefetchAdminInitData(tenantId: string, authToken: string): Promise<AdminInitResponse> {
   if (prefetchTenantId === tenantId && prefetchPromise) {
     return prefetchPromise;
   }
   prefetchTenantId = tenantId;
-  prefetchPromise = fetchInitData(tenantId, authToken)
+  prefetchPromise = fetchAdminChessboard(tenantId, authToken)
     .then((data) => data)
     .catch((err) => {
       if (prefetchTenantId === tenantId) {
