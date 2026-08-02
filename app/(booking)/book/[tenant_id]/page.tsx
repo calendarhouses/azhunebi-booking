@@ -1,7 +1,6 @@
-import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { PublicBookPage } from "@/components/public/PublicBookPage";
-import { fetchPublicTenantData } from "@/lib/public-booking/fetchPublicTenantData";
+import type { PublicTenantPayload } from "@/lib/public-booking/types";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +8,23 @@ type PageProps = {
   params: Promise<{ tenant_id: string }>;
 };
 
+/**
+ * Paint shell immediately. Do NOT await GAS on SSR — under Apps Script
+ * queue pressure fetchPublicTenantData returns null and notFound() becomes
+ * an intermittent 404 ("This page couldn't load" on mobile).
+ * Client PublicBookingProvider loads initData with retries.
+ */
 export default async function BookTenantPage({ params }: PageProps) {
   const { tenant_id } = await params;
-  const data = await fetchPublicTenantData(tenant_id);
-
-  if (!data) {
-    notFound();
-  }
+  const data: PublicTenantPayload = {
+    tenantId: tenant_id || "default",
+    tenantName: "Ажунебі",
+    subdomain: tenant_id || "default",
+    branding: {},
+    rooms: [],
+    discounts: [],
+    customPrices: {},
+  };
 
   const ua = (await headers()).get("user-agent") || "";
   const isMobile =

@@ -241,25 +241,37 @@ export function PublicBookingProvider({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const init = await fetchPublicInitData(data.tenantId);
-        if (cancelled) return;
-        const settings = init.settings || {};
-        const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
-        setRuntime({
-          ...data,
-          rooms: roomsFromApi.filter((r) => r.active !== false),
-          discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
-          customPrices: settings.customPrices || data.customPrices,
-          bookings: init.bookings || [],
-          restrictions: settings.restrictions || {},
-          closedDates: settings.closedDates || {},
-          sysServicesList: settings.sysServicesList || [],
-          customServicesList: settings.customServicesList || [],
-          flexibleScheduleSettings: settings.flexibleScheduleSettings,
-        });
-      } catch (e) {
-        console.error(e);
+      const attempts = 3;
+      let lastErr: unknown;
+      for (let i = 0; i < attempts; i += 1) {
+        try {
+          const init = await fetchPublicInitData(data.tenantId);
+          if (cancelled) return;
+          const settings = init.settings || {};
+          const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
+          setRuntime({
+            ...data,
+            rooms: roomsFromApi.filter((r) => r.active !== false),
+            discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
+            customPrices: settings.customPrices || data.customPrices,
+            bookings: init.bookings || [],
+            restrictions: settings.restrictions || {},
+            closedDates: settings.closedDates || {},
+            sysServicesList: settings.sysServicesList || [],
+            customServicesList: settings.customServicesList || [],
+            flexibleScheduleSettings: settings.flexibleScheduleSettings,
+          });
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.error(`[publicInit] attempt ${i + 1}/${attempts}`, e);
+          if (i < attempts - 1) {
+            await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+          }
+        }
+      }
+      if (lastErr && !cancelled) {
         setRuntime({
           ...data,
           bookings: [],
@@ -268,9 +280,8 @@ export function PublicBookingProvider({
           sysServicesList: [],
           customServicesList: [],
         });
-      } finally {
-        if (!cancelled) setInitLoading(false);
       }
+      if (!cancelled) setInitLoading(false);
     })();
     return () => {
       cancelled = true;
