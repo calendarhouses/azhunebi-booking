@@ -49,6 +49,7 @@ function tenantFromInit(tenantId: string, init: AdminInitResponse): PublicTenant
 export async function loadPublicBoot(tenantId: string): Promise<{
   tenant: PublicTenantPayload;
   init: AdminInitResponse;
+  cache: "HIT" | "REDIS_HIT" | "MISS" | "COALESCE";
 } | null> {
   const key = coalesceKey({
     method: "GET",
@@ -60,17 +61,21 @@ export async function loadPublicBoot(tenantId: string): Promise<{
     const cached = readGasShortCache(key);
     if (cached?.body) {
       const init = JSON.parse(cached.body) as AdminInitResponse;
-      return { tenant: tenantFromInit(tenantId, init), init };
+      return { tenant: tenantFromInit(tenantId, init), init, cache: "HIT" };
     }
 
     const shared = await readSharedGasCache(key);
     if (shared?.body) {
       writeGasShortCache(key, shared.body, shared.status, PUBLIC_INIT_TTL_MS);
       const init = JSON.parse(shared.body) as AdminInitResponse;
-      return { tenant: tenantFromInit(tenantId, init), init };
+      return {
+        tenant: tenantFromInit(tenantId, init),
+        init,
+        cache: "REDIS_HIT",
+      };
     }
 
-    const { text } = await withGasInflightCoalesce(key, async () => {
+    const { text, shared: coalesced } = await withGasInflightCoalesce(key, async () => {
       const init = await fetchInitData(tenantId);
       const body = JSON.stringify(init);
       writeGasShortCache(key, body, 200, PUBLIC_INIT_TTL_MS);
@@ -79,7 +84,11 @@ export async function loadPublicBoot(tenantId: string): Promise<{
     });
 
     const init = JSON.parse(text) as AdminInitResponse;
-    return { tenant: tenantFromInit(tenantId, init), init };
+    return {
+      tenant: tenantFromInit(tenantId, init),
+      init,
+      cache: coalesced ? "COALESCE" : "MISS",
+    };
   } catch (err) {
     console.error("loadPublicBoot:", err);
     return null;
