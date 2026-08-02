@@ -274,12 +274,24 @@ export function PublicBookingProvider({
     }
 
     (async () => {
-      try {
-        const init = await fetchPublicInitData(data.tenantId);
-        if (cancelled) return;
-        applyInit(init);
-      } catch (e) {
-        console.error(e);
+      const attempts = 3;
+      let lastErr: unknown;
+      for (let i = 0; i < attempts; i += 1) {
+        try {
+          const init = await fetchPublicInitData(data.tenantId);
+          if (cancelled) return;
+          applyInit(init);
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.error(`[publicInit] attempt ${i + 1}/${attempts}`, e);
+          if (i < attempts - 1) {
+            await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+          }
+        }
+      }
+      if (lastErr && !cancelled) {
         setRuntime({
           ...data,
           bookings: [],
@@ -288,9 +300,8 @@ export function PublicBookingProvider({
           sysServicesList: [],
           customServicesList: [],
         });
-      } finally {
-        if (!cancelled) setInitLoading(false);
       }
+      if (!cancelled) setInitLoading(false);
     })();
     return () => {
       cancelled = true;
