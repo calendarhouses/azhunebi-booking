@@ -12,6 +12,14 @@ import { setLastAdminTenantId } from "@/lib/admin/adminPreloaderLogo";
 import {
   consumePrefetchedAdminInit,
 } from "@/lib/admin/adminInitPrefetch";
+import {
+  fetchGuestProfilesRemote,
+  guestPhoneKey,
+  saveGuestProfileRemote,
+  type GuestProfile,
+  type GuestProfilesMap,
+  type GuestRating,
+} from "@/lib/admin/guestProfiles";
 import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
@@ -121,6 +129,9 @@ export function useAdminApp(options?: {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appVisible, setAppVisible] = useState(false);
+  const [guestProfiles, setGuestProfiles] = useState<GuestProfilesMap>({});
+  const guestProfilesLoadedRef = useRef(false);
+  const guestProfilesLoadingRef = useRef(false);
   const loadedTenantIdRef = useRef<string | null>(null);
   const appVisibleRef = useRef(false);
   appVisibleRef.current = appVisible;
@@ -181,10 +192,66 @@ export function useAdminApp(options?: {
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
 
+  /**
+   * Guest CRM — only when opening Guests view or booking drawer.
+   * Never on boot / timeline / settings.
+   */
+  const ensureGuestProfilesLoaded = useCallback(() => {
+    if (!appVisibleRef.current) return;
+    if (guestProfilesLoadedRef.current || guestProfilesLoadingRef.current) return;
+    guestProfilesLoadingRef.current = true;
+    void fetchGuestProfilesRemote()
+      .then((profiles) => {
+        setGuestProfiles(profiles);
+        guestProfilesLoadedRef.current = true;
+      })
+      .catch((err) => {
+        console.warn("[useAdminApp] guestProfiles load failed:", err);
+      })
+      .finally(() => {
+        guestProfilesLoadingRef.current = false;
+      });
+  }, []);
+
+  const upsertGuestProfile = useCallback(
+    (rawPhone: string, patch: { rating?: GuestRating | null; note?: string | null }) => {
+      const phone = guestPhoneKey(rawPhone);
+      if (!phone) return;
+      let mergedProfile: GuestProfile = {};
+      setGuestProfiles((prev) => {
+        const nextProfile: GuestProfile = { ...(prev[phone] || {}) };
+        if ("rating" in patch) {
+          if (patch.rating == null) delete nextProfile.rating;
+          else nextProfile.rating = patch.rating;
+        }
+        if ("note" in patch) {
+          const note = String(patch.note ?? "").trim();
+          if (!note) delete nextProfile.note;
+          else nextProfile.note = note.slice(0, 500);
+        }
+        mergedProfile = nextProfile;
+        const next = { ...prev };
+        if (!nextProfile.rating && !nextProfile.note) delete next[phone];
+        else next[phone] = nextProfile;
+        return next;
+      });
+      void saveGuestProfileRemote(phone, {
+        rating: "rating" in patch ? patch.rating ?? null : mergedProfile.rating ?? null,
+        note: "note" in patch ? patch.note ?? null : mergedProfile.note ?? null,
+      }).catch((err) => {
+        console.error("[useAdminApp] saveGuestProfile failed:", err);
+      });
+    },
+    []
+  );
+
   const loadInitData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     setAppVisible(false);
+    guestProfilesLoadedRef.current = false;
+    guestProfilesLoadingRef.current = false;
+    setGuestProfiles({});
     try {
       const tenantId = membership?.tenantId || "";
       const prefetched = tenantId ? consumePrefetchedAdminInit(tenantId) : null;
@@ -295,6 +362,9 @@ export function useAdminApp(options?: {
       if (viewName === "reports" && !allowReports) nextView = "grid";
       setActiveView(nextView);
       persistNav(nextView, settingsTab, settingsExpanded);
+      if (nextView === "guests") {
+        ensureGuestProfilesLoaded();
+      }
       if (platform === "mobile" && typeof document !== "undefined") {
         const main = document.querySelector(".boso-admin-mobile .main-content");
         if (main) main.scrollTop = 0;
@@ -312,7 +382,7 @@ export function useAdminApp(options?: {
       }
       requestAnimationFrame(() => refreshLegacyView(nextView));
     },
-    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom]
+    [platform, persistNav, settingsTab, settingsExpanded, allowSettings, allowReports, syncViewDom, ensureGuestProfilesLoaded]
   );
 
   const switchSettingsTab = useCallback((tabName: SettingsTabName) => {
@@ -355,6 +425,11 @@ export function useAdminApp(options?: {
       return next;
     });
   }, [persistNav, platform, settingsTab, syncViewDom, allowSettings]);
+
+  useEffect(() => {
+    if (!appVisible || activeView !== "guests") return;
+    ensureGuestProfilesLoaded();
+  }, [appVisible, activeView, ensureGuestProfilesLoaded]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -405,5 +480,8 @@ export function useAdminApp(options?: {
     reload: loadInitData,
     silentSync,
     applyServerData,
+    guestProfiles,
+    upsertGuestProfile,
+    ensureGuestProfilesLoaded,
   };
 }
