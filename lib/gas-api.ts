@@ -145,6 +145,11 @@ export async function gasFetch<T>(
       `HTTP ${res.status}`;
     throw new Error(msg);
   }
+  // GAS always returns HTTP 200 — treat embedded error as failure.
+  const embedded = data as GasApiError;
+  if (embedded.error) {
+    throw new Error(embedded.message || embedded.error);
+  }
   return data;
 }
 
@@ -188,6 +193,10 @@ export async function gasPost<T>(
       (data as GasApiError).error ||
       `HTTP ${res.status}`;
     throw new Error(msg);
+  }
+  const embedded = data as GasApiError;
+  if (embedded.error) {
+    throw new Error(embedded.message || embedded.error);
   }
   return data;
 }

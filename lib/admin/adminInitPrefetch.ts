@@ -9,6 +9,15 @@ let prefetchResolvedAt = 0;
 
 const PREFETCH_TTL_MS = 60_000;
 
+function isValidChessboardPayload(data: unknown): data is AdminInitResponse {
+  if (!data || typeof data !== "object") return false;
+  const d = data as AdminInitResponse & { error?: string };
+  if (d.error) return false;
+  if (!d.settings || typeof d.settings !== "object") return false;
+  if (!Array.isArray(d.bookings)) return false;
+  return true;
+}
+
 /**
  * Warm Stage-A chessboard payload (rooms + slim bookings) during login / auth.
  * Does NOT prefetch the heavy adminDeferred dump — that runs after paint.
@@ -27,6 +36,9 @@ export function prefetchAdminInitData(tenantId: string, authToken: string): Prom
   prefetchTenantId = tenantId;
   prefetchPromise = fetchAdminChessboard(tenantId, authToken)
     .then((data) => {
+      if (!isValidChessboardPayload(data)) {
+        throw new Error("Invalid chessboard payload");
+      }
       prefetchResolved = data;
       prefetchResolvedAt = Date.now();
       return data;
@@ -34,7 +46,8 @@ export function prefetchAdminInitData(tenantId: string, authToken: string): Prom
     .catch((err) => {
       if (prefetchTenantId === tenantId) {
         prefetchPromise = null;
-        // Keep tenant id so a concurrent consumer can retry cleanly.
+        prefetchResolved = null;
+        prefetchResolvedAt = 0;
       }
       throw err;
     });

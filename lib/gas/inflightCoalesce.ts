@@ -78,6 +78,11 @@ export function readGasShortCache(
     shortCache.delete(key);
     return null;
   }
+  // Drop poisoned entries from older deploys.
+  if (!isSuccessfulGasReadBody(hit.body)) {
+    shortCache.delete(key);
+    return null;
+  }
   return { body: hit.body, status: hit.status };
 }
 
@@ -88,11 +93,29 @@ export function writeGasShortCache(
   ttlMs: number
 ): void {
   if (ttlMs <= 0 || status !== 200) return;
+  if (!isSuccessfulGasReadBody(body)) return;
   shortCache.set(key, {
     body,
     status,
     expiresAt: Date.now() + ttlMs,
   });
+}
+
+/**
+ * GAS always returns HTTP 200, even for UNAUTHORIZED. Never cache / coalesce
+ * those bodies — they would poison the whole tenant for 60s.
+ */
+export function isSuccessfulGasReadBody(body: string): boolean {
+  if (!body || !body.trim()) return false;
+  try {
+    const data = JSON.parse(body) as Record<string, unknown>;
+    if (!data || typeof data !== "object") return false;
+    if (data.error) return false;
+    if (data.success === false) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export const OCCUPANCY_CACHE_TTL_MS = 8_000;

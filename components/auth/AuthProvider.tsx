@@ -133,42 +133,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       setLoading(true);
 
-      const token = getStoredAuthToken();
-      const lastTenantId = getLastAdminTenantId();
-      // Start chessboard immediately in parallel with auth boot when possible.
-      if (token && lastTenantId) {
-        setAdminTenantId(lastTenantId);
-        void prefetchAdminInitData(lastTenantId, token);
-      }
+      try {
+        const token = getStoredAuthToken();
+        const lastTenantId = getLastAdminTenantId();
+        // Start chessboard immediately in parallel with auth boot when possible.
+        if (token && lastTenantId) {
+          setAdminTenantId(lastTenantId);
+          void prefetchAdminInitData(lastTenantId, token);
+        }
 
-      if (!token) {
+        if (!token) {
+          if (cancelled) return;
+          setUser(null);
+          applyMembership(null);
+          setError(null);
+          return;
+        }
+
+        // One shared adminBoot with login warm (in-flight or handoff peek).
+        const boot = await resolveAdminBoot(token);
         if (cancelled) return;
-        setUser(null);
-        applyMembership(null);
-        setError(null);
-        setLoading(false);
-        return;
-      }
 
-      // One shared adminBoot with login warm (in-flight or handoff peek).
-      const boot = await resolveAdminBoot(token);
-      if (cancelled) return;
+        setUser(boot.session?.user ?? null);
 
-      setUser(boot.session?.user ?? null);
+        if (!boot.session) {
+          applyMembership(null);
+          setError(boot.error);
+          return;
+        }
 
-      if (!boot.session) {
-        applyMembership(null);
+        applyMembership(boot.membership);
         setError(boot.error);
-        setLoading(false);
-        return;
+        if (boot.membership?.tenantId) {
+          void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      applyMembership(boot.membership);
-      setError(boot.error);
-      if (boot.membership?.tenantId) {
-        void prefetchAdminInitData(boot.membership.tenantId, boot.session.accessToken);
-      }
-      setLoading(false);
     };
 
     void init();
@@ -199,7 +200,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     window.location.replace("/login");
   }, [applyMembership]);
-  const ready = !loading && !!user && !!membership?.tenantId && !error;
+
+  // Membership+user is enough — soft error banners must not block the gate.
+  const ready = !loading && !!user && !!membership?.tenantId;
 
   const value = useMemo(
     () => ({

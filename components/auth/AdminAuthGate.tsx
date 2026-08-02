@@ -10,7 +10,7 @@ export function AdminAuthGate({ children }: { children: ReactNode }) {
     return null;
   }
 
-  if (error || !ready) {
+  if (!ready) {
     return (
       <div
         style={{

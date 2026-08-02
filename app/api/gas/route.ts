@@ -6,6 +6,7 @@ import {
   actionCacheUsesToken,
   gasActionCacheTtlMs,
   isCoalescableGasAction,
+  isSuccessfulGasReadBody,
   readGasShortCache,
   withGasInflightCoalesce,
   writeGasShortCache,
@@ -367,17 +368,24 @@ export async function GET(request: Request) {
     target.searchParams.get("tenant_id") ||
     request.headers.get("x-tenant-id") ||
     "";
-  const key = coalesceKey({
+  // In-flight always includes token so one bad session cannot fail teammates.
+  // Successful responses may also be stored under a tenant-wide cache key.
+  const tokenFp = tokenFingerprint(bearer || token);
+  const inflightKey = coalesceKey({
     method: "GET",
     action,
     tenant,
-    tokenFingerprint: actionCacheUsesToken(action)
-      ? tokenFingerprint(bearer || token)
-      : null,
+    tokenFingerprint: tokenFp,
+  });
+  const cacheKey = coalesceKey({
+    method: "GET",
+    action,
+    tenant,
+    tokenFingerprint: actionCacheUsesToken(action) ? tokenFp : null,
   });
 
   if (gasActionCacheTtlMs(action) > 0) {
-    const cached = readGasShortCache(key);
+    const cached = readGasShortCache(cacheKey);
     if (cached) {
       return jsonTextResponse(cached.body, cached.status, {
         "x-gas-cache": "HIT",
@@ -423,7 +431,7 @@ export async function GET(request: Request) {
   try {
     const t0 = Date.now();
     if (isCoalescableGasAction(action)) {
-      const { text, shared } = await withGasInflightCoalesce(key, async () => {
+      const { text, shared } = await withGasInflightCoalesce(inflightKey, async () => {
         const res = await runFetch();
         if (!res.text.trim()) throw new Error("empty GAS body");
         try {
@@ -431,17 +439,26 @@ export async function GET(request: Request) {
         } catch {
           throw new Error("non-JSON GAS body");
         }
+        if (!isSuccessfulGasReadBody(res.text)) {
+          // Propagate to this session only (token-scoped inflight).
+          const err = new Error("GAS_ERROR_BODY") as Error & {
+            body?: string;
+            status?: number;
+          };
+          err.body = res.text;
+          err.status = res.status || 200;
+          throw err;
+        }
         const ttl = gasActionCacheTtlMs(action);
         if (ttl > 0) {
-          writeGasShortCache(key, res.text, res.status, ttl);
+          writeGasShortCache(cacheKey, res.text, res.status, ttl);
         }
         return res.text;
       });
-      const status = 200;
       console.info(
         `[GAS proxy] GET ${action} ${Date.now() - t0}ms shared=${shared} bytes=${text.length}`
       );
-      return jsonTextResponse(text, status, {
+      return jsonTextResponse(text, 200, {
         "x-gas-cache": shared ? "COALESCE" : "MISS",
       });
     }
@@ -457,7 +474,11 @@ export async function GET(request: Request) {
       return gasBadResponse("GET", res.status, res.text);
     }
   } catch (err) {
-    if (err instanceof Error && /empty GAS|non-JSON/.test(err.message)) {
+    if (err instanceof Error && err.message === "GAS_ERROR_BODY") {
+      const e = err as Error & { body?: string; status?: number };
+      return jsonTextResponse(e.body || '{"error":"UNAUTHORIZED"}', e.status || 200);
+    }
+    if (err instanceof Error && /empty GAS|non-JSON|GAS error body/.test(err.message)) {
       return gasBadResponse("GET", 502, "");
     }
     return gasUnreachable("GET", err);
@@ -494,13 +515,18 @@ export async function POST(request: Request) {
     const bearer = authHeader?.startsWith("Bearer ")
       ? authHeader.slice(7).trim()
       : request.headers.get("x-gas-token");
-    const key = coalesceKey({
+    const tokenFp = tokenFingerprint(bearer);
+    const inflightKey = coalesceKey({
       method: "POST",
       action,
       tenant,
-      tokenFingerprint: actionCacheUsesToken(action)
-        ? tokenFingerprint(bearer)
-        : null,
+      tokenFingerprint: tokenFp,
+    });
+    const cacheKey = coalesceKey({
+      method: "POST",
+      action,
+      tenant,
+      tokenFingerprint: actionCacheUsesToken(action) ? tokenFp : null,
     });
 
     const t0 = Date.now();
@@ -509,16 +535,25 @@ export async function POST(request: Request) {
     let shared = false;
 
     if (isCoalescableGasAction(action)) {
-      const cached = readGasShortCache(key);
+      const cached = readGasShortCache(cacheKey);
       if (cached) {
         return jsonTextResponse(cached.body, cached.status, { "x-gas-cache": "HIT" });
       }
-      const coalesced = await withGasInflightCoalesce(key, async () => {
+      const coalesced = await withGasInflightCoalesce(inflightKey, async () => {
         const res = await postToGas(gasUrl, request, body, action);
         upstreamStatus = res.status;
         if (!res.parsed) throw new Error("non-JSON GAS body");
+        if (!isSuccessfulGasReadBody(res.text)) {
+          const err = new Error("GAS_ERROR_BODY") as Error & {
+            body?: string;
+            status?: number;
+          };
+          err.body = res.text;
+          err.status = res.status || 200;
+          throw err;
+        }
         if (gasActionCacheTtlMs(action) > 0) {
-          writeGasShortCache(key, res.text, res.status, gasActionCacheTtlMs(action));
+          writeGasShortCache(cacheKey, res.text, res.status, gasActionCacheTtlMs(action));
         }
         return res.text;
       });
@@ -667,6 +702,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result, { status: upstreamStatus });
   } catch (err) {
+    if (err instanceof Error && err.message === "GAS_ERROR_BODY") {
+      const e = err as Error & { body?: string; status?: number };
+      return jsonTextResponse(e.body || '{"error":"UNAUTHORIZED"}', e.status || 200);
+    }
     return gasUnreachable("POST", err);
   }
 }

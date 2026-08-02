@@ -289,6 +289,15 @@ export function useAdminApp(options?: {
       const data = prefetched
         ? await prefetched
         : await fetchAdminChessboardData(tenantId || undefined);
+      if (
+        !data ||
+        typeof data !== "object" ||
+        (data as { error?: string }).error ||
+        !data.settings ||
+        !Array.isArray(data.bookings)
+      ) {
+        throw new Error("Не вдалося завантажити шахматку");
+      }
       applyServerData(data);
       if (tenantId) releasePrefetchedAdminInit(tenantId);
       const logoUrl = normalizeDriveImageUrl(String(data.settings?.branding?.logo_url || ""));

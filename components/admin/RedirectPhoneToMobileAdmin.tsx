@@ -24,6 +24,12 @@ export function usePhoneDesktopBounce(): boolean {
 
   useEffect(() => {
     if (!bounce) return;
+    // admin.azhunebi.com: middleware maps "/" → mobile shell by UA.
+    // Soft /admin/mobile there redirects back to "/" and can loop.
+    if (window.location.hostname === "admin.azhunebi.com") {
+      window.location.replace("/");
+      return;
+    }
     router.replace("/admin/mobile");
   }, [bounce, router]);
 

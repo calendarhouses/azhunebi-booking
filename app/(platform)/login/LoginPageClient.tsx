@@ -83,6 +83,12 @@ export default function LoginPageClient() {
       warmAdminAfterLogin(session.accessToken);
 
       const target = next.startsWith("/admin") || next === "/" ? next : defaultAdminPath();
+      // admin.azhunebi.com uses "/" for both login and admin (middleware rewrite).
+      // Soft router.replace("/") is a no-op and can leave the user stuck on login.
+      if (target === "/") {
+        window.location.replace("/");
+        return;
+      }
       router.replace(target);
       router.refresh();
     } finally {
