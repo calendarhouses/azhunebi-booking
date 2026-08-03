@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/utils/auth/middleware";
 import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
+import { isMaintenanceMode } from "@/lib/maintenance";
 
 const PUBLIC_HOSTS = new Set(["azhunebi.com", "www.azhunebi.com"]);
 const PUBLIC_CANONICAL_HOST = "azhunebi.com";
@@ -31,9 +32,21 @@ function redirectToCleanAdminRoot(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
+function rewriteToMaintenance(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/maintenance";
+  url.search = "";
+  return NextResponse.rewrite(url);
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = requestHostname(request);
   const pathname = request.nextUrl.pathname;
+
+  // Pause public + admin UI (API / cron / webhooks stay up — matcher excludes api).
+  if (isMaintenanceMode() && pathname !== "/maintenance") {
+    return rewriteToMaintenance(request);
+  }
 
   if (PUBLIC_HOSTS.has(hostname)) {
     // Канонічний сайт без www.
