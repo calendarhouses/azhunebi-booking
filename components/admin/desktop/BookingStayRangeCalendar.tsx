@@ -151,7 +151,8 @@ export function BookingStayRangeCalendar({
           }
 
           const { iso, date } = cell;
-          const weekend = date.getDay() === 0 || date.getDay() === 6;
+          const dow = date.getDay();
+          const weekend = dow === 0 || dow === 5 || dow === 6;
           const inRange = isInStayRange(iso, start, end);
           const edge = rangeEdge(iso, start, end);
           const isSingle = Boolean(start && !end && iso === start);

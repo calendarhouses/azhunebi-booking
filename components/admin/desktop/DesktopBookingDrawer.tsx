@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MobileSheetHeader } from "../mobile/MobileSheetHeader";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import { BookingPriceCalculator } from "./BookingPriceCalculator";
@@ -162,6 +162,8 @@ export function DesktopBookingDrawer({
   const [instantDiscountPercent, setInstantDiscountPercent] = useState(0);
   const [instantDiscountMode, setInstantDiscountMode] = useState<"amount" | "percent">("amount");
 
+  const instantDiscountTouchedRef = useRef(false);
+
   useEffect(() => {
     setNightlyPriceOverrides({});
   }, [form.checkIn, form.checkOut, form.cottage, form.roomId]);
@@ -172,6 +174,7 @@ export function DesktopBookingDrawer({
 
   // Reset instant discount when switching bookings (layout: before child hydrate effects).
   useLayoutEffect(() => {
+    instantDiscountTouchedRef.current = false;
     setInstantDiscountAmount(0);
     setInstantDiscountPercent(0);
     setInstantDiscountMode("amount");
@@ -179,6 +182,7 @@ export function DesktopBookingDrawer({
 
   const hydrateInstantDiscount = useCallback(
     (amount: number) => {
+      if (instantDiscountTouchedRef.current) return;
       const rounded = Math.max(0, Math.round(amount));
       const clamped =
         nightlyBaseSum > 0 ? Math.min(rounded, nightlyBaseSum) : rounded;
@@ -204,6 +208,7 @@ export function DesktopBookingDrawer({
 
   const handleInstantDiscountAmountChange = useCallback(
     (value: number) => {
+      instantDiscountTouchedRef.current = true;
       const clamped = Math.min(Math.max(0, Math.round(value)), nightlyBaseSum);
       setInstantDiscountMode("amount");
       setInstantDiscountAmount(clamped);
@@ -214,6 +219,7 @@ export function DesktopBookingDrawer({
 
   const handleInstantDiscountPercentChange = useCallback(
     (value: number) => {
+      instantDiscountTouchedRef.current = true;
       const clampedPercent = Math.min(100, Math.max(0, Math.round(value)));
       setInstantDiscountMode("percent");
       setInstantDiscountPercent(clampedPercent);

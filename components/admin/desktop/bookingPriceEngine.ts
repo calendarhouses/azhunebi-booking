@@ -58,7 +58,9 @@ export function getDayPrice(
   dateObj: Date,
   customPrices: AdminSettingsPayload["customPrices"]
 ): number {
-  const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+  // Як у «Ціни та тарифи»: пт+сб+нд = вихідний тариф (не лише сб+нд).
+  const dow = dateObj.getDay();
+  const isWeekend = dow === 0 || dow === 5 || dow === 6;
   let price = isWeekend ? room.priceWeekend : room.priceWeekday;
   const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
   const roomPrices = customPrices?.[room.id] || customPrices?.[String(room.id)];

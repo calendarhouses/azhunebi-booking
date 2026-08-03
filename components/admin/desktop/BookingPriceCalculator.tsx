@@ -503,24 +503,26 @@ export function BookingPriceCalculator({
   }, [editingBookingId, editingRow]);
 
   useEffect(() => {
-    const key = `${editingBookingId ?? ""}:${editingRow ?? ""}`;
-    if (discountHydratedRef.current === key) return;
     if (isInitialLoad) return;
-    if (!onInstantDiscountHydrate) {
-      discountHydratedRef.current = key;
-      return;
-    }
+    if (!onInstantDiscountHydrate) return;
+    // Keep syncing residual as catalog/post-late lines resolve — one-shot hydrate
+    // with discountSum=0 wrongly dumped the whole savedDisc into СУМА/ВІДСОТОК.
     const savedDisc = savedBooking ? Math.round(Number(savedBooking.discountAmount) || 0) : 0;
     const residual = savedBooking
-      ? Math.max(0, savedDisc - discountBreakdown.discountSum)
+      ? Math.max(
+          0,
+          savedDisc - discountBreakdown.discountSum - effectivePostLateDiscount
+        )
       : 0;
+    const key = `${editingBookingId ?? ""}:${editingRow ?? ""}:${residual}`;
+    if (discountHydratedRef.current === key) return;
     discountHydratedRef.current = key;
-    // Always overwrite — parent may still hold a stale instant from the previous booking.
     onInstantDiscountHydrate(residual);
   }, [
     discountBreakdown.discountSum,
     editingBookingId,
     editingRow,
+    effectivePostLateDiscount,
     isInitialLoad,
     onInstantDiscountHydrate,
     savedBooking,

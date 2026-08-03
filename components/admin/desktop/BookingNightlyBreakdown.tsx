@@ -42,9 +42,8 @@ export function buildNightlyPriceLines(
   while (cursor < outDate) {
     const dateKey = formatDateKey(cursor);
     const day = cursor.getDay();
-    const isWeekend = room
-      ? day === 0 || day === 6
-      : day === 5 || day === 6;
+    // пт+сб+нд — як у сітці цін і getDayPrice
+    const isWeekend = day === 0 || day === 5 || day === 6;
     const price = room
       ? getDayPrice(room, cursor, customPrices)
       : isWeekend

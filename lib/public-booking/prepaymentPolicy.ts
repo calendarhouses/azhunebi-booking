@@ -82,7 +82,9 @@ export function buildStayNightlyBasePrices(opts: {
     const d = new Date(opts.checkIn);
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + i);
-    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    // Як у «Ціни та тарифи» / admin getDayPrice: пт+сб+нд.
+    const dow = d.getDay();
+    const isWeekend = dow === 0 || dow === 5 || dow === 6;
     let price = isWeekend ? opts.priceWeekend : opts.priceWeekday;
     const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (roomPrices?.[ds] != null) price = Number(roomPrices[ds]) || price;
