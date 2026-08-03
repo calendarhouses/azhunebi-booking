@@ -68,7 +68,21 @@ export function buildCleaningTurnoverCaption(params: {
   return `⛺️ ${escapeHtml(label)}\n\n${escapeHtml(from)} ➡️  ${escapeHtml(to)}`;
 }
 
-/** @deprecated Kept for older call sites / demos — зараз шлемо окреме повідомлення на котедж */
+/** Усі будиночки одним дайджестом (як у прикладі з кількома ⛺️). */
+export function buildCleaningTurnoversDigest(
+  turnovers: Array<{
+    cottage: string;
+    departure?: ArrivalDepartureBooking | null;
+    arrival?: ArrivalDepartureBooking | null;
+  }>
+): string {
+  return turnovers
+    .map((t) => buildCleaningTurnoverCaption(t))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** @deprecated Kept for older call sites / demos */
 export function buildCleaningDepartureSection(booking: ArrivalDepartureBooking): string {
   return buildCleaningTurnoverCaption({
     cottage: booking.cottage || "Котедж",
@@ -156,16 +170,30 @@ export async function notifyCleaningTodayTurnovers(
     );
   }
 
+  const digest = buildCleaningTurnoversDigest(turnovers);
+  if (!digest) return 0;
+
+  // Telegram message limit ~4096; split only if needed.
+  const chunks: string[] = [];
+  if (digest.length <= 3900) {
+    chunks.push(digest);
+  } else {
+    let buf = "";
+    for (const block of digest.split("\n\n")) {
+      const next = buf ? `${buf}\n\n${block}` : block;
+      if (next.length > 3900 && buf) {
+        chunks.push(buf);
+        buf = block;
+      } else {
+        buf = next;
+      }
+    }
+    if (buf) chunks.push(buf);
+  }
+
   let sent = 0;
-  for (const turnover of turnovers) {
-    const caption = buildCleaningTurnoverCaption(turnover);
-    if (!caption) continue;
-    const res = await sendTelegramMessage(
-      caption,
-      undefined,
-      target.chatId,
-      target.threadId
-    );
+  for (const chunk of chunks) {
+    const res = await sendTelegramMessage(chunk, undefined, target.chatId, target.threadId);
     if (res.ok) sent += 1;
     else console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
   }

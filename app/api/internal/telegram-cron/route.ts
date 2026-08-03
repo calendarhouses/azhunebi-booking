@@ -240,11 +240,6 @@ async function runJobs(force?: string | null) {
     results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
     results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
   }
-  if (force === "cleaning") {
-    const arrivalBookings =
-      bookings as Parameters<typeof notifyCleaningTodayTurnovers>[0];
-    results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
-  }
   if (!force || force === "debt") {
     results.debt = await sendDebtReminders(
       bookings as Parameters<typeof sendDebtReminders>[0]

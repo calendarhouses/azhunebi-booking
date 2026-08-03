@@ -2,7 +2,7 @@ import "server-only";
 
 import { buildPendingReviewCaption } from "./bookingReviewNotify";
 import { buildArrivalDepartureCaption } from "./arrivalDepartureNotify";
-import { buildCleaningTurnoverCaption } from "./cleaningArrivalNotify";
+import { buildCleaningTurnoversDigest } from "./cleaningArrivalNotify";
 import {
   buildDebtCaption,
   buildEveningCashCaption,
@@ -155,53 +155,40 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
     results.departure = res.ok;
   }
 
-  // ── ПРИБИРАННЯ — окреме повідомлення на кожен будиночок ──
+  // ── ПРИБИРАННЯ — дайджест turnover (виїзд+заїзд / лише виїзд / лише заїзд) ──
   {
-    const samples = [
-      {
-        cottage: "Будиночок 1",
-        departure: { ...demoBooking, cottage: "Будиночок 1", guests: 2, comment: "👶 Діти: 1" },
-        arrival: { ...demoBooking, cottage: "Будиночок 1", guests: 3, comment: "👶 Діти: 1" },
-      },
-      {
-        cottage: "Будиночок 2",
-        departure: { ...demoBooking, cottage: "Будиночок 2", guests: 4, comment: "" },
-        arrival: { ...demoBooking, cottage: "Будиночок 2", guests: 2, comment: "👶 Діти: 2" },
-      },
-      {
-        cottage: "Будиночок 7",
-        departure: { ...demoBooking, cottage: "Будиночок 7", guests: 2, comment: "👶 Діти: 2" },
-      },
-      {
-        cottage: "Будиночок 4",
-        arrival: { ...demoBooking, cottage: "Будиночок 4", guests: 2, comment: "" },
-      },
-    ];
-    await sendTelegramMessage(
-      "🧪 <b>ТЕСТ ПРИБИРАННЯ</b>",
+    const res = await sendTelegramMessage(
+      "🧪 <b>ТЕСТ ПРИБИРАННЯ</b>\n\n" +
+        buildCleaningTurnoversDigest([
+          {
+            cottage: "Будиночок 1",
+            departure: { ...demoBooking, cottage: "Будиночок 1", guests: 2, comment: "👶 Діти: 1" },
+            arrival: { ...demoBooking, cottage: "Будиночок 1", guests: 3, comment: "👶 Діти: 1" },
+          },
+          {
+            cottage: "Будиночок 2",
+            departure: { ...demoBooking, cottage: "Будиночок 2", guests: 4, comment: "" },
+            arrival: { ...demoBooking, cottage: "Будиночок 2", guests: 2, comment: "👶 Діти: 2" },
+          },
+          {
+            cottage: "Будиночок 7",
+            departure: { ...demoBooking, cottage: "Будиночок 7", guests: 2, comment: "👶 Діти: 2" },
+          },
+          {
+            cottage: "Будиночок 4",
+            arrival: { ...demoBooking, cottage: "Будиночок 4", guests: 2, comment: "" },
+          },
+        ]),
       undefined,
       cleaning.chatId,
       cleaning.threadId
     );
-    let allOk = true;
-    for (const sample of samples) {
-      const caption = buildCleaningTurnoverCaption(sample);
-      if (!caption) continue;
-      const one = await sendTelegramMessage(
-        caption,
-        undefined,
-        cleaning.chatId,
-        cleaning.threadId
-      );
-      if (!one.ok) allOk = false;
-    }
-    const res = { ok: allOk };
     results.cleaningTurnoverBoth = res.ok;
     results.cleaningTurnoverDepartureOnly = res.ok;
     results.cleaningTurnoverArrivalOnly = res.ok;
     results.cleaningChatId = cleaning.chatId;
     if (!res.ok) {
-      results.cleaningTurnoverError = "one or more messages failed";
+      results.cleaningTurnoverError = await res.text().catch(() => "unknown");
     }
   }
 
