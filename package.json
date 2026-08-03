@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "telegram:webhook": "node scripts/set-telegram-webhook.mjs",
-    "telegram:webhook:info": "node scripts/set-telegram-webhook.mjs --info"
+    "telegram:webhook:info": "node scripts/set-telegram-webhook.mjs --info",
+    "telegram:cleaning-today": "node scripts/send-cleaning-today.mjs"
   },
   "dependencies": {
     "flatpickr": "^4.6.13",
