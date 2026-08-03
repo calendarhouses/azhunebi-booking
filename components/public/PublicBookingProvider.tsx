@@ -86,6 +86,7 @@ import {
 } from "@/lib/public-booking/bookingReview";
 import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
 import type {
+  PublicBranding,
   PublicPriceBreakdown,
   PublicRoom,
   PublicSiteRuntime,
@@ -250,8 +251,12 @@ export function PublicBookingProvider({
           if (cancelled) return;
           const settings = init.settings || {};
           const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
+          const brandingFromApi =
+            (settings.branding as PublicTenantPayload["branding"] | undefined) ||
+            data.branding;
           setRuntime({
             ...data,
+            branding: brandingFromApi,
             rooms: roomsFromApi.filter((r) => r.active !== false),
             discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
             customPrices: settings.customPrices || data.customPrices,
@@ -960,7 +965,8 @@ export function PublicBookingProvider({
         isPostLateGapStay: calc.isPostLateGapStay,
       };
     }
-    const prepaymentPolicy = readPrepaymentPolicy(data.branding);
+    const branding = (runtime?.branding || data.branding) as PublicBranding;
+    const prepaymentPolicy = readPrepaymentPolicy(branding);
     const prepayment = calculatePrepaymentAmount(prepaymentPolicy, {
       totalPrice: calc.totalPrice,
       basePriceTotal: calc.basePriceTotal,
@@ -1007,6 +1013,7 @@ export function PublicBookingProvider({
     lateTime,
     postLateArrivalTime,
     data.branding,
+    runtime?.branding,
   ]);
 
   const proceedDisabled =
