@@ -170,30 +170,16 @@ export async function notifyCleaningTodayTurnovers(
     );
   }
 
-  const digest = buildCleaningTurnoversDigest(turnovers);
-  if (!digest) return 0;
-
-  // Telegram message limit ~4096; split only if needed.
-  const chunks: string[] = [];
-  if (digest.length <= 3900) {
-    chunks.push(digest);
-  } else {
-    let buf = "";
-    for (const block of digest.split("\n\n")) {
-      const next = buf ? `${buf}\n\n${block}` : block;
-      if (next.length > 3900 && buf) {
-        chunks.push(buf);
-        buf = block;
-      } else {
-        buf = next;
-      }
-    }
-    if (buf) chunks.push(buf);
-  }
-
   let sent = 0;
-  for (const chunk of chunks) {
-    const res = await sendTelegramMessage(chunk, undefined, target.chatId, target.threadId);
+  for (const turnover of turnovers) {
+    const caption = buildCleaningTurnoverCaption(turnover);
+    if (!caption) continue;
+    const res = await sendTelegramMessage(
+      caption,
+      undefined,
+      target.chatId,
+      target.threadId
+    );
     if (res.ok) sent += 1;
     else console.error("[TG] cleaning turnover notify failed", await res.text().catch(() => ""));
   }
