@@ -13,6 +13,7 @@ import {
 import { getMonoChastOrderState } from "@/lib/monoparts/client";
 import { isMonoChastBooking } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
+import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,14 @@ function chargeBaseUah(
 }
 
 export async function POST(request: Request) {
+  if (!isPublicOnlinePaymentEnabled()) {
+    return errorResponse(
+      503,
+      "PAYMENT_DISABLED",
+      "Онлайн-оплата тимчасово недоступна. Очікуйте підтвердження адміністратором."
+    );
+  }
+
   let body: { orderId?: unknown; amountKind?: unknown };
   try {
     body = (await request.json()) as { orderId?: unknown; amountKind?: unknown };

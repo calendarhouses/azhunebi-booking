@@ -17,6 +17,7 @@ import {
   type MonoChastAmountKind,
 } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
+import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
 import { formatUaPhoneE164 } from "@/lib/public-booking/uaPhone";
 
 export const runtime = "nodejs";
@@ -58,6 +59,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isPublicOnlinePaymentEnabled()) {
+    return errorResponse(
+      503,
+      "PAYMENT_DISABLED",
+      "Онлайн-оплата тимчасово недоступна. Очікуйте підтвердження адміністратором."
+    );
+  }
   if (!isMonoPartsConfigured()) {
     return errorResponse(503, "PARTS_DISABLED", "Покупка частинами тимчасово недоступна");
   }

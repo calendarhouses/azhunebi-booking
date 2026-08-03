@@ -8,6 +8,7 @@ import {
 } from "@/lib/monopay/config";
 import { isMonoPartsConfigured } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
+import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
 import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,47 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   const { payment } = await searchParams;
   const id = decodeURIComponent(orderId).trim();
   if (!id) notFound();
+
+  if (!isPublicOnlinePaymentEnabled()) {
+    return (
+      <main
+        style={{
+          minHeight: "100dvh",
+          display: "grid",
+          placeItems: "center",
+          padding: "2rem 1.25rem",
+          background: "#f7f4ef",
+          color: "#1c1c1c",
+          fontFamily: "system-ui, sans-serif",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ maxWidth: 420 }}>
+          <h1 style={{ fontSize: "1.35rem", margin: "0 0 0.75rem" }}>
+            Онлайн-оплата тимчасово недоступна
+          </h1>
+          <p style={{ margin: 0, lineHeight: 1.5, opacity: 0.85 }}>
+            Вашу заявку обробить адміністратор. Очікуйте підтвердження — ми
+            звʼяжемося з вами.
+          </p>
+          <p style={{ margin: "1rem 0 0", fontSize: "0.9rem", opacity: 0.6 }}>
+            Заявка: {id}
+          </p>
+          <a
+            href="/"
+            style={{
+              display: "inline-block",
+              marginTop: "1.5rem",
+              color: "#4d6826",
+              fontWeight: 600,
+            }}
+          >
+            На головну
+          </a>
+        </div>
+      </main>
+    );
+  }
 
   if (payment === "return") {
     redirect(`/?payment=return&orderId=${encodeURIComponent(id)}`);

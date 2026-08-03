@@ -84,6 +84,7 @@ import {
   needsManualReview,
   type PublicBookingFlow,
 } from "@/lib/public-booking/bookingReview";
+import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
 import type {
   PublicPriceBreakdown,
   PublicRoom,
@@ -1108,18 +1109,20 @@ export function PublicBookingProvider({
         fullComment = parts.join(" | ") + (fullComment ? `\n\nКоментар гостя: ${fullComment}` : "");
       }
 
-      const manualReview = needsManualReview({
-        nights: calc.nights,
-        earlyTime,
-        lateTime,
-        flexibleRequiresApproval: flexibleSchedule.requiresApproval,
-        selectedServices,
-        servicesById: new Map(
-          (runtime?.customServicesList || []).map((s) => [String(s.id), s] as const)
-        ),
-        hasUbd,
-        isPostLateGapStay: Boolean(postLateArrivalTime || priceResult.isPostLateGapStay),
-      });
+      const manualReview =
+        !isPublicOnlinePaymentEnabled() ||
+        needsManualReview({
+          nights: calc.nights,
+          earlyTime,
+          lateTime,
+          flexibleRequiresApproval: flexibleSchedule.requiresApproval,
+          selectedServices,
+          servicesById: new Map(
+            (runtime?.customServicesList || []).map((s) => [String(s.id), s] as const)
+          ),
+          hasUbd,
+          isPostLateGapStay: Boolean(postLateArrivalTime || priceResult.isPostLateGapStay),
+        });
 
       const payload: SubmitBookingPayload = {
         tenant_id: data.tenantId,
@@ -1166,7 +1169,11 @@ export function PublicBookingProvider({
         }
 
         const flow: PublicBookingFlow =
-          json.flow === "pending_review" || manualReview ? "pending_review" : "instant";
+          !isPublicOnlinePaymentEnabled() ||
+          json.flow === "pending_review" ||
+          manualReview
+            ? "pending_review"
+            : "instant";
         const orderId = String(json.orderId || "").trim();
         if (!orderId) {
           showPublicToast("❌ Бронювання створено без номера. Зверніться до адміністратора.");
