@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   markBookingSmsSent,
+  clearBookingSmsSent,
   type GasBookingRecord,
 } from "@/lib/gas-api";
 import {
@@ -132,9 +133,9 @@ export async function sendBookingLifecycleSms(
   }
 
   if (!result.ok && orderId && !isNonRetryableSmsResult(result)) {
-    // Soft failure: leave marker so we don't double-send; cron won't retry this type.
-    // Operator can clear the SMS-sent cell if a manual resend is needed.
-    console.error("[SMS] Send failed after claim (won't auto-retry)", {
+    // Allow cron/manual retry after transient provider errors.
+    await clearBookingSmsSent(orderId, type);
+    console.error("[SMS] Send failed after claim — marker cleared for retry", {
       orderId,
       type,
       status: result.responseStatus || result.error,

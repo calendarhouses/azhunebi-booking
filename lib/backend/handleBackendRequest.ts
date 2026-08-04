@@ -24,6 +24,7 @@ const WRITE_ACTIONS = new Set([
   "expireBookingPayment",
   "recordBookingRefund",
   "markBookingSmsSent",
+  "clearBookingSmsSent",
   "markPaidBookingTelegramSent",
   "syncIcalRoomBlocks",
   "patchIcalRoomMeta",

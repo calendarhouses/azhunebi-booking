@@ -853,6 +853,25 @@ export async function markBookingSmsSent(
   });
 }
 
+export async function clearBookingSmsSent(
+  orderId: string,
+  smsType: "payment_link" | "success" | "expiry"
+): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    return await gasPost({
+      action: "clearBookingSmsSent",
+      orderId,
+      smsType,
+      webhookSecret: paymentLifecycleSecret(),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function markPaidBookingTelegramSent(
   orderId: string
 ): Promise<{ ok: boolean; claimed?: boolean; already?: boolean; reason?: string }> {

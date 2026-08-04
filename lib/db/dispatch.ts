@@ -511,9 +511,9 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         const pendingTelegram: ApiBooking[] = [];
         for (const booking of bookings) {
           if (String(booking.source || "") !== "Сайт") continue;
-          if (!booking.paymentExpiresAt) continue;
           const status = String(booking.status || "");
-          const expiresAt = Date.parse(String(booking.paymentExpiresAt));
+          const expiresRaw = String(booking.paymentExpiresAt || "").trim();
+          const expiresAt = expiresRaw ? Date.parse(expiresRaw) : NaN;
           if (
             status === "Очікує оплату" &&
             Number.isFinite(expiresAt) &&
@@ -521,6 +521,8 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           ) {
             due.push(booking);
           }
+          // SMS queue must not require paymentExpiresAt (approve sets it, but
+          // older/admin rows may still need payment_link / success / expiry SMS).
           if (
             (status === "Очікує оплату" && !booking.paymentLinkSmsSentAt) ||
             (status === "Підтверджено" &&
@@ -557,7 +559,9 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           return fail("UNAUTHORIZED", 401, "UNAUTHORIZED");
         }
         const orderId = String(body.orderId || "");
-        const kind = String(body.kind || body.type || "payment_link");
+        const kind = String(
+          body.smsType || body.kind || body.type || "payment_link"
+        );
         const field =
           kind === "success"
             ? "successSmsSentAt"
@@ -566,12 +570,29 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
               : "paymentLinkSmsSentAt";
         const existing = await getBookingById(orderId);
         if (existing && existing[field]) {
-          return ok({ ok: true, claimed: false, booking: existing });
+          return ok({ ok: true, claimed: false, already: true, booking: existing });
         }
         const next = await patchBookingMeta(orderId, {
           [field]: new Date().toISOString(),
         });
         return ok({ ok: true, claimed: true, booking: next });
+      }
+      case "clearBookingSmsSent": {
+        if (!checkWebhookSecret(body.webhookSecret)) {
+          return fail("UNAUTHORIZED", 401, "UNAUTHORIZED");
+        }
+        const orderId = String(body.orderId || "");
+        const kind = String(
+          body.smsType || body.kind || body.type || "payment_link"
+        );
+        const field =
+          kind === "success"
+            ? "successSmsSentAt"
+            : kind === "expiry"
+              ? "expirySmsSentAt"
+              : "paymentLinkSmsSentAt";
+        const next = await patchBookingMeta(orderId, { [field]: "" });
+        return ok({ ok: true, booking: next });
       }
       case "markPaidBookingTelegramSent": {
         if (!checkWebhookSecret(body.webhookSecret)) {
