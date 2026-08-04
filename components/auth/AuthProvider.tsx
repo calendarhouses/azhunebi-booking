@@ -69,13 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<TenantMembership | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [preloaderLogoUrl, setPreloaderLogoUrl] = useState<string>(() => {
-    if (typeof window === "undefined") return ADMIN_PRELOADER_LOGO_SRC;
-    const tenantId = getLastAdminTenantId();
-    return resolveAdminPreloaderLogoUrl(
-      tenantId ? getCachedTenantLogoUrl(tenantId) : null
-    );
-  });
+  const [preloaderLogoUrl, setPreloaderLogoUrl] = useState<string>(ADMIN_PRELOADER_LOGO_SRC);
   const syncPreloaderLogo = useCallback((tenantId: string | null | undefined) => {
     if (!tenantId) {
       setPreloaderLogoUrl(ADMIN_PRELOADER_LOGO_SRC);
@@ -86,6 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resolveAdminPreloaderLogoUrl(getCachedTenantLogoUrl(tenantId))
     );
   }, []);
+
+  // After mount only — localStorage differs from SSR and must not run in useState init.
+  useEffect(() => {
+    const tenantId = getLastAdminTenantId();
+    if (tenantId) syncPreloaderLogo(tenantId);
+  }, [syncPreloaderLogo]);
 
   const applyMembership = useCallback((m: TenantMembership | null) => {
     setMembership(m);
