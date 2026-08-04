@@ -91,7 +91,26 @@ export const DEFAULT_SMS_SETTINGS: SmsSettings = {
 };
 
 export function normalizeSmsSettings(raw: unknown): SmsSettings {
-  const r = (raw ?? {}) as Partial<SmsSettings>;
+  let input: unknown = raw;
+  // Recover from migrate/Sheets corruption (double-encoded JSON string).
+  for (let i = 0; i < 8 && typeof input === "string"; i += 1) {
+    const s = input.trim();
+    if (!s) {
+      input = {};
+      break;
+    }
+    try {
+      input = JSON.parse(s);
+    } catch {
+      input = {};
+      break;
+    }
+  }
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    input = {};
+  }
+
+  const r = input as Partial<SmsSettings>;
 
   const normalizeTemplate = (id: SmsTemplateId, tpl: unknown): SmsTemplateConfig => {
     const t = (tpl ?? {}) as Partial<SmsTemplateConfig>;
@@ -127,7 +146,7 @@ export function normalizeSmsSettings(raw: unknown): SmsSettings {
       expiry: normalizeTemplate("expiry", rawTemplates.expiry),
       reject: normalizeTemplate("reject", rawTemplates.reject),
     },
-    journal: Array.isArray(r.journal) ? (r.journal as SmsJournalEntry[]) : [],
+    journal: Array.isArray(r.journal) ? (r.journal as SmsJournalEntry[]).slice(0, 100) : [],
   };
 }
 

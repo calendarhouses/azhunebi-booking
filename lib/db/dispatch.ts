@@ -833,23 +833,25 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           await requireSession(token);
         }
         const settings = await loadAllSettings();
-        return ok({ smsSettings: settings.smsSettings || {} });
+        const { normalizeSmsSettings } = await import("@/lib/sms/smsSettings");
+        return ok({ smsSettings: normalizeSmsSettings(settings.smsSettings) });
       }
       case "appendSmsJournal": {
         if (!checkWebhookSecret(body.webhookSecret)) {
           await requireSession(token);
         }
         const settings = await loadAllSettings();
-        const sms =
-          settings.smsSettings && typeof settings.smsSettings === "object"
-            ? { ...(settings.smsSettings as Record<string, unknown>) }
-            : {};
-        const journal = Array.isArray(sms.journal) ? [...sms.journal] : [];
-        journal.push({
+        const { normalizeSmsSettings } = await import("@/lib/sms/smsSettings");
+        const sms = normalizeSmsSettings(settings.smsSettings) as unknown as Record<
+          string,
+          unknown
+        >;
+        const journal = Array.isArray(sms.journal) ? [...(sms.journal as unknown[])] : [];
+        journal.unshift({
           at: new Date().toISOString(),
           ...(body.entry as object),
         });
-        sms.journal = journal.slice(-500);
+        sms.journal = journal.slice(0, 100);
         await saveSettingsMerge({ smsSettings: sms }, ["smsSettings"]);
         return ok({ success: true });
       }
