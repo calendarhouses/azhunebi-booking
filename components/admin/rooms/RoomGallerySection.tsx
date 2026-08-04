@@ -242,7 +242,7 @@ export function RoomGallerySection({
                     : "Перетягни фото сюди або натисни для вибору"}
                 </span>
                 {roomId != null ? (
-                  <span className="khata-room-gallery__empty-hint">До 15 зображень, WebP</span>
+                  <span className="khata-room-gallery__empty-hint">До 15 зображень, WebP або JPEG</span>
                 ) : null}
               </>
             )}
