@@ -376,7 +376,12 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         return handleCreateBooking(body, token);
       case "deleteBooking": {
         await requireSession(token);
-        const id = String(body.id || "");
+        let id = String(body.id || "");
+        if (!id && body.row != null && body.row !== "") {
+          const all = await listBookings();
+          const match = all.find((b) => Number(b.row) === Number(body.row));
+          id = match ? String(match.id) : "";
+        }
         if (!id) return fail("id required");
         await deleteBookingById(id);
         return ok({ success: true });
