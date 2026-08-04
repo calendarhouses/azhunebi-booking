@@ -604,6 +604,19 @@ export function PublicBookingProvider({
       }
 
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
+        if (
+          !roomCanStartCheckInOn(
+            selectedRoom,
+            d,
+            runtime.bookings,
+            runtime.closedDates,
+            runtime.restrictions
+          )
+        ) {
+          showPublicToast("З цієї дати неможливо зібрати мінімальне проживання");
+          setCalKey((k) => k + 1);
+          return;
+        }
         setCheckIn(d);
         setCheckOut(null);
         setPostLateArrivalTime(null);
