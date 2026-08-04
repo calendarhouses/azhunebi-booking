@@ -82,9 +82,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (hostname === ADMIN_HOST) {
+    // Login must stay reachable even with a stale cookie (re-auth after cutover).
+    if (pathname === "/login") {
+      return updateSession(request);
+    }
+
     // Старі/внутрішні адреси завжди очищаються до admin.azhunebi.com.
     if (
-      pathname === "/login" ||
       pathname === "/admin" ||
       pathname === "/admin/" ||
       pathname === "/admin/mobile"

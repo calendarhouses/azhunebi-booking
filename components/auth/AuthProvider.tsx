@@ -149,9 +149,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(boot.session?.user ?? null);
 
       if (!boot.session) {
+        // Stale cookie after team restore / cutover — clear so / shows login.
+        clearAuthCookie();
+        clearAdminTenantId();
+        clearAdminInitPrefetch();
+        await gasSignOut().catch(() => undefined);
         applyMembership(null);
-        setError(boot.error);
+        setError(null);
         setLoading(false);
+        if (typeof window !== "undefined") {
+          window.location.replace("/login?next=%2F");
+        }
         return;
       }
 

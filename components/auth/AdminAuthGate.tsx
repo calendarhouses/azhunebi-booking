@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "./AuthProvider";
 
 export function AdminAuthGate({ children }: { children: ReactNode }) {
-  const { loading, error, ready } = useAuth();
+  const { loading, error, ready, signOut } = useAuth();
 
   if (loading) {
     return null;
@@ -34,12 +34,17 @@ export function AdminAuthGate({ children }: { children: ReactNode }) {
             textAlign: "center",
           }}
         >
-          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "#111827" }}>Немає доступу</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "#111827" }}>
+            Немає доступу
+          </h1>
           <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
-            {error || "Не вдалося визначити ваш комплекс."}
+            {error || "Сесія закінчилась. Увійдіть знову."}
           </p>
-          <a
-            href="/login?next=%2Fadmin%2Fmobile%3Fmobile%3D1"
+          <button
+            type="button"
+            onClick={() => {
+              void signOut();
+            }}
             style={{
               display: "inline-block",
               padding: "12px 24px",
@@ -47,12 +52,13 @@ export function AdminAuthGate({ children }: { children: ReactNode }) {
               color: "#fff",
               borderRadius: 10,
               fontWeight: 600,
-              textDecoration: "none",
+              border: 0,
+              cursor: "pointer",
               fontSize: 14,
             }}
           >
             Увійти з іншим акаунтом
-          </a>
+          </button>
         </div>
       </div>
     );
