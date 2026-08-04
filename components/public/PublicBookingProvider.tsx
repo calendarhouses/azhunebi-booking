@@ -36,6 +36,7 @@ import {
   isListSearchDateAvailable,
   isRoomFreeForRange,
   isStayClearOfBookings,
+  roomCanStartCheckInOn,
 } from "@/lib/public-booking/bookedRanges";
 import {
   arrivalAfterLateCheckout,

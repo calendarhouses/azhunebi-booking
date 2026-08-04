@@ -6,8 +6,12 @@ import {
   getRestrictionMinNights,
   isDateClosed,
 } from "@/components/admin/desktop/bookingPriceEngine";
-import type { RoomConfig } from "@/components/admin/desktop/types";
-import { formatDateKey, getBookedRanges, isStayClearOfBookings } from "@/lib/public-booking/bookedRanges";
+import type {
+  AdminSettingsPayload,
+  BookingRecord,
+  RoomConfig,
+} from "@/components/admin/desktop/types";
+import { formatDateKey, getBookedRanges, isRoomFreeForRange, isStayClearOfBookings, roomCanStartCheckInOn } from "@/lib/public-booking/bookedRanges";
 import { formatPriceUa } from "@/lib/public-booking/roomHelpers";
 import { usePublicBooking } from "../PublicBookingProvider";
 import { useCalendarMonthSwipe } from "../useCalendarMonthSwipe";
@@ -44,12 +48,27 @@ type DayKind =
 function classifyDay(params: {
   day: Date;
   today: Date;
+  room: RoomConfig;
   ranges: ReturnType<typeof getBookedRanges>;
   checkIn: Date | null;
   checkOut: Date | null;
   closed: boolean;
+  bookings: BookingRecord[];
+  closedDates?: AdminSettingsPayload["closedDates"];
+  restrictions?: AdminSettingsPayload["restrictions"];
 }): { kind: DayKind; clickable: boolean } {
-  const { day, today, ranges, checkIn, checkOut, closed } = params;
+  const {
+    day,
+    today,
+    room,
+    ranges,
+    checkIn,
+    checkOut,
+    closed,
+    bookings,
+    closedDates,
+    restrictions,
+  } = params;
   const pickingCheckout = Boolean(checkIn && !checkOut);
   const t = day.getTime();
 
@@ -78,7 +97,8 @@ function classifyDay(params: {
     isNextGuestCheckIn &&
     !nextGuestHasEarly &&
     day > checkIn &&
-    isStayClearOfBookings(checkIn, day, ranges)
+    isStayClearOfBookings(checkIn, day, ranges) &&
+    isRoomFreeForRange(room, checkIn, day, bookings, closedDates, restrictions)
   ) {
     return { kind: "turnover-checkout", clickable: true };
   }
@@ -88,8 +108,18 @@ function classifyDay(params: {
     return { kind: "occupied", clickable: false };
   }
 
-  // While picking checkout, block days past an intervening booking
-  if (pickingCheckout && checkIn && day > checkIn && !isStayClearOfBookings(checkIn, day, ranges)) {
+  // Checkout phase: only days that form a valid stay (min nights + clear)
+  if (pickingCheckout && checkIn && day > checkIn) {
+    if (!isRoomFreeForRange(room, checkIn, day, bookings, closedDates, restrictions)) {
+      return { kind: "occupied", clickable: false };
+    }
+    return { kind: "free", clickable: true };
+  }
+
+  // Check-in phase: night must start a completable stay (not a dead-end before min nights)
+  if (
+    !roomCanStartCheckInOn(room, day, bookings, closedDates, restrictions)
+  ) {
     return { kind: "occupied", clickable: false };
   }
 
@@ -135,10 +165,14 @@ export function DesktopCalendar({ room, layout = "desktop" }: Props) {
     const { kind, clickable } = classifyDay({
       day: d,
       today,
+      room,
       ranges: bookedRanges,
       checkIn,
       checkOut,
       closed,
+      bookings: runtime.bookings,
+      closedDates,
+      restrictions,
     });
 
     let cls = "cal-day";

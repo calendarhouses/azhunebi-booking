@@ -154,9 +154,39 @@ function isRoomNightOccupied(day: Date, ranges: BookedRange[]): boolean {
   return ranges.some((r) => d >= r.start && d < r.end);
 }
 
+/** How far ahead we look for a valid checkout when deciding if check-in is useful. */
+const CHECK_IN_LOOKAHEAD_DAYS = 60;
+
 /**
- * Search calendar: a check-in day is selectable if at least one room has that night free
- * (and fits guest party / is not closed).
+ * True when this room can start a stay on checkIn with at least one valid checkout
+ * (bookings + closed + min-nights). Prevents dead-end check-ins like “free night”
+ * before a closed/booked stretch that can’t satisfy мін. N ночей.
+ */
+export function roomCanStartCheckInOn(
+  room: RoomConfig,
+  checkIn: Date,
+  bookings: BookingRecord[],
+  closedDates?: AdminSettingsPayload["closedDates"],
+  restrictions?: AdminSettingsPayload["restrictions"]
+): boolean {
+  const start = new Date(checkIn);
+  start.setHours(0, 0, 0, 0);
+  const ranges = getBookedRanges(bookings, room);
+  if (isRoomNightOccupied(start, ranges)) return false;
+
+  for (let nights = 1; nights <= CHECK_IN_LOOKAHEAD_DAYS; nights += 1) {
+    const end = new Date(start);
+    end.setDate(end.getDate() + nights);
+    if (isRoomFreeForRange(room, start, end, bookings, closedDates, restrictions)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Search calendar: a check-in day is selectable if at least one room can complete
+ * a valid stay starting that night (not merely “one free night”).
  */
 export function isListSearchCheckInFree(
   day: Date,
@@ -177,11 +207,17 @@ export function isListSearchCheckInFree(
     if (partyActive && !roomFitsGuestParty(room, opts.adults, opts.children, opts.youngestAge)) {
       continue;
     }
-    const next = new Date(d);
-    next.setDate(next.getDate() + 1);
-    if (hasClosedDateInStay(opts.closedDates, room, d, next, opts.restrictions)) continue;
-    const ranges = getBookedRanges(opts.bookings, room);
-    if (!isRoomNightOccupied(d, ranges)) return true;
+    if (
+      roomCanStartCheckInOn(
+        room,
+        d,
+        opts.bookings,
+        opts.closedDates,
+        opts.restrictions
+      )
+    ) {
+      return true;
+    }
   }
   return false;
 }
