@@ -190,7 +190,6 @@ export function DesktopSettingsView({
             isActive={activeTab === "branding"}
             showAccountLogout={isMobile}
             onLogout={onLogout}
-            onOpenPaymentTab={() => onSettingsTab?.("payment")}
           />
         </div>
         ) : null}

@@ -1,15 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { ImagePlus, Wallet } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 import { saveAdminSettings, getAdminTenantId } from "../adminApi";
 import { showToast } from "../adminGlobals";
 import type { AdminSettingsPayload } from "../types";
 import type { PublicBranding } from "@/lib/public-booking/types";
-import {
-  formatPrepaymentGuestLabel,
-  readPrepaymentPolicy,
-} from "@/lib/public-booking/prepaymentPolicy";
 import {
   resolveStayRulesForEditing,
   serializeStayRulesForSave,
@@ -32,7 +28,6 @@ import { resolveGoogleMapsEmbedUrl } from "@/lib/googleMapsUrl";
 import { setCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
 import { applyAdminDocumentTitle } from "@/lib/admin/adminDocumentTitle";
 import "../settings/settings-additional-services.css";
-import "./settings-payment.css";
 
 type BrandingSettingsPanelProps = {
   settings: AdminSettingsPayload;
@@ -43,8 +38,6 @@ type BrandingSettingsPanelProps = {
   /** Мобільні налаштування: кнопка виходу лише в «Моя сторінка». */
   showAccountLogout?: boolean;
   onLogout?: () => void;
-  /** Jump to Payment settings (prepayment lives there). */
-  onOpenPaymentTab?: () => void;
 };
 
 function readBranding(settings: AdminSettingsPayload): PublicBranding {
@@ -58,7 +51,6 @@ export function BrandingSettingsPanel({
   isActive = true,
   showAccountLogout = false,
   onLogout,
-  onOpenPaymentTab,
 }: BrandingSettingsPanelProps) {
   const [form, setForm] = useState(() => readBranding(settings));
   const [saving, setSaving] = useState(false);
@@ -117,9 +109,6 @@ export function BrandingSettingsPanel({
   const setStayRules = useCallback((next: StayRulesContent) => {
     setForm((prev) => ({ ...prev, stay_rules: next }));
   }, []);
-
-  const prepaymentPolicy = readPrepaymentPolicy(form);
-  const prepaymentGuestLabel = formatPrepaymentGuestLabel(prepaymentPolicy);
 
   const setNextLogoPreview = useCallback(
     (nextUrl: string | null, fromBlob = false) => {
@@ -290,31 +279,6 @@ export function BrandingSettingsPanel({
           value={stayRules}
           onChange={setStayRules}
         />
-
-        <section className="svc-accordion branding-svc-accordion branding-prepayment-accordion branding-field--full">
-          <div className="svc-accordion__trigger" style={{ cursor: "default" }}>
-            <div className="svc-accordion__trigger-main">
-              <span className="svc-accordion__icon" aria-hidden>
-                <Wallet size={18} />
-              </span>
-              <div className="svc-accordion__trigger-text">
-                <span className="svc-accordion__label">Передплата для гостей</span>
-                <span className="svc-accordion__hint">{prepaymentGuestLabel}</span>
-              </div>
-            </div>
-          </div>
-          <p className="pay-branding-link" style={{ margin: "0 16px 16px" }}>
-            Керування онлайн-оплатою, ключем Mono та передплатою — у розділі{" "}
-            {onOpenPaymentTab ? (
-              <button type="button" onClick={onOpenPaymentTab}>
-                Оплата
-              </button>
-            ) : (
-              <strong>Оплата</strong>
-            )}
-            .
-          </p>
-        </section>
 
         <div className="branding-logo-row branding-field--full">
           <div className="branding-logo-row__main branding-field branding-field--logo">
