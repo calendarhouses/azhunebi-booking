@@ -940,7 +940,9 @@ export function useAdminModals({
     if (roomDrawerId == null) return;
     const next: AdminSettingsPayload = {
       ...settings,
-      roomsList: (settings.roomsList || []).filter((r) => r.id !== roomDrawerId),
+      roomsList: (settings.roomsList || []).filter(
+        (r) => String(r.id) !== String(roomDrawerId)
+      ),
     };
     await persistSettings(next, { keys: ["roomsList"], background: true });
     setRoomDrawerOpen(false);

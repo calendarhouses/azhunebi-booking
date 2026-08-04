@@ -6,7 +6,7 @@ export {
   upsertBooking,
   deleteBookingById,
 } from "@/lib/db/bookings";
-export { listRooms, syncRoomsList } from "@/lib/db/rooms";
+export { listRooms, syncRoomsList, deleteRoomById } from "@/lib/db/rooms";
 export { loadAllSettings, getSettingsPayload, saveSettingsMerge, touchKeepAlive } from "@/lib/db/settings";
 export { getGuestProfilesMap, saveGuestProfile } from "@/lib/db/guestProfiles";
 export {

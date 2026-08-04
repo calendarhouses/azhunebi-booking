@@ -22,12 +22,48 @@ export async function upsertRoom(api: ApiRoom): Promise<ApiRoom> {
   return found;
 }
 
+export async function deleteRoomById(id: string): Promise<boolean> {
+  const sb = getDb();
+  const { error, count } = await sb
+    .from("rooms")
+    .delete({ count: "exact" })
+    .eq("id", String(id));
+  if (error) throw new Error(`deleteRoom: ${error.message}`);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Full sync roomsList → rooms table (GAS syncRoomsSheet parity):
+ * upsert every item, delete rows whose id is no longer in the list.
+ */
 export async function syncRoomsList(roomsList: ApiRoom[]): Promise<number> {
+  const keepIds = new Set(
+    roomsList
+      .map((r) => String(r?.id ?? "").trim())
+      .filter((id) => id.length > 0)
+  );
+
   let n = 0;
   for (const room of sortRoomsNumerically(roomsList)) {
+    if (!keepIds.has(String(room.id ?? "").trim())) continue;
     await upsertRoom(room);
     n += 1;
   }
+
+  const existing = await listRooms();
+  const orphans = existing.filter((r) => !keepIds.has(String(r.id)));
+
+  // Guard against a bad/partial client payload wiping the whole catalog.
+  if (keepIds.size === 0 && existing.length > 0) {
+    console.warn(
+      "[syncRoomsList] refusing to delete all rooms on empty roomsList; upserts only"
+    );
+  } else if (orphans.length) {
+    for (const room of orphans) {
+      await deleteRoomById(String(room.id));
+    }
+  }
+
   // Keep settings.roomsList blob in the same numeric order for any consumer
   // that still reads the JSON copy.
   const { saveSettingsKey } = await import("@/lib/db/settings");
