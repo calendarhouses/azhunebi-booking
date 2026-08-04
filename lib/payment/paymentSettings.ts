@@ -30,6 +30,8 @@ export type PaymentSettingsStored = {
   onlineEnabled: boolean;
   /** When true and Parts env is configured, show «Покупка частинами» on /pay. */
   monoPartsEnabled: boolean;
+  /** How long a pay link stays valid (hours). Default 3. */
+  paymentWindowHours?: number;
   /** Mono acquiring X-Token — server-only. */
   monoAcquiringToken?: string;
   /** Newest-first event log (success / decline / expiry). */
@@ -42,6 +44,7 @@ export type PaymentSettingsStored = {
 export type PaymentSettingsPublic = {
   onlineEnabled: boolean;
   monoPartsEnabled: boolean;
+  paymentWindowHours: number;
   tokenConfigured: boolean;
   tokenLast4: string | null;
   /** True when token comes only from env (not saved in settings yet). */
@@ -53,9 +56,15 @@ export type PaymentSettingsPublic = {
   webhook: PaymentWebhookHealth;
 };
 
+export const DEFAULT_PAYMENT_WINDOW_HOURS = 3;
+export const PAYMENT_WINDOW_PRESETS = [1, 2, 3, 6, 10, 12, 24] as const;
+export const PAYMENT_WINDOW_MIN_HOURS = 1;
+export const PAYMENT_WINDOW_MAX_HOURS = 72;
+
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettingsStored = {
   onlineEnabled: false,
   monoPartsEnabled: true,
+  paymentWindowHours: DEFAULT_PAYMENT_WINDOW_HOURS,
   journal: [],
   webhook: {
     lastAt: null,
@@ -64,6 +73,41 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettingsStored = {
     lastChannel: null,
   },
 };
+
+export function clampPaymentWindowHours(raw: unknown): number {
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n)) return DEFAULT_PAYMENT_WINDOW_HOURS;
+  return Math.min(
+    PAYMENT_WINDOW_MAX_HOURS,
+    Math.max(PAYMENT_WINDOW_MIN_HOURS, n)
+  );
+}
+
+/** «1 година» / «3 години» / «5 годин» */
+export function formatPaymentWindowPhrase(hours: number): string {
+  const h = clampPaymentWindowHours(hours);
+  const mod10 = h % 10;
+  const mod100 = h % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${h} година`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${h} години`;
+  }
+  return `${h} годин`;
+}
+
+/** Short label for SMS: «3 год» */
+export function formatPaymentWindowShort(hours: number): string {
+  return `${clampPaymentWindowHours(hours)} год`;
+}
+
+export function resolvePaymentWindowHours(raw: unknown): number {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return DEFAULT_PAYMENT_WINDOW_HOURS;
+  }
+  const o = raw as Record<string, unknown>;
+  if (o.paymentWindowHours == null) return DEFAULT_PAYMENT_WINDOW_HOURS;
+  return clampPaymentWindowHours(o.paymentWindowHours);
+}
 
 function envTruthy(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase();
@@ -175,6 +219,9 @@ export function normalizePaymentSettings(raw: unknown): PaymentSettingsStored {
   return {
     onlineEnabled: Boolean(r.onlineEnabled),
     monoPartsEnabled: r.monoPartsEnabled !== false,
+    paymentWindowHours: clampPaymentWindowHours(
+      r.paymentWindowHours ?? DEFAULT_PAYMENT_WINDOW_HOURS
+    ),
     ...(token ? { monoAcquiringToken: token } : {}),
     journal: normalizeJournal(r.journal),
     webhook: normalizeWebhook(r.webhook),
@@ -238,6 +285,7 @@ export function toPublicPaymentSettings(
   return {
     onlineEnabled: resolveOnlinePaymentEnabled(raw, { hasRecord }),
     monoPartsEnabled: stored.monoPartsEnabled,
+    paymentWindowHours: clampPaymentWindowHours(stored.paymentWindowHours),
     tokenConfigured: Boolean(effective),
     tokenLast4: tokenLast4(effective),
     tokenFromEnv: !settingsToken && Boolean(envToken),
@@ -285,10 +333,15 @@ export function mergePaymentSettingsForSave(
     typeof incoming.monoPartsEnabled === "boolean"
       ? incoming.monoPartsEnabled
       : existing.monoPartsEnabled;
+  const paymentWindowHours =
+    incoming.paymentWindowHours != null
+      ? clampPaymentWindowHours(incoming.paymentWindowHours)
+      : clampPaymentWindowHours(existing.paymentWindowHours);
 
   const out: PaymentSettingsStored = {
     onlineEnabled,
     monoPartsEnabled,
+    paymentWindowHours,
     journal: existing.journal || [],
     webhook: existing.webhook || DEFAULT_PAYMENT_SETTINGS.webhook,
   };

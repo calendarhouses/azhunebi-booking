@@ -41,6 +41,8 @@ export const SMS_TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "pay_url", label: "Посилання на оплату" },
   { key: "order_id", label: "Номер бронювання" },
   { key: "prepay", label: "Сума передоплати" },
+  { key: "hours", label: "Вікно оплати (коротко, напр. 3 год)" },
+  { key: "hours_phrase", label: "Вікно оплати (3 години)" },
   { key: "site", label: "Сайт" },
 ];
 
@@ -71,7 +73,7 @@ export const SMS_TEMPLATE_META: Record<
 };
 
 const DEFAULT_TEXTS: Record<SmsTemplateId, string> = {
-  payment_link: "Оплата резерву (3 год): {pay_url}",
+  payment_link: "Оплата резерву ({hours}): {pay_url}",
   success: "Передоплату отримано. Бронювання підтверджено. АЖ У НЕБІ",
   expiry: "Резерв скасовано: передоплату не отримано. azhunebi.com",
   reject:
@@ -179,12 +181,24 @@ function formatDateShortUa(value?: string): string {
 
 export function buildSmsVarsFromBooking(
   booking: GasBookingRecord,
-  extras?: { payUrl?: string; site?: string; cottage?: string },
+  extras?: {
+    payUrl?: string;
+    site?: string;
+    cottage?: string;
+    hours?: number;
+    hoursPhrase?: string;
+  },
 ): Record<string, string> {
   const firstName =
     String(booking.name || "Гість")
       .trim()
       .split(/\s+/)[0] || "Гість";
+
+  const hoursShort =
+    extras?.hours != null && Number.isFinite(extras.hours)
+      ? `${Math.round(extras.hours)} год`
+      : "3 год";
+  const hoursPhrase = extras?.hoursPhrase || hoursShort;
 
   return {
     name: firstName,
@@ -194,8 +208,24 @@ export function buildSmsVarsFromBooking(
     pay_url: extras?.payUrl || "",
     order_id: String(booking.id || ""),
     prepay: booking.prepayAmount != null ? `${booking.prepayAmount} грн` : "",
+    hours: hoursShort,
+    hours_phrase: hoursPhrase,
     site: extras?.site || "azhunebi.com",
   };
+}
+
+/**
+ * Keep hardcoded «(N год)» in payment_link SMS in sync with payment window,
+ * or leave `{hours}` placeholder as-is.
+ */
+export function syncPaymentLinkSmsWindowHours(
+  text: string,
+  hours: number
+): string {
+  const h = Math.max(1, Math.min(72, Math.round(Number(hours) || 3)));
+  const short = `${h} год`;
+  if (/\{hours\}/i.test(text)) return text;
+  return text.replace(/\(\d+\s*год(?:ина|ини|ин)?\)/gi, `(${short})`);
 }
 
 /** Append a new entry to journal array, trimming to max 100. Pure helper. */

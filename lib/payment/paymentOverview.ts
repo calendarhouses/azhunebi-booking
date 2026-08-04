@@ -7,6 +7,7 @@ import { getMonoMerchantDetails, MonoApiError } from "@/lib/monopay/client";
 import { buildGuestPaymentUrl } from "@/lib/admin/guestMessengerLinks";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import {
+  clampPaymentWindowHours,
   hasPaymentSettingsRecord,
   normalizePaymentSettings,
   resolveOnlinePaymentEnabled,
@@ -182,7 +183,7 @@ export async function buildPaymentOverview(opts?: {
     health: {
       onlineEnabled: resolveOnlinePaymentEnabled(raw, { hasRecord }),
       forceOff: pub.forceOff,
-      paymentWindowHours: 3,
+      paymentWindowHours: clampPaymentWindowHours(stored.paymentWindowHours),
       awaitingCount: awaiting.length,
       token: {
         configured: pub.tokenConfigured,

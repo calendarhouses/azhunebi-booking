@@ -3,6 +3,10 @@ import {
   normalizeGuestPhone,
   type GuestMessengerBooking,
 } from "@/lib/admin/guestMessengerLinks";
+import {
+  DEFAULT_PAYMENT_WINDOW_HOURS,
+  formatPaymentWindowPhrase,
+} from "@/lib/payment/paymentSettings";
 import { sendTurboSms, type TurboSmsSendResult } from "./turbosms";
 import { guestCottageLabel } from "./guestCottageLabel";
 
@@ -21,15 +25,17 @@ function formatGuestDateShort(value?: string): string {
 export function buildGuestApprovedSmsText(
   booking: GuestMessengerBooking,
   cottage?: string,
+  paymentWindowHours: number = DEFAULT_PAYMENT_WINDOW_HOURS,
 ): string {
   const firstName = String(booking.name || "Гість").trim().split(/\s+/)[0] || "Гість";
   const dates = `${formatGuestDateShort(booking.checkIn)} — ${formatGuestDateShort(booking.checkOut)}`;
   const prepay = Math.round(Number(booking.prepayAmount) || 0);
   const orderId = String(booking.id || "").trim();
   const payUrl = orderId ? buildGuestPaymentUrl(orderId) : "";
+  const windowPhrase = formatPaymentWindowPhrase(paymentWindowHours);
 
   const lines = [
-    `Вітаємо, ${firstName}! Заявку схвалено, дати зарезервовано для оплати на 3 години.`,
+    `Вітаємо, ${firstName}! Заявку схвалено, дати зарезервовано для оплати на ${windowPhrase}.`,
     `${cottage || booking.cottage || "Котедж"}, ${dates}.`,
   ];
 
@@ -52,7 +58,21 @@ export async function sendBookingApprovedSms(
     return { ok: false, error: "missing phone" };
   }
 
-  const text = buildGuestApprovedSmsText(booking, await guestCottageLabel(booking));
+  let paymentWindowHours = DEFAULT_PAYMENT_WINDOW_HOURS;
+  try {
+    const { loadAllSettings } = await import("@/lib/db/settings");
+    const { resolvePaymentWindowHours } = await import("@/lib/payment/paymentSettings");
+    const all = await loadAllSettings();
+    paymentWindowHours = resolvePaymentWindowHours(all.paymentSettings);
+  } catch {
+    /* keep default */
+  }
+
+  const text = buildGuestApprovedSmsText(
+    booking,
+    await guestCottageLabel(booking),
+    paymentWindowHours
+  );
   const orderId = String(booking.id || "").trim();
   return sendTurboSms({
     phone,

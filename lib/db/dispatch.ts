@@ -70,6 +70,12 @@ function addHoursIso(hours: number): string {
   return new Date(Date.now() + hours * 3600_000).toISOString();
 }
 
+async function paymentWindowHoursFromSettings(): Promise<number> {
+  const { resolvePaymentWindowHours } = await import("@/lib/payment/paymentSettings");
+  const all = await loadAllSettings();
+  return resolvePaymentWindowHours(all.paymentSettings);
+}
+
 function nightsBetween(checkIn: string, checkOut: string): number {
   const a = Date.parse(checkIn);
   const b = Date.parse(checkOut);
@@ -244,7 +250,7 @@ async function handleCreateBooking(
   }
 
   if (isPublicSite && status === "Очікує оплату" && !booking.paymentExpiresAt) {
-    booking.paymentExpiresAt = addHoursIso(3);
+    booking.paymentExpiresAt = addHoursIso(await paymentWindowHoursFromSettings());
   }
 
   const saved = await upsertBooking(booking);
@@ -453,7 +459,9 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           const next = await upsertBooking({
             ...booking,
             status: "Очікує оплату",
-            paymentExpiresAt: booking.paymentExpiresAt || addHoursIso(3),
+            paymentExpiresAt:
+              booking.paymentExpiresAt ||
+              addHoursIso(await paymentWindowHoursFromSettings()),
           });
           return ok({ ok: true, booking: next });
         }
@@ -478,7 +486,9 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         const next = await patchBookingMeta(orderId, {
           monoInvoiceId: String(body.invoiceId || ""),
           monoPageUrl: String(body.pageUrl || ""),
-          paymentExpiresAt: booking.paymentExpiresAt || addHoursIso(3),
+          paymentExpiresAt:
+            booking.paymentExpiresAt ||
+            addHoursIso(await paymentWindowHoursFromSettings()),
         });
         return ok({ ok: true, stored: true, booking: next });
       }

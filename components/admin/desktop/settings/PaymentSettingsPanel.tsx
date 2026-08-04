@@ -5,6 +5,7 @@ import {
   Activity,
   AlertTriangle,
   Banknote,
+  Check,
   CheckCircle2,
   Clock3,
   Copy,
@@ -15,11 +16,10 @@ import {
   Moon,
   Percent,
   RefreshCw,
-  ShieldCheck,
+  Settings2,
   ShieldOff,
   Timer,
   Wallet,
-  Webhook,
   XCircle,
 } from "lucide-react";
 import { getAdminTenantId, saveAdminSettings } from "../adminApi";
@@ -35,6 +35,12 @@ import { dobaWord } from "@/components/admin/desktop/adminPlural";
 import { getStoredAuthToken } from "@/lib/gas-api";
 import {
   DEFAULT_PAYMENT_SETTINGS,
+  DEFAULT_PAYMENT_WINDOW_HOURS,
+  PAYMENT_WINDOW_MAX_HOURS,
+  PAYMENT_WINDOW_MIN_HOURS,
+  PAYMENT_WINDOW_PRESETS,
+  clampPaymentWindowHours,
+  formatPaymentWindowPhrase,
   type PaymentSettingsPublic,
   type PaymentWebhookHealth,
 } from "@/lib/payment/paymentSettings";
@@ -43,6 +49,10 @@ import type {
   PaymentFeedItem,
   PaymentHealthSnapshot,
 } from "@/lib/payment/paymentOverviewTypes";
+import {
+  normalizeSmsSettings,
+  syncPaymentLinkSmsWindowHours,
+} from "@/lib/sms/smsSettings";
 import "./settings-payment.css";
 import "../settings/settings-additional-services.css";
 
@@ -59,6 +69,8 @@ const EMPTY_WEBHOOK: PaymentWebhookHealth = {
   lastChannel: null,
 };
 
+type PaySubView = "settings" | "awaiting" | "feed";
+
 type PaymentSettingsPanelProps = {
   settings: AdminSettingsPayload;
   onSettingsChange: (next: AdminSettingsPayload) => void;
@@ -73,6 +85,9 @@ function readPayment(settings: AdminSettingsPayload): PaymentSettingsPublic {
     return {
       onlineEnabled: Boolean(p.onlineEnabled),
       monoPartsEnabled: p.monoPartsEnabled !== false,
+      paymentWindowHours: clampPaymentWindowHours(
+        p.paymentWindowHours ?? DEFAULT_PAYMENT_WINDOW_HOURS
+      ),
       tokenConfigured: Boolean(p.tokenConfigured),
       tokenLast4: typeof p.tokenLast4 === "string" ? p.tokenLast4 : null,
       tokenFromEnv: Boolean(p.tokenFromEnv),
@@ -83,6 +98,7 @@ function readPayment(settings: AdminSettingsPayload): PaymentSettingsPublic {
   }
   return {
     ...DEFAULT_PAYMENT_SETTINGS,
+    paymentWindowHours: DEFAULT_PAYMENT_WINDOW_HOURS,
     tokenConfigured: false,
     tokenLast4: null,
     tokenFromEnv: false,
@@ -123,7 +139,7 @@ function formatCountdown(ms: number | null): {
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
   if (h >= 1) {
-    return { label: `${h} год ${m} хв`, tone: h < 1 ? "urgent" : "ok" };
+    return { label: `${h} год ${m} хв`, tone: "ok" };
   }
   return { label: `${Math.max(1, m)} хв`, tone: "urgent" };
 }
@@ -148,10 +164,13 @@ export function PaymentSettingsPanel({
   bookings = [],
 }: PaymentSettingsPanelProps) {
   const payment = useMemo(() => readPayment(settings), [settings]);
+  const [subView, setSubView] = useState<PaySubView>("settings");
   const [onlineEnabled, setOnlineEnabled] = useState(payment.onlineEnabled);
   const [monoPartsEnabled, setMonoPartsEnabled] = useState(payment.monoPartsEnabled);
+  const [windowHours, setWindowHours] = useState(payment.paymentWindowHours);
   const [newToken, setNewToken] = useState("");
   const [savingFlags, setSavingFlags] = useState(false);
+  const [savingWindow, setSavingWindow] = useState(false);
   const [savingToken, setSavingToken] = useState(false);
   const [testing, setTesting] = useState(false);
   const [merchantName, setMerchantName] = useState<string | null>(null);
@@ -168,7 +187,13 @@ export function PaymentSettingsPanel({
     if (!isActive) return;
     setOnlineEnabled(payment.onlineEnabled);
     setMonoPartsEnabled(payment.monoPartsEnabled);
-  }, [isActive, payment.onlineEnabled, payment.monoPartsEnabled]);
+    setWindowHours(payment.paymentWindowHours);
+  }, [
+    isActive,
+    payment.onlineEnabled,
+    payment.monoPartsEnabled,
+    payment.paymentWindowHours,
+  ]);
 
   useEffect(() => {
     setBranding(readBranding(settings));
@@ -225,12 +250,18 @@ export function PaymentSettingsPanel({
       : String(branding.prepayment_value);
 
   const persistPaymentFlags = useCallback(
-    async (next: { onlineEnabled: boolean; monoPartsEnabled: boolean }) => {
+    async (next: {
+      onlineEnabled: boolean;
+      monoPartsEnabled: boolean;
+      paymentWindowHours?: number;
+    }) => {
       setSavingFlags(true);
       try {
         const paymentSettings = {
           onlineEnabled: next.onlineEnabled,
           monoPartsEnabled: next.monoPartsEnabled,
+          paymentWindowHours:
+            next.paymentWindowHours ?? payment.paymentWindowHours,
         };
         await saveAdminSettings(
           {
@@ -273,20 +304,101 @@ export function PaymentSettingsPanel({
     if (payment.forceOff || savingFlags) return;
     const next = !onlineEnabled;
     setOnlineEnabled(next);
-    void persistPaymentFlags({ onlineEnabled: next, monoPartsEnabled });
-  }, [payment.forceOff, savingFlags, onlineEnabled, monoPartsEnabled, persistPaymentFlags]);
+    void persistPaymentFlags({
+      onlineEnabled: next,
+      monoPartsEnabled,
+      paymentWindowHours: windowHours,
+    });
+  }, [
+    payment.forceOff,
+    savingFlags,
+    onlineEnabled,
+    monoPartsEnabled,
+    windowHours,
+    persistPaymentFlags,
+  ]);
 
   const onToggleParts = useCallback(() => {
     if (!payment.partsConfigured || savingFlags) return;
     const next = !monoPartsEnabled;
     setMonoPartsEnabled(next);
-    void persistPaymentFlags({ onlineEnabled, monoPartsEnabled: next });
+    void persistPaymentFlags({
+      onlineEnabled,
+      monoPartsEnabled: next,
+      paymentWindowHours: windowHours,
+    });
   }, [
     payment.partsConfigured,
     savingFlags,
     onlineEnabled,
     monoPartsEnabled,
+    windowHours,
     persistPaymentFlags,
+  ]);
+
+  const savePaymentWindow = useCallback(async () => {
+    const hours = clampPaymentWindowHours(windowHours);
+    setWindowHours(hours);
+    setSavingWindow(true);
+    try {
+      const paymentSettings = {
+        onlineEnabled,
+        monoPartsEnabled,
+        paymentWindowHours: hours,
+      };
+      const sms = normalizeSmsSettings(settings.smsSettings);
+      const nextSmsText = syncPaymentLinkSmsWindowHours(
+        sms.templates.payment_link.text,
+        hours
+      );
+      const smsChanged = nextSmsText !== sms.templates.payment_link.text;
+      const nextSms = smsChanged
+        ? {
+            ...sms,
+            templates: {
+              ...sms.templates,
+              payment_link: {
+                ...sms.templates.payment_link,
+                text: nextSmsText,
+              },
+            },
+          }
+        : null;
+
+      await saveAdminSettings(
+        {
+          ...settings,
+          paymentSettings: paymentSettings as unknown as PaymentSettingsPublic,
+          ...(nextSms ? { smsSettings: nextSms } : {}),
+        },
+        { keys: nextSms ? ["paymentSettings", "smsSettings"] : ["paymentSettings"] }
+      );
+      onSettingsChange({
+        ...settings,
+        paymentSettings: {
+          ...payment,
+          ...paymentSettings,
+        },
+        ...(nextSms ? { smsSettings: nextSms } : {}),
+      });
+      showToast(
+        `Вікно оплати: ${formatPaymentWindowPhrase(hours)}${
+          smsChanged ? " · SMS оновлено" : ""
+        }`
+      );
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Не вдалося зберегти вікно");
+      setWindowHours(payment.paymentWindowHours);
+    } finally {
+      setSavingWindow(false);
+    }
+  }, [
+    windowHours,
+    onlineEnabled,
+    monoPartsEnabled,
+    settings,
+    onSettingsChange,
+    payment,
   ]);
 
   const saveToken = useCallback(async () => {
@@ -303,6 +415,7 @@ export function PaymentSettingsPanel({
           paymentSettings: {
             onlineEnabled,
             monoPartsEnabled,
+            paymentWindowHours: windowHours,
             monoAcquiringToken: token,
           } as unknown as PaymentSettingsPublic,
         },
@@ -315,6 +428,7 @@ export function PaymentSettingsPanel({
           ...payment,
           onlineEnabled,
           monoPartsEnabled,
+          paymentWindowHours: windowHours,
           tokenConfigured: true,
           tokenLast4: last4,
           tokenFromEnv: false,
@@ -333,6 +447,7 @@ export function PaymentSettingsPanel({
     newToken,
     onlineEnabled,
     monoPartsEnabled,
+    windowHours,
     settings,
     onSettingsChange,
     payment,
@@ -442,548 +557,551 @@ export function PaymentSettingsPanel({
     .filter(Boolean)
     .join(" ");
 
-  const tokenTone =
-    health?.token.valid === true
-      ? "ok"
-      : health?.token.valid === false || !payment.tokenConfigured
-        ? payment.tokenConfigured
-          ? "danger"
-          : "warn"
-        : payment.tokenConfigured
-          ? "ok"
-          : "warn";
-
-  const webhookTone =
-    health?.webhook.lastOk === true
-      ? "ok"
-      : health?.webhook.lastOk === false
-        ? "danger"
-        : "warn";
+  const keyOk =
+    health?.token.valid === true ||
+    (health?.token.valid !== false && payment.tokenConfigured);
+  const keyTone = keyOk ? "ok" : "danger";
+  const awaitingCount = health?.awaitingCount ?? awaiting.length;
+  const windowDirty = clampPaymentWindowHours(windowHours) !== payment.paymentWindowHours;
 
   return (
     <div className="pay-page">
-      <section className={heroClass}>
-        <div className="pay-hero__main">
-          <p className="pay-hero__eyebrow">Оплата на сайті</p>
-          <h2 className="pay-hero__title">
-            {payment.forceOff
-              ? "Аварійно вимкнено"
-              : onlineEnabled
-                ? "Онлайн-оплата увімкнена"
-                : "Онлайн-оплата вимкнена"}
-          </h2>
-          <p className="pay-hero__desc">
-            {payment.forceOff
-              ? "Env ONLINE_PAYMENT_FORCE_OFF блокує оплату незалежно від тумблера. Зніміть прапорець у Vercel, щоб керувати звідси."
-              : onlineEnabled
-                ? "Гості після бронювання переходять на сторінку оплати Mono (якщо бронь не потребує ручного підтвердження)."
-                : "Гості потрапляють на сторінку очікування. Броні зі статусом «Очікує підтвердження» — ви підтверджуєте в адмінці."}
-          </p>
-          <div className="pay-hero__pills">
-            <span
-              className={`pay-pill${payment.tokenConfigured ? " pay-pill--ok" : " pay-pill--warn"}`}
-            >
-              <KeyRound size={14} aria-hidden />
-              {payment.tokenConfigured
-                ? `Ключ ••••${payment.tokenLast4 || "????"}`
-                : "Ключ не задано"}
-            </span>
-            {payment.tokenFromEnv ? <span className="pay-pill">З Vercel env</span> : null}
-            <span
-              className={`pay-pill${
-                payment.partsConfigured && monoPartsEnabled ? " pay-pill--ok" : " pay-pill"
-              }`}
-            >
-              Parts{" "}
-              {payment.partsConfigured
-                ? monoPartsEnabled
-                  ? "увімкнено"
-                  : "вимкнено"
-                : "не налаштовано"}
-            </span>
-          </div>
-        </div>
-        <div className="pay-hero__side">
-          <div className="pay-flow">
-            <span className="pay-flow__label">Шлях гостя</span>
-            <div className="pay-flow__steps">
-              <span className="pay-flow__step">Бронь</span>
-              <span className="pay-flow__arrow" aria-hidden>
-                →
-              </span>
-              <span className="pay-flow__step">
-                {onlineEnabled && !payment.forceOff ? "Оплата Mono" : "Очікування"}
-              </span>
-              <span className="pay-flow__arrow" aria-hidden>
-                →
-              </span>
-              <span className="pay-flow__step">
-                {onlineEnabled && !payment.forceOff ? "Підтверджено" : "Ваше рішення"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {payment.forceOff ? (
-        <div className="pay-banner pay-banner--danger" role="status">
-          <ShieldOff size={18} aria-hidden />
-          <div>
-            Аварійний рубильник активний. Тумблер нижче не увімкне оплату, доки
-            ONLINE_PAYMENT_FORCE_OFF увімкнено в середовищі.
-          </div>
-        </div>
-      ) : null}
-
-      {onlineEnabled && !payment.forceOff && !payment.tokenConfigured ? (
-        <div className="pay-banner pay-banner--warn" role="status">
-          <AlertTriangle size={18} aria-hidden />
-          <div>
-            Оплату увімкнено, але API-ключ Mono відсутній. Гості не зможуть завершити
-            оплату — додайте ключ нижче.
-          </div>
-        </div>
-      ) : null}
-
-      <section className="pay-card">
-        <div className="pay-section-head">
-          <div>
-            <h3 className="pay-card__title">Стан системи</h3>
-            <p className="pay-card__hint">
-              Ключ, webhook і вікно оплати 3 години — усе в одному погляді.
-            </p>
-          </div>
-          <div className="pay-section-head__actions">
-            <button
-              type="button"
-              className="pay-btn pay-btn--sm"
-              disabled={overviewLoading}
-              onClick={() => void loadOverview(true)}
-            >
-              {overviewLoading ? <Loader2 size={14} /> : <RefreshCw size={14} />}
-              Оновити
-            </button>
-          </div>
-        </div>
-
-        {overviewLoading && !health ? (
-          <div className="pay-health-grid">
-            <div className="pay-skeleton" />
-            <div className="pay-skeleton" />
-            <div className="pay-skeleton" />
-            <div className="pay-skeleton" />
-          </div>
-        ) : (
-          <div className="pay-health-grid">
-            <div className={`pay-health-cell pay-health-cell--${tokenTone}`}>
-              <div className="pay-health-cell__top">
-                <span className="pay-health-cell__label">Ключ Mono</span>
-                <span className="pay-health-cell__icon">
-                  <ShieldCheck size={15} aria-hidden />
-                </span>
-              </div>
-              <p className="pay-health-cell__value">
-                {health?.token.valid === true
-                  ? "Валідний"
-                  : health?.token.valid === false
-                    ? "Помилка"
-                    : payment.tokenConfigured
-                      ? `••••${payment.tokenLast4 || ""}`
-                      : "Немає"}
-              </p>
-              <p className="pay-health-cell__meta">
-                {health?.token.merchantName ||
-                  merchantName ||
-                  (payment.tokenFromEnv ? "з Vercel env" : "еквайринг X-Token")}
-              </p>
-            </div>
-
-            <div className={`pay-health-cell pay-health-cell--${webhookTone}`}>
-              <div className="pay-health-cell__top">
-                <span className="pay-health-cell__label">Webhook</span>
-                <span className="pay-health-cell__icon">
-                  <Webhook size={15} aria-hidden />
-                </span>
-              </div>
-              <p className="pay-health-cell__value">
-                {health?.webhook.lastOk === true
-                  ? "OK"
-                  : health?.webhook.lastOk === false
-                    ? "Збій"
-                    : "Очікує"}
-              </p>
-              <p className="pay-health-cell__meta">
-                {formatWhen(health?.webhook.lastAt)}
-                {health?.webhook.lastChannel
-                  ? ` · ${health.webhook.lastChannel === "monoparts" ? "Parts" : "Pay"}`
-                  : ""}
-              </p>
-            </div>
-
-            <div className="pay-health-cell">
-              <div className="pay-health-cell__top">
-                <span className="pay-health-cell__label">Вікно оплати</span>
-                <span className="pay-health-cell__icon">
-                  <Timer size={15} aria-hidden />
-                </span>
-              </div>
-              <p className="pay-health-cell__value">{health?.paymentWindowHours ?? 3} год</p>
-              <p className="pay-health-cell__meta">
-                Після цього бронь скасовується автоматично
-              </p>
-            </div>
-
-            <div
-              className={`pay-health-cell${
-                (health?.awaitingCount || 0) > 0
-                  ? " pay-health-cell--warn"
-                  : " pay-health-cell--ok"
-              }`}
-            >
-              <div className="pay-health-cell__top">
-                <span className="pay-health-cell__label">Очікують оплату</span>
-                <span className="pay-health-cell__icon">
-                  <Clock3 size={15} aria-hidden />
-                </span>
-              </div>
-              <p className="pay-health-cell__value">
-                {health?.awaitingCount ?? awaiting.length}
-              </p>
-              <p className="pay-health-cell__meta">Можна скопіювати pay-link нижче</p>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="pay-card">
-        <div className="pay-section-head">
-          <div>
-            <h3 className="pay-card__title">Очікують оплату</h3>
-            <p className="pay-card__hint">
-              Швидко надішліть гостю посилання вручну — без SMS.
-            </p>
-          </div>
-          <Link2 size={18} color="var(--pay-accent)" aria-hidden />
-        </div>
-
-        {overviewLoading && awaiting.length === 0 ? (
-          <div className="pay-skeleton" />
-        ) : awaiting.length === 0 ? (
-          <div className="pay-empty">
-            <CheckCircle2 size={22} color="var(--pay-ok)" aria-hidden />
-            <strong>Немає броней в очікуванні оплати</strong>
-            <span>Коли гість отримає статус «Очікує оплату» — зʼявиться тут.</span>
-          </div>
-        ) : (
-          <div className="pay-await">
-            {awaiting.map((item) => {
-              const timer = formatCountdown(item.expiresInMs);
-              return (
-                <article key={item.bookingId} className="pay-await__card">
-                  <div>
-                    <h4 className="pay-await__name">{item.name}</h4>
-                    <p className="pay-await__meta">
-                      {item.cottage || "Котедж"} · {formatShortDate(item.checkIn)} —{" "}
-                      {formatShortDate(item.checkOut)}
-                      {item.prepayAmount > 0 ? ` · ${formatMoney(item.prepayAmount)}` : ""}
-                      {` · ${item.bookingId}`}
-                    </p>
-                    <span
-                      className={`pay-await__timer${
-                        timer.tone === "urgent"
-                          ? " pay-await__timer--urgent"
-                          : timer.tone === "over"
-                            ? " pay-await__timer--over"
-                            : ""
-                      }`}
-                    >
-                      <Clock3 size={13} aria-hidden />
-                      {timer.label}
-                    </span>
-                  </div>
-                  <div className="pay-await__actions">
-                    <button
-                      type="button"
-                      className="pay-btn pay-btn--primary pay-btn--sm"
-                      onClick={() => void copyPayLink(item.payUrl, item.name)}
-                    >
-                      <Copy size={14} />
-                      Копіювати
-                    </button>
-                    <a
-                      className="pay-btn pay-btn--sm"
-                      href={item.payUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <ExternalLink size={14} />
-                      Відкрити
-                    </a>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className="pay-card">
-        <div className="pay-section-head">
-          <div>
-            <h3 className="pay-card__title">Стрічка платежів</h3>
-            <p className="pay-card__hint">
-              Останні успіхи, відхилення Mono та протерміновані оплати.
-            </p>
-          </div>
-          <Activity size={18} color="var(--pay-accent)" aria-hidden />
-        </div>
-
-        {overviewLoading && feed.length === 0 ? (
-          <>
-            <div className="pay-skeleton" style={{ marginBottom: 8 }} />
-            <div className="pay-skeleton" />
-          </>
-        ) : feed.length === 0 ? (
-          <div className="pay-empty">
-            <Activity size={22} aria-hidden />
-            <strong>Поки тихо</strong>
-            <span>
-              Тут зʼявляться платежі після webhook Mono або скасувань по таймеру.
-            </span>
-          </div>
-        ) : (
-          <div className="pay-feed">
-            {feed.map((item) => (
-              <div key={item.id} className="pay-feed__row">
-                <span className={`pay-feed__badge pay-feed__badge--${item.outcome}`}>
-                  {item.outcome === "success" ? (
-                    <CheckCircle2 size={12} style={{ marginRight: 4 }} aria-hidden />
-                  ) : item.outcome === "failure" ? (
-                    <XCircle size={12} style={{ marginRight: 4 }} aria-hidden />
-                  ) : (
-                    <Clock3 size={12} style={{ marginRight: 4 }} aria-hidden />
-                  )}
-                  {outcomeLabel(item.outcome)}
-                </span>
-                <div className="pay-feed__main">
-                  <p className="pay-feed__title">
-                    {item.guestName || "Гість"}
-                    {item.bookingId ? ` · ${item.bookingId}` : ""}
-                  </p>
-                  <p className="pay-feed__sub">
-                    {item.provider || "Mono"}
-                    {item.reason ? ` · ${item.reason}` : ""}
-                    {item.transactionId ? ` · ${item.transactionId.slice(0, 10)}…` : ""}
-                  </p>
-                </div>
-                <div className="pay-feed__side">
-                  <p className="pay-feed__amount">{formatMoney(item.amount)}</p>
-                  <p className="pay-feed__time">{formatWhen(item.at)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="pay-card">
-        <div className="pay-card__head">
-          <div>
-            <h3 className="pay-card__title">Онлайн-оплата</h3>
-            <p className="pay-card__hint">
-              Миттєво перемикає сайт між сторінкою оплати та очікуванням підтвердження.
-            </p>
-          </div>
-        </div>
-        <div className="pay-toggle-row">
-          <div className="pay-toggle-row__text">
-            <strong>Приймати оплату на сайті</strong>
-            <span>
-              {onlineEnabled
-                ? "Увімкнено — показуємо /pay після бронювання"
-                : "Вимкнено — заявка на підтвердження адміністратором"}
-            </span>
-          </div>
+      <div className="pay-page__top">
+        <div className="reports-tabs pay-subtabs">
           <button
             type="button"
-            className="pay-switch"
-            role="switch"
-            aria-checked={onlineEnabled && !payment.forceOff}
-            aria-label="Онлайн-оплата на сайті"
-            disabled={payment.forceOff || savingFlags}
-            onClick={onToggleOnline}
+            className={`r-tab${subView === "settings" ? " active" : ""}`}
+            onClick={() => setSubView("settings")}
           >
-            <span className="pay-switch__knob" />
+            <Settings2 size={16} strokeWidth={1.75} aria-hidden />
+            Налаштування
           </button>
-        </div>
-
-        <div className="pay-toggle-row" style={{ marginTop: 12 }}>
-          <div className="pay-toggle-row__text">
-            <strong>Покупка частинами</strong>
-            <span>
-              {payment.partsConfigured
-                ? "Кнопка Mono Parts на сторінці оплати"
-                : "Задайте MONO_CHAST_STORE_ID і MONO_CHAST_SIGN_KEY у Vercel"}
-            </span>
-          </div>
           <button
             type="button"
-            className="pay-switch"
-            role="switch"
-            aria-checked={payment.partsConfigured && monoPartsEnabled}
-            aria-label="Покупка частинами"
-            disabled={!payment.partsConfigured || savingFlags}
-            onClick={onToggleParts}
+            className={`r-tab${subView === "awaiting" ? " active" : ""}`}
+            onClick={() => setSubView("awaiting")}
           >
-            <span className="pay-switch__knob" />
+            <Link2 size={16} strokeWidth={1.75} aria-hidden />
+            Очікують
+            {awaitingCount > 0 ? (
+              <span className="pay-subtabs__count">{awaitingCount}</span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className={`r-tab${subView === "feed" ? " active" : ""}`}
+            onClick={() => setSubView("feed")}
+          >
+            <Activity size={16} strokeWidth={1.75} aria-hidden />
+            Стрічка
+            {feed.length > 0 ? (
+              <span className="pay-subtabs__count">{feed.length}</span>
+            ) : null}
           </button>
         </div>
-      </section>
+        {(subView === "awaiting" || subView === "feed") && (
+          <button
+            type="button"
+            className="pay-btn pay-btn--sm"
+            disabled={overviewLoading}
+            onClick={() => void loadOverview(true)}
+          >
+            {overviewLoading ? <Loader2 size={14} /> : <RefreshCw size={14} />}
+            Оновити
+          </button>
+        )}
+      </div>
 
-      <section className="pay-card">
-        <div className="pay-card__head">
-          <div>
-            <h3 className="pay-card__title">API-ключ Mono</h3>
-            <p className="pay-card__hint">
-              Токен еквайрингу з кабінету web.monobank.ua. Повний ключ ніколи не
-              показується після збереження — лише маска.
+      {subView === "settings" ? (
+        <>
+          <section className={heroClass}>
+            <div className="pay-hero__main">
+              <p className="pay-hero__eyebrow">Оплата на сайті</p>
+              <h2 className="pay-hero__title">
+                {payment.forceOff
+                  ? "Аварійно вимкнено"
+                  : onlineEnabled
+                    ? "Онлайн-оплата увімкнена"
+                    : "Онлайн-оплата вимкнена"}
+              </h2>
+              <p className="pay-hero__desc">
+                {payment.forceOff
+                  ? "Env ONLINE_PAYMENT_FORCE_OFF блокує оплату незалежно від тумблера. Зніміть прапорець у Vercel, щоб керувати звідси."
+                  : onlineEnabled
+                    ? "Гості після бронювання переходять на сторінку оплати Mono (якщо бронь не потребує ручного підтвердження)."
+                    : "Гості потрапляють на сторінку очікування. Броні зі статусом «Очікує підтвердження» — ви підтверджуєте в адмінці."}
+              </p>
+              <div className="pay-hero__pills">
+                <span
+                  className={`pay-key-dot pay-key-dot--${keyTone}`}
+                  title={
+                    keyOk
+                      ? payment.tokenLast4
+                        ? `Ключ ••••${payment.tokenLast4}`
+                        : "Ключ валідний"
+                      : "Ключ відсутній або невалідний"
+                  }
+                  aria-label={keyOk ? "Ключ OK" : "Ключ помилка"}
+                >
+                  <span className="pay-key-dot__pulse" aria-hidden />
+                </span>
+                <span
+                  className={`pay-pill${
+                    payment.partsConfigured && monoPartsEnabled
+                      ? " pay-pill--ok"
+                      : " pay-pill"
+                  }`}
+                >
+                  {payment.partsConfigured && monoPartsEnabled ? (
+                    <Check size={14} aria-hidden />
+                  ) : null}
+                  Оплата частинами
+                  {!payment.partsConfigured
+                    ? " · не налаштовано"
+                    : !monoPartsEnabled
+                      ? " · вимкнено"
+                      : ""}
+                </span>
+              </div>
+            </div>
+            <div className="pay-hero__side">
+              <div className="pay-flow">
+                <span className="pay-flow__label">Шлях гостя</span>
+                <div className="pay-flow__steps">
+                  <span className="pay-flow__step">Бронь</span>
+                  <span className="pay-flow__arrow" aria-hidden>
+                    →
+                  </span>
+                  <span className="pay-flow__step">
+                    {onlineEnabled && !payment.forceOff ? "Оплата Mono" : "Очікування"}
+                  </span>
+                  <span className="pay-flow__arrow" aria-hidden>
+                    →
+                  </span>
+                  <span className="pay-flow__step">
+                    {onlineEnabled && !payment.forceOff ? "Підтверджено" : "Ваше рішення"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {payment.forceOff ? (
+            <div className="pay-banner pay-banner--danger" role="status">
+              <ShieldOff size={18} aria-hidden />
+              <div>
+                Аварійний рубильник активний. Тумблер нижче не увімкне оплату, доки
+                ONLINE_PAYMENT_FORCE_OFF увімкнено в середовищі.
+              </div>
+            </div>
+          ) : null}
+
+          {onlineEnabled && !payment.forceOff && !payment.tokenConfigured ? (
+            <div className="pay-banner pay-banner--warn" role="status">
+              <AlertTriangle size={18} aria-hidden />
+              <div>
+                Оплату увімкнено, але API-ключ Mono відсутній. Гості не зможуть завершити
+                оплату — додайте ключ нижче.
+              </div>
+            </div>
+          ) : null}
+
+          <section className="pay-card">
+            <div className="pay-card__head">
+              <div>
+                <h3 className="pay-card__title">Онлайн-оплата</h3>
+                <p className="pay-card__hint">
+                  Миттєво перемикає сайт між сторінкою оплати та очікуванням підтвердження.
+                </p>
+              </div>
+            </div>
+            <div className="pay-toggle-row">
+              <div className="pay-toggle-row__text">
+                <strong>Приймати оплату на сайті</strong>
+                <span>
+                  {onlineEnabled
+                    ? "Увімкнено — показуємо /pay після бронювання"
+                    : "Вимкнено — заявка на підтвердження адміністратором"}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="pay-switch"
+                role="switch"
+                aria-checked={onlineEnabled && !payment.forceOff}
+                aria-label="Онлайн-оплата на сайті"
+                disabled={payment.forceOff || savingFlags}
+                onClick={onToggleOnline}
+              >
+                <span className="pay-switch__knob" />
+              </button>
+            </div>
+
+            <div className="pay-toggle-row" style={{ marginTop: 12 }}>
+              <div className="pay-toggle-row__text">
+                <strong>Покупка частинами</strong>
+                <span>
+                  {payment.partsConfigured
+                    ? "Кнопка Mono Parts на сторінці оплати"
+                    : "Задайте MONO_CHAST_STORE_ID і MONO_CHAST_SIGN_KEY у Vercel"}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="pay-switch"
+                role="switch"
+                aria-checked={payment.partsConfigured && monoPartsEnabled}
+                aria-label="Покупка частинами"
+                disabled={!payment.partsConfigured || savingFlags}
+                onClick={onToggleParts}
+              >
+                <span className="pay-switch__knob" />
+              </button>
+            </div>
+
+            <div className="pay-window">
+              <div className="pay-window__head">
+                <div>
+                  <strong className="pay-window__title">
+                    <Timer size={16} aria-hidden />
+                    Вікно оплати
+                  </strong>
+                  <p className="pay-window__hint">
+                    Скільки живе pay-link і текст у SMS. Після цього бронь скасовується
+                    автоматично.
+                  </p>
+                </div>
+              </div>
+              <div className="pay-window__presets" role="group" aria-label="Години вікна">
+                {PAYMENT_WINDOW_PRESETS.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    className={`pay-window__chip${windowHours === h ? " is-active" : ""}`}
+                    onClick={() => setWindowHours(h)}
+                  >
+                    {h} год
+                  </button>
+                ))}
+              </div>
+              <div className="pay-window__custom">
+                <label className="pay-field" style={{ flex: 1, marginBottom: 0 }}>
+                  <span className="pay-field__label">Своє значення (год)</span>
+                  <input
+                    className="pay-field__input"
+                    type="number"
+                    min={PAYMENT_WINDOW_MIN_HOURS}
+                    max={PAYMENT_WINDOW_MAX_HOURS}
+                    value={windowHours}
+                    onChange={(e) =>
+                      setWindowHours(
+                        clampPaymentWindowHours(
+                          e.target.value === "" ? DEFAULT_PAYMENT_WINDOW_HOURS : e.target.value
+                        )
+                      )
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="pay-btn pay-btn--primary"
+                  disabled={savingWindow || !windowDirty}
+                  onClick={() => void savePaymentWindow()}
+                >
+                  {savingWindow ? <Loader2 size={16} /> : null}
+                  Зберегти
+                </button>
+              </div>
+              <p className="pay-preview">
+                Зараз: {formatPaymentWindowPhrase(payment.paymentWindowHours)}. Нові броні
+                отримають цей дедлайн; SMS з &#123;hours&#125; підставляє його автоматично.
+              </p>
+            </div>
+          </section>
+
+          <section className="pay-card">
+            <div className="pay-card__head">
+              <div>
+                <h3 className="pay-card__title">API-ключ Mono</h3>
+                <p className="pay-card__hint">
+                  Токен еквайрингу з кабінету web.monobank.ua. Повний ключ ніколи не
+                  показується після збереження — лише маска.
+                </p>
+              </div>
+            </div>
+
+            <p className="pay-field__meta">
+              Поточний ключ:{" "}
+              {payment.tokenConfigured ? (
+                <>
+                  <code>••••••{payment.tokenLast4}</code>
+                  {merchantName || health?.token.merchantName
+                    ? ` · ${merchantName || health?.token.merchantName}`
+                    : ""}
+                </>
+              ) : (
+                <strong>не задано</strong>
+              )}
             </p>
-          </div>
-        </div>
 
-        <p className="pay-field__meta">
-          Поточний ключ:{" "}
-          {payment.tokenConfigured ? (
-            <>
-              <code>••••••{payment.tokenLast4}</code>
-              {payment.tokenFromEnv ? " (з Vercel env)" : ""}
-            </>
+            <label className="pay-field">
+              <span className="pay-field__label">Новий ключ</span>
+              <input
+                className="pay-field__input"
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Вставте X-Token від Mono…"
+                value={newToken}
+                onChange={(e) => setNewToken(e.target.value)}
+              />
+            </label>
+
+            <div className="pay-actions">
+              <button
+                type="button"
+                className="pay-btn pay-btn--primary"
+                disabled={savingToken || !newToken.trim()}
+                onClick={() => void saveToken()}
+              >
+                {savingToken ? <Loader2 size={16} /> : <KeyRound size={16} />}
+                Зберегти ключ
+              </button>
+              <button
+                type="button"
+                className="pay-btn"
+                disabled={testing || (!newToken.trim() && !payment.tokenConfigured)}
+                onClick={() => void testMono()}
+              >
+                {testing ? <Loader2 size={16} /> : <RefreshCw size={16} />}
+                Перевірити зʼєднання
+              </button>
+            </div>
+
+            {merchantName ? (
+              <div className="pay-merchant">
+                <CheckCircle2 size={16} style={{ display: "inline", verticalAlign: -3 }} />{" "}
+                Мерчант: {merchantName}
+              </div>
+            ) : null}
+          </section>
+
+          <section className="pay-card">
+            <div className="pay-card__head">
+              <div>
+                <h3 className="pay-card__title">Передплата для гостей</h3>
+                <p className="pay-card__hint">
+                  Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці
+                  при заїзді.
+                </p>
+              </div>
+              <Wallet size={20} color="var(--pay-accent)" aria-hidden />
+            </div>
+
+            <div className="pay-modes" role="group" aria-label="Тип передплати">
+              {PREPAYMENT_MODES.map((option) => (
+                <button
+                  key={option.mode}
+                  type="button"
+                  className={`pay-mode${prepaymentPolicy.mode === option.mode ? " is-active" : ""}`}
+                  onClick={() => setPrepaymentMode(option.mode)}
+                >
+                  <span className="pay-mode__icon">
+                    <option.Icon size={16} />
+                  </span>
+                  <span>
+                    <strong>{option.label}</strong>
+                    <small>{option.hint}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <label className="pay-field">
+              <span className="pay-field__label">
+                {prepaymentPolicy.mode === "percent"
+                  ? "Відсоток від загальної суми"
+                  : prepaymentPolicy.mode === "nights"
+                    ? "Кількість перших ночей за тарифом"
+                    : "Сума передплати"}
+              </span>
+              <div
+                className={`svc-field__suffix-wrap${
+                  prepaymentPolicy.mode === "nights" ? " svc-field__suffix-wrap--doba" : ""
+                }`}
+              >
+                <input
+                  className="pay-field__input"
+                  type="number"
+                  min={0}
+                  max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
+                  value={prepaymentValueInput}
+                  placeholder="0"
+                  onChange={(e) => setPrepaymentValue(e.target.value, prepaymentPolicy.mode)}
+                />
+                {prepaymentPolicy.mode === "percent" ? (
+                  <span className="svc-field__suffix">%</span>
+                ) : prepaymentPolicy.mode === "fixed" ? (
+                  <span className="svc-field__suffix">₴</span>
+                ) : (
+                  <span className="svc-field__suffix">
+                    {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
+                  </span>
+                )}
+              </div>
+            </label>
+
+            <p className="pay-preview">{prepaymentGuestLabel}</p>
+
+            <div className="pay-actions">
+              <button
+                type="button"
+                className="pay-btn pay-btn--primary"
+                disabled={savingPrepay}
+                onClick={() => void savePrepayment()}
+              >
+                {savingPrepay ? <Loader2 size={16} /> : null}
+                Зберегти передплату
+              </button>
+            </div>
+          </section>
+        </>
+      ) : null}
+
+      {subView === "awaiting" ? (
+        <section className="pay-card">
+          <div className="pay-section-head">
+            <div>
+              <h3 className="pay-card__title">Очікують оплату</h3>
+              <p className="pay-card__hint">
+                Швидко надішліть гостю посилання вручну — без SMS.
+              </p>
+            </div>
+            <Link2 size={18} color="var(--pay-accent)" aria-hidden />
+          </div>
+
+          {overviewLoading && awaiting.length === 0 ? (
+            <div className="pay-skeleton" />
+          ) : awaiting.length === 0 ? (
+            <div className="pay-empty">
+              <CheckCircle2 size={22} color="var(--pay-ok)" aria-hidden />
+              <strong>Немає броней в очікуванні оплати</strong>
+              <span>Коли гість отримає статус «Очікує оплату» — зʼявиться тут.</span>
+            </div>
           ) : (
-            <strong>не задано</strong>
+            <div className="pay-await">
+              {awaiting.map((item) => {
+                const timer = formatCountdown(item.expiresInMs);
+                return (
+                  <article key={item.bookingId} className="pay-await__card">
+                    <div>
+                      <h4 className="pay-await__name">{item.name}</h4>
+                      <p className="pay-await__meta">
+                        {item.cottage || "Котедж"} · {formatShortDate(item.checkIn)} —{" "}
+                        {formatShortDate(item.checkOut)}
+                        {item.prepayAmount > 0 ? ` · ${formatMoney(item.prepayAmount)}` : ""}
+                        {` · ${item.bookingId}`}
+                      </p>
+                      <span
+                        className={`pay-await__timer${
+                          timer.tone === "urgent"
+                            ? " pay-await__timer--urgent"
+                            : timer.tone === "over"
+                              ? " pay-await__timer--over"
+                              : ""
+                        }`}
+                      >
+                        <Clock3 size={13} aria-hidden />
+                        {timer.label}
+                      </span>
+                    </div>
+                    <div className="pay-await__actions">
+                      <button
+                        type="button"
+                        className="pay-btn pay-btn--primary pay-btn--sm"
+                        onClick={() => void copyPayLink(item.payUrl, item.name)}
+                      >
+                        <Copy size={14} />
+                        Копіювати
+                      </button>
+                      <a
+                        className="pay-btn pay-btn--sm"
+                        href={item.payUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink size={14} />
+                        Відкрити
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
-        </p>
+        </section>
+      ) : null}
 
-        <label className="pay-field">
-          <span className="pay-field__label">Новий ключ</span>
-          <input
-            className="pay-field__input"
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Вставте X-Token від Mono…"
-            value={newToken}
-            onChange={(e) => setNewToken(e.target.value)}
-          />
-        </label>
-
-        <div className="pay-actions">
-          <button
-            type="button"
-            className="pay-btn pay-btn--primary"
-            disabled={savingToken || !newToken.trim()}
-            onClick={() => void saveToken()}
-          >
-            {savingToken ? <Loader2 size={16} /> : <KeyRound size={16} />}
-            Зберегти ключ
-          </button>
-          <button
-            type="button"
-            className="pay-btn"
-            disabled={testing || (!newToken.trim() && !payment.tokenConfigured)}
-            onClick={() => void testMono()}
-          >
-            {testing ? <Loader2 size={16} /> : <RefreshCw size={16} />}
-            Перевірити зʼєднання
-          </button>
-        </div>
-
-        {merchantName ? (
-          <div className="pay-merchant">
-            <CheckCircle2 size={16} style={{ display: "inline", verticalAlign: -3 }} /> Мерчант:{" "}
-            {merchantName}
+      {subView === "feed" ? (
+        <section className="pay-card">
+          <div className="pay-section-head">
+            <div>
+              <h3 className="pay-card__title">Стрічка платежів</h3>
+              <p className="pay-card__hint">
+                Останні успіхи, відхилення Mono та протерміновані оплати.
+              </p>
+            </div>
+            <Activity size={18} color="var(--pay-accent)" aria-hidden />
           </div>
-        ) : null}
-      </section>
 
-      <section className="pay-card">
-        <div className="pay-card__head">
-          <div>
-            <h3 className="pay-card__title">Передплата для гостей</h3>
-            <p className="pay-card__hint">
-              Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці
-              при заїзді.
-            </p>
-          </div>
-          <Wallet size={20} color="var(--pay-accent)" aria-hidden />
-        </div>
-
-        <div className="pay-modes" role="group" aria-label="Тип передплати">
-          {PREPAYMENT_MODES.map((option) => (
-            <button
-              key={option.mode}
-              type="button"
-              className={`pay-mode${prepaymentPolicy.mode === option.mode ? " is-active" : ""}`}
-              onClick={() => setPrepaymentMode(option.mode)}
-            >
-              <span className="pay-mode__icon">
-                <option.Icon size={16} />
-              </span>
+          {overviewLoading && feed.length === 0 ? (
+            <>
+              <div className="pay-skeleton" style={{ marginBottom: 8 }} />
+              <div className="pay-skeleton" />
+            </>
+          ) : feed.length === 0 ? (
+            <div className="pay-empty">
+              <Activity size={22} aria-hidden />
+              <strong>Поки тихо</strong>
               <span>
-                <strong>{option.label}</strong>
-                <small>{option.hint}</small>
+                Тут зʼявляться платежі після webhook Mono або скасувань по таймеру.
               </span>
-            </button>
-          ))}
-        </div>
-
-        <label className="pay-field">
-          <span className="pay-field__label">
-            {prepaymentPolicy.mode === "percent"
-              ? "Відсоток від загальної суми"
-              : prepaymentPolicy.mode === "nights"
-                ? "Кількість перших ночей за тарифом"
-                : "Сума передплати"}
-          </span>
-          <div
-            className={`svc-field__suffix-wrap${
-              prepaymentPolicy.mode === "nights" ? " svc-field__suffix-wrap--doba" : ""
-            }`}
-          >
-            <input
-              className="pay-field__input"
-              type="number"
-              min={0}
-              max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
-              value={prepaymentValueInput}
-              placeholder="0"
-              onChange={(e) => setPrepaymentValue(e.target.value, prepaymentPolicy.mode)}
-            />
-            {prepaymentPolicy.mode === "percent" ? (
-              <span className="svc-field__suffix">%</span>
-            ) : prepaymentPolicy.mode === "fixed" ? (
-              <span className="svc-field__suffix">₴</span>
-            ) : (
-              <span className="svc-field__suffix">
-                {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
-              </span>
-            )}
-          </div>
-        </label>
-
-        <p className="pay-preview">{prepaymentGuestLabel}</p>
-
-        <div className="pay-actions">
-          <button
-            type="button"
-            className="pay-btn pay-btn--primary"
-            disabled={savingPrepay}
-            onClick={() => void savePrepayment()}
-          >
-            {savingPrepay ? <Loader2 size={16} /> : null}
-            Зберегти передплату
-          </button>
-        </div>
-      </section>
+            </div>
+          ) : (
+            <div className="pay-feed">
+              {feed.map((item) => (
+                <div key={item.id} className="pay-feed__row">
+                  <span className={`pay-feed__badge pay-feed__badge--${item.outcome}`}>
+                    {item.outcome === "success" ? (
+                      <CheckCircle2 size={12} style={{ marginRight: 4 }} aria-hidden />
+                    ) : item.outcome === "failure" ? (
+                      <XCircle size={12} style={{ marginRight: 4 }} aria-hidden />
+                    ) : (
+                      <Clock3 size={12} style={{ marginRight: 4 }} aria-hidden />
+                    )}
+                    {outcomeLabel(item.outcome)}
+                  </span>
+                  <div className="pay-feed__main">
+                    <p className="pay-feed__title">
+                      {item.guestName || "Гість"}
+                      {item.bookingId ? ` · ${item.bookingId}` : ""}
+                    </p>
+                    <p className="pay-feed__sub">
+                      {item.provider || "Mono"}
+                      {item.reason ? ` · ${item.reason}` : ""}
+                      {item.transactionId ? ` · ${item.transactionId.slice(0, 10)}…` : ""}
+                    </p>
+                  </div>
+                  <div className="pay-feed__side">
+                    <p className="pay-feed__amount">{formatMoney(item.amount)}</p>
+                    <p className="pay-feed__time">{formatWhen(item.at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

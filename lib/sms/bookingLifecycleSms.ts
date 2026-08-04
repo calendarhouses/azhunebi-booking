@@ -9,6 +9,11 @@ import {
   normalizeGuestPhone,
 } from "@/lib/admin/guestMessengerLinks";
 import { getPublicOrigin } from "@/lib/monopay/config";
+import { loadAllSettings } from "@/lib/db/settings";
+import {
+  formatPaymentWindowPhrase,
+  resolvePaymentWindowHours,
+} from "@/lib/payment/paymentSettings";
 import { isTurboSmsConfigured } from "./config";
 import { sendTurboSms, type TurboSmsSendResult } from "./turbosms";
 import {
@@ -51,6 +56,7 @@ export function buildBookingLifecycleSmsText(
   type: BookingLifecycleSmsType,
   smsSettings?: SmsSettings,
   cottage?: string,
+  paymentWindowHours?: number,
 ): string {
   const settings = smsSettings ?? normalizeSmsSettings(undefined);
   const template = settings.templates[type];
@@ -60,7 +66,13 @@ export function buildBookingLifecycleSmsText(
     ? `${getPublicOrigin()}/pay/${encodeURIComponent(orderId)}`
     : getPublicOrigin();
 
-  const vars = buildSmsVarsFromBooking(booking, { payUrl, cottage });
+  const hours = paymentWindowHours ?? 3;
+  const vars = buildSmsVarsFromBooking(booking, {
+    payUrl,
+    cottage,
+    hours,
+    hoursPhrase: formatPaymentWindowPhrase(hours),
+  });
   return renderSmsTemplate(template.text, vars);
 }
 
@@ -107,7 +119,20 @@ export async function sendBookingLifecycleSms(
   const cottage = template.text.includes("{cottage}")
     ? await guestCottageLabel(booking)
     : undefined;
-  const text = buildBookingLifecycleSmsText(booking, type, settings, cottage);
+  let paymentWindowHours = 3;
+  try {
+    const all = await loadAllSettings();
+    paymentWindowHours = resolvePaymentWindowHours(all.paymentSettings);
+  } catch {
+    /* keep default */
+  }
+  const text = buildBookingLifecycleSmsText(
+    booking,
+    type,
+    settings,
+    cottage,
+    paymentWindowHours
+  );
 
   const result = await sendTurboSms({
     phone,

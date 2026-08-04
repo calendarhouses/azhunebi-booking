@@ -73,7 +73,15 @@ export async function POST(request: Request) {
 
   const deadlineMs = booking.paymentExpiresAt
     ? new Date(booking.paymentExpiresAt).getTime()
-    : Date.now() + 3 * 60 * 60 * 1000;
+    : Date.now() +
+      (await (async () => {
+        const { loadAllSettings } = await import("@/lib/db/settings");
+        const { resolvePaymentWindowHours } = await import(
+          "@/lib/payment/paymentSettings"
+        );
+        const all = await loadAllSettings();
+        return resolvePaymentWindowHours(all.paymentSettings) * 60 * 60 * 1000;
+      })());
   const validitySeconds = Math.floor((deadlineMs - Date.now()) / 1000);
   if (!Number.isFinite(validitySeconds) || validitySeconds < 60) {
     return errorResponse(409, "PAYMENT_EXPIRED", "Час резерву для оплати завершився");
