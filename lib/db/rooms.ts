@@ -1,18 +1,7 @@
 import { apiRoomToDb, dbRoomToApi, getDb, type ApiRoom, type DbRoomRow } from "@/lib/db/mappers";
+import { sortRoomsNumerically } from "@/lib/admin/sortRooms";
 
-function roomSortKey(id: unknown): number {
-  const n = Number(id);
-  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
-}
-
-/** Numeric id order (1,2,10) — rooms.id is text in Postgres so SQL ORDER BY is lexical. */
-export function sortRoomsNumerically<T extends { id?: unknown }>(rooms: T[]): T[] {
-  return [...rooms].sort((a, b) => {
-    const d = roomSortKey(a.id) - roomSortKey(b.id);
-    if (d !== 0) return d;
-    return String(a.id ?? "").localeCompare(String(b.id ?? ""), "uk");
-  });
-}
+export { sortRoomsNumerically } from "@/lib/admin/sortRooms";
 
 export async function listRooms(): Promise<ApiRoom[]> {
   const sb = getDb();
@@ -35,15 +24,19 @@ export async function upsertRoom(api: ApiRoom): Promise<ApiRoom> {
 
 export async function syncRoomsList(roomsList: ApiRoom[]): Promise<number> {
   let n = 0;
-  for (const room of roomsList) {
+  for (const room of sortRoomsNumerically(roomsList)) {
     await upsertRoom(room);
     n += 1;
   }
+  // Keep settings.roomsList blob in the same numeric order for any consumer
+  // that still reads the JSON copy.
+  const { saveSettingsKey } = await import("@/lib/db/settings");
+  await saveSettingsKey("roomsList", await listRooms());
   return n;
 }
 
 export async function roomsChecksum(): Promise<{ count: number; ids: string[] }> {
   const rooms = await listRooms();
-  const ids = rooms.map((r) => String(r.id)).sort();
+  const ids = rooms.map((r) => String(r.id)).sort((a, b) => Number(a) - Number(b));
   return { count: rooms.length, ids };
 }

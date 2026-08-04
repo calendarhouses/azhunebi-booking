@@ -1,4 +1,4 @@
-import { AdminUnauthorizedError } from "@/lib/admin/adminSession";
+import { AdminUnauthorizedError, isAdminUnauthorizedError } from "@/lib/admin/adminSession";
 import {
   createBooking,
   fetchInitData,
@@ -198,16 +198,24 @@ export async function postAdminBooking(
   payload: Record<string, unknown>
 ): Promise<{ success?: boolean; error?: string; requiredMin?: number; orderId?: string }> {
   const token = await getAccessToken();
-  const data = await createBooking(
-    {
-      ...payload,
-      action: "createBooking",
-      tenant_id: payload.tenant_id ?? getAdminTenantId(),
-      adminOverrideRestrictions: true,
-      isAuthorizedAdminRequest: true,
-    },
-    token
-  );
+  let data: { success?: boolean; error?: string; requiredMin?: number; orderId?: string };
+  try {
+    data = await createBooking(
+      {
+        ...payload,
+        action: "createBooking",
+        tenant_id: payload.tenant_id ?? getAdminTenantId(),
+        adminOverrideRestrictions: true,
+        isAuthorizedAdminRequest: true,
+      },
+      token
+    );
+  } catch (err) {
+    if (isAdminUnauthorizedError(err)) {
+      throw new AdminUnauthorizedError();
+    }
+    throw err;
+  }
   if (data.error === "UNAUTHORIZED") {
     throw new AdminUnauthorizedError();
   }

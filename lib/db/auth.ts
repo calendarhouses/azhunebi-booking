@@ -139,26 +139,39 @@ export async function loginWithPassword(
   email: string,
   password: string
 ): Promise<{ accessToken: string; user: { id: string; email: string; name: string } }> {
-  const team = await loadTeamState();
-  const member = findByEmail(team, email);
-  if (!member || member.active === false) {
-    throw Object.assign(new Error("Невірний email або пароль"), { code: "INVALID_CREDENTIALS" });
-  }
-  const expected = hashPassword(password, member.salt || "");
-  if (expected !== member.passwordHash) {
-    throw Object.assign(new Error("Невірний email або пароль"), { code: "INVALID_CREDENTIALS" });
-  }
   const token = randomToken(24);
-  team.sessions[token] = {
-    userId: member.id,
+  const session: TeamSession = {
+    userId: "",
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
   };
-  await saveTeamState(team);
-  return {
-    accessToken: token,
-    user: { id: member.id, email: member.email, name: member.name || "" },
-  };
+
+  // Retry: concurrent logins can overwrite settings.teamMembers and drop the new session.
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const team = await loadTeamState();
+    const member = findByEmail(team, email);
+    if (!member || member.active === false) {
+      throw Object.assign(new Error("Невірний email або пароль"), { code: "INVALID_CREDENTIALS" });
+    }
+    const expected = hashPassword(password, member.salt || "");
+    if (expected !== member.passwordHash) {
+      throw Object.assign(new Error("Невірний email або пароль"), { code: "INVALID_CREDENTIALS" });
+    }
+    session.userId = member.id;
+    if (!team.sessions || typeof team.sessions !== "object") team.sessions = {};
+    team.sessions[token] = { ...session };
+    await saveTeamState(team);
+
+    const persisted = await resolveSessionUser(token);
+    if (persisted) {
+      return {
+        accessToken: token,
+        user: { id: member.id, email: member.email, name: member.name || "" },
+      };
+    }
+  }
+
+  throw Object.assign(new Error("Не вдалося створити сесію"), { code: "SESSION_WRITE_FAILED" });
 }
 
 export async function logoutToken(token: string): Promise<void> {

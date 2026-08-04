@@ -58,7 +58,7 @@ export async function saveSettingsMerge(
 
     if (key === "roomsList" && Array.isArray(incoming.roomsList)) {
       await syncRoomsList(incoming.roomsList as ApiRoom[]);
-      await saveSettingsKey("roomsList", incoming.roomsList);
+      // syncRoomsList already persists a numerically sorted roomsList blob.
       continue;
     }
 

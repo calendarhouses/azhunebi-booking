@@ -11,7 +11,7 @@ import {
 import { handleSaveApiErrors, isBookingSaveSuccessful } from "@/components/admin/desktop/bookingForm";
 import { findRoomForBooking } from "@/components/admin/desktop/bookingUtils";
 import { showToast, syncLegacyGlobals } from "@/components/admin/desktop/adminGlobals";
-import { AdminUnauthorizedError } from "@/lib/admin/adminSession";
+import { isAdminUnauthorizedError } from "@/lib/admin/adminSession";
 import {
   applyBookingMove,
   bookingMoveKey,
@@ -299,7 +299,7 @@ export function useAdminUndo({
         } catch (err) {
           if (bookingSeqRef.current.get(key) !== seq) return;
 
-          if (err instanceof AdminUnauthorizedError) {
+          if (isAdminUnauthorizedError(err)) {
             await onSessionExpired?.();
             return;
           }
@@ -343,7 +343,7 @@ export function useAdminUndo({
         } catch (err) {
           if (bookingSeqRef.current.get(key) !== seq) return;
 
-          if (err instanceof AdminUnauthorizedError) {
+          if (isAdminUnauthorizedError(err)) {
             await onSessionExpired?.();
             return;
           }
@@ -370,7 +370,7 @@ export function useAdminUndo({
         } catch (err) {
           if (settingsSeqRef.current !== seq) return;
 
-          if (err instanceof AdminUnauthorizedError) {
+          if (isAdminUnauthorizedError(err)) {
             await onSessionExpired?.();
             return;
           }
@@ -545,7 +545,7 @@ export function useAdminUndo({
           removePendingRestore(entry.id);
           undoStacksRef.current[scope].push(entry);
           syncUndoState();
-          if (err instanceof AdminUnauthorizedError) {
+          if (isAdminUnauthorizedError(err)) {
             await onSessionExpired?.();
             return;
           }
@@ -580,7 +580,7 @@ export function useAdminUndo({
           } catch (err) {
             undoStacksRef.current[scope].push(entry);
             syncUndoState();
-            if (err instanceof AdminUnauthorizedError) {
+            if (isAdminUnauthorizedError(err)) {
               await onSessionExpired?.();
               return;
             }

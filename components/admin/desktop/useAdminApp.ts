@@ -24,6 +24,7 @@ import { normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { canAccessReports, canAccessSettings } from "@/lib/admin/permissions";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
+import { sortRoomsNumerically } from "@/lib/admin/sortRooms";
 import { isDiscountDraftId, dedupeDiscountsList } from "@/lib/admin/discountDraft";
 import {
   filterPendingDeletedDiscounts,
@@ -67,7 +68,7 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
 function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayload {
   const s = raw || {};
   return {
-    roomsList: Array.isArray(s.roomsList) ? s.roomsList : [],
+    roomsList: sortRoomsNumerically(Array.isArray(s.roomsList) ? s.roomsList : []),
     discountsList: Array.isArray(s.discountsList) ? s.discountsList : [],
     customServicesList: Array.isArray(s.customServicesList) ? s.customServicesList : [],
     flexibleScheduleSettings: s.flexibleScheduleSettings,

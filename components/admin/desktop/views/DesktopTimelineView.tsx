@@ -17,6 +17,7 @@ import {
   BOOKING_STATUS_CLOSED,
   isClosedStatus,
 } from "@/lib/public-booking/bookingReview";
+import { sortRoomsNumerically } from "@/lib/admin/sortRooms";
 import {
   bookingHasEarlyLate,
   displayClientName,
@@ -458,7 +459,10 @@ export function DesktopTimelineView({
   /** Desktop focus layout: sticky dates via transform sync. Mobile uses unified board scroll. */
   const stickyChrome = compactGrid;
   const mobileBoard = isMobile;
-  const activeRooms = useMemo(() => roomsList.filter((r) => r.active), [roomsList]);
+  const activeRooms = useMemo(
+    () => sortRoomsNumerically(roomsList.filter((r) => r.active)),
+    [roomsList]
+  );
   const timelineRooms = useMemo(() => [...activeRooms, HOLDING_ROOM], [activeRooms]);
 
   useEffect(() => {

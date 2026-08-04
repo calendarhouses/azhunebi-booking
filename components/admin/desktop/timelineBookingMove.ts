@@ -99,6 +99,8 @@ export function buildBookingMovePayload(
     row: booking.row,
     id: booking.id != null && String(booking.id).trim() !== "" ? String(booking.id).trim() : booking.id,
     name: booking.name,
+    // Never reuse a stale body token from a booking blob — auth goes via Bearer.
+    accessToken: undefined,
   };
 }
 

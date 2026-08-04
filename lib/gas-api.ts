@@ -140,6 +140,10 @@ async function serverBackendGet<T>(
     }
   );
   if (result.status >= 400) {
+    const errCode = String(result.body.error || "");
+    if (result.status === 401 || errCode === "UNAUTHORIZED") {
+      throw new Error("UNAUTHORIZED");
+    }
     throw new Error(
       String(result.body.message || result.body.error || `HTTP ${result.status}`)
     );
@@ -171,6 +175,10 @@ async function serverBackendPost<T>(
     }
   );
   if (result.status >= 400) {
+    const errCode = String(result.body.error || "");
+    if (result.status === 401 || errCode === "UNAUTHORIZED") {
+      throw new Error("UNAUTHORIZED");
+    }
     throw new Error(
       String(result.body.message || result.body.error || `HTTP ${result.status}`)
     );
@@ -210,10 +218,15 @@ export async function gasFetch<T>(
 
   const data = await parseJson<T & GasApiError>(res);
   if (!res.ok) {
+    const errCode = String((data as GasApiError).error || "");
     const msg =
       (data as GasApiError).message ||
-      (data as GasApiError).error ||
+      errCode ||
       `HTTP ${res.status}`;
+    // Let admin callers map UNAUTHORIZED → session expiry (do not swallow as generic Error only).
+    if (res.status === 401 || errCode === "UNAUTHORIZED") {
+      throw new Error("UNAUTHORIZED");
+    }
     throw new Error(msg);
   }
   return data;
@@ -247,7 +260,7 @@ export async function gasPost<T>(
   }
 
   const payload = { ...body };
-  if (authToken && payload.accessToken === undefined) {
+  if (authToken && (payload.accessToken === undefined || payload.accessToken === null || payload.accessToken === "")) {
     payload.accessToken = authToken;
   }
 
@@ -263,10 +276,14 @@ export async function gasPost<T>(
 
   const data = await parseJson<T & GasApiError>(res);
   if (!res.ok) {
+    const errCode = String((data as GasApiError).error || "");
     const msg =
       (data as GasApiError).message ||
-      (data as GasApiError).error ||
+      errCode ||
       `HTTP ${res.status}`;
+    if (res.status === 401 || errCode === "UNAUTHORIZED") {
+      throw new Error("UNAUTHORIZED");
+    }
     throw new Error(msg);
   }
   return data;

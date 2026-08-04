@@ -6,6 +6,7 @@ import type { AdminSettingsPayload, DiscountConfig, DiscountKind } from "../type
 import { RoomSettingsAccordion } from "../../rooms/RoomSettingsAccordion";
 import { DiscountSettingsAccordion } from "./DiscountSettingsAccordion";
 import { dedupeDiscountsList } from "@/lib/admin/discountDraft";
+import { sortRoomsNumerically } from "@/lib/admin/sortRooms";
 import { matchesDiscountSection } from "./discountConfig";
 import { SettingsDiscountTableRow } from "./SettingsDiscountTableRow";
 import { SettingsRoomTableRow } from "./SettingsRoomTableRow";
@@ -62,7 +63,7 @@ const roomsEmptyStateStyle: CSSProperties = {
 
 export function SettingsRoomsTable({ settings, modals, layout = "desktop" }: DesktopSettingsTablesProps) {
   const isMobile = layout === "mobile";
-  const rooms = settings.roomsList || [];
+  const rooms = sortRoomsNumerically(settings.roomsList || []);
 
   if (rooms.length === 0) {
     return (
