@@ -11,6 +11,7 @@ import {
   Clock3,
   Copy,
   ExternalLink,
+  Info,
   KeyRound,
   Link2,
   Loader2,
@@ -794,57 +795,83 @@ export function PaymentSettingsPanel({
               aria-hidden={!openWindow}
               inert={!openWindow}
             >
-              <div className="svc-accordion__panel">
-                <p className="svc-accordion__intro">
-                  Скільки живе pay-link і текст у SMS. Після цього бронь скасовується
-                  автоматично.
-                </p>
-                <div className="pay-window__presets" role="group" aria-label="Години вікна">
-                  {PAYMENT_WINDOW_PRESETS.map((h) => (
-                    <button
-                      key={h}
-                      type="button"
-                      className={`pay-window__chip${windowHours === h ? " is-active" : ""}`}
-                      onClick={() => setWindowHours(h)}
-                    >
-                      {h} год
-                    </button>
-                  ))}
+              <div className="svc-accordion__panel pay-accordion__panel">
+                <div className="pay-callout">
+                  <span className="pay-callout__icon" aria-hidden>
+                    <Info size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="pay-callout__body">
+                    <p className="pay-callout__eyebrow">Як це працює</p>
+                    <p className="pay-callout__text">
+                      Скільки живе pay-link і текст у SMS. Після цього бронь скасовується
+                      автоматично.
+                    </p>
+                  </div>
                 </div>
-                <div className="pay-window__custom">
-                  <label className="pay-field" style={{ flex: 1, marginBottom: 0 }}>
-                    <span className="pay-field__label">Своє значення (год)</span>
-                    <input
-                      className="pay-field__input"
-                      type="number"
-                      min={PAYMENT_WINDOW_MIN_HOURS}
-                      max={PAYMENT_WINDOW_MAX_HOURS}
-                      value={windowHours}
-                      onChange={(e) =>
-                        setWindowHours(
-                          clampPaymentWindowHours(
-                            e.target.value === ""
-                              ? DEFAULT_PAYMENT_WINDOW_HOURS
-                              : e.target.value
+
+                <div className="pay-accordion__section">
+                  <span className="pay-accordion__section-label">Швидкий вибір</span>
+                  <div className="pay-window__presets" role="group" aria-label="Години вікна">
+                    {PAYMENT_WINDOW_PRESETS.map((h) => (
+                      <button
+                        key={h}
+                        type="button"
+                        className={`pay-window__chip${windowHours === h ? " is-active" : ""}`}
+                        onClick={() => setWindowHours(h)}
+                      >
+                        {h} год
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pay-accordion__section">
+                  <span className="pay-accordion__section-label">Своє значення</span>
+                  <div className="pay-window__custom">
+                    <label className="pay-field">
+                      <span className="pay-field__label">Години</span>
+                      <input
+                        className="pay-field__input"
+                        type="number"
+                        min={PAYMENT_WINDOW_MIN_HOURS}
+                        max={PAYMENT_WINDOW_MAX_HOURS}
+                        value={windowHours}
+                        onChange={(e) =>
+                          setWindowHours(
+                            clampPaymentWindowHours(
+                              e.target.value === ""
+                                ? DEFAULT_PAYMENT_WINDOW_HOURS
+                                : e.target.value
+                            )
                           )
-                        )
-                      }
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="pay-btn pay-btn--primary"
-                    disabled={savingWindow || !windowDirty}
-                    onClick={() => void savePaymentWindow()}
-                  >
-                    {savingWindow ? <Loader2 size={16} /> : null}
-                    Зберегти
-                  </button>
+                        }
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="pay-btn pay-btn--primary"
+                      disabled={savingWindow || !windowDirty}
+                      onClick={() => void savePaymentWindow()}
+                    >
+                      {savingWindow ? <Loader2 size={16} /> : null}
+                      Зберегти
+                    </button>
+                  </div>
                 </div>
-                <p className="pay-preview">
-                  Зараз: {formatPaymentWindowPhrase(payment.paymentWindowHours)}. Нові броні
-                  отримають цей дедлайн; SMS з &#123;hours&#125; підставляє його автоматично.
-                </p>
+
+                <div className="pay-callout pay-callout--status">
+                  <span className="pay-callout__icon" aria-hidden>
+                    <CheckCircle2 size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="pay-callout__body">
+                    <p className="pay-callout__eyebrow">Активне вікно</p>
+                    <p className="pay-callout__text">
+                      Зараз: {formatPaymentWindowPhrase(payment.paymentWindowHours)}. Нові
+                      броні отримають цей дедлайн; SMS з &#123;hours&#125; підставляє його
+                      автоматично.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -882,64 +909,81 @@ export function PaymentSettingsPanel({
               aria-hidden={!openApi}
               inert={!openApi}
             >
-              <div className="svc-accordion__panel">
-                <p className="svc-accordion__intro">
-                  Токен еквайрингу з кабінету web.monobank.ua. Повний ключ ніколи не
-                  показується після збереження — лише маска.
-                </p>
+              <div className="svc-accordion__panel pay-accordion__panel">
+                <div className="pay-callout">
+                  <span className="pay-callout__icon" aria-hidden>
+                    <Info size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="pay-callout__body">
+                    <p className="pay-callout__eyebrow">Безпека</p>
+                    <p className="pay-callout__text">
+                      Токен еквайрингу з кабінету web.monobank.ua. Повний ключ ніколи не
+                      показується після збереження — лише маска.
+                    </p>
+                  </div>
+                </div>
 
-                <p className="pay-field__meta">
-                  Поточний ключ:{" "}
-                  {payment.tokenConfigured ? (
-                    <>
-                      <code>••••••{payment.tokenLast4}</code>
-                      {merchantName || health?.token.merchantName
-                        ? ` · ${merchantName || health?.token.merchantName}`
-                        : ""}
-                    </>
-                  ) : (
-                    <strong>не задано</strong>
-                  )}
-                </p>
+                <div className="pay-accordion__section">
+                  <span className="pay-accordion__section-label">Поточний стан</span>
+                  <p className="pay-field__meta">
+                    {payment.tokenConfigured ? (
+                      <>
+                        <code>••••••{payment.tokenLast4}</code>
+                        {merchantName || health?.token.merchantName
+                          ? ` · ${merchantName || health?.token.merchantName}`
+                          : ""}
+                      </>
+                    ) : (
+                      <strong>Ключ не задано</strong>
+                    )}
+                  </p>
+                </div>
 
-                <label className="pay-field">
-                  <span className="pay-field__label">Новий ключ</span>
-                  <input
-                    className="pay-field__input"
-                    type="password"
-                    autoComplete="off"
-                    spellCheck={false}
-                    placeholder="Вставте X-Token від Mono…"
-                    value={newToken}
-                    onChange={(e) => setNewToken(e.target.value)}
-                  />
-                </label>
-
-                <div className="pay-actions">
-                  <button
-                    type="button"
-                    className="pay-btn pay-btn--primary"
-                    disabled={savingToken || !newToken.trim()}
-                    onClick={() => void saveToken()}
-                  >
-                    {savingToken ? <Loader2 size={16} /> : <KeyRound size={16} />}
-                    Зберегти ключ
-                  </button>
-                  <button
-                    type="button"
-                    className="pay-btn"
-                    disabled={testing || (!newToken.trim() && !payment.tokenConfigured)}
-                    onClick={() => void testMono()}
-                  >
-                    {testing ? <Loader2 size={16} /> : <RefreshCw size={16} />}
-                    Перевірити зʼєднання
-                  </button>
+                <div className="pay-accordion__section">
+                  <span className="pay-accordion__section-label">Оновити ключ</span>
+                  <label className="pay-field">
+                    <span className="pay-field__label">Новий X-Token</span>
+                    <input
+                      className="pay-field__input"
+                      type="password"
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder="Вставте X-Token від Mono…"
+                      value={newToken}
+                      onChange={(e) => setNewToken(e.target.value)}
+                    />
+                  </label>
+                  <div className="pay-actions">
+                    <button
+                      type="button"
+                      className="pay-btn pay-btn--primary"
+                      disabled={savingToken || !newToken.trim()}
+                      onClick={() => void saveToken()}
+                    >
+                      {savingToken ? <Loader2 size={16} /> : <KeyRound size={16} />}
+                      Зберегти ключ
+                    </button>
+                    <button
+                      type="button"
+                      className="pay-btn"
+                      disabled={testing || (!newToken.trim() && !payment.tokenConfigured)}
+                      onClick={() => void testMono()}
+                    >
+                      {testing ? <Loader2 size={16} /> : <RefreshCw size={16} />}
+                      Перевірити
+                    </button>
+                  </div>
                 </div>
 
                 {merchantName ? (
-                  <div className="pay-merchant">
-                    <CheckCircle2 size={16} style={{ display: "inline", verticalAlign: -3 }} />{" "}
-                    Мерчант: {merchantName}
+                  <div className="pay-callout pay-callout--status">
+                    <span className="pay-callout__icon" aria-hidden>
+                      <CheckCircle2 size={18} strokeWidth={1.75} />
+                    </span>
+                    <div className="pay-callout__body">
+                      <p className="pay-callout__eyebrow">Мерчант</p>
+                      <p className="pay-callout__text">{merchantName}</p>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -971,72 +1015,94 @@ export function PaymentSettingsPanel({
               aria-hidden={!openPrepay}
               inert={!openPrepay}
             >
-              <div className="svc-accordion__panel">
-                <p className="svc-accordion__intro">
-                  Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці
-                  при заїзді.
-                </p>
-
-                <div className="pay-modes" role="group" aria-label="Тип передплати">
-                  {PREPAYMENT_MODES.map((option) => (
-                    <button
-                      key={option.mode}
-                      type="button"
-                      className={`pay-mode${
-                        prepaymentPolicy.mode === option.mode ? " is-active" : ""
-                      }`}
-                      onClick={() => setPrepaymentMode(option.mode)}
-                    >
-                      <span className="pay-mode__icon">
-                        <option.Icon size={16} />
-                      </span>
-                      <span>
-                        <strong>{option.label}</strong>
-                        <small>{option.hint}</small>
-                      </span>
-                    </button>
-                  ))}
+              <div className="svc-accordion__panel pay-accordion__panel">
+                <div className="pay-callout">
+                  <span className="pay-callout__icon" aria-hidden>
+                    <Info size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="pay-callout__body">
+                    <p className="pay-callout__eyebrow">Для гостей</p>
+                    <p className="pay-callout__text">
+                      Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці
+                      при заїзді.
+                    </p>
+                  </div>
                 </div>
 
-                <label className="pay-field">
-                  <span className="pay-field__label">
-                    {prepaymentPolicy.mode === "percent"
-                      ? "Відсоток від загальної суми"
-                      : prepaymentPolicy.mode === "nights"
-                        ? "Кількість перших ночей за тарифом"
-                        : "Сума передплати"}
-                  </span>
-                  <div
-                    className={`svc-field__suffix-wrap${
-                      prepaymentPolicy.mode === "nights"
-                        ? " svc-field__suffix-wrap--doba"
-                        : ""
-                    }`}
-                  >
-                    <input
-                      className="pay-field__input"
-                      type="number"
-                      min={0}
-                      max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
-                      value={prepaymentValueInput}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setPrepaymentValue(e.target.value, prepaymentPolicy.mode)
-                      }
-                    />
-                    {prepaymentPolicy.mode === "percent" ? (
-                      <span className="svc-field__suffix">%</span>
-                    ) : prepaymentPolicy.mode === "fixed" ? (
-                      <span className="svc-field__suffix">₴</span>
-                    ) : (
-                      <span className="svc-field__suffix">
-                        {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
-                      </span>
-                    )}
+                <div className="pay-accordion__section">
+                  <span className="pay-accordion__section-label">Тип передплати</span>
+                  <div className="pay-modes" role="group" aria-label="Тип передплати">
+                    {PREPAYMENT_MODES.map((option) => (
+                      <button
+                        key={option.mode}
+                        type="button"
+                        className={`pay-mode${
+                          prepaymentPolicy.mode === option.mode ? " is-active" : ""
+                        }`}
+                        onClick={() => setPrepaymentMode(option.mode)}
+                      >
+                        <span className="pay-mode__icon">
+                          <option.Icon size={16} />
+                        </span>
+                        <span>
+                          <strong>{option.label}</strong>
+                          <small>{option.hint}</small>
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                </label>
+                </div>
 
-                <p className="pay-preview">{prepaymentGuestLabel}</p>
+                <div className="pay-accordion__section">
+                  <span className="pay-accordion__section-label">Значення</span>
+                  <label className="pay-field">
+                    <span className="pay-field__label">
+                      {prepaymentPolicy.mode === "percent"
+                        ? "Відсоток від загальної суми"
+                        : prepaymentPolicy.mode === "nights"
+                          ? "Кількість перших ночей за тарифом"
+                          : "Сума передплати"}
+                    </span>
+                    <div
+                      className={`svc-field__suffix-wrap${
+                        prepaymentPolicy.mode === "nights"
+                          ? " svc-field__suffix-wrap--doba"
+                          : ""
+                      }`}
+                    >
+                      <input
+                        className="pay-field__input"
+                        type="number"
+                        min={0}
+                        max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
+                        value={prepaymentValueInput}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setPrepaymentValue(e.target.value, prepaymentPolicy.mode)
+                        }
+                      />
+                      {prepaymentPolicy.mode === "percent" ? (
+                        <span className="svc-field__suffix">%</span>
+                      ) : prepaymentPolicy.mode === "fixed" ? (
+                        <span className="svc-field__suffix">₴</span>
+                      ) : (
+                        <span className="svc-field__suffix">
+                          {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
+                        </span>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="pay-callout pay-callout--status">
+                  <span className="pay-callout__icon" aria-hidden>
+                    <Wallet size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="pay-callout__body">
+                    <p className="pay-callout__eyebrow">Як бачить гість</p>
+                    <p className="pay-callout__text">{prepaymentGuestLabel}</p>
+                  </div>
+                </div>
 
                 <div className="pay-actions">
                   <button
