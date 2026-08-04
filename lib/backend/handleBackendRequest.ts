@@ -94,12 +94,8 @@ export async function handleBackendRequest(
       };
     }
 
-    // uploadFile still needs GAS while Drive is source of truth
-    if (action === "uploadFile" && hasGasConfig()) {
-      const gasResult = await gasProxy(req);
-      return gasResult;
-    }
-
+    // Never call GAS on the request path when Supabase is primary.
+    // (uploadFile returns NOT_IMPLEMENTED from DAL; optional GAS_MIRROR_WRITES is async only.)
     const result = await dispatchSupabaseAction({
       method: req.method,
       token: req.token,
@@ -114,6 +110,7 @@ export async function handleBackendRequest(
       !result.body.error &&
       req.body
     ) {
+      // Best-effort only when GAS_MIRROR_WRITES=true; never blocks the client response.
       void mirrorSupabaseWriteToGas(action, {
         ...req.body,
         action: action === "createBooking(bare)" ? "createBooking" : action,
