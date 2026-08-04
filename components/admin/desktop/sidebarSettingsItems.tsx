@@ -67,6 +67,17 @@ export const SIDEBAR_SETTINGS_ITEMS: SidebarSettingsItem[] = [
     ),
   },
   {
+    tab: "payment",
+    label: "Оплата",
+    icon: (
+      <>
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M7 15h2" />
+      </>
+    ),
+  },
+  {
     tab: "sms",
     label: "SMS",
     icon: (

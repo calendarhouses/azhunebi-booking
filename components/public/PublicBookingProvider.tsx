@@ -85,7 +85,7 @@ import {
   needsManualReview,
   type PublicBookingFlow,
 } from "@/lib/public-booking/bookingReview";
-import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
+import { isOnlinePaymentEnabledFromSettings } from "@/lib/public-booking/onlinePayment";
 import type {
   PublicBranding,
   PublicPriceBreakdown,
@@ -267,6 +267,7 @@ export function PublicBookingProvider({
             sysServicesList: settings.sysServicesList || [],
             customServicesList: settings.customServicesList || [],
             flexibleScheduleSettings: settings.flexibleScheduleSettings,
+            paymentSettings: settings.paymentSettings as PublicSiteRuntime["paymentSettings"],
           });
           lastErr = null;
           break;
@@ -1130,8 +1131,12 @@ export function PublicBookingProvider({
         fullComment = parts.join(" | ") + (fullComment ? `\n\nКоментар гостя: ${fullComment}` : "");
       }
 
+      const onlinePayOn = isOnlinePaymentEnabledFromSettings(
+        runtime ? { paymentSettings: runtime.paymentSettings } : null
+      );
+
       const manualReview =
-        !isPublicOnlinePaymentEnabled() ||
+        !onlinePayOn ||
         needsManualReview({
           nights: calc.nights,
           earlyTime,
@@ -1194,7 +1199,7 @@ export function PublicBookingProvider({
         }
 
         const flow: PublicBookingFlow =
-          !isPublicOnlinePaymentEnabled() ||
+          !onlinePayOn ||
           json.flow === "pending_review" ||
           manualReview
             ? "pending_review"

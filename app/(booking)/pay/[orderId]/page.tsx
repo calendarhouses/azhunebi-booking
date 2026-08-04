@@ -7,8 +7,10 @@ import {
   getMonoTestAmountUah,
 } from "@/lib/monopay/config";
 import { isMonoPartsConfigured } from "@/lib/monoparts/config";
+import { isOnlinePaymentEnabledServer } from "@/lib/payment/loadPaymentSettings";
+import { isMonoPartsEnabledFromSettings } from "@/lib/payment/paymentSettings";
+import { loadAllSettings } from "@/lib/db/settings";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
-import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
 import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +38,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   const id = decodeURIComponent(orderId).trim();
   if (!id) notFound();
 
-  if (!isPublicOnlinePaymentEnabled()) {
+  if (!(await isOnlinePaymentEnabledServer())) {
     return (
       <main
         style={{
@@ -99,6 +101,9 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
 
   const debitTestAmountUah = getMonoTestAmountUah();
   const partsTestAmountUah = getMonoChastTestAmountUah();
+  const paymentSettingsBag = await loadAllSettings();
+  const partsAllowed =
+    isMonoPartsConfigured() && isMonoPartsEnabledFromSettings(paymentSettingsBag);
   const branding = tenant?.branding || {};
   const brandName =
     String(branding.site_title || "").trim() ||
@@ -116,7 +121,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       prepayAmount={prepayAmount > 0 ? prepayAmount : totalPrice}
       totalPrice={totalPrice}
       partsEnabled={
-        isMonoPartsConfigured() &&
+        partsAllowed &&
         (partsTestAmountUah != null ||
           Math.round(Number(booking.prepayAmount) || 0) >= 2 ||
           Math.round(Number(booking.totalPrice) || 0) >= 2)

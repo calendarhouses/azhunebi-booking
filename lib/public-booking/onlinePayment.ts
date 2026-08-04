@@ -1,11 +1,29 @@
 /**
- * Temporary kill-switch for public online payment (Mono).
- * Account blocked → keep OFF so guests never land on /pay.
+ * Public online payment gate.
  *
- * Re-enable later: set NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED=true in Vercel.
- * (Also works with "1" / "yes".)
+ * Server: prefer `isOnlinePaymentEnabledServer()` (reads Supabase paymentSettings).
+ * Client: use `isOnlinePaymentEnabledFromSettings(initSettings)`.
+ *
+ * Legacy sync helper kept for gradual migration — falls back to env only.
+ */
+
+import {
+  isOnlinePaymentEnabledFromSettings,
+  isOnlinePaymentForceOff,
+  legacyEnvOnlinePaymentEnabled,
+} from "@/lib/payment/paymentSettings";
+
+export {
+  isOnlinePaymentEnabledFromSettings,
+  isOnlinePaymentForceOff,
+  legacyEnvOnlinePaymentEnabled,
+};
+
+/**
+ * @deprecated Prefer async server helper or settings-based client check.
+ * Sync env-only — used only where settings are unavailable.
  */
 export function isPublicOnlinePaymentEnabled(): boolean {
-  const v = process.env.NEXT_PUBLIC_ONLINE_PAYMENT_ENABLED?.trim().toLowerCase();
-  return v === "1" || v === "true" || v === "yes";
+  if (isOnlinePaymentForceOff()) return false;
+  return legacyEnvOnlinePaymentEnabled();
 }

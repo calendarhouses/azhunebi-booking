@@ -12,6 +12,7 @@ import { TeamSettingsPanel } from "../settings/TeamSettingsPanel";
 import { DiscountTemplateGallery } from "../settings/DiscountTemplateGallery";
 import { AdditionalServicesSettingsPage } from "../settings/AdditionalServicesSettingsPage";
 import { SmsSettingsPanel } from "../settings/SmsSettingsPanel";
+import { PaymentSettingsPanel } from "../settings/PaymentSettingsPanel";
 import { SettingsRoomsTable } from "../settings/DesktopSettingsTables";
 import { SIDEBAR_SETTINGS_ITEMS } from "../sidebarSettingsItems";
 import type { AdminModalsApi } from "../useAdminModals";
@@ -35,12 +36,13 @@ function tabContentClass(active: SettingsTabName, tab: SettingsTabName, extra?: 
 
 const MOBILE_SETTINGS_TABS = SIDEBAR_SETTINGS_ITEMS.map(({ tab, label, icon }) => ({ tab, label, icon }));
 const MOBILE_SETTINGS_DESCRIPTIONS: Record<SettingsTabName, string> = {
-  branding: "Контакти, логотип і правила передплати",
+  branding: "Контакти, логотип і правила перебування",
   rooms: "Котеджі, місткість, ціни та зручності",
   prices: "Тарифи для дат і окремих будинків",
   services: "Гнучкий графік і пропозиції для гостей",
   discounts: "Акції, промокоди та спеціальні умови",
   restrictions: "Мінімальні ночі та закриті дати",
+  payment: "Онлайн-оплата Mono, ключ і передплата",
   sms: "Шаблони, баланс TurboSMS і журнал відправок",
   team: "Команда та журнал змін в адмінці",
   activity: "Команда та журнал змін в адмінці",
@@ -188,6 +190,7 @@ export function DesktopSettingsView({
             isActive={activeTab === "branding"}
             showAccountLogout={isMobile}
             onLogout={onLogout}
+            onOpenPaymentTab={() => onSettingsTab?.("payment")}
           />
         </div>
         ) : null}
@@ -287,6 +290,22 @@ export function DesktopSettingsView({
             layout={layout}
             isTabActive={activeTab === "restrictions"}
             adminUndo={adminUndo}
+          />
+        </div>
+        ) : null}
+
+        {showTab("payment") ? (
+        <div
+          id="set-payment"
+          className={tabContentClass(activeTab, "payment")}
+          role={isMobile ? "tabpanel" : undefined}
+          aria-labelledby={isMobile ? "mobile-settings-tab-payment" : undefined}
+          style={isMobile ? undefined : tabDisplay(activeTab, "payment")}
+        >
+          <PaymentSettingsPanel
+            settings={settings}
+            onSettingsChange={onSettingsChange ?? (() => {})}
+            isActive={activeTab === "payment"}
           />
         </div>
         ) : null}

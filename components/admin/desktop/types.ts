@@ -9,6 +9,7 @@ export type SettingsTabName =
   | "discounts"
   | "restrictions"
   | "services"
+  | "payment"
   | "sms"
   | "team"
   | "activity";
@@ -215,6 +216,8 @@ export interface AdminSettingsPayload {
   flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
   icalSyncSettings?: import("@/lib/ical").IcalSyncSettings;
   smsSettings?: import("@/lib/sms/smsSettings").SmsSettings;
+  /** Online payment (Mono) — public/admin shape never includes raw token */
+  paymentSettings?: import("@/lib/payment/paymentSettings").PaymentSettingsPublic;
   /** message_id map for today's arrival/departure/cleaning Telegram messages */
   telegramTurnoversState?: Record<string, unknown>;
 }

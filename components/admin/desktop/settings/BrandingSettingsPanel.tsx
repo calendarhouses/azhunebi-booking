@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { Banknote, ChevronDown, ImagePlus, Moon, Percent, Wallet } from "lucide-react";
+import { ImagePlus, Wallet } from "lucide-react";
 import { saveAdminSettings, getAdminTenantId } from "../adminApi";
 import { showToast } from "../adminGlobals";
 import type { AdminSettingsPayload } from "../types";
@@ -9,7 +9,6 @@ import type { PublicBranding } from "@/lib/public-booking/types";
 import {
   formatPrepaymentGuestLabel,
   readPrepaymentPolicy,
-  type PrepaymentMode,
 } from "@/lib/public-booking/prepaymentPolicy";
 import {
   resolveStayRulesForEditing,
@@ -17,7 +16,6 @@ import {
   type StayRulesContent,
 } from "@/lib/public-booking/stayRules";
 import { StayRulesSettingsAccordion } from "./StayRulesSettingsAccordion";
-import { dobaWord } from "@/components/admin/desktop/adminPlural";
 import { GuestPhoneField } from "@/components/admin/onboarding/GuestPhoneField";
 import {
   formatGuestPhoneForSave,
@@ -34,12 +32,7 @@ import { resolveGoogleMapsEmbedUrl } from "@/lib/googleMapsUrl";
 import { setCachedTenantLogoUrl } from "@/lib/admin/brandingLogoCache";
 import { applyAdminDocumentTitle } from "@/lib/admin/adminDocumentTitle";
 import "../settings/settings-additional-services.css";
-
-const PREPAYMENT_MODES = [
-  { mode: "percent" as const, label: "Відсоток", hint: "від суми броні", Icon: Percent },
-  { mode: "nights" as const, label: "Доби", hint: "перші ночі за тарифом", Icon: Moon },
-  { mode: "fixed" as const, label: "Фіксована", hint: "сума в ₴", Icon: Banknote },
-];
+import "./settings-payment.css";
 
 type BrandingSettingsPanelProps = {
   settings: AdminSettingsPayload;
@@ -50,6 +43,8 @@ type BrandingSettingsPanelProps = {
   /** Мобільні налаштування: кнопка виходу лише в «Моя сторінка». */
   showAccountLogout?: boolean;
   onLogout?: () => void;
+  /** Jump to Payment settings (prepayment lives there). */
+  onOpenPaymentTab?: () => void;
 };
 
 function readBranding(settings: AdminSettingsPayload): PublicBranding {
@@ -63,6 +58,7 @@ export function BrandingSettingsPanel({
   isActive = true,
   showAccountLogout = false,
   onLogout,
+  onOpenPaymentTab,
 }: BrandingSettingsPanelProps) {
   const [form, setForm] = useState(() => readBranding(settings));
   const [saving, setSaving] = useState(false);
@@ -71,7 +67,6 @@ export function BrandingSettingsPanel({
   );
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [isLogoProcessing, setIsLogoProcessing] = useState(false);
-  const [prepaymentOpen, setPrepaymentOpen] = useState(false);
   const [stayRulesOpen, setStayRulesOpen] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -125,35 +120,6 @@ export function BrandingSettingsPanel({
 
   const prepaymentPolicy = readPrepaymentPolicy(form);
   const prepaymentGuestLabel = formatPrepaymentGuestLabel(prepaymentPolicy);
-  const setPrepaymentMode = useCallback((mode: PrepaymentMode) => {
-    setForm((prev) => {
-      const hasValue = prev.prepayment_value !== undefined && prev.prepayment_value !== null;
-      const current = Number(prev.prepayment_value);
-      const fallback = mode === "percent" ? 50 : mode === "nights" ? 1 : 1000;
-      return {
-        ...prev,
-        prepayment_mode: mode,
-        prepayment_value: hasValue
-          ? Math.max(0, Number.isFinite(current) ? current : 0)
-          : fallback,
-      };
-    });
-  }, []);
-  const setPrepaymentValue = useCallback((raw: string, mode: PrepaymentMode) => {
-    if (raw === "") {
-      setForm((prev) => ({ ...prev, prepayment_value: 0 }));
-      return;
-    }
-    const next = Number(raw);
-    if (!Number.isFinite(next) || next < 0) return;
-    const capped =
-      mode === "percent" ? Math.min(100, next) : mode === "nights" ? Math.min(30, next) : next;
-    setForm((prev) => ({ ...prev, prepayment_value: capped }));
-  }, []);
-  const prepaymentValueInput =
-    form.prepayment_value === undefined || form.prepayment_value === null || form.prepayment_value === 0
-      ? ""
-      : String(form.prepayment_value);
 
   const setNextLogoPreview = useCallback(
     (nextUrl: string | null, fromBlob = false) => {
@@ -325,16 +291,8 @@ export function BrandingSettingsPanel({
           onChange={setStayRules}
         />
 
-        <section
-          className={`svc-accordion branding-svc-accordion branding-prepayment-accordion branding-field--full${prepaymentOpen ? " is-open" : ""}`}
-        >
-          <button
-            type="button"
-            className="svc-accordion__trigger"
-            aria-expanded={prepaymentOpen}
-            aria-controls="branding-prepayment-panel"
-            onClick={() => setPrepaymentOpen((v) => !v)}
-          >
+        <section className="svc-accordion branding-svc-accordion branding-prepayment-accordion branding-field--full">
+          <div className="svc-accordion__trigger" style={{ cursor: "default" }}>
             <div className="svc-accordion__trigger-main">
               <span className="svc-accordion__icon" aria-hidden>
                 <Wallet size={18} />
@@ -344,88 +302,18 @@ export function BrandingSettingsPanel({
                 <span className="svc-accordion__hint">{prepaymentGuestLabel}</span>
               </div>
             </div>
-            <ChevronDown size={18} className="svc-accordion__chevron" aria-hidden />
-          </button>
-
-          <div
-            id="branding-prepayment-panel"
-            className="branding-svc-collapse branding-prepayment-collapse svc-accordion__collapse"
-            aria-hidden={!prepaymentOpen}
-            inert={!prepaymentOpen}
-          >
-            <div className="branding-svc-collapse__panel branding-prepayment-collapse__panel">
-              <div className="branding-svc-collapse__content branding-prepayment-collapse__content svc-accordion__panel">
-              <p className="svc-accordion__intro">
-                Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці при заїзді.
-              </p>
-
-              <div className="svc-accordion__section">
-                <div className="svc-field">
-                  <span className="svc-field__label">Тип передплати</span>
-                  <div className="svc-pricing-grid branding-prepayment-modes">
-                    {PREPAYMENT_MODES.map((option) => (
-                      <button
-                        key={option.mode}
-                        type="button"
-                        className={`svc-pricing-card${prepaymentPolicy.mode === option.mode ? " is-active" : ""}`}
-                        onClick={() => setPrepaymentMode(option.mode)}
-                      >
-                        <span className="svc-pricing-card__icon">
-                          <option.Icon size={16} />
-                        </span>
-                        <span className="svc-pricing-card__text">
-                          <strong>{option.label}</strong>
-                          <small>{option.hint}</small>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="svc-accordion__section">
-                <label className="svc-field branding-prepayment-value">
-                  <span className="svc-field__label">
-                    {prepaymentPolicy.mode === "percent"
-                      ? "Відсоток від загальної суми"
-                      : prepaymentPolicy.mode === "nights"
-                        ? "Кількість перших ночей за тарифом"
-                        : "Сума передплати"}
-                  </span>
-                  <div
-                    className={`svc-field__suffix-wrap${prepaymentPolicy.mode === "nights" ? " svc-field__suffix-wrap--doba" : ""}`}
-                  >
-                    <input
-                      className="svc-field__input"
-                      type="number"
-                      min={0}
-                      max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
-                      value={prepaymentValueInput}
-                      placeholder="0"
-                      onChange={(e) => setPrepaymentValue(e.target.value, prepaymentPolicy.mode)}
-                    />
-                    {prepaymentPolicy.mode === "percent" ? (
-                      <span className="svc-field__suffix">%</span>
-                    ) : prepaymentPolicy.mode === "fixed" ? (
-                      <span className="svc-field__suffix">₴</span>
-                    ) : (
-                      <span className="svc-field__suffix">
-                        {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
-                      </span>
-                    )}
-                  </div>
-                  {prepaymentPolicy.value <= 0 ? (
-                    <span className="svc-field__caption">Порожнє поле — без передплати (0 грн)</span>
-                  ) : null}
-                </label>
-              </div>
-
-              <div className="svc-accordion__section">
-                <p className="branding-prepayment-preview">{prepaymentGuestLabel}</p>
-              </div>
-              </div>
-            </div>
           </div>
+          <p className="pay-branding-link" style={{ margin: "0 16px 16px" }}>
+            Керування онлайн-оплатою, ключем Mono та передплатою — у розділі{" "}
+            {onOpenPaymentTab ? (
+              <button type="button" onClick={onOpenPaymentTab}>
+                Оплата
+              </button>
+            ) : (
+              <strong>Оплата</strong>
+            )}
+            .
+          </p>
         </section>
 
         <div className="branding-logo-row branding-field--full">

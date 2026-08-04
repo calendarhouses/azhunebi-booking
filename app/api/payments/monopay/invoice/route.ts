@@ -13,7 +13,7 @@ import {
 import { getMonoChastOrderState } from "@/lib/monoparts/client";
 import { isMonoChastBooking } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
-import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
+import { isOnlinePaymentEnabledServer } from "@/lib/payment/loadPaymentSettings";
 
 export const runtime = "nodejs";
 
@@ -40,7 +40,7 @@ function chargeBaseUah(
 }
 
 export async function POST(request: Request) {
-  if (!isPublicOnlinePaymentEnabled()) {
+  if (!(await isOnlinePaymentEnabledServer())) {
     return errorResponse(
       503,
       "PAYMENT_DISABLED",

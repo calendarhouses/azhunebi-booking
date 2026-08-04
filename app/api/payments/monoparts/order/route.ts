@@ -17,7 +17,11 @@ import {
   type MonoChastAmountKind,
 } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
-import { isPublicOnlinePaymentEnabled } from "@/lib/public-booking/onlinePayment";
+import { isOnlinePaymentEnabledServer } from "@/lib/payment/loadPaymentSettings";
+import {
+  isMonoPartsEnabledFromSettings,
+} from "@/lib/payment/paymentSettings";
+import { loadAllSettings } from "@/lib/db/settings";
 import { formatUaPhoneE164 } from "@/lib/public-booking/uaPhone";
 
 export const runtime = "nodejs";
@@ -59,7 +63,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!isPublicOnlinePaymentEnabled()) {
+  if (!(await isOnlinePaymentEnabledServer())) {
     return errorResponse(
       503,
       "PAYMENT_DISABLED",
@@ -68,6 +72,10 @@ export async function POST(request: Request) {
   }
   if (!isMonoPartsConfigured()) {
     return errorResponse(503, "PARTS_DISABLED", "Покупка частинами тимчасово недоступна");
+  }
+  const allSettings = await loadAllSettings();
+  if (!isMonoPartsEnabledFromSettings(allSettings)) {
+    return errorResponse(503, "PARTS_DISABLED", "Покупка частинами вимкнена в налаштуваннях");
   }
 
   let body: { orderId?: unknown; amountKind?: unknown };

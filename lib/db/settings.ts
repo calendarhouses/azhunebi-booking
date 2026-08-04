@@ -1,6 +1,11 @@
 import { getDb } from "@/lib/db/mappers";
 import { listRooms, syncRoomsList } from "@/lib/db/rooms";
 import type { ApiRoom } from "@/lib/db/mappers";
+import {
+  hasPaymentSettingsRecord,
+  mergePaymentSettingsForSave,
+  toPublicPaymentSettings,
+} from "@/lib/payment/paymentSettings";
 
 export async function loadAllSettings(): Promise<Record<string, unknown>> {
   const sb = getDb();
@@ -15,11 +20,23 @@ export async function loadAllSettings(): Promise<Record<string, unknown>> {
   return out;
 }
 
+function stripPaymentSettingsSecret(
+  settings: Record<string, unknown>
+): Record<string, unknown> {
+  const raw = settings.paymentSettings;
+  settings.paymentSettings = toPublicPaymentSettings(raw, {
+    hasRecord: hasPaymentSettingsRecord(raw),
+  });
+  return settings;
+}
+
 export async function getSettingsPayload(opts?: {
   omitSms?: boolean;
   omitTransactions?: boolean;
   omitTeam?: boolean;
   stripSmsJournal?: boolean;
+  /** Keep raw mono token (internal only — never for admin/public responses). */
+  keepPaymentSecrets?: boolean;
 }): Promise<Record<string, unknown>> {
   const settings = await loadAllSettings();
   const out = { ...settings };
@@ -34,6 +51,10 @@ export async function getSettingsPayload(opts?: {
 
   if (opts?.stripSmsJournal && out.smsSettings && typeof out.smsSettings === "object") {
     out.smsSettings = { ...(out.smsSettings as object), journal: [] };
+  }
+
+  if (!opts?.keepPaymentSecrets) {
+    stripPaymentSettingsSecret(out);
   }
 
   return out;
@@ -61,6 +82,16 @@ export async function saveSettingsMerge(
     if (key === "roomsList" && Array.isArray(incoming.roomsList)) {
       await syncRoomsList(incoming.roomsList as ApiRoom[]);
       roomsSynced = true;
+      continue;
+    }
+
+    if (key === "paymentSettings") {
+      const all = await loadAllSettings();
+      const merged = mergePaymentSettingsForSave(
+        all.paymentSettings,
+        incoming.paymentSettings
+      );
+      await saveSettingsKey("paymentSettings", merged);
       continue;
     }
 

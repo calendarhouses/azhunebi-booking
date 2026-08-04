@@ -59,11 +59,12 @@ export async function createMonoInvoice(params: {
     throw new Error("Invalid Mono invoice amount");
   }
 
+  const token = await requireMonoAcquiringToken();
   const response = await fetch(`${getMonoApiOrigin()}/api/merchant/invoice/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Token": requireMonoAcquiringToken(),
+      "X-Token": token,
     },
     body: JSON.stringify({
       amount,
@@ -114,11 +115,12 @@ export async function cancelMonoInvoice(params: {
     body.amount = amount;
   }
 
+  const token = await requireMonoAcquiringToken();
   const response = await fetch(`${getMonoApiOrigin()}/api/merchant/invoice/cancel`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Token": requireMonoAcquiringToken(),
+      "X-Token": token,
     },
     body: JSON.stringify(body),
     cache: "no-store",
@@ -133,8 +135,9 @@ export async function getMonoInvoiceStatus(
 ): Promise<MonoInvoiceStatusResponse> {
   const url = new URL(`${getMonoApiOrigin()}/api/merchant/invoice/status`);
   url.searchParams.set("invoiceId", invoiceId);
+  const token = await requireMonoAcquiringToken();
   const response = await fetch(url, {
-    headers: { "X-Token": requireMonoAcquiringToken() },
+    headers: { "X-Token": token },
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
   });
@@ -161,8 +164,9 @@ function extractPublicKey(text: string): string {
 export async function getMonoPublicKeyBase64(forceRefresh = false): Promise<string> {
   if (cachedPublicKeyBase64 && !forceRefresh) return cachedPublicKeyBase64;
 
+  const token = await requireMonoAcquiringToken();
   const response = await fetch(`${getMonoApiOrigin()}/api/merchant/pubkey`, {
-    headers: { "X-Token": requireMonoAcquiringToken() },
+    headers: { "X-Token": token },
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });
@@ -175,4 +179,23 @@ export async function getMonoPublicKeyBase64(forceRefresh = false): Promise<stri
 
   cachedPublicKeyBase64 = extractPublicKey(await response.text());
   return cachedPublicKeyBase64;
+}
+
+export type MonoMerchantDetails = {
+  merchantId?: string;
+  merchantName?: string;
+  edrpou?: string;
+};
+
+/** Lightweight token check — GET /api/merchant/details */
+export async function getMonoMerchantDetails(
+  tokenOverride?: string
+): Promise<MonoMerchantDetails> {
+  const token = tokenOverride?.trim() || (await requireMonoAcquiringToken());
+  const response = await fetch(`${getMonoApiOrigin()}/api/merchant/details`, {
+    headers: { "X-Token": token },
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+  return readMonoResponse<MonoMerchantDetails>(response);
 }

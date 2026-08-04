@@ -1,3 +1,5 @@
+import { toPublicInitPaymentSettings } from "@/lib/payment/paymentSettings";
+
 /** Keys safe to expose via public initData (calendar / booking UI). */
 export const PUBLIC_SETTINGS_KEYS = [
   "branding",
@@ -9,6 +11,7 @@ export const PUBLIC_SETTINGS_KEYS = [
   "restrictions",
   "roomsList",
   "sysServicesList",
+  "paymentSettings",
 ] as const;
 
 export type PublicSettingsKey = (typeof PUBLIC_SETTINGS_KEYS)[number];
@@ -37,7 +40,10 @@ export function pickPublicSettings(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const key of PUBLIC_SETTINGS_KEYS) {
+    if (key === "paymentSettings") continue;
     if (key in settings) out[key] = settings[key];
   }
+  // Always include sanitized payment flags (even when row missing → legacy env).
+  out.paymentSettings = toPublicInitPaymentSettings(settings.paymentSettings);
   return out;
 }

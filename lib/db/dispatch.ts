@@ -175,6 +175,15 @@ async function handleCreateBooking(
   if (isPublicSite) {
     const allowed = new Set(["Нова бронь", "Очікує підтвердження", "Очікує оплату"]);
     if (!allowed.has(status)) status = "Очікує підтвердження";
+    // Defense: never accept «Очікує оплату» when online payment is off.
+    if (status === "Очікує оплату") {
+      const { isOnlinePaymentEnabledServer } = await import(
+        "@/lib/payment/loadPaymentSettings"
+      );
+      if (!(await isOnlinePaymentEnabledServer())) {
+        status = "Очікує підтвердження";
+      }
+    }
   }
 
   // Preserve existing meta/fees on update when payload omits them

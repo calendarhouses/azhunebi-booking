@@ -18,6 +18,7 @@ const VALID_TABS: SettingsTabName[] = [
   "discounts",
   "restrictions",
   "services",
+  "payment",
   "sms",
   "team",
 ];

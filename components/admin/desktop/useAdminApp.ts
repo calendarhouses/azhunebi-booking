@@ -57,6 +57,7 @@ function normalizeSettingsTab(tab: SettingsTabName | string | null | undefined):
     "discounts",
     "restrictions",
     "services",
+    "payment",
     "sms",
     "team",
   ];
@@ -79,6 +80,10 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
     smsSettings: s.smsSettings,
+    paymentSettings:
+      s.paymentSettings && typeof s.paymentSettings === "object"
+        ? s.paymentSettings
+        : undefined,
     telegramTurnoversState:
       s.telegramTurnoversState && typeof s.telegramTurnoversState === "object"
         ? s.telegramTurnoversState

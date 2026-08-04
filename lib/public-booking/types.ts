@@ -85,6 +85,8 @@ export interface PublicSiteRuntime extends PublicTenantPayload {
   sysServicesList: SysServiceConfig[];
   customServicesList: CustomServiceConfig[];
   flexibleScheduleSettings?: AdminSettingsPayload["flexibleScheduleSettings"];
+  /** Sanitized: onlineEnabled + monoPartsEnabled only */
+  paymentSettings?: { onlineEnabled?: boolean; monoPartsEnabled?: boolean };
 }
 
 export type BookedRange = {

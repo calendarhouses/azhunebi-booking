@@ -1,10 +1,13 @@
 import "server-only";
 
+import { resolveMonoAcquiringTokenServer } from "@/lib/payment/loadPaymentSettings";
+
 const MONO_API_ORIGIN = "https://api.monobank.ua";
 const DEFAULT_PUBLIC_ORIGIN = "https://azhunebi.com";
 
-export function requireMonoAcquiringToken(): string {
-  const token = process.env.MONO_ACQUIRING_TOKEN?.trim();
+/** Prefer settings token, then env. Async — use in request handlers. */
+export async function requireMonoAcquiringToken(): Promise<string> {
+  const token = await resolveMonoAcquiringTokenServer();
   if (!token) {
     throw new Error("MONO_ACQUIRING_TOKEN is not configured");
   }

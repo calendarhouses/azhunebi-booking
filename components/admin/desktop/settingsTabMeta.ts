@@ -16,6 +16,7 @@ export const SETTINGS_FULL_WIDTH_TABS: SettingsTabName[] = [
   "rooms",
   "prices",
   "restrictions",
+  "payment",
   "sms",
   "team",
 ];
@@ -45,6 +46,10 @@ export const SETTINGS_TAB_META: Record<SettingsTabName, SettingsTabMeta> = {
   services: {
     title: "Додаткові послуги",
     icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3" /><path stroke-linecap="round" stroke-linejoin="round" d="M8 6h8" /><rect x="5" y="9" width="14" height="10" rx="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6" />',
+  },
+  payment: {
+    title: "Оплата",
+    icon: '<rect x="3" y="6" width="18" height="12" rx="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18" /><path stroke-linecap="round" stroke-linejoin="round" d="M7 15h2" />',
   },
   sms: {
     title: "SMS",
