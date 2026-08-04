@@ -177,10 +177,16 @@ async function handleCreateBooking(
     if (!allowed.has(status)) status = "Очікує підтвердження";
     // Defense: never accept «Очікує оплату» when online payment is off.
     if (status === "Очікує оплату") {
-      const { isOnlinePaymentEnabledServer } = await import(
-        "@/lib/payment/loadPaymentSettings"
-      );
-      if (!(await isOnlinePaymentEnabledServer())) {
+      const { loadAllSettings } = await import("@/lib/db/settings");
+      const {
+        hasPaymentSettingsRecord,
+        resolveOnlinePaymentEnabled,
+      } = await import("@/lib/payment/paymentSettings");
+      const all = await loadAllSettings();
+      const enabled = resolveOnlinePaymentEnabled(all.paymentSettings, {
+        hasRecord: hasPaymentSettingsRecord(all.paymentSettings),
+      });
+      if (!enabled) {
         status = "Очікує підтвердження";
       }
     }
@@ -507,19 +513,6 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           status: "Скасовано",
           expiredAt: new Date().toISOString(),
         });
-        try {
-          const { recordPaymentEvent } = await import("@/lib/payment/paymentJournal");
-          await recordPaymentEvent({
-            outcome: "expired",
-            bookingId: orderId,
-            guestName: String(booking.name || "").trim() || undefined,
-            amount: Math.round(Number(booking.prepayAmount) || 0) || undefined,
-            reason: "Час на оплату вичерпано",
-            channel: "lifecycle",
-          });
-        } catch {
-          /* ignore journal errors */
-        }
         return ok({ ok: true, expired: true, booking: next });
       }
       case "listPaymentLifecycle": {

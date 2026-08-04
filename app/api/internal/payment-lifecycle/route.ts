@@ -92,7 +92,23 @@ async function settleOrExpire(booking: GasBookingRecord): Promise<"paid" | "expi
   }
 
   const expired = await expireBookingPayment(orderId);
-  return expired.ok && expired.expired ? "expired" : "skipped";
+  if (expired.ok && expired.expired) {
+    try {
+      const { recordPaymentEvent } = await import("@/lib/payment/paymentJournal");
+      await recordPaymentEvent({
+        outcome: "expired",
+        bookingId: orderId,
+        guestName: String(booking.name || "").trim() || undefined,
+        amount: Math.round(Number(booking.prepayAmount) || 0) || undefined,
+        reason: "Час на оплату вичерпано",
+        channel: "lifecycle",
+      });
+    } catch (err) {
+      console.warn("[Payment lifecycle] journal failed", err);
+    }
+    return "expired";
+  }
+  return "skipped";
 }
 
 export async function POST(request: Request) {

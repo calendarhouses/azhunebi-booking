@@ -42,7 +42,7 @@ import type {
   PaymentAwaitingItem,
   PaymentFeedItem,
   PaymentHealthSnapshot,
-} from "@/lib/payment/paymentOverview";
+} from "@/lib/payment/paymentOverviewTypes";
 import "./settings-payment.css";
 import "../settings/settings-additional-services.css";
 

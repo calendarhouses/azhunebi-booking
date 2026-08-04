@@ -11,53 +11,19 @@ import {
   normalizePaymentSettings,
   resolveOnlinePaymentEnabled,
   toPublicPaymentSettings,
-  type PaymentJournalEntry,
-  type PaymentWebhookHealth,
 } from "./paymentSettings";
 import { resolveMonoAcquiringTokenServer } from "./loadPaymentSettings";
+import type {
+  PaymentAwaitingItem,
+  PaymentFeedItem,
+  PaymentHealthSnapshot,
+} from "./paymentOverviewTypes";
 
-export type PaymentFeedItem = {
-  id: string;
-  at: string;
-  outcome: "success" | "failure" | "expired";
-  bookingId: string;
-  guestName?: string;
-  amount?: number;
-  provider?: string;
-  transactionId?: string;
-  reason?: string;
-  channel?: string;
-};
-
-export type PaymentAwaitingItem = {
-  bookingId: string;
-  name: string;
-  cottage: string;
-  checkIn: string;
-  checkOut: string;
-  prepayAmount: number;
-  paymentExpiresAt: string | null;
-  expiresInMs: number | null;
-  payUrl: string;
-};
-
-export type PaymentHealthSnapshot = {
-  onlineEnabled: boolean;
-  forceOff: boolean;
-  paymentWindowHours: number;
-  awaitingCount: number;
-  token: {
-    configured: boolean;
-    valid: boolean | null;
-    last4: string | null;
-    fromEnv: boolean;
-    merchantName: string | null;
-  };
-  webhook: PaymentWebhookHealth & {
-    acquiringUrl: string;
-    partsUrl: string;
-  };
-};
+export type {
+  PaymentAwaitingItem,
+  PaymentFeedItem,
+  PaymentHealthSnapshot,
+} from "./paymentOverviewTypes";
 
 function isMonoProvider(provider: unknown): boolean {
   return /mono/i.test(String(provider || ""));
@@ -231,5 +197,3 @@ export async function buildPaymentOverview(opts?: {
     awaiting,
   };
 }
-
-export type { PaymentJournalEntry };
