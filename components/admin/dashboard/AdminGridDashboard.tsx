@@ -17,6 +17,7 @@ export type AdminGridDashboardProps = {
   roomsList?: RoomConfig[];
   bookings?: BookingRecord[];
   settings: AdminSettingsPayload;
+  onSettingsChange?: (settings: AdminSettingsPayload) => void;
   onOpenBooking: (event: React.MouseEvent | null, row: number | string) => void;
   onCreateBooking: (room: string, checkIn: string, checkOut: string) => void;
   onNewBooking?: () => void;
@@ -30,6 +31,7 @@ export function AdminGridDashboard({
   roomsList,
   bookings,
   settings,
+  onSettingsChange,
   onOpenBooking,
   onCreateBooking,
   onNewBooking,
@@ -124,6 +126,7 @@ export function AdminGridDashboard({
           }}
           roomsList={roomsList}
           bookings={displayBookings}
+          settings={settings}
           onOpenBooking={onOpenBooking}
           onCreateBooking={onCreateBooking}
           onNewBooking={onNewBooking}
@@ -131,6 +134,12 @@ export function AdminGridDashboard({
           onUndoMove={() => adminUndo.undoLastInScope("booking")}
           canUndoMove={adminUndo.undoAvailable.booking}
           isUndoing={adminUndo.isUndoing}
+          onTelegramTurnoversState={
+            onSettingsChange
+              ? (telegramTurnoversState) =>
+                  onSettingsChange({ ...settings, telegramTurnoversState })
+              : undefined
+          }
         />
         {pendingMove ? (
           <div

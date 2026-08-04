@@ -237,6 +237,7 @@ export function AdminDesktopApp() {
             roomsList={admin.settings.roomsList}
             bookings={admin.bookings}
             settings={admin.settings}
+            onSettingsChange={admin.setSettings}
             onOpenBooking={drawer.openDetailsByRow}
             onCreateBooking={(room, checkIn, checkOut) =>
               drawer.openNewBookingDrawer(room, checkIn, checkOut)

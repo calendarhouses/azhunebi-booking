@@ -215,6 +215,8 @@ export interface AdminSettingsPayload {
   flexibleScheduleSettings?: import("@/lib/admin/flexibleSchedule").FlexibleScheduleSettings;
   icalSyncSettings?: import("@/lib/ical").IcalSyncSettings;
   smsSettings?: import("@/lib/sms/smsSettings").SmsSettings;
+  /** message_id map for today's arrival/departure/cleaning Telegram messages */
+  telegramTurnoversState?: Record<string, unknown>;
 }
 
 export interface AdminInitResponse {

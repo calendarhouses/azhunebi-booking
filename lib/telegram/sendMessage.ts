@@ -138,6 +138,16 @@ export async function answerTelegramCallback(
   });
 }
 
+async function throwTelegramApiError(res: Response, fallback: string): Promise<never> {
+  const body = await res.json().catch(() => null);
+  const desc =
+    (body && typeof body === "object" && (body as { description?: string }).description) ||
+    (body && typeof body === "object" && (body as { error?: string }).error) ||
+    res.statusText ||
+    fallback;
+  throw new Error(String(desc));
+}
+
 export async function editTelegramMessage(
   chatId: string | number,
   messageId: number,
@@ -157,9 +167,37 @@ export async function editTelegramMessage(
     mockTelegramOk({ method: "editMessageText", ...payload });
     return;
   }
-  await fetch(`https://api.telegram.org/bot${cfg.botToken}/editMessageText`, {
+  const res = await fetch(`https://api.telegram.org/bot${cfg.botToken}/editMessageText`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || (body && typeof body === "object" && (body as { ok?: boolean }).ok === false)) {
+    const desc =
+      (body && typeof body === "object" && (body as { description?: string }).description) ||
+      res.statusText ||
+      `HTTP ${res.status}`;
+    throw new Error(String(desc));
+  }
+}
+
+export async function deleteTelegramMessage(
+  chatId: string | number,
+  messageId: number
+): Promise<void> {
+  const cfg = getTelegramConfig();
+  const payload = { chat_id: chatId, message_id: messageId };
+  if (isTelegramNotifsDisabled()) {
+    mockTelegramOk({ method: "deleteMessage", ...payload });
+    return;
+  }
+  const res = await fetch(`https://api.telegram.org/bot${cfg.botToken}/deleteMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    await throwTelegramApiError(res, `HTTP ${res.status}`);
+  }
 }

@@ -79,6 +79,10 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
     transactions: Array.isArray(s.transactions) ? s.transactions : [],
     branding: s.branding,
     smsSettings: s.smsSettings,
+    telegramTurnoversState:
+      s.telegramTurnoversState && typeof s.telegramTurnoversState === "object"
+        ? s.telegramTurnoversState
+        : undefined,
   };
 }
 

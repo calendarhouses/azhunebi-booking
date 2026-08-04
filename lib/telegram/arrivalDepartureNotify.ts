@@ -18,6 +18,10 @@ import {
   todayKeyKyiv,
 } from "./formatters";
 import { sendTelegramMessage } from "./sendMessage";
+import {
+  upsertTelegramTurnoversState,
+  type TelegramTurnoversStatePatch,
+} from "./turnoversState";
 
 export type ArrivalDepartureBooking = {
   id?: string;
@@ -152,6 +156,8 @@ export async function notifyTodayArrivalsAndDepartures(
     );
   }
 
+  const statePatch: TelegramTurnoversStatePatch = {};
+
   for (const item of items) {
     const res = await sendTelegramMessage(
       buildArrivalDepartureCaption(item.booking, item.kind),
@@ -160,6 +166,21 @@ export async function notifyTodayArrivalsAndDepartures(
       target.threadId
     );
     if (res.ok) {
+      const json = (await res.json().catch(() => null)) as {
+        result?: { message_id?: number; chat?: { id?: string | number } };
+      } | null;
+      const messageId = json?.result?.message_id;
+      const chatId = json?.result?.chat?.id ?? target.chatId;
+      const bookingId = String(item.booking.id || "").trim();
+      if (bookingId && typeof messageId === "number") {
+        if (item.kind === "arrival") {
+          statePatch.arrivals = statePatch.arrivals || {};
+          statePatch.arrivals[bookingId] = { chatId, messageId };
+        } else {
+          statePatch.departures = statePatch.departures || {};
+          statePatch.departures[bookingId] = { chatId, messageId };
+        }
+      }
       if (item.kind === "arrival") arrivals += 1;
       else departures += 1;
     } else {
@@ -167,6 +188,14 @@ export async function notifyTodayArrivalsAndDepartures(
         `[TG] ${item.kind} notify failed`,
         await res.text().catch(() => "")
       );
+    }
+  }
+
+  if (statePatch.arrivals || statePatch.departures) {
+    try {
+      await upsertTelegramTurnoversState(today, statePatch);
+    } catch (err) {
+      console.warn("[TG] turnovers state upsert failed (arrivals)", err);
     }
   }
 
