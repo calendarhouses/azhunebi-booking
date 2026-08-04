@@ -9,7 +9,7 @@ import {
 } from "@/lib/admin/adminPreloaderLogo";
 
 export function AdminBootPreloader() {
-  const { loading: authLoading, error, ready, membership, preloaderLogoUrl } = useAuth();
+  const { loading: authLoading, error, ready } = useAuth();
   const boot = useAdminBootState();
 
   const authBlocked = !authLoading && (!ready || !!error);
@@ -17,9 +17,13 @@ export function AdminBootPreloader() {
   const visible =
     !authBlocked && !bootError && (authLoading || boot.isLoading || !boot.appVisible);
 
-  const alt = membership?.tenantName || ADMIN_PRELOADER_LOGO_ALT;
-
+  // Always the static АЖ У НЕБІ mark — never swap to cached tenant branding mid-boot
+  // (that flash looked like two preloaders / two logos).
   return (
-    <AdminPreloader visible={visible} logoUrl={preloaderLogoUrl || ADMIN_PRELOADER_LOGO_SRC} alt={alt} />
+    <AdminPreloader
+      visible={visible}
+      logoUrl={ADMIN_PRELOADER_LOGO_SRC}
+      alt={ADMIN_PRELOADER_LOGO_ALT}
+    />
   );
 }
