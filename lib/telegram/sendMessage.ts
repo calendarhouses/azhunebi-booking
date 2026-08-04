@@ -4,6 +4,19 @@ import {
   type TelegramTarget,
 } from "./config";
 
+function isTelegramNotifsDisabled(): boolean {
+  const v = process.env.DISABLE_TELEGRAM_NOTIFS?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
+function mockTelegramOk(message: unknown): Response {
+  console.log("TG MOCK [Blocked by DISABLE_TELEGRAM_NOTIFS]:", message);
+  return new Response(JSON.stringify({ ok: true, result: { message_id: 0 } }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export async function sendTelegramMessage(
   text: string,
   keyboard?: unknown,
@@ -25,6 +38,10 @@ export async function sendTelegramMessage(
   if (tid) payload.message_thread_id = tid;
   if (keyboard) payload.reply_markup = keyboard;
 
+  if (isTelegramNotifsDisabled()) {
+    return mockTelegramOk(payload);
+  }
+
   return fetch(`https://api.telegram.org/bot${cfg.botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -40,6 +57,18 @@ export async function sendTelegramPhotoBase64(
 ): Promise<Response> {
   const cfg = getTelegramConfig();
   const dest = target || getBookingsTargets();
+
+  if (isTelegramNotifsDisabled()) {
+    return mockTelegramOk({
+      method: "sendPhoto",
+      chat_id: dest.chatId,
+      threadId: dest.threadId,
+      caption,
+      photo: "[base64 omitted]",
+      keyboard: keyboard ?? null,
+    });
+  }
+
   const raw = base64DataUrl.includes(",")
     ? base64DataUrl.split(",")[1]
     : base64DataUrl;
@@ -77,6 +106,10 @@ export async function sendTelegramPhotoUrl(
   if (dest.threadId) payload.message_thread_id = dest.threadId;
   if (keyboard) payload.reply_markup = keyboard;
 
+  if (isTelegramNotifsDisabled()) {
+    return mockTelegramOk(payload);
+  }
+
   return fetch(`https://api.telegram.org/bot${cfg.botToken}/sendPhoto`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -89,14 +122,19 @@ export async function answerTelegramCallback(
   text?: string
 ): Promise<void> {
   const cfg = getTelegramConfig();
+  const payload = {
+    callback_query_id: callbackQueryId,
+    text: text || "",
+    show_alert: Boolean(text),
+  };
+  if (isTelegramNotifsDisabled()) {
+    mockTelegramOk({ method: "answerCallbackQuery", ...payload });
+    return;
+  }
   await fetch(`https://api.telegram.org/bot${cfg.botToken}/answerCallbackQuery`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      callback_query_id: callbackQueryId,
-      text: text || "",
-      show_alert: Boolean(text),
-    }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -115,6 +153,10 @@ export async function editTelegramMessage(
     disable_web_page_preview: true,
   };
   if (keyboard) payload.reply_markup = keyboard;
+  if (isTelegramNotifsDisabled()) {
+    mockTelegramOk({ method: "editMessageText", ...payload });
+    return;
+  }
   await fetch(`https://api.telegram.org/bot${cfg.botToken}/editMessageText`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
