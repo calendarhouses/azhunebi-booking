@@ -121,17 +121,12 @@ export function PayBookingPage({
   }, []);
 
   useEffect(() => {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "/pay-page.css";
-    document.head.appendChild(link);
     // Pull-to-refresh off (older iOS Safari ignores overscroll-behavior from CSS).
     const prevHtml = document.documentElement.style.overscrollBehaviorY;
     const prevBody = document.body.style.overscrollBehaviorY;
     document.documentElement.style.overscrollBehaviorY = "none";
     document.body.style.overscrollBehaviorY = "none";
     return () => {
-      link.remove();
       document.documentElement.style.overscrollBehaviorY = prevHtml;
       document.body.style.overscrollBehaviorY = prevBody;
       stopPolling();
@@ -265,6 +260,8 @@ export function PayBookingPage({
               className="pay-meta__cat"
               src="/images/mono/Cat.png"
               alt=""
+              width={117}
+              height={117}
               aria-hidden
             />
           </div>
