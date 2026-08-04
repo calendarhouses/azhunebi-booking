@@ -861,7 +861,41 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           return fail(message, 400, "UPLOAD_FAILED");
         }
       }
-      case "fetchPublicTenant":
+      case "fetchPublicTenant": {
+        const settings = await getSettingsPayload({
+          omitSms: true,
+          omitTransactions: true,
+          omitTeam: true,
+        });
+        const branding =
+          settings.branding &&
+          typeof settings.branding === "object" &&
+          !Array.isArray(settings.branding)
+            ? (settings.branding as Record<string, unknown>)
+            : {};
+        const rooms = Array.isArray(settings.roomsList) ? settings.roomsList : [];
+        const discounts = Array.isArray(settings.discountsList)
+          ? settings.discountsList
+          : Array.isArray(settings.discounts)
+            ? settings.discounts
+            : [];
+        const customPrices =
+          settings.customPrices &&
+          typeof settings.customPrices === "object" &&
+          !Array.isArray(settings.customPrices)
+            ? settings.customPrices
+            : {};
+        return ok({
+          tenantId: "default",
+          tenantName:
+            String(branding.site_title || "").trim() || "АЖ У НЕБІ",
+          subdomain: "default",
+          branding,
+          rooms,
+          discounts,
+          customPrices,
+        });
+      }
       case "fetchTenants": {
         const settings = await getSettingsPayload({
           omitSms: true,

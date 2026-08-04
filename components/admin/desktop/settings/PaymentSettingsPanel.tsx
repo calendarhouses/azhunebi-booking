@@ -7,6 +7,7 @@ import {
   Banknote,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Copy,
   ExternalLink,
@@ -165,6 +166,9 @@ export function PaymentSettingsPanel({
 }: PaymentSettingsPanelProps) {
   const payment = useMemo(() => readPayment(settings), [settings]);
   const [subView, setSubView] = useState<PaySubView>("settings");
+  const [openWindow, setOpenWindow] = useState(false);
+  const [openApi, setOpenApi] = useState(false);
+  const [openPrepay, setOpenPrepay] = useState(false);
   const [onlineEnabled, setOnlineEnabled] = useState(payment.onlineEnabled);
   const [monoPartsEnabled, setMonoPartsEnabled] = useState(payment.monoPartsEnabled);
   const [windowHours, setWindowHours] = useState(payment.paymentWindowHours);
@@ -633,7 +637,7 @@ export function PaymentSettingsPanel({
               </p>
               <div className="pay-hero__pills">
                 <span
-                  className={`pay-key-dot pay-key-dot--${keyTone}`}
+                  className={`pay-key-chip pay-key-chip--${keyTone}`}
                   title={
                     keyOk
                       ? payment.tokenLast4
@@ -643,7 +647,9 @@ export function PaymentSettingsPanel({
                   }
                   aria-label={keyOk ? "Ключ OK" : "Ключ помилка"}
                 >
-                  <span className="pay-key-dot__pulse" aria-hidden />
+                  <span className={`pay-key-dot pay-key-dot--${keyTone}`}>
+                    <span className="pay-key-dot__pulse" aria-hidden />
+                  </span>
                 </span>
                 <span
                   className={`pay-pill${
@@ -758,211 +764,292 @@ export function PaymentSettingsPanel({
                 <span className="pay-switch__knob" />
               </button>
             </div>
+          </section>
 
-            <div className="pay-window">
-              <div className="pay-window__head">
-                <div>
-                  <strong className="pay-window__title">
-                    <Timer size={16} aria-hidden />
-                    Вікно оплати
-                  </strong>
-                  <p className="pay-window__hint">
-                    Скільки живе pay-link і текст у SMS. Після цього бронь скасовується
-                    автоматично.
-                  </p>
+          <section className={`svc-accordion pay-accordion${openWindow ? " is-open" : ""}`}>
+            <button
+              type="button"
+              className="svc-accordion__trigger"
+              aria-expanded={openWindow}
+              aria-controls="pay-window-panel"
+              onClick={() => setOpenWindow((v) => !v)}
+            >
+              <div className="svc-accordion__trigger-main">
+                <span className="svc-accordion__icon" aria-hidden>
+                  <Timer size={18} />
+                </span>
+                <div className="svc-accordion__trigger-text">
+                  <span className="svc-accordion__label">Вікно оплати</span>
+                  <span className="svc-accordion__hint">
+                    {formatPaymentWindowPhrase(payment.paymentWindowHours)} · потім бронь
+                    скасовується
+                  </span>
                 </div>
               </div>
-              <div className="pay-window__presets" role="group" aria-label="Години вікна">
-                {PAYMENT_WINDOW_PRESETS.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    className={`pay-window__chip${windowHours === h ? " is-active" : ""}`}
-                    onClick={() => setWindowHours(h)}
-                  >
-                    {h} год
-                  </button>
-                ))}
-              </div>
-              <div className="pay-window__custom">
-                <label className="pay-field" style={{ flex: 1, marginBottom: 0 }}>
-                  <span className="pay-field__label">Своє значення (год)</span>
-                  <input
-                    className="pay-field__input"
-                    type="number"
-                    min={PAYMENT_WINDOW_MIN_HOURS}
-                    max={PAYMENT_WINDOW_MAX_HOURS}
-                    value={windowHours}
-                    onChange={(e) =>
-                      setWindowHours(
-                        clampPaymentWindowHours(
-                          e.target.value === "" ? DEFAULT_PAYMENT_WINDOW_HOURS : e.target.value
+              <ChevronDown size={18} className="svc-accordion__chevron" aria-hidden />
+            </button>
+            <div
+              id="pay-window-panel"
+              className="svc-accordion__collapse"
+              aria-hidden={!openWindow}
+              inert={!openWindow}
+            >
+              <div className="svc-accordion__panel">
+                <p className="svc-accordion__intro">
+                  Скільки живе pay-link і текст у SMS. Після цього бронь скасовується
+                  автоматично.
+                </p>
+                <div className="pay-window__presets" role="group" aria-label="Години вікна">
+                  {PAYMENT_WINDOW_PRESETS.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      className={`pay-window__chip${windowHours === h ? " is-active" : ""}`}
+                      onClick={() => setWindowHours(h)}
+                    >
+                      {h} год
+                    </button>
+                  ))}
+                </div>
+                <div className="pay-window__custom">
+                  <label className="pay-field" style={{ flex: 1, marginBottom: 0 }}>
+                    <span className="pay-field__label">Своє значення (год)</span>
+                    <input
+                      className="pay-field__input"
+                      type="number"
+                      min={PAYMENT_WINDOW_MIN_HOURS}
+                      max={PAYMENT_WINDOW_MAX_HOURS}
+                      value={windowHours}
+                      onChange={(e) =>
+                        setWindowHours(
+                          clampPaymentWindowHours(
+                            e.target.value === ""
+                              ? DEFAULT_PAYMENT_WINDOW_HOURS
+                              : e.target.value
+                          )
                         )
-                      )
-                    }
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="pay-btn pay-btn--primary"
-                  disabled={savingWindow || !windowDirty}
-                  onClick={() => void savePaymentWindow()}
-                >
-                  {savingWindow ? <Loader2 size={16} /> : null}
-                  Зберегти
-                </button>
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="pay-btn pay-btn--primary"
+                    disabled={savingWindow || !windowDirty}
+                    onClick={() => void savePaymentWindow()}
+                  >
+                    {savingWindow ? <Loader2 size={16} /> : null}
+                    Зберегти
+                  </button>
+                </div>
+                <p className="pay-preview">
+                  Зараз: {formatPaymentWindowPhrase(payment.paymentWindowHours)}. Нові броні
+                  отримають цей дедлайн; SMS з &#123;hours&#125; підставляє його автоматично.
+                </p>
               </div>
-              <p className="pay-preview">
-                Зараз: {formatPaymentWindowPhrase(payment.paymentWindowHours)}. Нові броні
-                отримають цей дедлайн; SMS з &#123;hours&#125; підставляє його автоматично.
-              </p>
             </div>
           </section>
 
-          <section className="pay-card">
-            <div className="pay-card__head">
-              <div>
-                <h3 className="pay-card__title">API-ключ Mono</h3>
-                <p className="pay-card__hint">
+          <section className={`svc-accordion pay-accordion${openApi ? " is-open" : ""}`}>
+            <button
+              type="button"
+              className="svc-accordion__trigger"
+              aria-expanded={openApi}
+              aria-controls="pay-api-panel"
+              onClick={() => setOpenApi((v) => !v)}
+            >
+              <div className="svc-accordion__trigger-main">
+                <span className="svc-accordion__icon" aria-hidden>
+                  <KeyRound size={18} />
+                </span>
+                <div className="svc-accordion__trigger-text">
+                  <span className="svc-accordion__label">API-ключ Mono</span>
+                  <span className="svc-accordion__hint">
+                    {payment.tokenConfigured
+                      ? `••••${payment.tokenLast4 || "????"}${
+                          merchantName || health?.token.merchantName
+                            ? ` · ${merchantName || health?.token.merchantName}`
+                            : ""
+                        }`
+                      : "Ключ не задано"}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown size={18} className="svc-accordion__chevron" aria-hidden />
+            </button>
+            <div
+              id="pay-api-panel"
+              className="svc-accordion__collapse"
+              aria-hidden={!openApi}
+              inert={!openApi}
+            >
+              <div className="svc-accordion__panel">
+                <p className="svc-accordion__intro">
                   Токен еквайрингу з кабінету web.monobank.ua. Повний ключ ніколи не
                   показується після збереження — лише маска.
                 </p>
+
+                <p className="pay-field__meta">
+                  Поточний ключ:{" "}
+                  {payment.tokenConfigured ? (
+                    <>
+                      <code>••••••{payment.tokenLast4}</code>
+                      {merchantName || health?.token.merchantName
+                        ? ` · ${merchantName || health?.token.merchantName}`
+                        : ""}
+                    </>
+                  ) : (
+                    <strong>не задано</strong>
+                  )}
+                </p>
+
+                <label className="pay-field">
+                  <span className="pay-field__label">Новий ключ</span>
+                  <input
+                    className="pay-field__input"
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="Вставте X-Token від Mono…"
+                    value={newToken}
+                    onChange={(e) => setNewToken(e.target.value)}
+                  />
+                </label>
+
+                <div className="pay-actions">
+                  <button
+                    type="button"
+                    className="pay-btn pay-btn--primary"
+                    disabled={savingToken || !newToken.trim()}
+                    onClick={() => void saveToken()}
+                  >
+                    {savingToken ? <Loader2 size={16} /> : <KeyRound size={16} />}
+                    Зберегти ключ
+                  </button>
+                  <button
+                    type="button"
+                    className="pay-btn"
+                    disabled={testing || (!newToken.trim() && !payment.tokenConfigured)}
+                    onClick={() => void testMono()}
+                  >
+                    {testing ? <Loader2 size={16} /> : <RefreshCw size={16} />}
+                    Перевірити зʼєднання
+                  </button>
+                </div>
+
+                {merchantName ? (
+                  <div className="pay-merchant">
+                    <CheckCircle2 size={16} style={{ display: "inline", verticalAlign: -3 }} />{" "}
+                    Мерчант: {merchantName}
+                  </div>
+                ) : null}
               </div>
             </div>
-
-            <p className="pay-field__meta">
-              Поточний ключ:{" "}
-              {payment.tokenConfigured ? (
-                <>
-                  <code>••••••{payment.tokenLast4}</code>
-                  {merchantName || health?.token.merchantName
-                    ? ` · ${merchantName || health?.token.merchantName}`
-                    : ""}
-                </>
-              ) : (
-                <strong>не задано</strong>
-              )}
-            </p>
-
-            <label className="pay-field">
-              <span className="pay-field__label">Новий ключ</span>
-              <input
-                className="pay-field__input"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="Вставте X-Token від Mono…"
-                value={newToken}
-                onChange={(e) => setNewToken(e.target.value)}
-              />
-            </label>
-
-            <div className="pay-actions">
-              <button
-                type="button"
-                className="pay-btn pay-btn--primary"
-                disabled={savingToken || !newToken.trim()}
-                onClick={() => void saveToken()}
-              >
-                {savingToken ? <Loader2 size={16} /> : <KeyRound size={16} />}
-                Зберегти ключ
-              </button>
-              <button
-                type="button"
-                className="pay-btn"
-                disabled={testing || (!newToken.trim() && !payment.tokenConfigured)}
-                onClick={() => void testMono()}
-              >
-                {testing ? <Loader2 size={16} /> : <RefreshCw size={16} />}
-                Перевірити зʼєднання
-              </button>
-            </div>
-
-            {merchantName ? (
-              <div className="pay-merchant">
-                <CheckCircle2 size={16} style={{ display: "inline", verticalAlign: -3 }} />{" "}
-                Мерчант: {merchantName}
-              </div>
-            ) : null}
           </section>
 
-          <section className="pay-card">
-            <div className="pay-card__head">
-              <div>
-                <h3 className="pay-card__title">Передплата для гостей</h3>
-                <p className="pay-card__hint">
+          <section className={`svc-accordion pay-accordion${openPrepay ? " is-open" : ""}`}>
+            <button
+              type="button"
+              className="svc-accordion__trigger"
+              aria-expanded={openPrepay}
+              aria-controls="pay-prepay-panel"
+              onClick={() => setOpenPrepay((v) => !v)}
+            >
+              <div className="svc-accordion__trigger-main">
+                <span className="svc-accordion__icon" aria-hidden>
+                  <Wallet size={18} />
+                </span>
+                <div className="svc-accordion__trigger-text">
+                  <span className="svc-accordion__label">Передплата для гостей</span>
+                  <span className="svc-accordion__hint">{prepaymentGuestLabel}</span>
+                </div>
+              </div>
+              <ChevronDown size={18} className="svc-accordion__chevron" aria-hidden />
+            </button>
+            <div
+              id="pay-prepay-panel"
+              className="svc-accordion__collapse"
+              aria-hidden={!openPrepay}
+              inert={!openPrepay}
+            >
+              <div className="svc-accordion__panel">
+                <p className="svc-accordion__intro">
                   Скільки гість сплачує онлайн для підтвердження броні. Решту — на місці
                   при заїзді.
                 </p>
+
+                <div className="pay-modes" role="group" aria-label="Тип передплати">
+                  {PREPAYMENT_MODES.map((option) => (
+                    <button
+                      key={option.mode}
+                      type="button"
+                      className={`pay-mode${
+                        prepaymentPolicy.mode === option.mode ? " is-active" : ""
+                      }`}
+                      onClick={() => setPrepaymentMode(option.mode)}
+                    >
+                      <span className="pay-mode__icon">
+                        <option.Icon size={16} />
+                      </span>
+                      <span>
+                        <strong>{option.label}</strong>
+                        <small>{option.hint}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <label className="pay-field">
+                  <span className="pay-field__label">
+                    {prepaymentPolicy.mode === "percent"
+                      ? "Відсоток від загальної суми"
+                      : prepaymentPolicy.mode === "nights"
+                        ? "Кількість перших ночей за тарифом"
+                        : "Сума передплати"}
+                  </span>
+                  <div
+                    className={`svc-field__suffix-wrap${
+                      prepaymentPolicy.mode === "nights"
+                        ? " svc-field__suffix-wrap--doba"
+                        : ""
+                    }`}
+                  >
+                    <input
+                      className="pay-field__input"
+                      type="number"
+                      min={0}
+                      max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
+                      value={prepaymentValueInput}
+                      placeholder="0"
+                      onChange={(e) =>
+                        setPrepaymentValue(e.target.value, prepaymentPolicy.mode)
+                      }
+                    />
+                    {prepaymentPolicy.mode === "percent" ? (
+                      <span className="svc-field__suffix">%</span>
+                    ) : prepaymentPolicy.mode === "fixed" ? (
+                      <span className="svc-field__suffix">₴</span>
+                    ) : (
+                      <span className="svc-field__suffix">
+                        {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
+                      </span>
+                    )}
+                  </div>
+                </label>
+
+                <p className="pay-preview">{prepaymentGuestLabel}</p>
+
+                <div className="pay-actions">
+                  <button
+                    type="button"
+                    className="pay-btn pay-btn--primary"
+                    disabled={savingPrepay}
+                    onClick={() => void savePrepayment()}
+                  >
+                    {savingPrepay ? <Loader2 size={16} /> : null}
+                    Зберегти передплату
+                  </button>
+                </div>
               </div>
-              <Wallet size={20} color="var(--pay-accent)" aria-hidden />
-            </div>
-
-            <div className="pay-modes" role="group" aria-label="Тип передплати">
-              {PREPAYMENT_MODES.map((option) => (
-                <button
-                  key={option.mode}
-                  type="button"
-                  className={`pay-mode${prepaymentPolicy.mode === option.mode ? " is-active" : ""}`}
-                  onClick={() => setPrepaymentMode(option.mode)}
-                >
-                  <span className="pay-mode__icon">
-                    <option.Icon size={16} />
-                  </span>
-                  <span>
-                    <strong>{option.label}</strong>
-                    <small>{option.hint}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <label className="pay-field">
-              <span className="pay-field__label">
-                {prepaymentPolicy.mode === "percent"
-                  ? "Відсоток від загальної суми"
-                  : prepaymentPolicy.mode === "nights"
-                    ? "Кількість перших ночей за тарифом"
-                    : "Сума передплати"}
-              </span>
-              <div
-                className={`svc-field__suffix-wrap${
-                  prepaymentPolicy.mode === "nights" ? " svc-field__suffix-wrap--doba" : ""
-                }`}
-              >
-                <input
-                  className="pay-field__input"
-                  type="number"
-                  min={0}
-                  max={prepaymentPolicy.mode === "percent" ? 100 : undefined}
-                  value={prepaymentValueInput}
-                  placeholder="0"
-                  onChange={(e) => setPrepaymentValue(e.target.value, prepaymentPolicy.mode)}
-                />
-                {prepaymentPolicy.mode === "percent" ? (
-                  <span className="svc-field__suffix">%</span>
-                ) : prepaymentPolicy.mode === "fixed" ? (
-                  <span className="svc-field__suffix">₴</span>
-                ) : (
-                  <span className="svc-field__suffix">
-                    {dobaWord(prepaymentPolicy.value > 0 ? prepaymentPolicy.value : 1)}
-                  </span>
-                )}
-              </div>
-            </label>
-
-            <p className="pay-preview">{prepaymentGuestLabel}</p>
-
-            <div className="pay-actions">
-              <button
-                type="button"
-                className="pay-btn pay-btn--primary"
-                disabled={savingPrepay}
-                onClick={() => void savePrepayment()}
-              >
-                {savingPrepay ? <Loader2 size={16} /> : null}
-                Зберегти передплату
-              </button>
             </div>
           </section>
         </>
@@ -1070,33 +1157,45 @@ export function PaymentSettingsPanel({
           ) : (
             <div className="pay-feed">
               {feed.map((item) => (
-                <div key={item.id} className="pay-feed__row">
-                  <span className={`pay-feed__badge pay-feed__badge--${item.outcome}`}>
-                    {item.outcome === "success" ? (
-                      <CheckCircle2 size={12} style={{ marginRight: 4 }} aria-hidden />
-                    ) : item.outcome === "failure" ? (
-                      <XCircle size={12} style={{ marginRight: 4 }} aria-hidden />
-                    ) : (
-                      <Clock3 size={12} style={{ marginRight: 4 }} aria-hidden />
-                    )}
-                    {outcomeLabel(item.outcome)}
-                  </span>
-                  <div className="pay-feed__main">
+                <article
+                  key={item.id}
+                  className={`pay-feed__card pay-feed__card--${item.outcome}`}
+                >
+                  <div className="pay-feed__rail" aria-hidden />
+                  <div className="pay-feed__body">
+                    <div className="pay-feed__top">
+                      <span className={`pay-feed__badge pay-feed__badge--${item.outcome}`}>
+                        {item.outcome === "success" ? (
+                          <CheckCircle2 size={13} aria-hidden />
+                        ) : item.outcome === "failure" ? (
+                          <XCircle size={13} aria-hidden />
+                        ) : (
+                          <Clock3 size={13} aria-hidden />
+                        )}
+                        {outcomeLabel(item.outcome)}
+                      </span>
+                      <time className="pay-feed__time" dateTime={item.at}>
+                        {formatWhen(item.at)}
+                      </time>
+                    </div>
                     <p className="pay-feed__title">
                       {item.guestName || "Гість"}
-                      {item.bookingId ? ` · ${item.bookingId}` : ""}
                     </p>
                     <p className="pay-feed__sub">
                       {item.provider || "Mono"}
+                      {item.bookingId ? ` · ${item.bookingId}` : ""}
                       {item.reason ? ` · ${item.reason}` : ""}
-                      {item.transactionId ? ` · ${item.transactionId.slice(0, 10)}…` : ""}
                     </p>
+                    <div className="pay-feed__footer">
+                      <span className="pay-feed__amount">{formatMoney(item.amount)}</span>
+                      {item.transactionId ? (
+                        <span className="pay-feed__tx">
+                          {item.transactionId.slice(0, 12)}…
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="pay-feed__side">
-                    <p className="pay-feed__amount">{formatMoney(item.amount)}</p>
-                    <p className="pay-feed__time">{formatWhen(item.at)}</p>
-                  </div>
-                </div>
+                </article>
               ))}
             </div>
           )}

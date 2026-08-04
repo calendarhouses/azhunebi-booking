@@ -141,12 +141,15 @@ export async function buildPaymentOverview(opts?: {
         payUrl: buildGuestPaymentUrl(bookingId, publicOrigin),
       };
     })
-    .filter((b) => b.bookingId)
-    .sort((a, b) => {
-      const ae = a.expiresInMs ?? Number.POSITIVE_INFINITY;
-      const be = b.expiresInMs ?? Number.POSITIVE_INFINITY;
-      return ae - be;
-    });
+    // Only live pay windows — drop missing/expired deadlines (stale «Очікує оплату»).
+    .filter(
+      (b) =>
+        Boolean(b.bookingId) &&
+        b.expiresInMs != null &&
+        Number.isFinite(b.expiresInMs) &&
+        b.expiresInMs > 0
+    )
+    .sort((a, b) => (a.expiresInMs ?? 0) - (b.expiresInMs ?? 0));
 
   let tokenValid: boolean | null = null;
   let merchantName: string | null = null;

@@ -7,6 +7,7 @@ import {
   createMonoPayment,
   pollMonoPartsStatus,
 } from "@/lib/public-booking/publicApiClient";
+import { BRAND_ICONS } from "@/lib/brandIcons";
 
 type PayBookingPageProps = {
   orderId: string;
@@ -238,7 +239,7 @@ export function PayBookingPage({
   const debitFullLabel = debitTestAmountUah ?? totalPrice;
   const partsPrepayLabel = partsTestAmountUah ?? prepayAmount;
   const partsFullLabel = partsTestAmountUah ?? totalPrice;
-  const logoSrc = brandLogoUrl || "/images/icons/house-with-hearth.svg";
+  const logoSrc = brandLogoUrl || BRAND_ICONS.icon192;
 
   return (
     <main className="pay-page">

@@ -101,10 +101,20 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
 
   const debitTestAmountUah = getMonoTestAmountUah();
   const partsTestAmountUah = getMonoChastTestAmountUah();
-  const paymentSettingsBag = await loadAllSettings();
+  const allSettings = await loadAllSettings();
   const partsAllowed =
-    isMonoPartsConfigured() && isMonoPartsEnabledFromSettings(paymentSettingsBag);
-  const branding = tenant?.branding || {};
+    isMonoPartsConfigured() && isMonoPartsEnabledFromSettings(allSettings);
+  const settingsBranding =
+    allSettings.branding &&
+    typeof allSettings.branding === "object" &&
+    !Array.isArray(allSettings.branding)
+      ? (allSettings.branding as Record<string, unknown>)
+      : {};
+  const tenantBranding =
+    tenant?.branding && typeof tenant.branding === "object"
+      ? (tenant.branding as Record<string, unknown>)
+      : {};
+  const branding = { ...tenantBranding, ...settingsBranding };
   const brandName =
     String(branding.site_title || "").trim() ||
     String(tenant?.tenantName || "").trim() ||
