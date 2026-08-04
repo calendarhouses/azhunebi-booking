@@ -3,6 +3,28 @@
  * The raw token never leaves the server — admin/public payloads get a masked view.
  */
 
+export type PaymentJournalOutcome = "success" | "failure" | "expired";
+
+export type PaymentJournalEntry = {
+  id: string;
+  at: string;
+  outcome: PaymentJournalOutcome;
+  bookingId: string;
+  guestName?: string;
+  amount?: number;
+  provider?: string;
+  transactionId?: string;
+  reason?: string;
+  channel?: "monopay" | "monoparts" | "lifecycle";
+};
+
+export type PaymentWebhookHealth = {
+  lastAt: string | null;
+  lastOk: boolean | null;
+  lastStatus: string | null;
+  lastChannel: "monopay" | "monoparts" | null;
+};
+
 export type PaymentSettingsStored = {
   /** When true, guests can land on /pay (unless FORCE_OFF or manual review). */
   onlineEnabled: boolean;
@@ -10,6 +32,10 @@ export type PaymentSettingsStored = {
   monoPartsEnabled: boolean;
   /** Mono acquiring X-Token — server-only. */
   monoAcquiringToken?: string;
+  /** Newest-first event log (success / decline / expiry). */
+  journal?: PaymentJournalEntry[];
+  /** Last inbound Mono webhook pulse. */
+  webhook?: PaymentWebhookHealth;
 };
 
 /** Safe shape for admin UI / client cache (no secret). */
@@ -24,11 +50,19 @@ export type PaymentSettingsPublic = {
   forceOff: boolean;
   /** Env MONO_CHAST_* present. */
   partsConfigured: boolean;
+  webhook: PaymentWebhookHealth;
 };
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettingsStored = {
   onlineEnabled: false,
   monoPartsEnabled: true,
+  journal: [],
+  webhook: {
+    lastAt: null,
+    lastOk: null,
+    lastStatus: null,
+    lastChannel: null,
+  },
 };
 
 function envTruthy(raw: string | undefined): boolean {
@@ -65,6 +99,58 @@ export function hasPaymentSettingsRecord(raw: unknown): boolean {
   return raw != null && typeof raw === "object" && !Array.isArray(raw);
 }
 
+function normalizeWebhook(raw: unknown): PaymentWebhookHealth {
+  const w =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Partial<PaymentWebhookHealth>)
+      : {};
+  return {
+    lastAt: typeof w.lastAt === "string" ? w.lastAt : null,
+    lastOk: typeof w.lastOk === "boolean" ? w.lastOk : null,
+    lastStatus: typeof w.lastStatus === "string" ? w.lastStatus : null,
+    lastChannel:
+      w.lastChannel === "monopay" || w.lastChannel === "monoparts"
+        ? w.lastChannel
+        : null,
+  };
+}
+
+function normalizeJournal(raw: unknown): PaymentJournalEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PaymentJournalEntry[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const e = item as Partial<PaymentJournalEntry>;
+    const bookingId = String(e.bookingId || "").trim();
+    const at = String(e.at || "").trim();
+    const outcome = e.outcome;
+    if (!bookingId || !at) continue;
+    if (outcome !== "success" && outcome !== "failure" && outcome !== "expired") {
+      continue;
+    }
+    out.push({
+      id: String(e.id || `${bookingId}_${at}`),
+      at,
+      outcome,
+      bookingId,
+      guestName: typeof e.guestName === "string" ? e.guestName : undefined,
+      amount:
+        typeof e.amount === "number" && Number.isFinite(e.amount)
+          ? Math.round(e.amount)
+          : undefined,
+      provider: typeof e.provider === "string" ? e.provider : undefined,
+      transactionId: typeof e.transactionId === "string" ? e.transactionId : undefined,
+      reason: typeof e.reason === "string" ? e.reason : undefined,
+      channel:
+        e.channel === "monopay" || e.channel === "monoparts" || e.channel === "lifecycle"
+          ? e.channel
+          : undefined,
+    });
+    if (out.length >= 100) break;
+  }
+  return out;
+}
+
 export function normalizePaymentSettings(raw: unknown): PaymentSettingsStored {
   let input: unknown = raw;
   for (let i = 0; i < 4 && typeof input === "string"; i += 1) {
@@ -83,13 +169,15 @@ export function normalizePaymentSettings(raw: unknown): PaymentSettingsStored {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     input = {};
   }
-  const r = input as Partial<PaymentSettingsStored>;
+  const r = input as Partial<PaymentSettingsStored> & Record<string, unknown>;
   const token =
     typeof r.monoAcquiringToken === "string" ? r.monoAcquiringToken.trim() : "";
   return {
     onlineEnabled: Boolean(r.onlineEnabled),
     monoPartsEnabled: r.monoPartsEnabled !== false,
     ...(token ? { monoAcquiringToken: token } : {}),
+    journal: normalizeJournal(r.journal),
+    webhook: normalizeWebhook(r.webhook),
   };
 }
 
@@ -155,6 +243,7 @@ export function toPublicPaymentSettings(
     tokenFromEnv: !settingsToken && Boolean(envToken),
     forceOff: isOnlinePaymentForceOff(),
     partsConfigured: isMonoPartsEnvConfigured(),
+    webhook: stored.webhook || DEFAULT_PAYMENT_SETTINGS.webhook!,
   };
 }
 
@@ -200,6 +289,8 @@ export function mergePaymentSettingsForSave(
   const out: PaymentSettingsStored = {
     onlineEnabled,
     monoPartsEnabled,
+    journal: existing.journal || [],
+    webhook: existing.webhook || DEFAULT_PAYMENT_SETTINGS.webhook,
   };
   if (nextToken) {
     out.monoAcquiringToken = nextToken;

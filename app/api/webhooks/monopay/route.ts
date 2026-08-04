@@ -46,6 +46,22 @@ export async function POST(request: Request) {
       status,
       modifiedDate: payload.modifiedDate,
     });
+    const reference = String(payload.reference || "").trim();
+    const { recordPaymentEvent } = await import("@/lib/payment/paymentJournal");
+    await recordPaymentEvent({
+      outcome: "failure",
+      bookingId: reference || String(payload.invoiceId || "unknown"),
+      amount: Number.isFinite(Number(payload.amount))
+        ? Math.round(Number(payload.amount) / 100)
+        : undefined,
+      provider: "MonoPay",
+      transactionId: String(payload.invoiceId || "").trim() || undefined,
+      reason: String(payload.failureReason || status || "failed"),
+      channel: "monopay",
+      touchWebhook: true,
+      webhookOk: false,
+      webhookStatus: status || "failure",
+    });
     return NextResponse.json({ ok: true });
   }
 
@@ -126,6 +142,28 @@ export async function POST(request: Request) {
     invoiceId,
     updated: result.updated,
   });
+  if (result.updated) {
+    const { recordPaymentEvent } = await import("@/lib/payment/paymentJournal");
+    await recordPaymentEvent({
+      outcome: "success",
+      bookingId: reference,
+      guestName: String(bookingResult.booking.name || "").trim() || undefined,
+      amount: amountKopiykas / 100,
+      provider: providerBase,
+      transactionId: invoiceId,
+      channel: "monopay",
+      touchWebhook: true,
+      webhookOk: true,
+      webhookStatus: "success",
+    });
+  } else {
+    const { touchPaymentWebhook } = await import("@/lib/payment/paymentJournal");
+    await touchPaymentWebhook({
+      ok: true,
+      status: "success_idempotent",
+      channel: "monopay",
+    });
+  }
   const confirmedBooking = await fetchBookingByDisplayId(reference);
   if (confirmedBooking.ok && confirmedBooking.booking) {
     const smsSettings = await loadSmsSettingsSystem();

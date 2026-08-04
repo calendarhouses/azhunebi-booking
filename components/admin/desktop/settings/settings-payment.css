@@ -477,6 +477,330 @@
   text-underline-offset: 2px;
 }
 
+/* ── Health ── */
+.pay-health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pay-health-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 118px;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--pay-stone-200);
+  background:
+    linear-gradient(165deg, #fff 0%, var(--pay-stone-50) 100%);
+}
+
+.pay-health-cell__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pay-health-cell__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pay-stone-400);
+}
+
+.pay-health-cell__icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--pay-accent-soft);
+  color: var(--pay-accent);
+  border: 1px solid var(--pay-accent-border);
+}
+
+.pay-health-cell__value {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--pay-stone-900);
+  line-height: 1.25;
+}
+
+.pay-health-cell__meta {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pay-stone-500);
+}
+
+.pay-health-cell--ok {
+  border-color: #bbf7d0;
+  background: linear-gradient(165deg, #fff 0%, var(--pay-ok-bg) 100%);
+}
+
+.pay-health-cell--warn {
+  border-color: #fde68a;
+  background: linear-gradient(165deg, #fff 0%, var(--pay-warn-bg) 100%);
+}
+
+.pay-health-cell--danger {
+  border-color: #fecaca;
+  background: linear-gradient(165deg, #fff 0%, var(--pay-danger-bg) 100%);
+}
+
+.pay-health-cell--ok .pay-health-cell__value {
+  color: var(--pay-ok);
+}
+
+.pay-health-cell--warn .pay-health-cell__value {
+  color: var(--pay-warn);
+}
+
+.pay-health-cell--danger .pay-health-cell__value {
+  color: var(--pay-danger);
+}
+
+.pay-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.pay-section-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Feed ── */
+.pay-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pay-feed__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--pay-stone-200);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pay-feed__row:hover {
+  border-color: var(--pay-accent-border);
+  box-shadow: 0 6px 18px rgba(28, 25, 23, 0.04);
+}
+
+.pay-feed__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pay-feed__badge--success {
+  background: var(--pay-ok-bg);
+  color: var(--pay-ok);
+  border: 1px solid #bbf7d0;
+}
+
+.pay-feed__badge--failure {
+  background: var(--pay-danger-bg);
+  color: var(--pay-danger);
+  border: 1px solid #fecaca;
+}
+
+.pay-feed__badge--expired {
+  background: var(--pay-warn-bg);
+  color: var(--pay-warn);
+  border: 1px solid #fde68a;
+}
+
+.pay-feed__main {
+  min-width: 0;
+}
+
+.pay-feed__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pay-stone-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pay-feed__sub {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--pay-stone-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pay-feed__side {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.pay-feed__amount {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--pay-stone-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-feed__time {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--pay-stone-400);
+}
+
+.pay-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--pay-stone-200);
+  background: var(--pay-stone-50);
+  text-align: center;
+  color: var(--pay-stone-500);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.pay-empty strong {
+  color: var(--pay-stone-700);
+  font-size: 14px;
+}
+
+/* ── Awaiting pay links ── */
+.pay-await {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-await__card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--pay-stone-200);
+  background:
+    linear-gradient(135deg, rgba(85, 107, 47, 0.05), transparent 50%),
+    #fff;
+}
+
+.pay-await__name {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 750;
+  color: var(--pay-stone-900);
+}
+
+.pay-await__meta {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--pay-stone-500);
+  line-height: 1.4;
+}
+
+.pay-await__timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--pay-accent-soft);
+  color: var(--pay-accent);
+}
+
+.pay-await__timer--urgent {
+  background: var(--pay-warn-bg);
+  color: var(--pay-warn);
+}
+
+.pay-await__timer--over {
+  background: var(--pay-danger-bg);
+  color: var(--pay-danger);
+}
+
+.pay-await__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pay-btn--ghost {
+  background: transparent;
+}
+
+.pay-btn--sm {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  border-radius: 10px;
+}
+
+.pay-skeleton {
+  height: 72px;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--pay-stone-100) 0%,
+    #fff 45%,
+    var(--pay-stone-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: pay-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes pay-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .pay-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 860px) {
   .pay-hero {
     grid-template-columns: 1fr;
@@ -485,5 +809,46 @@
 
   .pay-modes {
     grid-template-columns: 1fr;
+  }
+
+  .pay-feed__row {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .pay-feed__side {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .pay-await__card {
+    grid-template-columns: 1fr;
+  }
+
+  .pay-await__actions {
+    justify-content: stretch;
+  }
+
+  .pay-await__actions .pay-btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .pay-health-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pay-health-cell {
+    min-height: 0;
+  }
+
+  .pay-card {
+    padding: 16px;
+  }
+
+  .pay-feed__badge {
+    min-width: 64px;
+    font-size: 10px;
   }
 }

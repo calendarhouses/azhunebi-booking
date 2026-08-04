@@ -75,6 +75,47 @@ export async function POST(request: Request) {
     settled,
   });
 
+  try {
+    const { recordPaymentEvent, touchPaymentWebhook } = await import(
+      "@/lib/payment/paymentJournal"
+    );
+    if (settled.ok && settled.settled) {
+      await recordPaymentEvent({
+        outcome: "success",
+        bookingId: orderId,
+        guestName: String(booking.name || "").trim() || undefined,
+        amount: Math.round(Number(booking.prepayAmount) || Number(booking.totalPrice) || 0),
+        provider: "Mono ПЧ",
+        transactionId: monoOrderId,
+        channel: "monoparts",
+        touchWebhook: true,
+        webhookOk: true,
+        webhookStatus: String(payload.state || "SUCCESS"),
+      });
+    } else if (settled.ok && settled.failed) {
+      await recordPaymentEvent({
+        outcome: "failure",
+        bookingId: orderId,
+        guestName: String(booking.name || "").trim() || undefined,
+        provider: "Mono ПЧ",
+        transactionId: monoOrderId,
+        reason: settled.message || settled.subState || "FAIL",
+        channel: "monoparts",
+        touchWebhook: true,
+        webhookOk: false,
+        webhookStatus: String(payload.order_sub_state || payload.state || "FAIL"),
+      });
+    } else {
+      await touchPaymentWebhook({
+        ok: settled.ok,
+        status: String(payload.order_sub_state || payload.state || "callback"),
+        channel: "monoparts",
+      });
+    }
+  } catch (err) {
+    console.warn("[Mono Parts Webhook] journal failed", err);
+  }
+
   if (!settled.ok) {
     return NextResponse.json(
       { error: settled.reason, message: settled.message },

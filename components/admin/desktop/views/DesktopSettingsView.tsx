@@ -306,6 +306,7 @@ export function DesktopSettingsView({
             settings={settings}
             onSettingsChange={onSettingsChange ?? (() => {})}
             isActive={activeTab === "payment"}
+            bookings={bookings}
           />
         </div>
         ) : null}

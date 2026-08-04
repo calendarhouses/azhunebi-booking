@@ -507,6 +507,19 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           status: "Скасовано",
           expiredAt: new Date().toISOString(),
         });
+        try {
+          const { recordPaymentEvent } = await import("@/lib/payment/paymentJournal");
+          await recordPaymentEvent({
+            outcome: "expired",
+            bookingId: orderId,
+            guestName: String(booking.name || "").trim() || undefined,
+            amount: Math.round(Number(booking.prepayAmount) || 0) || undefined,
+            reason: "Час на оплату вичерпано",
+            channel: "lifecycle",
+          });
+        } catch {
+          /* ignore journal errors */
+        }
         return ok({ ok: true, expired: true, booking: next });
       }
       case "listPaymentLifecycle": {
