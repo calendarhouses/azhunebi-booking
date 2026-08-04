@@ -87,6 +87,10 @@ const BOOKING_COLUMN_KEYS = new Set([
 ]);
 
 function asDateKey(value: unknown): string | null {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    // Calendar date in Kyiv-safe ISO date (UTC date of local Y-M-D via sv-SE)
+    return value.toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" });
+  }
   const s = String(value ?? "").trim();
   if (!s) return null;
   const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
@@ -95,6 +99,7 @@ function asDateKey(value: unknown): string | null {
 
 function numOrNull(value: unknown): number | null {
   if (value === "" || value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }

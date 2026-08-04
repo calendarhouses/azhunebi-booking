@@ -204,6 +204,7 @@ export async function postAdminBooking(
       action: "createBooking",
       tenant_id: payload.tenant_id ?? getAdminTenantId(),
       adminOverrideRestrictions: true,
+      isAuthorizedAdminRequest: true,
     },
     token
   );

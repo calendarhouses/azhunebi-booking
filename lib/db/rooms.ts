@@ -1,10 +1,24 @@
 import { apiRoomToDb, dbRoomToApi, getDb, type ApiRoom, type DbRoomRow } from "@/lib/db/mappers";
 
+function roomSortKey(id: unknown): number {
+  const n = Number(id);
+  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+}
+
+/** Numeric id order (1,2,10) — rooms.id is text in Postgres so SQL ORDER BY is lexical. */
+export function sortRoomsNumerically<T extends { id?: unknown }>(rooms: T[]): T[] {
+  return [...rooms].sort((a, b) => {
+    const d = roomSortKey(a.id) - roomSortKey(b.id);
+    if (d !== 0) return d;
+    return String(a.id ?? "").localeCompare(String(b.id ?? ""), "uk");
+  });
+}
+
 export async function listRooms(): Promise<ApiRoom[]> {
   const sb = getDb();
-  const { data, error } = await sb.from("rooms").select("*").order("id", { ascending: true });
+  const { data, error } = await sb.from("rooms").select("*");
   if (error) throw new Error(`listRooms: ${error.message}`);
-  return (data as DbRoomRow[]).map(dbRoomToApi);
+  return sortRoomsNumerically((data as DbRoomRow[]).map(dbRoomToApi));
 }
 
 export async function upsertRoom(api: ApiRoom): Promise<ApiRoom> {

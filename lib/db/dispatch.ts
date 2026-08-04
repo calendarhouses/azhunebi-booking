@@ -92,12 +92,35 @@ async function handleCreateBooking(
   token: string | null
 ): Promise<DispatchResult> {
   const source = String(payload.source || "Адмінка");
-  const isSite = source === "Сайт";
+  // Match GAS: public site request = source Сайт AND not an authenticated admin.
   let actorName = "system";
+  let isAuthorizedAdmin = false;
+  if (token) {
+    try {
+      const user = await requireSession(token);
+      isAuthorizedAdmin = true;
+      actorName = user.name || user.email;
+    } catch {
+      isAuthorizedAdmin = false;
+    }
+  }
+  // Explicit flag from admin client (parity with GAS isAuthorizedAdminRequest).
+  if (payload.isAuthorizedAdminRequest === true || payload.adminOverrideRestrictions === true) {
+    if (!isAuthorizedAdmin) {
+      try {
+        const user = await requireSession(token);
+        isAuthorizedAdmin = true;
+        actorName = user.name || user.email;
+      } catch {
+        return fail("UNAUTHORIZED", 401, "UNAUTHORIZED");
+      }
+    }
+  }
 
-  if (!isSite) {
-    const user = await requireSession(token);
-    actorName = user.name || user.email;
+  const isPublicSite = source === "Сайт" && !isAuthorizedAdmin;
+
+  if (!isPublicSite && !isAuthorizedAdmin) {
+    return fail("UNAUTHORIZED", 401, "UNAUTHORIZED");
   }
 
   const checkIn = String(payload.checkIn || "").slice(0, 10);
@@ -110,41 +133,30 @@ async function handleCreateBooking(
   const existingId = payload.id ? String(payload.id) : "";
   const isUpdate = Boolean(existingId || payload.row);
 
-  if (isSite && isUpdate) {
-    return fail("Public updates not allowed", 403, "FORBIDDEN");
+  // Публіка може лише створювати; апдейти — лише адмінка / webhook.
+  if (isUpdate && isPublicSite) {
+    return fail("Оновлення броні з сайту заборонено", 403, "UNAUTHORIZED");
   }
 
-  if (roomId && !payload.adminOverrideRestrictions) {
-    const overlaps = await findOverlappingBookings({
+  const skipOverlap =
+    isAuthorizedAdmin && payload.adminOverrideRestrictions === true;
+  if (roomId && !skipOverlap) {
+    const cottage = String(payload.cottage || "");
+    const conflicting = await findOverlappingBookings({
       roomId,
       checkIn,
       checkOut,
       excludeId: existingId || undefined,
+      cottage: cottage || undefined,
     });
-    // Also match by cottage name
-    const cottage = String(payload.cottage || "");
-    const all = overlaps.length
-      ? overlaps
-      : (await listBookings()).filter((b) => {
-          if (existingId && String(b.id) === existingId) return false;
-          if (/скасов/i.test(String(b.status || ""))) return false;
-          if (b.assignmentState === "holding") return false;
-          const sameRoom =
-            String(b.roomId || "") === String(roomId) ||
-            (cottage && String(b.cottage || "") === cottage);
-          if (!sameRoom) return false;
-          const bi = String(b.checkIn || "");
-          const bo = String(b.checkOut || "");
-          return bi < checkOut && bo > checkIn;
-        });
-    if (all.length) {
+    if (conflicting.length) {
       return ok({ success: false, error: "OVERLAP", message: "Дати зайняті" });
     }
   }
 
   let id = existingId;
   if (!id) {
-    id = isSite ? `B-${Date.now()}` : `A-${Date.now()}`;
+    id = isPublicSite ? `B-${Date.now()}` : `A-${Date.now()}`;
   } else if (payload.importId) {
     const exists = await getBookingById(id);
     if (exists) {
@@ -152,34 +164,48 @@ async function handleCreateBooking(
     }
   }
 
-  let status = String(payload.status || (isSite ? "Очікує підтвердження" : "Підтверджено"));
-  if (isSite) {
+  let status = String(
+    payload.status || (isPublicSite ? "Очікує підтвердження" : "Підтверджено")
+  );
+  if (isPublicSite) {
     const allowed = new Set(["Нова бронь", "Очікує підтвердження", "Очікує оплату"]);
     if (!allowed.has(status)) status = "Очікує підтвердження";
   }
 
+  // Preserve existing meta/fees on update when payload omits them
+  const prev = isUpdate ? await getBookingById(id) : null;
+
   const booking: ApiBooking = {
+    ...(prev || {}),
     ...payload,
     id,
-    roomId: roomId || payload.roomId,
+    roomId: roomId || payload.roomId || prev?.roomId,
     checkIn,
     checkOut,
     status,
-    source,
-    name: String(payload.name || ""),
-    phone: String(payload.phone || ""),
-    totalPrice: isSite ? Number(payload.totalPrice) || 0 : Number(payload.totalPrice) || 0,
-    paidAmount: isSite ? 0 : Number(payload.paidAmount) || 0,
-    createdAt: payload.createdAt || new Date().toISOString().slice(0, 10),
-    assignmentState: payload.assignmentState === "holding" ? "holding" : "assigned",
+    source: source || String(prev?.source || "Адмінка"),
+    name: String(payload.name || prev?.name || ""),
+    phone: String(payload.phone ?? prev?.phone ?? ""),
+    totalPrice: Number(payload.totalPrice ?? prev?.totalPrice) || 0,
+    paidAmount: isPublicSite
+      ? 0
+      : Number(payload.paidAmount ?? prev?.paidAmount) || 0,
+    createdAt:
+      (prev?.createdAt as string) ||
+      payload.createdAt ||
+      new Date().toISOString().slice(0, 10),
+    assignmentState:
+      payload.assignmentState === "holding"
+        ? "holding"
+        : payload.assignmentState || prev?.assignmentState || "assigned",
   };
 
-  if (isSite && status === "Очікує оплату" && !booking.paymentExpiresAt) {
+  if (isPublicSite && status === "Очікує оплату" && !booking.paymentExpiresAt) {
     booking.paymentExpiresAt = addHoursIso(3);
   }
 
   const saved = await upsertBooking(booking);
-  if (!isSite) {
+  if (isAuthorizedAdmin) {
     await appendChangeHistory(id, {
       type: isUpdate ? "update" : "create",
       label: isUpdate ? "Оновлення" : "Створення",

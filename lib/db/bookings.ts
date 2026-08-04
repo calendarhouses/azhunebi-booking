@@ -45,19 +45,59 @@ export async function upsertBooking(api: ApiBooking): Promise<ApiBooking> {
   if (!row) throw new Error("upsertBooking: missing id");
   const sb = getDb();
 
-  // Preserve change_history / created_at if not provided
-  if (!row.created_at || !(row.change_history as unknown[])?.length) {
-    const existing = await getBookingById(row.id);
-    if (existing) {
-      if (!row.created_at) row.created_at = String(existing.createdAt || "") || null;
-      if (!(row.change_history as unknown[])?.length) {
-        const { data: raw } = await sb
-          .from("bookings")
-          .select("change_history")
-          .eq("id", row.id)
-          .maybeSingle();
-        if (raw?.change_history) row.change_history = raw.change_history;
-      }
+  const { data: existingRaw } = await sb
+    .from("bookings")
+    .select("meta, guest_details, change_history, created_at, payments")
+    .eq("id", row.id)
+    .maybeSingle();
+
+  if (existingRaw) {
+    const prevMeta =
+      existingRaw.meta && typeof existingRaw.meta === "object"
+        ? (existingRaw.meta as Record<string, unknown>)
+        : {};
+    const nextMeta =
+      row.meta && typeof row.meta === "object" ? (row.meta as Record<string, unknown>) : {};
+    row.meta = { ...prevMeta, ...nextMeta };
+
+    const prevGd =
+      existingRaw.guest_details && typeof existingRaw.guest_details === "object"
+        ? (existingRaw.guest_details as Record<string, unknown>)
+        : {};
+    const nextGd =
+      row.guest_details && typeof row.guest_details === "object"
+        ? (row.guest_details as Record<string, unknown>)
+        : {};
+    row.guest_details = { ...prevGd, ...nextGd };
+
+    if (!row.created_at) {
+      row.created_at = existingRaw.created_at ? String(existingRaw.created_at) : null;
+    }
+    if (!(row.change_history as unknown[])?.length && existingRaw.change_history) {
+      row.change_history = existingRaw.change_history;
+    }
+    if (!(row.payments as unknown[])?.length && Array.isArray(existingRaw.payments)) {
+      row.payments = existingRaw.payments;
+    }
+  }
+
+  // Coerce known numeric meta fields (avoid string "400" vs 400 drift)
+  if (row.meta && typeof row.meta === "object") {
+    const meta = row.meta as Record<string, unknown>;
+    for (const key of [
+      "discountAmount",
+      "extraGuestFee",
+      "petFee",
+      "dayGuestFee",
+      "earlyFee",
+      "lateFee",
+      "basePrice",
+      "prepayAmount",
+      "surchargeAmount",
+    ]) {
+      if (meta[key] === "" || meta[key] === undefined) continue;
+      const n = Number(meta[key]);
+      if (Number.isFinite(n)) meta[key] = n;
     }
   }
 
@@ -121,22 +161,22 @@ export async function findOverlappingBookings(params: {
   checkIn: string;
   checkOut: string;
   excludeId?: string;
+  cottage?: string;
 }): Promise<ApiBooking[]> {
   const all = await listBookings();
   const checkIn = params.checkIn;
   const checkOut = params.checkOut;
+  const roomId = String(params.roomId);
+  const cottage = String(params.cottage || "").trim();
   return all.filter((b) => {
     if (params.excludeId && String(b.id) === params.excludeId) return false;
     const status = String(b.status || "");
     if (/скасов|cancel|reject/i.test(status)) return false;
     if (b.assignmentState === "holding") return false;
-    const roomMatch =
-      String(b.roomId ?? "") === String(params.roomId) ||
-      (!b.roomId && String(b.cottage || "") === String(params.roomId));
-    if (!roomMatch && String(b.roomId ?? "") !== String(params.roomId)) {
-      // also match by cottage name vs room id handled by caller usually
-      if (String(b.roomId ?? "") !== String(params.roomId)) return false;
-    }
+    const sameRoom =
+      String(b.roomId ?? "") === roomId ||
+      (cottage !== "" && String(b.cottage || "").trim() === cottage);
+    if (!sameRoom) return false;
     const bi = String(b.checkIn || "");
     const bo = String(b.checkOut || "");
     if (!bi || !bo) return false;

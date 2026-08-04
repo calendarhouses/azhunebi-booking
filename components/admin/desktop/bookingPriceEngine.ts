@@ -484,11 +484,9 @@ export function computeBookingPrice(params: {
       pendingApproval: isPublic && service.requiresApproval === true && quantity > 0,
     };
   });
-  let additionalServicesFee = serviceLines.reduce((sum, line) => sum + line.fee, 0);
-  if (additionalServicesFee > 0) {
-    petFee = 0;
-    dayGuestFee = additionalServicesFee;
-  }
+  const additionalServicesFee = serviceLines.reduce((sum, line) => sum + line.fee, 0);
+  // Fold services into dayGuestFee AFTER manual/saved overrides below
+  // (otherwise man.dayGuest=0 or saved dayGuestFee=0 wipes transfer).
 
   const checkInDayPrice = getDayPrice(room, d1, customPrices);
   const checkOutDayPrice = getDayPrice(room, d2, customPrices);
@@ -556,6 +554,13 @@ export function computeBookingPrice(params: {
     if (b.lateFee !== undefined && b.lateFee !== "") lateFee = Number(b.lateFee);
   }
 
+  // Custom services / transfer: always add on top of guest dayFee; never let a
+  // stale 0 from saved booking or manual hydrate erase them.
+  if (additionalServicesFee > 0) {
+    petFee = 0;
+    dayGuestFee = Math.max(Number(dayGuestFee) || 0, additionalServicesFee);
+  }
+
   const amountToDiscount = basePriceTotal + extraGuestFee;
   let discountAmount = 0;
   let resolvedDiscountPercent = 0;
@@ -617,7 +622,12 @@ export function computeBookingPrice(params: {
   let totalPrice =
     amountToDiscount - discountAmount + petFee + dayGuestFee + earlyFee + lateFee;
 
-  if (params.isInitialLoad && params.savedBooking?.totalPrice != null && params.savedBooking.totalPrice !== "") {
+  if (
+    params.isInitialLoad &&
+    params.savedBooking?.totalPrice != null &&
+    params.savedBooking.totalPrice !== "" &&
+    additionalServicesFee <= 0
+  ) {
     totalPrice = Number(params.savedBooking.totalPrice);
     discountAmount =
       basePriceTotal + extraGuestFee + petFee + dayGuestFee + earlyFee + lateFee - totalPrice;

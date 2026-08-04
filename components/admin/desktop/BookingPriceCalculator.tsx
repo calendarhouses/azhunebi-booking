@@ -467,7 +467,10 @@ export function BookingPriceCalculator({
     });
   }, [autoDiscountBreakdown.lines]);
 
-  const extrasTotal = manualLines.pet + manualLines.dayGuest + manualLines.early + manualLines.late;
+  const servicesFee = Math.max(0, Math.round(Number(computed.additionalServicesFee) || 0));
+  const dayGuestForTotal = Math.max(manualLines.dayGuest, servicesFee);
+  const extrasTotal =
+    manualLines.pet + dayGuestForTotal + manualLines.early + manualLines.late;
 
   const postLateGapDiscount = useMemo(() => {
     if (!computed.isPostLateGapStay || computed.empty || computed.isOverlap) return 0;
