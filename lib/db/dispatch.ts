@@ -774,12 +774,19 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
       }
       case "uploadFile": {
         await requireSession(token);
-        // Drive upload not ported — keep URLs as provided by client or reject gently.
-        return fail(
-          "uploadFile is not available on Supabase yet; keep using GAS or external URLs",
-          501,
-          "NOT_IMPLEMENTED"
-        );
+        try {
+          const { uploadMediaBase64 } = await import("@/lib/db/storage");
+          const result = await uploadMediaBase64({
+            path: String(body.path || ""),
+            base64: String(body.base64 || ""),
+            contentType: String(body.contentType || "image/webp"),
+            upsert: body.upsert === true,
+          });
+          return ok({ success: true, publicUrl: result.publicUrl });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return fail(message, 400, "UPLOAD_FAILED");
+        }
       }
       case "fetchPublicTenant":
       case "fetchTenants": {

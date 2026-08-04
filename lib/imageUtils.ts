@@ -157,7 +157,7 @@ async function compressOnCanvas(
 
 /**
  * Compresses an image reliably across browsers (incl. iOS WebView).
- * - Uses WebP only when the browser can truly encode it, otherwise JPEG.
+ * - Encodes both WebP (when supported) and JPEG, keeps the smaller result.
  * - Scales down to MAX_DIMENSION and reduces quality to hit TARGET_BYTES.
  * - Never returns a file larger than the original; if it would, the original
  *   (already efficient) file is kept as-is.
@@ -165,15 +165,30 @@ async function compressOnCanvas(
  */
 export async function compressImage(file: File): Promise<CompressedImage> {
   const img = await loadImage(file);
-  const useWebP = canEncodeWebP();
-  return compressOnCanvas(img, {
+  const jpeg = await compressOnCanvas(img, {
     maxDimension: MAX_DIMENSION,
     targetBytes: TARGET_BYTES,
-    type: useWebP ? "image/webp" : "image/jpeg",
-    ext: useWebP ? "webp" : "jpg",
+    type: "image/jpeg",
+    ext: "jpg",
     preserveTransparency: false,
     original: file,
   });
+
+  if (!canEncodeWebP()) return jpeg;
+
+  const webp = await compressOnCanvas(img, {
+    maxDimension: MAX_DIMENSION,
+    targetBytes: TARGET_BYTES,
+    type: "image/webp",
+    ext: "webp",
+    preserveTransparency: false,
+    original: file,
+  });
+
+  if (webp.blob.size < jpeg.blob.size) return webp;
+  if (jpeg.blob.size < webp.blob.size) return jpeg;
+  // Tie → prefer WebP (better for public gallery / CDN)
+  return webp;
 }
 
 /**

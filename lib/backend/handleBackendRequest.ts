@@ -95,7 +95,7 @@ export async function handleBackendRequest(
     }
 
     // Never call GAS on the request path when Supabase is primary.
-    // (uploadFile returns NOT_IMPLEMENTED from DAL; optional GAS_MIRROR_WRITES is async only.)
+    // uploadFile stores compressed images in Supabase Storage; optional GAS_MIRROR_WRITES is async only.
     const result = await dispatchSupabaseAction({
       method: req.method,
       token: req.token,
