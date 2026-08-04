@@ -52,17 +52,48 @@ export async function saveSettingsMerge(
   const keys =
     Array.isArray(saveKeys) && saveKeys.length ? saveKeys : Object.keys(incoming);
 
+  let roomsSynced = false;
+
   for (const key of keys) {
     if (key === "teamMembers" || key === "activityLog" || key === "__keepalive") continue;
     if (!(key in incoming)) continue;
 
     if (key === "roomsList" && Array.isArray(incoming.roomsList)) {
       await syncRoomsList(incoming.roomsList as ApiRoom[]);
-      // syncRoomsList already persists a numerically sorted roomsList blob.
+      roomsSynced = true;
       continue;
     }
 
     await saveSettingsKey(key, incoming[key]);
+  }
+
+  // Drop orphan per-room price/rule keys after a room catalog sync.
+  if (roomsSynced) {
+    await pruneOrphanRoomKeyedSettings();
+  }
+}
+
+/** Remove customPrices / restrictions / closedDates entries for deleted room ids. */
+async function pruneOrphanRoomKeyedSettings(): Promise<void> {
+  const rooms = await listRooms();
+  const keep = new Set(rooms.map((r) => String(r.id)));
+  if (!keep.size) return;
+
+  const all = await loadAllSettings();
+  for (const key of ["customPrices", "restrictions", "closedDates"] as const) {
+    const raw = all[key];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const map = raw as Record<string, unknown>;
+    let changed = false;
+    const next: Record<string, unknown> = {};
+    for (const [roomId, value] of Object.entries(map)) {
+      if (keep.has(String(roomId))) {
+        next[roomId] = value;
+      } else {
+        changed = true;
+      }
+    }
+    if (changed) await saveSettingsKey(key, next);
   }
 }
 
