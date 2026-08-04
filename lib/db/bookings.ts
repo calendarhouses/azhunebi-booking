@@ -5,6 +5,7 @@ import {
   type ApiBooking,
   type DbBookingRow,
 } from "@/lib/db/mappers";
+import { sanitizePublicBookingComment } from "@/lib/public-booking/publicInitData";
 
 export async function listBookings(): Promise<ApiBooking[]> {
   const sb = getDb();
@@ -27,7 +28,10 @@ export async function listBookingsPublic(): Promise<ApiBooking[]> {
       checkIn: b.checkIn,
       checkOut: b.checkOut,
       status: b.status,
-      comment: b.comment,
+      // Only early/late tokens — never guest free-text / phones / CRM notes.
+      comment: sanitizePublicBookingComment(
+        typeof b.comment === "string" ? b.comment : String(b.comment ?? "")
+      ),
       assignmentState: b.assignmentState,
     }));
 }

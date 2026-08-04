@@ -180,7 +180,7 @@ async function handleCreateBooking(
   // Preserve existing meta/fees on update when payload omits them
   const prev = isUpdate ? await getBookingById(id) : null;
 
-  const booking: ApiBooking = {
+  let booking: ApiBooking = {
     ...(prev || {}),
     ...payload,
     id,
@@ -204,6 +204,29 @@ async function handleCreateBooking(
         ? "holding"
         : payload.assignmentState || prev?.assignmentState || "assigned",
   };
+
+  // Public site: never trust client money fields — recompute from settings.
+  if (isPublicSite) {
+    const { repricePublicBooking, applyPublicReprice } = await import(
+      "@/lib/public-booking/repricePublicBooking"
+    );
+    const priced = await repricePublicBooking(payload);
+    if (!priced.ok) {
+      if (priced.error === "OVERLAP") {
+        return ok({ success: false, error: "OVERLAP", message: priced.message });
+      }
+      if (priced.error === "MIN_STAY") {
+        return ok({
+          success: false,
+          error: "MIN_STAY",
+          message: priced.message,
+          requiredMin: priced.requiredMin,
+        });
+      }
+      return fail(priced.message || "PRICE_FAILED", 400, priced.error);
+    }
+    booking = applyPublicReprice(booking, priced);
+  }
 
   if (isPublicSite && status === "Очікує оплату" && !booking.paymentExpiresAt) {
     booking.paymentExpiresAt = addHoursIso(3);
@@ -328,11 +351,15 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         return ok({ membership: boot.membership });
       }
       case "initData": {
-        const settings = await getSettingsPayload({
+        const rawSettings = await getSettingsPayload({
           omitSms: true,
           omitTransactions: true,
           omitTeam: true,
         });
+        const { pickPublicSettings } = await import(
+          "@/lib/public-booking/publicInitData"
+        );
+        const settings = pickPublicSettings(rawSettings);
         const bookings = await listBookingsPublic();
         return ok({ settings, bookings });
       }

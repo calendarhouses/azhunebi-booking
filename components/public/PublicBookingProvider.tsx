@@ -1178,6 +1178,10 @@ export function PublicBookingProvider({
           showPublicToast("❌ Ці дати вже зайняті! Оберіть інші.");
           return;
         }
+        if (json.error === "RATE_LIMIT") {
+          showPublicToast("❌ Забагато спроб. Зачекайте хвилину.");
+          return;
+        }
         if (json.error === "MIN_STAY" && json.requiredMin) {
           showPublicToast(
             `❌ Мінімальний термін — ${json.requiredMin} ${nightWord(json.requiredMin)}`

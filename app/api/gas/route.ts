@@ -411,6 +411,34 @@ export async function POST(request: Request) {
     const local = await handleLocalTelegramActions(request, payload);
     if (local) return local;
 
+    const isPublicCreate =
+      Boolean(payload) &&
+      (payload!.action === "createBooking" ||
+        (Boolean(payload!.checkIn) && Boolean(payload!.name))) &&
+      String(payload!.source || "") === "Сайт";
+
+    if (isPublicCreate) {
+      const { rateLimitPublicBooking } = await import("@/lib/rateLimit");
+      const rl = await rateLimitPublicBooking(request, { limit: 8, windowSec: 60 });
+      if (!rl.ok) {
+        return NextResponse.json(
+          {
+            error: "RATE_LIMIT",
+            message: "Забагато запитів. Спробуйте через хвилину.",
+            retryAfterSec: rl.retryAfterSec,
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(rl.retryAfterSec),
+              "X-RateLimit-Limit": String(rl.limit),
+              "X-RateLimit-Remaining": "0",
+            },
+          }
+        );
+      }
+    }
+
     const token = extractBearer(request);
     const result = await handleBackendRequest(
       {
