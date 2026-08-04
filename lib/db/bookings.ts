@@ -137,8 +137,9 @@ export async function patchBookingMeta(
 
 export async function appendChangeHistory(
   id: string,
-  entry: Record<string, unknown>
+  entry: Record<string, unknown> | Record<string, unknown>[]
 ): Promise<void> {
+  const { mergeHistoryNewestFirst } = await import("@/lib/db/bookingChangeHistory");
   const sb = getDb();
   const { data, error } = await sb
     .from("bookings")
@@ -146,8 +147,18 @@ export async function appendChangeHistory(
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`appendChangeHistory: ${error.message}`);
-  const prev = Array.isArray(data?.change_history) ? data!.change_history : [];
-  const next = [...prev, { id: `h-${Date.now()}`, at: new Date().toISOString(), ...entry }];
+  const incoming = Array.isArray(entry) ? entry : [entry];
+  const stamped = incoming.map((e, i) => ({
+    id: String(e.id || `h-${Date.now()}-${i}`),
+    at: String(e.at || new Date().toISOString()),
+    type: String(e.type || "booking.update"),
+    label: String(e.label || ""),
+    from: String(e.from || ""),
+    to: String(e.to || ""),
+    actorName: String(e.actorName || ""),
+    summary: String(e.summary || ""),
+  }));
+  const next = mergeHistoryNewestFirst(data?.change_history, stamped);
   const { error: upErr } = await sb
     .from("bookings")
     .update({ change_history: next })

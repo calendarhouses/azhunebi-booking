@@ -25,6 +25,11 @@ import { getGuestProfilesMap, saveGuestProfile } from "@/lib/db/guestProfiles";
 import { listRooms } from "@/lib/db/rooms";
 import { getSettingsPayload, loadAllSettings, saveSettingsMerge } from "@/lib/db/settings";
 import type { ApiBooking } from "@/lib/db/mappers";
+import {
+  buildBookingCreateChanges,
+  buildBookingUpdateChanges,
+  buildHistoryEntries,
+} from "@/lib/db/bookingChangeHistory";
 
 export type DispatchContext = {
   method: "GET" | "POST";
@@ -206,12 +211,20 @@ async function handleCreateBooking(
 
   const saved = await upsertBooking(booking);
   if (isAuthorizedAdmin) {
-    await appendChangeHistory(id, {
-      type: isUpdate ? "update" : "create",
-      label: isUpdate ? "Оновлення" : "Створення",
+    const changes = isUpdate
+      ? buildBookingUpdateChanges(prev, booking)
+      : buildBookingCreateChanges(booking);
+    const entries = buildHistoryEntries({
+      type: isUpdate ? "booking.update" : "booking.create",
+      changes,
       actorName,
-      summary: `${checkIn} → ${checkOut}`,
+      summary: changes.length
+        ? undefined
+        : `${checkIn} → ${checkOut}`,
     });
+    if (entries.length) {
+      await appendChangeHistory(id, entries);
+    }
   }
 
   return ok({
@@ -570,7 +583,25 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           .select("change_history")
           .eq("id", orderId)
           .maybeSingle();
-        const items = Array.isArray(data?.change_history) ? data!.change_history : [];
+        const raw = Array.isArray(data?.change_history) ? data!.change_history : [];
+        const items = raw
+          .map((entry, i) => {
+            const e = (entry && typeof entry === "object" ? entry : {}) as Record<
+              string,
+              unknown
+            >;
+            return {
+              id: String(e.id || `h-${i}`),
+              at: String(e.at || ""),
+              type: String(e.type || "booking.update"),
+              label: String(e.label || ""),
+              from: String(e.from || ""),
+              to: String(e.to || ""),
+              actorName: String(e.actorName || ""),
+              summary: String(e.summary || ""),
+            };
+          })
+          .sort((a, b) => String(b.at).localeCompare(String(a.at)));
         return ok({
           orderId,
           items,

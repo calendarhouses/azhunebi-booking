@@ -33,22 +33,26 @@ function formatHistoryWhen(iso: string): string {
   return `${datePart} о ${timePart}`;
 }
 
+function itemDiff(item: BookingActivityItem): string | null {
+  const fromRaw = String(item.from || "").trim();
+  const toRaw = String(item.to || "").trim();
+  const summary = String(item.summary || "").trim();
+  if (!fromRaw && !toRaw) {
+    return summary || null;
+  }
+  const from = displayVal(item.from);
+  const to = displayVal(item.to);
+  if (!fromRaw && toRaw) return to;
+  if (from === to) return to;
+  return `${from} → ${to}`;
+}
+
 function itemTitle(item: BookingActivityItem): string {
   const label = String(item.label || "").trim();
   if (label) return `Зміни у «${label.toLocaleLowerCase("uk-UA")}»`;
-  if (item.type === "booking.create") return "Створено бронь";
-  if (item.type === "booking.delete") return "Видалено бронь";
+  if (item.type === "booking.create" || item.type === "create") return "Створено бронь";
+  if (item.type === "booking.delete" || item.type === "delete") return "Видалено бронь";
   return String(item.summary || "Зміна").trim() || "Зміна";
-}
-
-function itemDiff(item: BookingActivityItem): string | null {
-  const label = String(item.label || "").trim();
-  if (!label && !item.from && !item.to) return null;
-  const from = displayVal(item.from);
-  const to = displayVal(item.to);
-  if (!item.from && item.to) return to;
-  if (from === to) return to;
-  return `${from} → ${to}`;
 }
 
 /**
