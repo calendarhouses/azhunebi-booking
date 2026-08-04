@@ -13,6 +13,7 @@
     "telegram:webhook:info": "node scripts/set-telegram-webhook.mjs --info"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.0",
     "flatpickr": "^4.6.13",
     "libphonenumber-js": "^1.13.3",
     "lucide-react": "^1.16.0",

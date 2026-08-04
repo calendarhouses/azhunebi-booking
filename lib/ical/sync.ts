@@ -21,12 +21,6 @@ export type IcalRoomSyncResult = {
   error?: string;
 };
 
-function gasUrl(): string {
-  const url = process.env.NEXT_PUBLIC_GAS_URL?.trim();
-  if (!url) throw new Error("NEXT_PUBLIC_GAS_URL is not set");
-  return url;
-}
-
 function webhookSecret(): string {
   const secret =
     process.env.TELEGRAM_REVIEW_WEBHOOK_SECRET?.trim() ||
@@ -37,17 +31,13 @@ function webhookSecret(): string {
 }
 
 async function gasPostJson<T>(body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(gasUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ ...body, webhookSecret: webhookSecret() }),
-    cache: "no-store",
+  const { gasPost } = await import("@/lib/gas-api");
+  const json = await gasPost<T & { error?: string }>({
+    ...body,
+    webhookSecret: webhookSecret(),
   });
-  const json = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
-  if (!res.ok || !json || (json as { error?: string }).error) {
-    throw new Error(
-      (json as { error?: string } | null)?.error || `GAS request failed (${res.status})`
-    );
+  if ((json as { error?: string }).error) {
+    throw new Error((json as { error?: string }).error || "backend request failed");
   }
   return json as T;
 }

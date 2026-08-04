@@ -112,11 +112,82 @@ async function parseJson<T>(res: Response): Promise<T> {
   }
 }
 
+/** Server-side: route through DATA_SOURCE dispatcher (Supabase or GAS). */
+async function serverBackendGet<T>(
+  params: Record<string, string | number | undefined>,
+  authToken?: string | null
+): Promise<T> {
+  const { handleBackendRequest } = await import("@/lib/backend/handleBackendRequest");
+  const query: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && String(v) !== "") query[k] = String(v);
+  }
+  const result = await handleBackendRequest(
+    { method: "GET", token: authToken || null, query, body: null },
+    async (req) => {
+      const url = assertGasUrl();
+      const target = new URL(url);
+      for (const [k, v] of Object.entries(req.query)) target.searchParams.set(k, v);
+      if (req.token) target.searchParams.set("token", req.token);
+      const res = await fetch(target.toString(), {
+        method: "GET",
+        cache: "no-store",
+        redirect: "follow",
+        signal: gasFetchSignal(),
+      });
+      const data = (await res.json()) as Record<string, unknown>;
+      return { status: res.status, body: data };
+    }
+  );
+  if (result.status >= 400) {
+    throw new Error(
+      String(result.body.message || result.body.error || `HTTP ${result.status}`)
+    );
+  }
+  return result.body as T;
+}
+
+async function serverBackendPost<T>(
+  body: Record<string, unknown>,
+  authToken?: string | null
+): Promise<T> {
+  const { handleBackendRequest } = await import("@/lib/backend/handleBackendRequest");
+  const payload = { ...body };
+  if (authToken && payload.accessToken === undefined) payload.accessToken = authToken;
+  const result = await handleBackendRequest(
+    { method: "POST", token: authToken || null, query: {}, body: payload },
+    async (req) => {
+      const url = assertGasUrl();
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(req.body || {}),
+        cache: "no-store",
+        redirect: "follow",
+        signal: gasFetchSignal(),
+      });
+      const data = (await res.json()) as Record<string, unknown>;
+      return { status: res.status, body: data };
+    }
+  );
+  if (result.status >= 400) {
+    throw new Error(
+      String(result.body.message || result.body.error || `HTTP ${result.status}`)
+    );
+  }
+  return result.body as T;
+}
+
 export async function gasFetch<T>(
   params: Record<string, string | number | undefined>,
   init?: RequestInit & { authToken?: string | null }
 ): Promise<T> {
   const { authToken, ...fetchInit } = init ?? {};
+
+  if (typeof window === "undefined") {
+    return serverBackendGet<T>(params, authToken);
+  }
+
   const headers = new Headers(fetchInit.headers);
   if (authToken) {
     headers.set("Authorization", `Bearer ${authToken}`);
@@ -153,6 +224,15 @@ export async function gasPost<T>(
   init?: RequestInit & { authToken?: string | null }
 ): Promise<T> {
   const { authToken, ...fetchInit } = init ?? {};
+
+  if (typeof window === "undefined") {
+    const payload = { ...body };
+    if (authToken && payload.accessToken === undefined) {
+      payload.accessToken = authToken;
+    }
+    return serverBackendPost<T>(payload, authToken);
+  }
+
   const headers = new Headers(fetchInit.headers);
   headers.set("Content-Type", "text/plain;charset=utf-8");
   if (authToken) {
