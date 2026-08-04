@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authorizeBearer, cronSecrets } from "@/lib/cron/authorize";
 import { syncAllIcalImports } from "@/lib/ical/sync";
 
 export const runtime = "nodejs";
@@ -6,13 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorize(request: Request): boolean {
-  const secret =
-    process.env.CRON_SECRET?.trim() ||
-    process.env.TELEGRAM_CRON_SECRET?.trim() ||
-    "";
-  if (!secret) return false;
-  const header = request.headers.get("authorization") || "";
-  return header === `Bearer ${secret}`;
+  return authorizeBearer(request, cronSecrets());
 }
 
 async function handle(request: Request) {

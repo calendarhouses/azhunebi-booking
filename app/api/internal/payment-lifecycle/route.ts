@@ -4,6 +4,7 @@ import {
   listPaymentLifecycle,
   type GasBookingRecord,
 } from "@/lib/gas-api";
+import { authorizeBearer, paymentLifecycleSecrets } from "@/lib/cron/authorize";
 import { getMonoInvoiceStatus } from "@/lib/monopay/client";
 import { getMonoTestAmountUah } from "@/lib/monopay/config";
 import { isMonoChastBooking } from "@/lib/monoparts/config";
@@ -21,14 +22,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function isAuthorized(request: Request): boolean {
-  const authorization = request.headers.get("authorization") || "";
-  const secrets = [
-    process.env.PAYMENT_LIFECYCLE_SECRET?.trim(),
-    process.env.CRON_SECRET?.trim(),
-    process.env.TELEGRAM_CRON_SECRET?.trim(),
-  ].filter(Boolean) as string[];
-  if (!secrets.length) return false;
-  return secrets.some((secret) => authorization === `Bearer ${secret}`);
+  return authorizeBearer(request, paymentLifecycleSecrets());
 }
 
 function pendingSmsType(booking: GasBookingRecord): BookingLifecycleSmsType | null {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildChecksumReport } from "@/lib/backend/handleBackendRequest";
+import { authorizeBearer, migrateSecrets } from "@/lib/cron/authorize";
 import { hasGasConfig, hasSupabaseConfig } from "@/lib/dataSource";
 
 export const runtime = "nodejs";
@@ -7,13 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorize(request: Request): boolean {
-  const secret =
-    process.env.MIGRATE_SECRET?.trim() ||
-    process.env.CRON_SECRET?.trim() ||
-    process.env.TELEGRAM_CRON_SECRET?.trim() ||
-    "";
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+  return authorizeBearer(request, migrateSecrets());
 }
 
 /**

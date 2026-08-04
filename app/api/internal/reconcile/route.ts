@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authorizeBearer, migrateSecrets } from "@/lib/cron/authorize";
 import { isDualWriteSupabase, hasGasConfig, hasSupabaseConfig } from "@/lib/dataSource";
 import { hydrateGuestProfilesFromSettings } from "@/lib/db/guestProfiles";
 import { upsertBooking } from "@/lib/db/bookings";
@@ -11,13 +12,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorize(request: Request): boolean {
-  const secret =
-    process.env.MIGRATE_SECRET?.trim() ||
-    process.env.CRON_SECRET?.trim() ||
-    process.env.TELEGRAM_CRON_SECRET?.trim() ||
-    "";
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+  return authorizeBearer(request, migrateSecrets());
 }
 
 /**

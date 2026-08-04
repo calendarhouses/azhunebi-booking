@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authorizeBearer, cronSecrets } from "@/lib/cron/authorize";
 import { notifyTodayArrivalsAndDepartures } from "@/lib/telegram/arrivalDepartureNotify";
 import { notifyCleaningTodayTurnovers } from "@/lib/telegram/cleaningArrivalNotify";
 import { fetchCronTelegramDigest } from "@/lib/telegram/cronDigest";
@@ -15,13 +16,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 function authorize(request: Request): boolean {
-  const secret =
-    process.env.CRON_SECRET?.trim() ||
-    process.env.TELEGRAM_CRON_SECRET?.trim() ||
-    "";
-  if (!secret) return false;
-  const header = request.headers.get("authorization") || "";
-  return header === `Bearer ${secret}`;
+  return authorizeBearer(request, cronSecrets());
 }
 
 function kyivParts(d = new Date()) {
@@ -238,6 +233,12 @@ async function runJobs(force?: string | null) {
     const arrivalBookings =
       bookings as Parameters<typeof notifyTodayArrivalsAndDepartures>[0];
     results.arrivals = await notifyTodayArrivalsAndDepartures(arrivalBookings);
+    results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
+  }
+  // Explicit cleaning-only job (maids chat). Arrivals already includes cleaning.
+  if (force === "cleaning") {
+    const arrivalBookings =
+      bookings as Parameters<typeof notifyCleaningTodayTurnovers>[0];
     results.cleaningTurnovers = await notifyCleaningTodayTurnovers(arrivalBookings);
   }
   if (!force || force === "debt") {

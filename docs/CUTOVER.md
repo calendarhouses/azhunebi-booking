@@ -5,7 +5,7 @@
 1. Run SQL in Supabase SQL editor: [`supabase/migrations/20260804_prod_schema.sql`](../supabase/migrations/20260804_prod_schema.sql)
 2. Env on Vercel + local:
    - `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-   - `CRON_SECRET` (Vercel Cron Authorization)
+   - `CRON_SECRET` / `TELEGRAM_CRON_SECRET` / `PAYMENT_LIFECYCLE_SECRET` (cron-job.org Bearer)
    - `DATA_SOURCE=gas` until cutover
    - `DUAL_WRITE_SUPABASE=true` during Phase 2
 3. Final snapshot: `POST /api/migrate-db` with Bearer secret
@@ -22,7 +22,7 @@ DUAL_WRITE_SUPABASE=true
 ```
 
 - Run 48–72h
-- Daily: `POST /api/internal/reconcile` (also cron 03:30)
+- Daily (dual-write only): `POST /api/internal/reconcile` via cron-job.org — skipped when `DATA_SOURCE=supabase`
 - `checksum?compareGas=1` → `diff` near zero
 
 ### Phase 3 staging (Supabase primary)

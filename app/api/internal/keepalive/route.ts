@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authorizeBearer, cronSecrets } from "@/lib/cron/authorize";
 import { touchKeepAlive } from "@/lib/db/settings";
 import { hasSupabaseConfig } from "@/lib/dataSource";
 
@@ -6,12 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function authorize(request: Request): boolean {
-  const secret =
-    process.env.CRON_SECRET?.trim() ||
-    process.env.TELEGRAM_CRON_SECRET?.trim() ||
-    "";
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+  return authorizeBearer(request, cronSecrets());
 }
 
 /** Prevents Supabase Free project pause — touch a settings row. */
