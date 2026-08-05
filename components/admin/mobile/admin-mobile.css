@@ -7820,13 +7820,16 @@ body.boso-admin-android .btn-success:hover,
 body.boso-admin-android .drawer,
 body.boso-admin-android .booking-quick-edit-sheet {
   padding-bottom: 0 !important;
-  /* Definite height: Android Chrome ignores flex shrink when only max-height is set. */
-  height: 92dvh !important;
-  max-height: 92dvh !important;
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
+}
+
+/* Full booking details sheet only — definite height so body scrolls under footer. */
+body.boso-admin-android #bookingDrawer .drawer {
+  height: 92dvh !important;
+  max-height: 92dvh !important;
 }
 
 body.boso-admin-android .drawer-body,
