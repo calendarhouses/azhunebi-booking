@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function MaintenanceLayout({ children }: { children: ReactNode }) {
   return (
@@ -11,7 +12,10 @@ export default function MaintenanceLayout({ children }: { children: ReactNode })
         />
         <meta name="theme-color" content="#f4f1ea" />
       </head>
-      <body style={{ margin: 0 }}>{children}</body>
+      <body style={{ margin: 0 }}>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

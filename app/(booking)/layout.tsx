@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { BRAND_ICONS } from "@/lib/brandIcons";
 
 /**
@@ -34,7 +35,10 @@ export default function BookRootLayout({ children }: { children: ReactNode }) {
         />
         <link href="/public-booking-overrides.css" rel="stylesheet" />
       </head>
-      <body className="public-booking-page">{children}</body>
+      <body className="public-booking-page">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
