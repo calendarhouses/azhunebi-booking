@@ -216,9 +216,6 @@ export function BookingNightlyBreakdown({
                 </span>
                 <div className="booking-nightly-breakdown__discount-copy">
                   <div className="booking-nightly-breakdown__discount-title">Знижка</div>
-                  <div className="booking-nightly-breakdown__discount-subtitle">
-                    Швидке ручне коригування
-                  </div>
                 </div>
               </div>
               {safeDiscountAmount > 0 ? (
