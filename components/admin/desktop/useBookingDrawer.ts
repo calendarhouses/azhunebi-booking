@@ -237,38 +237,21 @@ export function useBookingDrawer({
   const drawerSessionSavedRef = useRef(false);
   const formRef = useRef(form);
   formRef.current = form;
-  /** Finance fields as opened — revert on cancel if not saved (like color preview). */
-  const openedFinanceRef = useRef<{
-    totalPrice: number | string | undefined;
-    basePrice: number | string | undefined;
-    discountAmount: number | string | undefined;
-    manualDiscountAmount: number | string | undefined;
-  } | null>(null);
+  /** Stale DB total vs calculator — heal once per open (debounced). */
+  const financeHealKeyRef = useRef<string | null>(null);
+  const financeHealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const revertColorPreview = useCallback(() => {
     const editingKey = editingRowRef.current;
     if (drawerSessionSavedRef.current || editingKey == null || !setBookings) return;
     const originalColor = openedCustomColorRef.current;
-    const openedFinance = openedFinanceRef.current;
     setBookings((prev) =>
       prev.map((b) => {
         if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
           return b;
         }
-        let next = b;
-        if ((b.custom_color ?? "") !== originalColor) {
-          next = { ...next, custom_color: originalColor };
-        }
-        if (openedFinance) {
-          next = {
-            ...next,
-            totalPrice: openedFinance.totalPrice,
-            basePrice: openedFinance.basePrice,
-            discountAmount: openedFinance.discountAmount,
-            manualDiscountAmount: openedFinance.manualDiscountAmount,
-          };
-        }
-        return next;
+        if ((b.custom_color ?? "") === originalColor) return b;
+        return { ...b, custom_color: originalColor };
       })
     );
   }, [editingRowRef, setBookings]);
@@ -285,6 +268,9 @@ export function useBookingDrawer({
       const total = Math.max(0, Math.round(Number(snapshot.totalPrice) || 0));
       const base = Math.max(0, Math.round(Number(snapshot.basePrice) || 0));
       const discount = Math.max(0, Math.round(Number(snapshot.discountAmount) || 0));
+      const existing = findBookingByKey(editingKey);
+      const storedTotal = Math.round(Number(existing?.totalPrice) || 0);
+
       setBookings((prev) =>
         prev.map((b) => {
           if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
@@ -305,8 +291,65 @@ export function useBookingDrawer({
           };
         })
       );
+
+      // Persist formula total when DB/local still has a stale discounted total
+      // (e.g. 7830 left after discount→0). Debounce so hydrate can settle.
+      if (total <= 0 || storedTotal === total || !existing) return;
+      const healKey = `${editingKey}:${total}:${discount}`;
+      if (financeHealKeyRef.current === healKey) return;
+      if (financeHealTimerRef.current) clearTimeout(financeHealTimerRef.current);
+      financeHealTimerRef.current = setTimeout(() => {
+        financeHealTimerRef.current = null;
+        if (financeHealKeyRef.current === healKey) return;
+        financeHealKeyRef.current = healKey;
+        void (async () => {
+          try {
+            const { postAdminBooking } = await import("./adminApi");
+            const json = await postAdminBooking({
+              id: existing.id,
+              row: existing.row,
+              checkIn: existing.checkIn,
+              checkOut: existing.checkOut,
+              cottage: existing.cottage,
+              roomId: existing.roomId,
+              name: existing.name,
+              phone: existing.phone,
+              guests: existing.guests,
+              pets: existing.pets,
+              source: existing.source,
+              status: existing.status,
+              comment: existing.comment,
+              assignmentState: existing.assignmentState,
+              paidAmount: existing.paidAmount,
+              payments: existing.payments,
+              prepayAmount: existing.prepayAmount,
+              prepayMethod: existing.prepayMethod,
+              surchargeAmount: existing.surchargeAmount,
+              surchargeMethod: existing.surchargeMethod,
+              custom_color: existing.custom_color,
+              totalPrice: total,
+              basePrice: base,
+              discountAmount: discount,
+              // Clear sticky manual discount when formula discount is 0
+              manualDiscountAmount:
+                discount === 0 ? 0 : existing.manualDiscountAmount,
+              extraGuestFee: existing.extraGuestFee,
+              petFee: existing.petFee,
+              dayGuestFee: existing.dayGuestFee,
+              earlyFee: existing.earlyFee,
+              lateFee: existing.lateFee,
+            });
+            if (json.error || json.success === false) {
+              financeHealKeyRef.current = null;
+            }
+          } catch (err) {
+            console.warn("[healBookingFinance] failed", err);
+            financeHealKeyRef.current = null;
+          }
+        })();
+      }, 450);
     },
-    [editingRowRef, setBookings]
+    [editingRowRef, setBookings, findBookingByKey]
   );
 
   const closeDrawer = useCallback(() => {
@@ -458,7 +501,11 @@ export function useBookingDrawer({
     (prefillRoom: string | null = null, prefillDateStart: string | null = null, prefillDateEnd: string | null = null) => {
       drawerSessionSavedRef.current = false;
       openedCustomColorRef.current = "";
-      openedFinanceRef.current = null;
+      financeHealKeyRef.current = null;
+      if (financeHealTimerRef.current) {
+        clearTimeout(financeHealTimerRef.current);
+        financeHealTimerRef.current = null;
+      }
       editingRowRef.current = null;
       setEditingRow(null);
       setEditingBookingId(null);
@@ -666,12 +713,11 @@ export function useBookingDrawer({
 
       const openedColor = normalizeBookingCustomColor(booking.custom_color) || "";
       openedCustomColorRef.current = openedColor;
-      openedFinanceRef.current = {
-        totalPrice: booking.totalPrice,
-        basePrice: booking.basePrice,
-        discountAmount: booking.discountAmount,
-        manualDiscountAmount: booking.manualDiscountAmount,
-      };
+      financeHealKeyRef.current = null;
+      if (financeHealTimerRef.current) {
+        clearTimeout(financeHealTimerRef.current);
+        financeHealTimerRef.current = null;
+      }
       drawerSessionSavedRef.current = false;
 
       setForm({
