@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { ChevronDown } from "lucide-react";
 import type { BookingPayment } from "./types";
 import { createFlatpickr, type FlatpickrInstance } from "./flatpickrAdmin";
 import { closeCustomConfirm, openCustomConfirm } from "./reports/confirmDialog";
@@ -223,6 +224,7 @@ export function PaymentJournalSection({
   defaultMethod = "ФОП",
 }: PaymentJournalSectionProps) {
   const [openSelectKey, setOpenSelectKey] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const updateField = useCallback(
     (idx: number, field: keyof BookingPayment, val: string | number) => {
@@ -245,6 +247,7 @@ export function PaymentJournalSection({
   );
 
   const addRow = () => {
+    setOpen(true);
     onChange([
       ...payments,
       {
@@ -278,18 +281,40 @@ export function PaymentJournalSection({
     );
   };
 
+  const count = payments.length;
+
   return (
-    <div className="payment-journal">
+    <div className={`payment-journal${open ? " is-open" : ""}`}>
       <div className="payment-journal-head">
-        <div>
-          <p className="payment-journal-title">Журнал платежів</p>
-          <p className="payment-journal-sub">Дата, сума, метод і тип — для каси та нарахування</p>
-        </div>
-        <button type="button" className="pj-add-btn" onClick={addRow}>
-          + Платіж
+        <button
+          type="button"
+          className="payment-journal-toggle"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          <span className="payment-journal-title-wrap">
+            <span className="payment-journal-title">Журнал платежів</span>
+            {count > 0 ? (
+              <span className="payment-journal-badge" aria-label={`${count} платежів`}>
+                {count}
+              </span>
+            ) : null}
+          </span>
+          <ChevronDown
+            size={18}
+            strokeWidth={2}
+            className={`payment-journal-chevron${open ? " payment-journal-chevron--open" : ""}`}
+            aria-hidden
+          />
         </button>
+        {open ? (
+          <button type="button" className="pj-add-btn" onClick={addRow}>
+            + Платіж
+          </button>
+        ) : null}
       </div>
-      <div id="paymentJournalList">
+      {open ? (
+      <div id="paymentJournalList" className="payment-journal-body">
         {!payments.length ? (
           <div className="pj-empty">
             Немає записів — натисни «+ Платіж» або вкажи аванс / доплату вище.
@@ -349,6 +374,7 @@ export function PaymentJournalSection({
           </div>
         )}
       </div>
+      ) : null}
     </div>
   );
 }

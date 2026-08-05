@@ -1056,7 +1056,6 @@ export function BookingPriceCalculator({
       <BookingFormSectionHeading
         accent
         title={`Вартість · ${computed.nights} ${nightWord(computed.nights)}`}
-        description="Ночі, знижки й доплати — в одному місці"
       />
 
       {hasNightlyLines ? (

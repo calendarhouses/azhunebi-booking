@@ -4487,14 +4487,23 @@
             transform: scale(1.06);
         }
         .booking-color-picker__swatch--clear {
-            background: #F9FAFB;
-            color: #6B7280;
-            font-size: 14px;
-            font-weight: 700;
+            background: transparent;
+            color: #9CA3AF;
+            font-size: 18px;
+            font-weight: 500;
             line-height: 1;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            border: none;
+            box-shadow: none;
+        }
+        .booking-color-picker__swatch--clear.is-active,
+        .booking-color-picker__swatch--clear:hover:not(:disabled) {
+            box-shadow: none;
+            transform: none;
+            color: #6B7280;
+            background: transparent;
         }
         .booking-color-picker__swatch:disabled {
             opacity: 0.5;
@@ -5261,10 +5270,45 @@ input[type="number"] {
 .fin-box .fin-accrual-note { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; opacity: 0.75; margin-top: 2px; }
 .finance-accrual-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
 
-.payment-journal { margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5E7EB; overflow: visible; }
-.payment-journal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-.payment-journal-title { font-size: 13px; font-weight: 700; color: #374151; margin: 0 0 2px; }
-.payment-journal-sub { font-size: 11px; color: #9CA3AF; line-height: 1.35; margin: 0; }
+.payment-journal { margin-top: 16px; padding-top: 0; border-top: none; overflow: visible; border: 1px solid #e7eae3; border-radius: 14px; background: #fff; }
+.payment-journal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 0; padding: 4px 8px 4px 4px; }
+.payment-journal-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 8px 10px 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.payment-journal-title-wrap { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.payment-journal-title { font-size: 14px; font-weight: 700; color: #111827; margin: 0; }
+.payment-journal-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e8f0df;
+  color: #4f6b32;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.payment-journal-chevron { flex-shrink: 0; color: #9ca3af; transition: transform 0.2s ease; }
+.payment-journal-chevron--open { transform: rotate(180deg); }
+.payment-journal-body { padding: 0 12px 12px; border-top: 1px solid #f0f1ef; }
+.payment-journal-sub { display: none; }
 .pj-add-btn {
     flex-shrink: 0; padding: 8px 14px; font-size: 12px; font-weight: 700; color: var(--accent);
     background: #F8FAF7; border: 1px solid #BFE0A6; border-radius: 10px; cursor: pointer;
