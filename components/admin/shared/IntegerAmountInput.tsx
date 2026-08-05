@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type InputHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
 import {
   parseIntegerAmountInput,
   sanitizeIntegerAmountInput,
@@ -29,9 +29,14 @@ export function IntegerAmountInput({
 }: IntegerAmountInputProps) {
   const [text, setText] = useState(() => String(Math.round(Number(value) || 0)));
   const [focused, setFocused] = useState(false);
+  const dirtyRef = useRef(false);
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   useEffect(() => {
-    if (!focused) {
+    // Sync from props unless the user is mid-edit (avoids stale "0" after
+    // external recomputes, e.g. clearing a phantom discount → total jumps up).
+    if (!focused || !dirtyRef.current) {
       setText(String(Math.round(Number(value) || 0)));
     }
   }, [value, focused]);
@@ -44,17 +49,25 @@ export function IntegerAmountInput({
       autoComplete="off"
       value={text}
       onFocus={(e) => {
+        dirtyRef.current = false;
         setFocused(true);
         onFocus?.(e);
       }}
       onBlur={(e) => {
         setFocused(false);
+        if (!dirtyRef.current) {
+          setText(String(Math.round(Number(valueRef.current) || 0)));
+          onBlur?.(e);
+          return;
+        }
+        dirtyRef.current = false;
         const n = parseIntegerAmountInput(text, allowNegative);
         setText(String(n));
-        if (n !== value) onValueChange(n);
+        if (n !== valueRef.current) onValueChange(n);
         onBlur?.(e);
       }}
       onChange={(e) => {
+        dirtyRef.current = true;
         const cleaned = sanitizeIntegerAmountInput(e.target.value, { allowNegative });
         setText(cleaned);
         if (cleaned === "" || cleaned === "-") {

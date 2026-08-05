@@ -1145,10 +1145,17 @@ export function BookingPriceCalculator({
           <label style={{ color: "var(--accent)", fontWeight: 700, fontSize: 14 }}>
             До сплати (загальна вартість):
           </label>
-          <IntegerAmountInput
+          {/* Hidden mirror for collectBookingFromForm — visible input may hold stale text. */}
+          <input
+            type="hidden"
             id="adminTotalPrice"
-            value={displayTotal}
-            onValueChange={(n) => setTotalOverride(n)}
+            value={Math.max(0, Math.round(Number(displayTotal) || 0))}
+            readOnly
+          />
+          <IntegerAmountInput
+            id="adminTotalPriceInput"
+            value={Math.max(0, Math.round(Number(displayTotal) || 0))}
+            onValueChange={(n) => setTotalOverride(Math.max(0, Math.round(n)))}
             style={{
               fontWeight: 800,
               fontSize: 18,
