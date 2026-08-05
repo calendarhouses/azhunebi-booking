@@ -626,8 +626,7 @@ export function computeBookingPrice(params: {
   if (
     params.isInitialLoad &&
     params.savedBooking?.totalPrice != null &&
-    params.savedBooking.totalPrice !== "" &&
-    additionalServicesFee <= 0
+    params.savedBooking.totalPrice !== ""
   ) {
     totalPrice = Number(params.savedBooking.totalPrice);
     discountAmount =

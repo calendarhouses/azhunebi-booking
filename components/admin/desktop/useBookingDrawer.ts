@@ -646,6 +646,8 @@ export function useBookingDrawer({
       setBookingSourceFromSaved(booking.source || "Адмінка");
       populateCottageOptions(booking.cottage);
 
+      // Hydrate calculator with saved fees/total on first paint (not 100ms later).
+      setIsInitialPriceLoad(true);
       openDrawerShell();
       setTimeout(() => bumpPrice(true), 100);
     },

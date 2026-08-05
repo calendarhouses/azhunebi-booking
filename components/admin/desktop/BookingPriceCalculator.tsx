@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Clock3, Home, PawPrint, Percent, Tag, Users } from "lucide-react";
 import { BookingQuickEditDrawer } from "../mobile/BookingQuickEditDrawer";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
@@ -178,6 +178,10 @@ export function BookingPriceCalculator({
   const [surchargeMethod, setSurchargeMethod] = useState(initialSurchargeMethod);
   const [manualDiscountAmounts, setManualDiscountAmounts] = useState<Record<string, number>>({});
   const [editedDiscountIds, setEditedDiscountIds] = useState<Set<string>>(() => new Set());
+  /** Keep saved/custom total against autoTotal clears until user edits lines/dates. */
+  const holdTotalOverrideRef = useRef(false);
+  const pricingHydratedKeyRef = useRef<string | null>(null);
+  const prevStructuralKeyRef = useRef<string | null>(null);
 
   const room = useMemo(() => {
     if (form.cottage === "Нерозподілені") return HOLDING_ROOM;
@@ -211,8 +215,88 @@ export function BookingPriceCalculator({
     return bookings.find((b) => String(b.row) === String(editingRow)) ?? null;
   }, [bookings, editingRow, editingBookingId]);
 
+  useLayoutEffect(() => {
+    if (editingRow == null) {
+      pricingHydratedKeyRef.current = null;
+      holdTotalOverrideRef.current = false;
+      return;
+    }
+    if (!savedBooking) return;
+    const key = `${editingBookingId ?? ""}:${editingRow}`;
+    if (pricingHydratedKeyRef.current === key) return;
+    pricingHydratedKeyRef.current = key;
+
+    const numOrNull = (raw: unknown): number | null => {
+      if (raw === undefined || raw === null || raw === "") return null;
+      const n = Math.round(Number(raw));
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const base = numOrNull(savedBooking.basePrice);
+    const extra = numOrNull(savedBooking.extraGuestFee);
+    const pet = numOrNull(savedBooking.petFee);
+    const dayGuest = numOrNull(savedBooking.dayGuestFee);
+    const early = numOrNull(savedBooking.earlyFee);
+    const late = numOrNull(savedBooking.lateFee);
+    const total = numOrNull(savedBooking.totalPrice);
+
+    setManual({
+      base,
+      extra,
+      pet,
+      dayGuest,
+      early,
+      late,
+      discount: null,
+      discountEdited: false,
+    });
+    setManualLines((prev) => ({
+      ...prev,
+      base: base ?? prev.base,
+      extra: extra ?? prev.extra,
+      pet: pet ?? prev.pet,
+      dayGuest: dayGuest ?? prev.dayGuest,
+      early: early ?? prev.early,
+      late: late ?? prev.late,
+    }));
+    if (total != null && total > 0) {
+      holdTotalOverrideRef.current = true;
+      setTotalOverride(total);
+    } else if (base != null && base > 0) {
+      // Recover from a prior zero-total bug: keep base, let autoTotal rebuild.
+      holdTotalOverrideRef.current = false;
+      setTotalOverride(null);
+    } else if (total != null) {
+      holdTotalOverrideRef.current = true;
+      setTotalOverride(Math.max(0, total));
+    }
+    prevFormRef.current = {
+      checkIn: form.checkIn,
+      checkOut: form.checkOut,
+      cottage: form.cottage,
+      guests: guestsForCalc,
+      pets: form.pets,
+      dayGuests: form.dayGuests,
+      early: selectedEarlyTime,
+      late: selectedLateTime,
+    };
+  }, [
+    savedBooking,
+    editingBookingId,
+    editingRow,
+    form.checkIn,
+    form.checkOut,
+    form.cottage,
+    form.pets,
+    form.dayGuests,
+    guestsForCalc,
+    selectedEarlyTime,
+    selectedLateTime,
+  ]);
+
   useEffect(() => {
     if (form.cottage === "Нерозподілені" && savedBooking) {
+      holdTotalOverrideRef.current = true;
       setTotalOverride(Number(savedBooking.totalPrice) || 0);
     }
   }, [form.cottage, savedBooking]);
@@ -285,12 +369,13 @@ export function BookingPriceCalculator({
       nightlyBaseSum != null && Number.isFinite(nightlyBaseSum) ? nightlyBaseSum : null;
     setManualLines((prev) => ({
       ...prev,
-      base: baseFromNights ?? computed.basePriceTotal,
-      extra: computed.extraGuestFee,
-      pet: computed.petFee,
-      dayGuest: computed.dayGuestFee,
-      early: computed.earlyFee,
-      late: computed.lateFee,
+      // Never stomp a durable manual override with a fresh tariff recompute (often 0).
+      base: manual.base !== null ? manual.base : (baseFromNights ?? computed.basePriceTotal),
+      extra: manual.extra !== null ? manual.extra : computed.extraGuestFee,
+      pet: manual.pet !== null ? manual.pet : computed.petFee,
+      dayGuest: manual.dayGuest !== null ? manual.dayGuest : computed.dayGuestFee,
+      early: manual.early !== null ? manual.early : computed.earlyFee,
+      late: manual.late !== null ? manual.late : computed.lateFee,
     }));
   }, [
     computed.empty,
@@ -301,11 +386,20 @@ export function BookingPriceCalculator({
     computed.earlyFee,
     computed.lateFee,
     nightlyBaseSum,
+    manual.base,
+    manual.extra,
+    manual.pet,
+    manual.dayGuest,
+    manual.early,
+    manual.late,
   ]);
 
   useEffect(() => {
     if (editingRow == null) {
       prevFormRef.current = null;
+      pricingHydratedKeyRef.current = null;
+      holdTotalOverrideRef.current = false;
+      prevStructuralKeyRef.current = null;
       setManual({
         base: null,
         extra: null,
@@ -587,13 +681,38 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (isInitialLoad) return;
+    if (holdTotalOverrideRef.current) return;
     setTotalOverride(null);
   }, [autoTotal, isInitialLoad]);
+
+  const structuralKey = `${form.checkIn}|${form.checkOut}|${form.cottage}|${form.roomId ?? ""}`;
+
+  // Drop sticky saved total / manual locks only when stay structure actually changes.
+  useEffect(() => {
+    if (prevStructuralKeyRef.current === null) {
+      prevStructuralKeyRef.current = structuralKey;
+      return;
+    }
+    if (prevStructuralKeyRef.current === structuralKey) return;
+    prevStructuralKeyRef.current = structuralKey;
+    if (isInitialLoad) return;
+    holdTotalOverrideRef.current = false;
+    setTotalOverride(null);
+    setManual((prev) => ({
+      ...prev,
+      base: null,
+      extra: null,
+      pet: null,
+      dayGuest: null,
+      early: null,
+      late: null,
+    }));
+  }, [structuralKey, isInitialLoad]);
 
   const hasManualDiscountEdits = editedDiscountIds.size > 0 || manual.discountEdited || instantDiscount > 0;
 
   const displayTotal =
-    totalOverride !== null && !isInitialLoad
+    totalOverride !== null
       ? totalOverride
       : isInitialLoad && !hasManualDiscountEdits
         ? computed.totalPrice
@@ -633,27 +752,13 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (computed.empty || computed.isOverlap) {
+      if (typeof window !== "undefined") {
+        delete (window as Window & { _bookingPricingSnapshot?: unknown })._bookingPricingSnapshot;
+      }
       onPricingSnapshotChange?.(null);
       return;
     }
-    // Auto total must follow current calculation.
-    // Override is used only when user edits total manually.
-    if (totalOverride === null) return;
-    if (isInitialLoad) {
-      setTotalOverride(null);
-    }
-  }, [
-    computed.empty,
-    computed.isOverlap,
-    computed.totalPrice,
-    isInitialLoad,
-    onPricingSnapshotChange,
-    totalOverride,
-  ]);
-
-  useEffect(() => {
-    if (computed.empty || computed.isOverlap) return;
-    onPricingSnapshotChange?.({
+    const snapshot = {
       totalPrice: displayTotal,
       prepay,
       surcharge,
@@ -667,7 +772,12 @@ export function BookingPriceCalculator({
       lateFee: manualLines.late,
       discountAmount: manualLines.discount,
       discountEdited: manual.discountEdited,
-    });
+    };
+    if (typeof window !== "undefined") {
+      (window as Window & { _bookingPricingSnapshot?: typeof snapshot })._bookingPricingSnapshot =
+        snapshot;
+    }
+    onPricingSnapshotChange?.(snapshot);
   }, [
     computed.empty,
     computed.isOverlap,
@@ -799,8 +909,8 @@ export function BookingPriceCalculator({
       const discountOverrides: Record<string, number> = {};
       for (const line of autoDisc.lines) {
         if (!editedDiscountIds.has(line.discount.id)) continue;
-        const manual = manualDiscountAmounts[line.discount.id];
-        if (manual === undefined) continue;
+        const manualAmt = manualDiscountAmounts[line.discount.id];
+        if (manualAmt === undefined) continue;
         const maxForLine = computeDiscountLineMax(
           line.discount.id,
           taxable,
@@ -808,7 +918,7 @@ export function BookingPriceCalculator({
           manualDiscountAmounts,
           editedDiscountIds
         );
-        discountOverrides[line.discount.id] = clampDiscountAmount(manual, maxForLine);
+        discountOverrides[line.discount.id] = clampDiscountAmount(manualAmt, maxForLine);
       }
       const discountResult = applyManualDiscountOverrides(autoDisc, discountOverrides);
       const total =
@@ -824,6 +934,8 @@ export function BookingPriceCalculator({
         ...overrides,
         discount: discountResult.discountSum + instantDiscount + effectivePostLateDiscount,
       }));
+      // Line edits define a new formula total — stop holding a stale saved override.
+      holdTotalOverrideRef.current = false;
       setTotalOverride(total);
     },
     [
@@ -846,6 +958,7 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (nightlyBaseSum == null || !Number.isFinite(nightlyBaseSum)) return;
+    setManual((m) => ({ ...m, base: nightlyBaseSum }));
     onManualRecalc(false, { base: nightlyBaseSum });
   }, [nightlyBaseSum, onManualRecalc]);
 
@@ -933,6 +1046,7 @@ export function BookingPriceCalculator({
         onOpenQuickEdit={setQuickEdit}
         onChange={(v) => {
           onClearNightlyPriceOverrides?.();
+          setManual((m) => ({ ...m, base: v }));
           setManualLines((m) => ({ ...m, base: v }));
           onManualRecalc(false, { base: v });
         }}
@@ -947,6 +1061,7 @@ export function BookingPriceCalculator({
           isMobile={isMobile}
           onOpenQuickEdit={setQuickEdit}
           onChange={(v) => {
+            setManual((m) => ({ ...m, extra: v }));
             setManualLines((m) => ({ ...m, extra: v }));
             onManualRecalc(false, { extra: v });
           }}
@@ -979,6 +1094,7 @@ export function BookingPriceCalculator({
           isMobile={isMobile}
           onOpenQuickEdit={setQuickEdit}
           onChange={(v) => {
+            setManual((m) => ({ ...m, pet: v }));
             setManualLines((m) => ({ ...m, pet: v }));
             onManualRecalc(false, { pet: v });
           }}
@@ -994,6 +1110,7 @@ export function BookingPriceCalculator({
           isMobile={isMobile}
           onOpenQuickEdit={setQuickEdit}
           onChange={(v) => {
+            setManual((m) => ({ ...m, dayGuest: v }));
             setManualLines((m) => ({ ...m, dayGuest: v }));
             onManualRecalc(false, { dayGuest: v });
           }}
@@ -1010,6 +1127,7 @@ export function BookingPriceCalculator({
           isMobile={isMobile}
           onOpenQuickEdit={setQuickEdit}
           onChange={(v) => {
+            setManual((m) => ({ ...m, early: v }));
             setManualLines((m) => ({ ...m, early: v }));
             onManualRecalc(false, { early: v });
           }}
@@ -1026,6 +1144,7 @@ export function BookingPriceCalculator({
           isMobile={isMobile}
           onOpenQuickEdit={setQuickEdit}
           onChange={(v) => {
+            setManual((m) => ({ ...m, late: v }));
             setManualLines((m) => ({ ...m, late: v }));
             onManualRecalc(false, { late: v });
           }}
@@ -1155,7 +1274,10 @@ export function BookingPriceCalculator({
           <IntegerAmountInput
             id="adminTotalPriceInput"
             value={Math.max(0, Math.round(Number(displayTotal) || 0))}
-            onValueChange={(n) => setTotalOverride(Math.max(0, Math.round(n)))}
+            onValueChange={(n) => {
+              holdTotalOverrideRef.current = true;
+              setTotalOverride(Math.max(0, Math.round(n)));
+            }}
             style={{
               fontWeight: 800,
               fontSize: 18,

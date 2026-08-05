@@ -110,7 +110,18 @@ export function collectBookingFromForm(
     _bookingExpectedPrepay?: number;
     _bookingAssignmentState?: "assigned" | "holding";
     _bookingBookmenowCommentTokens?: string[];
+    _bookingPricingSnapshot?: {
+      totalPrice?: number;
+      basePrice?: number;
+      extraGuestFee?: number;
+      petFee?: number;
+      dayGuestFee?: number;
+      earlyFee?: number;
+      lateFee?: number;
+      discountAmount?: number;
+    };
   };
+  const pricingSnap = w._bookingPricingSnapshot;
   const paymentsForSave = buildPaymentsForSave({
     journalPayments: w._bookingPayments || [],
     prepay,
@@ -182,7 +193,12 @@ export function collectBookingFromForm(
     source,
     assignmentState: w._bookingAssignmentState || "assigned",
     status,
-    totalPrice: getFormVal("adminTotalPrice"),
+    totalPrice: (() => {
+      const fromDom = getFormVal("adminTotalPrice");
+      const fromSnap = Math.round(Number(pricingSnap?.totalPrice) || 0);
+      if (fromDom > 0) return fromDom;
+      return fromSnap > 0 ? fromSnap : fromDom;
+    })(),
     prepayAmount: preserveExpectedPrepay
       ? Number(w._bookingExpectedPrepay) || 0
       : actualPrepay,
@@ -209,7 +225,12 @@ export function collectBookingFromForm(
           .selectedPostLateArrivalTime || null,
       bookmenowTokens: w._bookingBookmenowCommentTokens || [],
     }),
-    basePrice: getFormVal("manualBasePrice"),
+    basePrice: (() => {
+      const fromDom = getFormVal("manualBasePrice");
+      const fromSnap = Math.round(Number(pricingSnap?.basePrice) || 0);
+      if (fromDom > 0) return fromDom;
+      return fromSnap > 0 ? fromSnap : fromDom;
+    })(),
     extraGuestFee: getFormVal("manualExtraGuest"),
     petFee: getFormVal("manualPet"),
     dayGuestFee: getFormVal("manualDayGuest"),
