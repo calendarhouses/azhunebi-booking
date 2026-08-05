@@ -20,8 +20,12 @@ export function MobileSheetHeader({ title, onClose, className = "drawer-header" 
       }}
     >
       <div className="m-sheet-handle drag-handle" aria-hidden />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-        {typeof title === "string" ? <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{title}</h2> : title}
+      <div className="m-sheet-header__row">
+        {typeof title === "string" ? (
+          <h2 className="m-sheet-header__title">{title}</h2>
+        ) : (
+          <div className="m-sheet-header__title">{title}</div>
+        )}
         <button type="button" className="close-btn tap-btn" onClick={onClose} aria-label="Закрити">
           ✕
         </button>

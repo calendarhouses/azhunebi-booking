@@ -2908,6 +2908,8 @@ body.boso-admin-mobile-active .drawer {
   pointer-events: auto !important;
   padding-bottom: 0 !important;
   background: #fff !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
 }
 
 .boso-admin-mobile .drawer-overlay.active .drawer,
@@ -2919,9 +2921,13 @@ body.boso-admin-mobile-active .drawer-overlay.active .drawer {
 body.boso-admin-mobile-active .drawer-body {
   flex: 1 1 0% !important;
   min-height: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 24px !important;
+  box-sizing: border-box !important;
 }
 
 .boso-admin-mobile .drawer-footer,
@@ -7814,6 +7820,26 @@ body.boso-admin-android .btn-success:hover,
 body.boso-admin-android .drawer,
 body.boso-admin-android .booking-quick-edit-sheet {
   padding-bottom: 0 !important;
+  /* Definite height: Android Chrome ignores flex shrink when only max-height is set. */
+  height: 92dvh !important;
+  max-height: 92dvh !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+body.boso-admin-android .drawer-body,
+body.boso-admin-android .booking-quick-edit-sheet .drawer-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 28px !important;
 }
 
 body.boso-admin-android .drawer-footer,
@@ -7824,13 +7850,16 @@ body.boso-admin-android .booking-quick-edit-footer {
   flex-wrap: nowrap !important;
   align-items: stretch !important;
   justify-content: flex-start !important;
-  gap: 10px !important;
+  gap: 8px !important;
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  padding: 14px 16px calc(14px + max(var(--safe-bottom), 12px)) !important;
+  padding: 12px 12px calc(12px + max(var(--safe-bottom), 12px)) !important;
   margin: 0 !important;
   overflow: hidden !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  z-index: 3 !important;
 }
 
 body.boso-admin-android .drawer-footer-actions,
@@ -7839,13 +7868,14 @@ body.boso-admin-android .booking-quick-edit-footer .drawer-footer-actions {
   flex-direction: row !important;
   align-items: stretch !important;
   justify-content: flex-start !important;
-  gap: 10px !important;
+  gap: 8px !important;
   flex: 1 1 auto !important;
-  width: 100% !important;
+  width: auto !important;
   max-width: 100% !important;
   min-width: 0 !important;
   margin: 0 !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 body.boso-admin-android .drawer-footer .btn-secondary,
@@ -7937,12 +7967,111 @@ body.boso-admin-android .booking-quick-edit-sheet * {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 6px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 .boso-admin-mobile .guest-field-head label {
   margin-bottom: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.boso-admin-mobile .guest-field-head .guest-rep {
+  flex: 0 0 auto;
+  max-width: 55%;
+}
+
+/* Booking details sheet header — long order IDs must not blow width */
+.boso-admin-mobile .m-sheet-header__row,
+body.boso-admin-mobile-active .m-sheet-header__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.boso-admin-mobile .m-sheet-header__title,
+body.boso-admin-mobile-active .m-sheet-header__title,
+.boso-admin-mobile .m-sheet-header__title h2,
+.boso-admin-mobile .m-sheet-header__title #drawerTitle,
+body.boso-admin-mobile-active .m-sheet-header__title #drawerTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.boso-admin-mobile .drawer-header .close-btn,
+body.boso-admin-mobile-active .drawer-header .close-btn {
+  flex: 0 0 auto;
+}
+
+/* Messenger row under phone — fit 3 buttons on narrow Android */
+.booking-phone-messengers {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.booking-phone-messengers__btn {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.booking-phone-messengers__btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.booking-phone-messengers__btn--tg {
+  background: #EFF6FF !important;
+  color: #2563EB !important;
+  border: 1px solid #BFDBFE !important;
+}
+.booking-phone-messengers__btn--wa {
+  background: #DCFCE7 !important;
+  color: #059669 !important;
+  border: 1px solid #A7F3D0 !important;
+}
+.booking-phone-messengers__btn--call {
+  background: #F0FDF4 !important;
+  color: #15803D !important;
+  border: 1px solid #BBF7D0 !important;
+}
+
+.boso-admin-mobile .booking-phone-messengers__btn,
+body.boso-admin-mobile-active .booking-phone-messengers__btn {
+  padding: 8px 6px !important;
+  font-size: 12px !important;
+  gap: 4px !important;
+}
+.boso-admin-mobile .form-section,
+.boso-admin-mobile .form-grid,
+.boso-admin-mobile .form-group,
+body.boso-admin-mobile-active .form-section,
+body.boso-admin-mobile-active .form-grid,
+body.boso-admin-mobile-active .form-group {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
 .boso-admin-mobile .guest-ac {
   position: relative;
 }

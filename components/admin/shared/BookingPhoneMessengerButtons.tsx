@@ -40,7 +40,7 @@ const btnBase: CSSProperties = {
   textDecoration: "none",
   flex: 1,
   minWidth: 0,
-  padding: "8px 12px",
+  padding: "8px 10px",
   borderRadius: 8,
   boxSizing: "border-box",
 };
@@ -53,51 +53,36 @@ export function BookingPhoneMessengerButtons({ phone, showCall = false }: Props)
   if (digits.length < 10) return null;
 
   return (
-    <div style={{ display: "flex", gap: 8, marginTop: 8, width: "100%" }}>
+    <div className="booking-phone-messengers">
       <a
         href={`https://t.me/+${digits}`}
         target="_blank"
         rel="noreferrer"
-        className="btn-action tap-btn"
-        style={{
-          ...btnBase,
-          background: "#EFF6FF",
-          color: "#2563EB",
-          border: "1px solid #BFDBFE",
-        }}
+        className="btn-action tap-btn booking-phone-messengers__btn booking-phone-messengers__btn--tg"
+        style={btnBase}
       >
         <MessengerIcon kind="telegram" size={14} />
-        Telegram
+        <span>Telegram</span>
       </a>
       <a
         href={`https://wa.me/${digits}`}
         target="_blank"
         rel="noreferrer"
-        className="btn-action tap-btn"
-        style={{
-          ...btnBase,
-          background: "#DCFCE7",
-          color: "#059669",
-          border: "1px solid #A7F3D0",
-        }}
+        className="btn-action tap-btn booking-phone-messengers__btn booking-phone-messengers__btn--wa"
+        style={btnBase}
       >
         <MessengerIcon kind="whatsapp" size={14} />
-        WhatsApp
+        <span>WhatsApp</span>
       </a>
       {showCall ? (
         <a
           href={`tel:+${digits}`}
-          className="btn-action tap-btn"
+          className="btn-action tap-btn booking-phone-messengers__btn booking-phone-messengers__btn--call"
           aria-label="Зателефонувати"
-          style={{
-            ...btnBase,
-            background: "#F0FDF4",
-            color: "#15803D",
-            border: "1px solid #BBF7D0",
-          }}
+          style={btnBase}
         >
           {iconPhoneAction}
-          Дзвінок
+          <span>Дзвінок</span>
         </a>
       ) : null}
     </div>
