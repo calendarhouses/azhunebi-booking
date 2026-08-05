@@ -202,15 +202,25 @@ export function useAdminApp(options?: {
   const silentSyncRef = useRef(silentSync);
   silentSyncRef.current = silentSync;
   const silentSyncInFlightRef = useRef(false);
+  const lastSilentSyncAtRef = useRef(0);
 
-  /** Rare background refresh — was 30s and hammered GAS (adminInitData + 504s). */
-  const SILENT_SYNC_MS = 120_000;
+  /** Rare background refresh — was 30s/2m; 10m keeps Hobby Function Invocations low. */
+  const SILENT_SYNC_MS = 600_000;
+  /** Ignore rapid tab switches; only sync on visibility after this gap. */
+  const VISIBILITY_SYNC_THROTTLE_MS = 60_000;
 
-  const maybeSilentSync = useCallback(() => {
+  const maybeSilentSync = useCallback((opts?: { fromVisibility?: boolean }) => {
     if (!authReady) return;
     if (pauseSilentSyncRef?.current) return;
     if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
     if (silentSyncInFlightRef.current) return;
+    const now = Date.now();
+    const sinceLast = now - lastSilentSyncAtRef.current;
+    if (opts?.fromVisibility) {
+      if (sinceLast < VISIBILITY_SYNC_THROTTLE_MS) return;
+    } else if (lastSilentSyncAtRef.current > 0 && sinceLast < SILENT_SYNC_MS) {
+      return;
+    }
     const drawer = document.getElementById("bookingDrawer")?.classList.contains("active");
     const modal = document.getElementById("genericModal")?.classList.contains("active");
     const dragging = (window as Window & { isGridDragging?: boolean }).isGridDragging;
@@ -220,6 +230,7 @@ export function useAdminApp(options?: {
       .current()
       .catch(() => {})
       .finally(() => {
+        lastSilentSyncAtRef.current = Date.now();
         silentSyncInFlightRef.current = false;
       });
   }, [authReady, pauseSilentSyncRef]);
@@ -366,8 +377,10 @@ export function useAdminApp(options?: {
     }, SILENT_SYNC_MS);
 
     const onVisibility = () => {
-      // When returning to the tab — one sync, not a storm while hidden.
-      if (document.visibilityState === "visible") maybeSilentSync();
+      // Tab focus: throttled — rapid alt-tab must not spam /api/gas.
+      if (document.visibilityState === "visible") {
+        maybeSilentSync({ fromVisibility: true });
+      }
     };
     document.addEventListener("visibilitychange", onVisibility);
 

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { BRAND_ICON_GREEN, brandManifestIcons } from "@/lib/brandIcons";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+/** Host-specific JSON — CDN-cacheable for a day. */
+export const revalidate = 86400;
 
 const PUBLIC_HOSTS = new Set(["azhunebi.com", "www.azhunebi.com"]);
 const ADMIN_HOST = "admin.azhunebi.com";
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
   return NextResponse.json(body, {
     headers: {
       "Content-Type": "application/manifest+json; charset=utf-8",
-      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
     },
   });
 }

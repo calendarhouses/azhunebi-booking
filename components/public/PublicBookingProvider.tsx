@@ -241,6 +241,42 @@ export function PublicBookingProvider({
   const [successReceiptHtml, setSuccessReceiptHtml] = useState("");
   const [successFlow, setSuccessFlow] = useState<PublicBookingFlow>("instant");
 
+  const applyPublicInit = useCallback(
+    (init: Awaited<ReturnType<typeof fetchPublicInitData>>) => {
+      const settings = init.settings || {};
+      const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
+      const brandingFromApi =
+        (settings.branding as PublicTenantPayload["branding"] | undefined) ||
+        data.branding;
+      setRuntime({
+        ...data,
+        branding: brandingFromApi,
+        rooms: roomsFromApi.filter((r) => r.active !== false),
+        discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
+        customPrices: settings.customPrices || data.customPrices,
+        bookings: init.bookings || [],
+        restrictions: settings.restrictions || {},
+        closedDates: settings.closedDates || {},
+        sysServicesList: settings.sysServicesList || [],
+        customServicesList: settings.customServicesList || [],
+        flexibleScheduleSettings: settings.flexibleScheduleSettings,
+        paymentSettings: settings.paymentSettings as PublicSiteRuntime["paymentSettings"],
+      });
+    },
+    [data]
+  );
+
+  /** Re-fetch catalog availability (bypass 5-min cache when fresh). */
+  const refreshPublicInit = useCallback(
+    async (opts?: { fresh?: boolean }) => {
+      const init = await fetchPublicInitData(data.tenantId, {
+        fresh: opts?.fresh !== false,
+      });
+      applyPublicInit(init);
+    },
+    [applyPublicInit, data.tenantId]
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -250,25 +286,7 @@ export function PublicBookingProvider({
         try {
           const init = await fetchPublicInitData(data.tenantId);
           if (cancelled) return;
-          const settings = init.settings || {};
-          const roomsFromApi = (settings.roomsList || data.rooms) as RoomConfig[];
-          const brandingFromApi =
-            (settings.branding as PublicTenantPayload["branding"] | undefined) ||
-            data.branding;
-          setRuntime({
-            ...data,
-            branding: brandingFromApi,
-            rooms: roomsFromApi.filter((r) => r.active !== false),
-            discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
-            customPrices: settings.customPrices || data.customPrices,
-            bookings: init.bookings || [],
-            restrictions: settings.restrictions || {},
-            closedDates: settings.closedDates || {},
-            sysServicesList: settings.sysServicesList || [],
-            customServicesList: settings.customServicesList || [],
-            flexibleScheduleSettings: settings.flexibleScheduleSettings,
-            paymentSettings: settings.paymentSettings as PublicSiteRuntime["paymentSettings"],
-          });
+          applyPublicInit(init);
           lastErr = null;
           break;
         } catch (e) {
@@ -294,7 +312,7 @@ export function PublicBookingProvider({
     return () => {
       cancelled = true;
     };
-  }, [data]);
+  }, [applyPublicInit, data]);
 
   useEffect(() => {
     const paymentReturn = searchParams.get("payment") === "return";
@@ -1180,7 +1198,12 @@ export function PublicBookingProvider({
       try {
         const json = await submitPublicBooking(payload);
         if (json.error === "OVERLAP") {
-          showPublicToast("❌ Ці дати вже зайняті! Оберіть інші.");
+          showPublicToast(
+            "Вибачте, але цей номер щойно забронював хтось інший. Будь ласка, оберіть інші дати."
+          );
+          void refreshPublicInit({ fresh: true }).catch((err) => {
+            console.warn("[publicInit] refresh after OVERLAP failed", err);
+          });
           return;
         }
         if (json.error === "RATE_LIMIT") {
@@ -1292,8 +1315,18 @@ export function PublicBookingProvider({
         setSuccessReceiptHtml(buildPublicReceiptHtml(sessionData));
         closeDrawer();
         setActiveScreen("success");
-      } catch {
-        showPublicToast("Помилка відправки. Спробуйте ще раз.");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err || "");
+        if (/OVERLAP|зайнят/i.test(msg)) {
+          showPublicToast(
+            "Вибачте, але цей номер щойно забронював хтось інший. Будь ласка, оберіть інші дати."
+          );
+          void refreshPublicInit({ fresh: true }).catch((refreshErr) => {
+            console.warn("[publicInit] refresh after OVERLAP failed", refreshErr);
+          });
+        } else {
+          showPublicToast("Помилка відправки. Спробуйте ще раз.");
+        }
       } finally {
         setSubmitting(false);
       }
@@ -1315,6 +1348,7 @@ export function PublicBookingProvider({
       youngestChildAge,
       data.tenantId,
       closeDrawer,
+      refreshPublicInit,
     ]
   );
 

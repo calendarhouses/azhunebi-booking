@@ -5,7 +5,8 @@ import type { IcalExportBooking } from "@/lib/ical/export";
 import { normalizeIcalSyncSettings } from "@/lib/ical/settings";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+/** Allow short ISR-style caching alongside CDN s-maxage. */
+export const revalidate = 300;
 
 type Ctx = { params: Promise<{ roomId: string }> };
 
@@ -60,7 +61,8 @@ export async function GET(request: Request, context: Ctx) {
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
         "Content-Disposition": `inline; filename="room-${roomId}.ics"`,
-        "Cache-Control": "no-store, max-age=0",
+        // Short CDN cache — OTA pollers share one Function Invocation per room/secret.
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60",
       },
     });
   } catch (err) {

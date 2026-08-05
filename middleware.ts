@@ -138,7 +138,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Only UI routes that need host rewrite / auth redirects — skip /api, assets, RSC noise on other paths.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\..*).*)",
+    "/",
+    "/book/:path*",
+    "/admin/:path*",
+    "/login",
+    "/register",
+    "/pay/:path*",
+    "/invite/:path*",
+    "/maintenance",
   ],
 };

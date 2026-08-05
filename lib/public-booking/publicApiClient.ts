@@ -1,10 +1,35 @@
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
-import { createBooking, fetchInitData } from "@/lib/gas-api";
+import { createBooking } from "@/lib/gas-api";
 
+export type FetchPublicInitOptions = {
+  /** Bypass CDN + Data Cache after overbooking / mutation. */
+  fresh?: boolean;
+};
+
+/**
+ * Public catalog init — dedicated cached route (5 min), not /api/gas.
+ * Use `{ fresh: true }` when availability must be current (e.g. OVERLAP).
+ */
 export async function fetchPublicInitData(
-  tenantId: string
+  tenantId: string,
+  options?: FetchPublicInitOptions
 ): Promise<AdminInitResponse> {
-  return fetchInitData(tenantId);
+  const qs = new URLSearchParams({
+    tenant_id: tenantId || "default",
+  });
+  if (options?.fresh) qs.set("fresh", "1");
+
+  const res = await fetch(`/api/public/init?${qs.toString()}`, {
+    cache: options?.fresh ? "no-store" : "default",
+  });
+  const data = (await res.json()) as AdminInitResponse & {
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `HTTP ${res.status}`);
+  }
+  return data;
 }
 
 export type SubmitBookingPayload = Record<string, unknown> & {
