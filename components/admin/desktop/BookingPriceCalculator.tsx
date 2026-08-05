@@ -189,8 +189,8 @@ export function BookingPriceCalculator({
   const [surchargeMethod, setSurchargeMethod] = useState(initialSurchargeMethod);
   const [manualDiscountAmounts, setManualDiscountAmounts] = useState<Record<string, number>>({});
   const [editedDiscountIds, setEditedDiscountIds] = useState<Set<string>>(() => new Set());
-  /** Keep saved/custom total against autoTotal clears until user edits lines/dates. */
-  const holdTotalOverrideRef = useRef(false);
+  /** True only after the admin types into «До сплати» this session — never from DB hydrate. */
+  const sessionTotalEditedRef = useRef(false);
   const pricingHydratedKeyRef = useRef<string | null>(null);
   const prevStructuralKeyRef = useRef<string | null>(null);
 
@@ -229,7 +229,8 @@ export function BookingPriceCalculator({
   useLayoutEffect(() => {
     if (editingRow == null) {
       pricingHydratedKeyRef.current = null;
-      holdTotalOverrideRef.current = false;
+      sessionTotalEditedRef.current = false;
+      setTotalOverride(null);
       return;
     }
     if (!savedBooking) return;
@@ -249,7 +250,6 @@ export function BookingPriceCalculator({
     const dayGuest = numOrNull(savedBooking.dayGuestFee);
     const early = numOrNull(savedBooking.earlyFee);
     const late = numOrNull(savedBooking.lateFee);
-    const total = numOrNull(savedBooking.totalPrice);
 
     setManual({
       base,
@@ -270,17 +270,10 @@ export function BookingPriceCalculator({
       early: early ?? prev.early,
       late: late ?? prev.late,
     }));
-    if (total != null && total > 0) {
-      holdTotalOverrideRef.current = true;
-      setTotalOverride(total);
-    } else if (base != null && base > 0) {
-      // Recover from a prior zero-total bug: keep base, let autoTotal rebuild.
-      holdTotalOverrideRef.current = false;
-      setTotalOverride(null);
-    } else if (total != null) {
-      holdTotalOverrideRef.current = true;
-      setTotalOverride(Math.max(0, total));
-    }
+    // Never hydrate sticky total from DB — stale totalPrice after clearing a
+    // discount (e.g. 6960 left after 20%→0) must not override base − discount.
+    sessionTotalEditedRef.current = false;
+    setTotalOverride(null);
     prevFormRef.current = {
       checkIn: form.checkIn,
       checkOut: form.checkOut,
@@ -307,7 +300,7 @@ export function BookingPriceCalculator({
 
   useEffect(() => {
     if (form.cottage === "Нерозподілені" && savedBooking) {
-      holdTotalOverrideRef.current = true;
+      sessionTotalEditedRef.current = true;
       setTotalOverride(Number(savedBooking.totalPrice) || 0);
     }
   }, [form.cottage, savedBooking]);
@@ -409,7 +402,7 @@ export function BookingPriceCalculator({
     if (editingRow == null) {
       prevFormRef.current = null;
       pricingHydratedKeyRef.current = null;
-      holdTotalOverrideRef.current = false;
+      sessionTotalEditedRef.current = false;
       prevStructuralKeyRef.current = null;
       setManual({
         base: null,
@@ -691,9 +684,8 @@ export function BookingPriceCalculator({
   ]);
 
   /**
-   * Sticky saved total (holdTotalOverrideRef) must NOT block discount-driven
-   * recalculation — otherwise «До сплати» stays at the old total while
-   * discountAmount updates (e.g. 50% off → amount ok, total stuck at 7830).
+   * Discount edits always re-bind «До сплати» to derived autoTotal.
+   * Session-only totalOverride (typed by admin) is cleared.
    */
   const discountTotalSig = `${instantDiscount}|${discountBreakdown.discountSum}|${effectivePostLateDiscount}|${editedDiscountIds.size}`;
   const prevDiscountTotalSigRef = useRef<string | null>(null);
@@ -710,19 +702,13 @@ export function BookingPriceCalculator({
     }
     if (prevDiscountTotalSigRef.current === discountTotalSig) return;
     prevDiscountTotalSigRef.current = discountTotalSig;
-    holdTotalOverrideRef.current = false;
+    sessionTotalEditedRef.current = false;
     setTotalOverride(null);
   }, [discountTotalSig, isInitialLoad]);
 
-  useEffect(() => {
-    if (isInitialLoad) return;
-    if (holdTotalOverrideRef.current) return;
-    setTotalOverride(null);
-  }, [autoTotal, isInitialLoad]);
-
   const structuralKey = `${form.checkIn}|${form.checkOut}|${form.cottage}|${form.roomId ?? ""}`;
 
-  // Drop sticky saved total / manual locks only when stay structure actually changes.
+  // Drop session total / manual line locks when stay structure actually changes.
   useEffect(() => {
     if (prevStructuralKeyRef.current === null) {
       prevStructuralKeyRef.current = structuralKey;
@@ -731,7 +717,7 @@ export function BookingPriceCalculator({
     if (prevStructuralKeyRef.current === structuralKey) return;
     prevStructuralKeyRef.current = structuralKey;
     if (isInitialLoad) return;
-    holdTotalOverrideRef.current = false;
+    sessionTotalEditedRef.current = false;
     setTotalOverride(null);
     setManual((prev) => ({
       ...prev,
@@ -744,21 +730,9 @@ export function BookingPriceCalculator({
     }));
   }, [structuralKey, isInitialLoad]);
 
-  const hasManualDiscountEdits =
-    editedDiscountIds.size > 0 ||
-    manual.discountEdited ||
-    instantDiscount > 0 ||
-    postLateDiscountOverride != null;
-
-  // Derived: base stack − discounts (+ extras). Sticky override only when
-  // the user has not touched discounts this session / load.
-  const displayTotal = hasManualDiscountEdits
-    ? autoTotal
-    : totalOverride !== null
-      ? totalOverride
-      : isInitialLoad
-        ? computed.totalPrice
-        : autoTotal;
+  // «До сплати» = base − discounts (+ extras), unless admin typed a custom
+  // total in this session. Never trust stale DB totalPrice on reopen.
+  const displayTotal = totalOverride !== null ? totalOverride : autoTotal;
 
   const prepayPolicy = useMemo(
     () => readPrepaymentPolicy((settings.branding || {}) as PublicBranding),
@@ -963,22 +937,14 @@ export function BookingPriceCalculator({
         discountOverrides[line.discount.id] = clampDiscountAmount(manualAmt, maxForLine);
       }
       const discountResult = applyManualDiscountOverrides(autoDisc, discountOverrides);
-      const total =
-        discountResult.total +
-        lines.pet +
-        lines.dayGuest +
-        lines.early +
-        lines.late -
-        instantDiscount -
-        effectivePostLateDiscount;
       setManualLines((m) => ({
         ...m,
         ...overrides,
         discount: discountResult.discountSum + instantDiscount + effectivePostLateDiscount,
       }));
-      // Line edits define a new formula total — stop holding a stale saved override.
-      holdTotalOverrideRef.current = false;
-      setTotalOverride(total);
+      // Line edits redefine the formula — drop any session-typed total override.
+      sessionTotalEditedRef.current = false;
+      setTotalOverride(null);
     },
     [
       autoDiscounts,
@@ -1352,7 +1318,7 @@ export function BookingPriceCalculator({
             id="adminTotalPriceInput"
             value={Math.max(0, Math.round(Number(displayTotal) || 0))}
             onValueChange={(n) => {
-              holdTotalOverrideRef.current = true;
+              sessionTotalEditedRef.current = true;
               setTotalOverride(Math.max(0, Math.round(n)));
             }}
             style={{
