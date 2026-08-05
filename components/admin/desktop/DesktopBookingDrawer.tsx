@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { MobileSheetHeader } from "../mobile/MobileSheetHeader";
 import { useMobileUi } from "../mobile/MobileUiContext";
 import { BookingPriceCalculator } from "./BookingPriceCalculator";
-import { BookingGuestsAndServicesFields } from "./BookingGuestsAndServicesFields";
+import { BookingGuestsAndServicesFields, BookingGuestOccupancyFields } from "./BookingGuestsAndServicesFields";
 import { BookingSpecialTariffsFields } from "./BookingSpecialTariffsFields";
 import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
@@ -413,6 +413,17 @@ export function DesktopBookingDrawer({
                     onChange={(e) => drawer.patchForm({ comment: e.target.value })}
                   />
                 </div>
+                <BookingGuestOccupancyFields
+                  adults={form.guests}
+                  children={form.children}
+                  youngestChildAge={form.youngestChildAge}
+                  maxOccupants={drawer.maxOccupants}
+                  showChildren={drawer.showChildren}
+                  childrenPolicyMessage={drawer.childrenPolicyMessage}
+                  onChangeAdults={drawer.changeGuests}
+                  onChangeChildren={drawer.changeChildren}
+                  onChangeYoungestChildAge={drawer.changeYoungestChildAge}
+                />
               </div>
             </div>
 
@@ -453,17 +464,8 @@ export function DesktopBookingDrawer({
               </div>
               <div className="form-grid">
                 <BookingGuestsAndServicesFields
-                  adults={form.guests}
-                  children={form.children}
-                  youngestChildAge={form.youngestChildAge}
-                  maxOccupants={drawer.maxOccupants}
-                  showChildren={drawer.showChildren}
-                  childrenPolicyMessage={drawer.childrenPolicyMessage}
                   selectedServices={form.selectedServices}
                   availableServices={drawer.availableServices}
-                  onChangeAdults={drawer.changeGuests}
-                  onChangeChildren={drawer.changeChildren}
-                  onChangeYoungestChildAge={drawer.changeYoungestChildAge}
                   onSetServiceQty={drawer.setServiceQty}
                 />
                 <BookingSpecialTariffsFields

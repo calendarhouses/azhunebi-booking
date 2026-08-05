@@ -26,7 +26,6 @@ function SpecialTariffRow({
     <div className={`booking-additional-services__item${active ? " is-active" : ""}`}>
       <div>
         <p className="booking-additional-services__name">{label}</p>
-        <p className="booking-additional-services__price">Спеціальний тариф для гостя</p>
       </div>
       <div className="mode-toggle booking-additional-services__toggle">
         <button

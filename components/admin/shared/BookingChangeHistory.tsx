@@ -110,7 +110,7 @@ export function BookingChangeHistory({ orderId }: Props) {
   const count = items.length;
 
   return (
-    <section className="booking-change-history" aria-label="Історія змін">
+    <section className="booking-change-history" aria-label="Журнал змін">
       <button
         type="button"
         className="booking-change-history__toggle"
@@ -118,7 +118,7 @@ export function BookingChangeHistory({ orderId }: Props) {
         aria-expanded={open}
       >
         <span className="booking-change-history__title-wrap">
-          <span className="booking-change-history__title">Історія змін</span>
+          <span className="booking-change-history__title">Журнал змін</span>
           {showCount && count > 0 ? (
             <span className="booking-change-history__badge" aria-label={`${count} змін`}>
               {count}

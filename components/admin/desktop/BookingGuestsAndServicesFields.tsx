@@ -3,7 +3,6 @@
 import type { CSSProperties } from "react";
 import type { CustomServiceConfig } from "./types";
 import {
-  formatServicePriceHint,
   getServiceQty,
   MAX_CHILD_AGE,
   serviceInputType,
@@ -21,7 +20,7 @@ const COUNTER_WRAP: CSSProperties = {
 };
 
 const COUNTER_BTN_MINUS: CSSProperties = {
-  width: 50,
+  width: 44,
   height: "100%",
   display: "flex",
   alignItems: "center",
@@ -30,13 +29,13 @@ const COUNTER_BTN_MINUS: CSSProperties = {
   color: "#DC2626",
   border: "none",
   borderRight: "1px solid #FECACA",
-  fontSize: 24,
+  fontSize: 22,
   fontWeight: 600,
   cursor: "pointer",
 };
 
 const COUNTER_BTN_PLUS: CSSProperties = {
-  width: 50,
+  width: 44,
   height: "100%",
   display: "flex",
   alignItems: "center",
@@ -45,7 +44,7 @@ const COUNTER_BTN_PLUS: CSSProperties = {
   color: "#059669",
   border: "none",
   borderLeft: "1px solid #A7F3D0",
-  fontSize: 22,
+  fontSize: 20,
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -71,7 +70,7 @@ function GuestCounter({
 }) {
   const atMax = max != null && value >= max;
   return (
-    <div className="form-group">
+    <div className="form-group booking-guest-count">
       <label>{label}</label>
       <div style={COUNTER_WRAP}>
         <button type="button" onClick={onDecrement} style={COUNTER_BTN_MINUS} disabled={value <= min}>
@@ -90,10 +89,12 @@ function GuestCounter({
             border: "none",
             fontSize: 16,
             fontWeight: 700,
+            minWidth: 0,
+            width: 0,
           }}
         />
         {suffix ? (
-          <span style={{ paddingRight: 10, fontSize: 13, fontWeight: 650, color: "#57534e" }}>
+          <span style={{ paddingRight: 8, fontSize: 12, fontWeight: 650, color: "#57534e" }}>
             {suffix}
           </span>
         ) : null}
@@ -117,8 +118,6 @@ function ServiceRow({
   const active = quantity > 0;
   const isCounter = serviceInputType(service) === "counter";
   const maxQty = Math.max(1, Number(service.maxQuantity) || 10);
-  const hint = service.description?.trim() || formatServicePriceHint(service);
-  const pendingLabel = service.requiresApproval ? " · очікує підтвердження" : "";
 
   return (
     <div className={`booking-additional-services__item${active ? " is-active" : ""}`}>
@@ -128,10 +127,6 @@ function ServiceRow({
           {service.requiresApproval ? (
             <span className="booking-additional-services__badge">Запит</span>
           ) : null}
-        </p>
-        <p className="booking-additional-services__price">
-          {hint}
-          {pendingLabel}
         </p>
       </div>
       {isCounter ? (
@@ -183,19 +178,17 @@ function ServiceRow({
   );
 }
 
-export function BookingGuestsAndServicesFields({
+/** Лічильники дорослих/дітей — один рядок під коментарем у блоці «Гість». */
+export function BookingGuestOccupancyFields({
   adults,
   children,
   youngestChildAge,
   maxOccupants,
   showChildren,
   childrenPolicyMessage,
-  selectedServices,
-  availableServices,
   onChangeAdults,
   onChangeChildren,
   onChangeYoungestChildAge,
-  onSetServiceQty,
 }: {
   adults: number;
   children: number;
@@ -203,29 +196,26 @@ export function BookingGuestsAndServicesFields({
   maxOccupants: number;
   showChildren: boolean;
   childrenPolicyMessage?: string | null;
-  selectedServices: ServiceSelectionMap;
-  availableServices: CustomServiceConfig[];
   onChangeAdults: (delta: number) => void;
   onChangeChildren: (delta: number) => void;
   onChangeYoungestChildAge: (delta: number) => void;
-  onSetServiceQty: (serviceId: number, qty: number) => void;
 }) {
   const maxAdults = Math.max(1, maxOccupants - children);
   const maxChildren = Math.max(0, maxOccupants - adults);
 
   return (
     <>
-      <GuestCounter
-        id="adminGuests"
-        label="Дорослі:"
-        value={adults}
-        min={1}
-        max={maxAdults}
-        onDecrement={() => onChangeAdults(-1)}
-        onIncrement={() => onChangeAdults(1)}
-      />
-      {showChildren ? (
-        <>
+      <div className="booking-guest-counts">
+        <GuestCounter
+          id="adminGuests"
+          label="Дорослі:"
+          value={adults}
+          min={1}
+          max={maxAdults}
+          onDecrement={() => onChangeAdults(-1)}
+          onIncrement={() => onChangeAdults(1)}
+        />
+        {showChildren ? (
           <GuestCounter
             id="adminChildren"
             label="Діти:"
@@ -235,28 +225,26 @@ export function BookingGuestsAndServicesFields({
             onDecrement={() => onChangeChildren(-1)}
             onIncrement={() => onChangeChildren(1)}
           />
-          {children > 0 ? (
-            <GuestCounter
-              id="adminYoungestChildAge"
-              label="Наймолодшій дитині (років):"
-              value={youngestChildAge}
-              min={0}
-              max={MAX_CHILD_AGE}
-              suffix="р."
-              onDecrement={() => onChangeYoungestChildAge(-1)}
-              onIncrement={() => onChangeYoungestChildAge(1)}
-            />
-          ) : (
-            <input type="hidden" id="adminYoungestChildAge" value={String(youngestChildAge)} readOnly />
-          )}
-        </>
-      ) : (
-        <>
+        ) : (
           <input type="hidden" id="adminChildren" value="0" readOnly />
-          <input type="hidden" id="adminYoungestChildAge" value="0" readOnly />
-        </>
+        )}
+      </div>
+      {showChildren && children > 0 ? (
+        <div style={{ gridColumn: "1 / -1" }}>
+          <GuestCounter
+            id="adminYoungestChildAge"
+            label="Наймолодшій дитині (років):"
+            value={youngestChildAge}
+            min={0}
+            max={MAX_CHILD_AGE}
+            suffix="р."
+            onDecrement={() => onChangeYoungestChildAge(-1)}
+            onIncrement={() => onChangeYoungestChildAge(1)}
+          />
+        </div>
+      ) : (
+        <input type="hidden" id="adminYoungestChildAge" value={String(youngestChildAge)} readOnly />
       )}
-
       {childrenPolicyMessage ? (
         <div
           className="form-group"
@@ -278,7 +266,22 @@ export function BookingGuestsAndServicesFields({
           </p>
         </div>
       ) : null}
+    </>
+  );
+}
 
+/** Додаткові послуги (+ приховані legacy-поля pets/dayGuests/vat). */
+export function BookingGuestsAndServicesFields({
+  selectedServices,
+  availableServices,
+  onSetServiceQty,
+}: {
+  selectedServices: ServiceSelectionMap;
+  availableServices: CustomServiceConfig[];
+  onSetServiceQty: (serviceId: number, qty: number) => void;
+}) {
+  return (
+    <>
       <input type="hidden" id="adminPets" value="Ні" readOnly />
       <input type="hidden" id="adminDayGuests" value="0" readOnly />
       <input type="hidden" id="adminVat" value="Ні" readOnly />

@@ -2695,26 +2695,28 @@
         .booking-color-picker {
             margin-top: 0;
         }
-        .booking-color-picker .booking-form-section-heading {
-            margin-bottom: 12px;
-        }
         .booking-color-picker__row {
             display: flex;
             flex-wrap: nowrap;
             align-items: center;
-            gap: 10px;
+            gap: 5px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
         .booking-color-picker__swatch {
-            width: 28px;
-            height: 28px;
-            min-width: 28px;
-            min-height: 28px;
+            flex: 1 1 0;
+            width: auto;
+            height: auto;
+            min-width: 0;
+            max-width: 28px;
+            aspect-ratio: 1;
             border-radius: 999px;
             border: 2px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
             cursor: pointer;
             padding: 0;
-            flex-shrink: 0;
             touch-action: manipulation;
             -webkit-user-drag: none;
             user-select: none;
@@ -2730,7 +2732,7 @@
         .booking-color-picker__swatch--clear {
             background: #F9FAFB;
             color: #6B7280;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             line-height: 1;
             display: inline-flex;
@@ -2852,6 +2854,17 @@
             max-width: 640px;
         }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .booking-guest-counts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+        .booking-guest-counts .booking-guest-count {
+            margin-bottom: 0;
+            min-width: 0;
+        }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 13px; font-weight: 500; color: #4B5563; margin-bottom: 6px; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #D1D5DB; border-radius: 10px; font-size: 14px; outline: none; background: #FAFAFA; font-family: inherit; transition: 0.2s;}

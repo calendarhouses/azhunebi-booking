@@ -1008,20 +1008,27 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   flex-wrap: nowrap;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
-  overflow: visible;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   touch-action: manipulation;
 }
 .boso-admin-mobile .booking-color-picker__swatch {
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  min-height: 26px;
-  flex: 0 0 26px;
+  flex: 1 1 0;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  max-width: 24px;
+  min-height: 0;
+  aspect-ratio: 1;
   touch-action: manipulation;
   -webkit-user-drag: none;
   user-select: none;
+}
+.boso-admin-mobile .booking-color-picker__swatch--clear {
+  font-size: 12px;
 }
 .flatpickr-calendar { z-index: 10050 !important; }
 .drawer .flatpickr-input[readonly] { cursor: pointer; background: #fff; }
@@ -1388,6 +1395,20 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     display: block;
 }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.booking-guest-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.booking-guest-counts .booking-guest-count {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.boso-admin-mobile .booking-guest-counts .booking-guest-count label {
+  font-size: 13px;
+}
 /* --- Бронювання: ціни та оплата --- */
 .boso-admin-mobile .price-edit-wrapper {
     display: inline-flex;
