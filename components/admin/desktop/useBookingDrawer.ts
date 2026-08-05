@@ -262,6 +262,8 @@ export function useBookingDrawer({
       basePrice: number;
       discountAmount: number;
     } | null) => {
+      // Do not patch the chessboard card while opening — that caused a price flash.
+      // Only heal stale DB total in the background; update the card after a successful write.
       if (!snapshot || !setBookings) return;
       const editingKey = editingRowRef.current;
       if (editingKey == null) return;
@@ -271,29 +273,6 @@ export function useBookingDrawer({
       const existing = findBookingByKey(editingKey);
       const storedTotal = Math.round(Number(existing?.totalPrice) || 0);
 
-      setBookings((prev) =>
-        prev.map((b) => {
-          if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
-            return b;
-          }
-          if (
-            Math.round(Number(b.totalPrice) || 0) === total &&
-            Math.round(Number(b.basePrice) || 0) === base &&
-            Math.round(Number(b.discountAmount) || 0) === discount
-          ) {
-            return b;
-          }
-          return {
-            ...b,
-            totalPrice: total,
-            basePrice: base,
-            discountAmount: discount,
-          };
-        })
-      );
-
-      // Persist formula total when DB/local still has a stale discounted total
-      // (e.g. 7830 left after discount→0). Debounce so hydrate can settle.
       if (total <= 0 || storedTotal === total || !existing) return;
       const healKey = `${editingKey}:${total}:${discount}`;
       if (financeHealKeyRef.current === healKey) return;
@@ -330,7 +309,6 @@ export function useBookingDrawer({
               totalPrice: total,
               basePrice: base,
               discountAmount: discount,
-              // Clear sticky manual discount when formula discount is 0
               manualDiscountAmount:
                 discount === 0 ? 0 : existing.manualDiscountAmount,
               extraGuestFee: existing.extraGuestFee,
@@ -341,7 +319,23 @@ export function useBookingDrawer({
             });
             if (json.error || json.success === false) {
               financeHealKeyRef.current = null;
+              return;
             }
+            // Patch grid only after persist — drawer already covers the card.
+            setBookings((prev) =>
+              prev.map((b) => {
+                if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
+                  return b;
+                }
+                return {
+                  ...b,
+                  totalPrice: total,
+                  basePrice: base,
+                  discountAmount: discount,
+                  ...(discount === 0 ? { manualDiscountAmount: 0 } : {}),
+                };
+              })
+            );
           } catch (err) {
             console.warn("[healBookingFinance] failed", err);
             financeHealKeyRef.current = null;
