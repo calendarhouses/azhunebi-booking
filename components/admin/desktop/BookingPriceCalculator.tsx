@@ -690,6 +690,30 @@ export function BookingPriceCalculator({
     manual.discountEdited,
   ]);
 
+  /**
+   * Sticky saved total (holdTotalOverrideRef) must NOT block discount-driven
+   * recalculation — otherwise «До сплати» stays at the old total while
+   * discountAmount updates (e.g. 50% off → amount ok, total stuck at 7830).
+   */
+  const discountTotalSig = `${instantDiscount}|${discountBreakdown.discountSum}|${effectivePostLateDiscount}|${editedDiscountIds.size}`;
+  const prevDiscountTotalSigRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    prevDiscountTotalSigRef.current = null;
+  }, [editingBookingId, editingRow]);
+
+  useEffect(() => {
+    if (isInitialLoad) return;
+    if (prevDiscountTotalSigRef.current === null) {
+      prevDiscountTotalSigRef.current = discountTotalSig;
+      return;
+    }
+    if (prevDiscountTotalSigRef.current === discountTotalSig) return;
+    prevDiscountTotalSigRef.current = discountTotalSig;
+    holdTotalOverrideRef.current = false;
+    setTotalOverride(null);
+  }, [discountTotalSig, isInitialLoad]);
+
   useEffect(() => {
     if (isInitialLoad) return;
     if (holdTotalOverrideRef.current) return;
@@ -720,12 +744,19 @@ export function BookingPriceCalculator({
     }));
   }, [structuralKey, isInitialLoad]);
 
-  const hasManualDiscountEdits = editedDiscountIds.size > 0 || manual.discountEdited || instantDiscount > 0;
+  const hasManualDiscountEdits =
+    editedDiscountIds.size > 0 ||
+    manual.discountEdited ||
+    instantDiscount > 0 ||
+    postLateDiscountOverride != null;
 
-  const displayTotal =
-    totalOverride !== null
+  // Derived: base stack − discounts (+ extras). Sticky override only when
+  // the user has not touched discounts this session / load.
+  const displayTotal = hasManualDiscountEdits
+    ? autoTotal
+    : totalOverride !== null
       ? totalOverride
-      : isInitialLoad && !hasManualDiscountEdits
+      : isInitialLoad
         ? computed.totalPrice
         : autoTotal;
 
