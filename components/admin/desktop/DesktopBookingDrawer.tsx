@@ -10,7 +10,7 @@ import { BookingPromoCodeField } from "./BookingPromoCodeField";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
 import { BookingColorPicker } from "./BookingColorPicker";
 import { BookingStayRangeCalendar } from "./BookingStayRangeCalendar";
-import { BookingNightlyBreakdown, buildNightlyPriceLines } from "./BookingNightlyBreakdown";
+import { buildNightlyPriceLines } from "./BookingNightlyBreakdown";
 import {
   applyNightlyPriceOverrides,
   hasNightlyPriceOverrides,
@@ -450,18 +450,6 @@ export function DesktopBookingDrawer({
                 />
                 <input type="hidden" id="adminCheckIn" value={form.checkIn} readOnly required />
                 <input type="hidden" id="adminCheckOut" value={form.checkOut} readOnly required />
-                <BookingNightlyBreakdown
-                  checkIn={form.checkIn}
-                  checkOut={form.checkOut}
-                  room={selectedRoom}
-                  customPrices={settings.customPrices}
-                  priceOverrides={nightlyPriceOverrides}
-                  onPriceChange={handleNightlyPriceChange}
-                  discountAmount={instantDiscountAmount}
-                  discountPercent={instantDiscountPercent}
-                  onDiscountAmountChange={handleInstantDiscountAmountChange}
-                  onDiscountPercentChange={handleInstantDiscountPercentChange}
-                />
               </div>
               <div className="form-grid">
                 <BookingGuestsAndServicesFields
@@ -610,7 +598,12 @@ export function DesktopBookingDrawer({
                 initialSurchargeMethod={drawer.initialPayment.surchargeMethod}
                 nightlyBaseSum={nightlyOverridesActive ? nightlyBaseSum : null}
                 onClearNightlyPriceOverrides={clearNightlyPriceOverrides}
+                nightlyPriceOverrides={nightlyPriceOverrides}
+                onNightlyPriceChange={handleNightlyPriceChange}
                 instantDiscountAmount={instantDiscountAmount}
+                instantDiscountPercent={instantDiscountPercent}
+                onInstantDiscountAmountChange={handleInstantDiscountAmountChange}
+                onInstantDiscountPercentChange={handleInstantDiscountPercentChange}
                 onInstantDiscountHydrate={hydrateInstantDiscount}
               />
               )}

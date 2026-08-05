@@ -4,8 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { Clock3, Home, PawPrint, Percent, Tag, Users } from "lucide-react";
 import { BookingQuickEditDrawer } from "../mobile/BookingQuickEditDrawer";
 import { BookingFormSectionHeading } from "./BookingFormSectionHeading";
+import { BookingNightlyBreakdown, buildNightlyPriceLines } from "./BookingNightlyBreakdown";
 import { useMobileUi } from "../mobile/MobileUiContext";
-import { HOLDING_ROOM } from "./timelineBookingMove";
+import { HOLDING_ROOM, HOLDING_ROOM_ID } from "./timelineBookingMove";
 import { nightWord } from "./adminPlural";
 import { showToast } from "./adminGlobals";
 import { findRoomForBooking } from "./bookingUtils";
@@ -96,7 +97,12 @@ export interface BookingPriceCalculatorProps {
   /** Сума базової вартості з розбивки по ночах (коли адмін редагує окремі дати). */
   nightlyBaseSum?: number | null;
   onClearNightlyPriceOverrides?: () => void;
+  nightlyPriceOverrides?: Record<string, number>;
+  onNightlyPriceChange?: (dateKey: string, price: number) => void;
   instantDiscountAmount?: number;
+  instantDiscountPercent?: number;
+  onInstantDiscountAmountChange?: (value: number) => void;
+  onInstantDiscountPercentChange?: (value: number) => void;
   onInstantDiscountHydrate?: (amount: number) => void;
 }
 
@@ -139,7 +145,12 @@ export function BookingPriceCalculator({
   bookingStatus = "Очікує оплату",
   nightlyBaseSum = null,
   onClearNightlyPriceOverrides,
+  nightlyPriceOverrides = {},
+  onNightlyPriceChange,
   instantDiscountAmount = 0,
+  instantDiscountPercent = 0,
+  onInstantDiscountAmountChange,
+  onInstantDiscountPercentChange,
   onInstantDiscountHydrate,
 }: BookingPriceCalculatorProps) {
   const isMobile = useMobileUi();
@@ -1008,10 +1019,20 @@ export function BookingPriceCalculator({
       ? { color: "#059669", background: "#D1FAE5", borderColor: "#A7F3D0" }
       : { color: "#DC2626", background: "#FEE2E2", borderColor: "#FECACA" };
   const balanceText = balance <= 0 ? "Оплачено повністю (0 грн)" : `${balance} грн`;
+  const pricingRoom =
+    room && Number(room.id) !== HOLDING_ROOM_ID ? room : undefined;
+  const hasNightlyLines =
+    Boolean(onNightlyPriceChange) &&
+    buildNightlyPriceLines(
+      form.checkIn,
+      form.checkOut,
+      pricingRoom,
+      settings.customPrices
+    ).length > 0;
 
   return (
     <>
-    <div className="form-section" style={{ background: "#FDFCFB", borderColor: "var(--accent)" }}>
+    <div className="form-section booking-price-story" style={{ background: "#FDFCFB", borderColor: "var(--accent)" }}>
       {computed.postLateGapNoticeHtml ? (
         <div
           className="admin-postlate-notice"
@@ -1034,9 +1055,33 @@ export function BookingPriceCalculator({
       ) : null}
       <BookingFormSectionHeading
         accent
-        title={`Розшифровка · ${computed.nights} ${nightWord(computed.nights)}`}
+        title={`Вартість · ${computed.nights} ${nightWord(computed.nights)}`}
+        description="Ночі, знижки й доплати — в одному місці"
       />
 
+      {hasNightlyLines ? (
+        <BookingNightlyBreakdown
+          checkIn={form.checkIn}
+          checkOut={form.checkOut}
+          room={pricingRoom}
+          customPrices={settings.customPrices}
+          priceOverrides={nightlyPriceOverrides}
+          onPriceChange={onNightlyPriceChange}
+          discountAmount={instantDiscountAmount}
+          discountPercent={instantDiscountPercent}
+          onDiscountAmountChange={onInstantDiscountAmountChange}
+          onDiscountPercentChange={onInstantDiscountPercentChange}
+          variant="embedded"
+          showTotal={false}
+        />
+      ) : null}
+
+      <div className={`booking-price-story__adjust${hasNightlyLines ? "" : " booking-price-story__adjust--solo"}`}>
+        {hasNightlyLines ? (
+          <div className="booking-price-story__adjust-label">Доплати та акції</div>
+        ) : null}
+
+      {!hasNightlyLines ? (
       <PriceLine
         label="Базова вартість:"
         icon={iconBase}
@@ -1051,6 +1096,7 @@ export function BookingPriceCalculator({
           onManualRecalc(false, { base: v });
         }}
       />
+      ) : null}
       {computed.extraGuestFee > 0 ? (
         <PriceLine
           label="Дод. гості:"
@@ -1258,6 +1304,7 @@ export function BookingPriceCalculator({
             <span style={{ fontWeight: 700, fontSize: 13, color: "#1F2937" }}>Оплата на місці</span>
           </div>
         ))}
+      </div>
 
       <div style={{ borderTop: "2px solid var(--accent)", paddingTop: 15, marginTop: 16 }}>
         <div className="form-group" style={{ marginBottom: 16 }}>

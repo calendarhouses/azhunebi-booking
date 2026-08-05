@@ -76,6 +76,15 @@ type BookingNightlyBreakdownProps = {
   discountPercent?: number;
   onDiscountAmountChange?: (value: number) => void;
   onDiscountPercentChange?: (value: number) => void;
+  /**
+   * `card` — окремий блок під календарем (legacy).
+   * `embedded` — частина єдиного блоку «Вартість» без другої рамки й без дубля «Загальна сума».
+   */
+  variant?: "card" | "embedded";
+  /** Показати рядок «Загальна сума» (для card за замовчуванням так, для embedded — ні). */
+  showTotal?: boolean;
+  /** Приховати внутрішній заголовок, якщо батько вже показує «Вартість · N ночей». */
+  hideHead?: boolean;
 };
 
 export function BookingNightlyBreakdown({
@@ -89,6 +98,9 @@ export function BookingNightlyBreakdown({
   discountPercent = 0,
   onDiscountAmountChange,
   onDiscountPercentChange,
+  variant = "card",
+  showTotal,
+  hideHead = false,
 }: BookingNightlyBreakdownProps) {
   const isMobile = useMobileUi();
   const [quickEdit, setQuickEdit] = useState<{
@@ -123,6 +135,8 @@ export function BookingNightlyBreakdown({
   const nights = lines.length;
   const editable = Boolean(onPriceChange);
   const discountEditable = Boolean(onDiscountAmountChange || onDiscountPercentChange);
+  const embedded = variant === "embedded";
+  const renderTotal = showTotal ?? !embedded;
 
   const handlePriceChange = (dateKey: string, price: number) => {
     onPriceChange?.(dateKey, Math.max(0, Math.round(price)));
@@ -130,13 +144,21 @@ export function BookingNightlyBreakdown({
 
   return (
     <>
-      <div className="booking-nightly-breakdown">
-        <div className="booking-nightly-breakdown__head">
-          <div className="booking-nightly-breakdown__title">Розбивка по датах</div>
-          <div className="booking-nightly-breakdown__count">
-            {nights} {nightWord(nights)}
+      <div
+        className={`booking-nightly-breakdown${
+          embedded ? " booking-nightly-breakdown--embedded" : ""
+        }`}
+      >
+        {!hideHead ? (
+          <div className="booking-nightly-breakdown__head">
+            <div className="booking-nightly-breakdown__title">
+              {embedded ? "По ночах" : "Розбивка по датах"}
+            </div>
+            <div className="booking-nightly-breakdown__count">
+              {nights} {nightWord(nights)}
+            </div>
           </div>
-        </div>
+        ) : null}
         <ul className="booking-nightly-breakdown__list">
           {lines.map((line) => (
             <li
@@ -237,12 +259,14 @@ export function BookingNightlyBreakdown({
             </div>
           </div>
         ) : null}
-        <div className="booking-nightly-breakdown__total">
-          <span className="booking-nightly-breakdown__total-label">Загальна сума</span>
-          <strong className="booking-nightly-breakdown__total-value">
-            {Math.round(total).toLocaleString("uk-UA")} грн
-          </strong>
-        </div>
+        {renderTotal ? (
+          <div className="booking-nightly-breakdown__total">
+            <span className="booking-nightly-breakdown__total-label">Загальна сума</span>
+            <strong className="booking-nightly-breakdown__total-value">
+              {Math.round(total).toLocaleString("uk-UA")} грн
+            </strong>
+          </div>
+        ) : null}
       </div>
 
       {isMobile && quickEdit && onPriceChange ? (

@@ -6,7 +6,7 @@ import { MessengerIcon } from "./MessengerButtons";
 
 type Props = {
   phone: string;
-  /** Call button — same as Guests mobile card; only needed on mobile. */
+  /** Call button — mobile booking details only. */
   showCall?: boolean;
 };
 
@@ -29,6 +29,7 @@ const iconPhoneAction = (
   </svg>
 );
 
+/** Same chrome as Telegram / WhatsApp — soft fill + 1px border + 600 weight. */
 const btnBase: CSSProperties = {
   fontWeight: 600,
   fontSize: 13,
@@ -39,11 +40,13 @@ const btnBase: CSSProperties = {
   textDecoration: "none",
   flex: 1,
   minWidth: 0,
+  padding: "8px 12px",
+  borderRadius: 8,
+  boxSizing: "border-box",
 };
 
 /**
  * Кнопки під полем «Телефон» у деталях броні.
- * Візуал 1:1 з розділом «Гості» (моб: Дзвінок / Telegram / WhatsApp).
  */
 export function BookingPhoneMessengerButtons({ phone, showCall = false }: Props) {
   const digits = normalizeGuestPhone(phone);
@@ -84,9 +87,14 @@ export function BookingPhoneMessengerButtons({ phone, showCall = false }: Props)
       {showCall ? (
         <a
           href={`tel:+${digits}`}
-          className="btn-action tap-btn boso-mobile-card__call"
+          className="btn-action tap-btn"
           aria-label="Зателефонувати"
-          style={btnBase}
+          style={{
+            ...btnBase,
+            background: "#F0FDF4",
+            color: "#15803D",
+            border: "1px solid #BBF7D0",
+          }}
         >
           {iconPhoneAction}
           Дзвінок
