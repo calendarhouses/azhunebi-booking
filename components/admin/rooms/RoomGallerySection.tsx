@@ -91,7 +91,7 @@ export function RoomGallerySection({
       }
     } else if (!pointerMovedRef.current && start !== null) {
       const url = photosRef.current[start.idx];
-      if (url) setLightboxUrl(toImageDisplaySrc(url));
+      if (url) setLightboxUrl(toImageDisplaySrc(url, 1080));
     }
 
     dragFromRef.current = null;
@@ -189,7 +189,7 @@ export function RoomGallerySection({
                 >
                   <div className="khata-room-gallery__thumb">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={toImageDisplaySrc(url)} alt={`Фото ${photoIdx + 1}`} draggable={false} referrerPolicy="no-referrer" />
+                    <img src={toImageDisplaySrc(url, 480)} alt={`Фото ${photoIdx + 1}`} draggable={false} referrerPolicy="no-referrer" loading="lazy" decoding="async" />
                     {isMain ? (
                       <span className="khata-room-gallery__main-tip">Основне фото</span>
                     ) : null}

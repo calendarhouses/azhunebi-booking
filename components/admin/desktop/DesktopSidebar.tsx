@@ -185,7 +185,7 @@ export function DesktopSidebar({
   const logoNode = logoPreviewUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={toImageDisplaySrc(logoPreviewUrl)}
+      src={toImageDisplaySrc(logoPreviewUrl, 480)}
       alt="Лого хати"
       className={collapsed ? "sidebar-collapsed-brand__img" : "sidebar-brand-widget__logo"}
       referrerPolicy="no-referrer"

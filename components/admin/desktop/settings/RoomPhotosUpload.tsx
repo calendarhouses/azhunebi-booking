@@ -52,7 +52,7 @@ export function RoomPhotosUpload({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={toImageDisplaySrc(url)}
+                src={toImageDisplaySrc(url, 480)}
                 alt=""
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 referrerPolicy="no-referrer"

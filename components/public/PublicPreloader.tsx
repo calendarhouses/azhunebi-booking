@@ -30,7 +30,7 @@ export function PublicPreloader({ visible, logoUrl, alt }: PublicPreloaderProps)
 
   if (!mounted) return null;
 
-  const src = logoUrl ? toImageDisplaySrc(logoUrl) : DEFAULT_LOGO_SRC;
+  const src = logoUrl ? toImageDisplaySrc(logoUrl, 480) : DEFAULT_LOGO_SRC;
   const label = String(alt || DEFAULT_LOGO_ALT).trim() || DEFAULT_LOGO_ALT;
 
   return (

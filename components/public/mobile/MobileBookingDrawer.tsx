@@ -12,6 +12,7 @@ import { BrandingMapSection } from "../BrandingMapSection";
 import { formatPriceUa, getRoomImages, getRoomMinPrice } from "@/lib/public-booking/roomHelpers";
 import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "../CabinSlideImage";
+import { shouldLoadSlide } from "@/lib/driveImageUrl";
 import { usePublicBooking } from "../PublicBookingProvider";
 import { BookingCheckoutSummary } from "../desktop/BookingCheckoutSummary";
 import { BookingFlexConflictAlert } from "../BookingFlexConflictAlert";
@@ -155,7 +156,17 @@ export function MobileBookingDrawer() {
               <div className="slider-track" id="track-detail" style={detailSliderTrackStyle}>
                 {images.map((url, i) => (
                   <div className="slide" key={i}>
-                    <CabinSlideImage src={url} alt={room.name} loading={i === 0 ? "eager" : "lazy"} />
+                    {shouldLoadSlide(i, detailSlide, images.length) ? (
+                      <CabinSlideImage
+                        src={url}
+                        alt={room.name}
+                        loading={i === detailSlide ? "eager" : "lazy"}
+                        fetchPriority={i === detailSlide ? "high" : "auto"}
+                        sizes="100vw"
+                      />
+                    ) : (
+                      <div className="slide-placeholder" aria-hidden />
+                    )}
                   </div>
                 ))}
               </div>

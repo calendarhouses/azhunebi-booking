@@ -21,7 +21,7 @@ export function AdminLogo({
 }) {
   // Never fall back to /images/logo.png (ХАТА) — use АЖ У НЕБІ preloader mark.
   const defaultSrc = ADMIN_PRELOADER_LOGO_SRC;
-  const src = logoUrl ? toImageDisplaySrc(logoUrl) : defaultSrc;
+  const src = logoUrl ? toImageDisplaySrc(logoUrl, 480) : defaultSrc;
   const label =
     String(alt || (variant === "preloader" ? ADMIN_PRELOADER_LOGO_ALT : "Логотип")).trim() ||
     ADMIN_PRELOADER_LOGO_ALT;

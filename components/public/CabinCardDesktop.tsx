@@ -8,7 +8,9 @@ import {
   getRoomMinPrice,
   getRoomSubtitle,
 } from "@/lib/public-booking/roomHelpers";
+import { shouldLoadSlide } from "@/lib/driveImageUrl";
 import { CabinFeatures } from "./CabinFeatures";
+import { CabinSlideImage } from "./CabinSlideImage";
 
 type Props = {
   room: PublicRoom;
@@ -16,7 +18,7 @@ type Props = {
 };
 
 export function CabinCardDesktop({ room, customPrices }: Props) {
-  const images = getRoomImages(room);
+  const images = getRoomImages(room, { card: true });
   const minPrice = getRoomMinPrice(room, customPrices);
   const [slideIndex, setSlideIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -61,8 +63,16 @@ export function CabinCardDesktop({ room, customPrices }: Props) {
         >
           {images.map((url, i) => (
             <div className="slide" key={`${room.id}-${i}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={room.name} loading="lazy" />
+              {shouldLoadSlide(i, slideIndex, images.length) ? (
+                <CabinSlideImage
+                  src={url}
+                  alt={room.name}
+                  loading={i === slideIndex ? "eager" : "lazy"}
+                  sizes="(max-width: 1200px) 50vw, 33vw"
+                />
+              ) : (
+                <div className="slide-placeholder" aria-hidden />
+              )}
             </div>
           ))}
         </div>

@@ -308,7 +308,7 @@ export function BrandingSettingsPanel({
               {logoPreviewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={toImageDisplaySrc(logoPreviewUrl)}
+                  src={toImageDisplaySrc(logoPreviewUrl, 480)}
                   alt="Логотип"
                   className="branding-logo-upload__img"
                   referrerPolicy="no-referrer"

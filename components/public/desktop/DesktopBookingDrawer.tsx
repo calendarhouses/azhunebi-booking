@@ -12,6 +12,7 @@ import { PublicRoomRulesSection } from "../PublicRoomRulesSection";
 import { formatPriceUa, getRoomImages, getRoomMinPrice } from "@/lib/public-booking/roomHelpers";
 import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "../CabinSlideImage";
+import { shouldLoadSlide } from "@/lib/driveImageUrl";
 import { usePublicBooking } from "../PublicBookingProvider";
 import { BookingCheckoutSummary } from "./BookingCheckoutSummary";
 import { BookingFlexConflictAlert } from "../BookingFlexConflictAlert";
@@ -101,7 +102,7 @@ export function DesktopBookingDrawer() {
   }
 
   const roomAsPublic = room as PublicRoom;
-  const images = getRoomImages(roomAsPublic);
+  const images = getRoomImages(roomAsPublic, { card: true });
   const minPrice = getRoomMinPrice(roomAsPublic, runtime?.customPrices || {});
   const branding = runtime?.branding || {};
   const nextFree = runtime ? getNextFreeForRoom(roomAsPublic) : "—";
@@ -131,7 +132,17 @@ export function DesktopBookingDrawer() {
               <div className="slider-track" id="track-detail" style={detailSliderTrackStyle}>
                 {images.map((url, i) => (
                   <div className="slide" key={i}>
-                    <CabinSlideImage src={url} alt={room.name} />
+                    {shouldLoadSlide(i, detailSlide, images.length) ? (
+                      <CabinSlideImage
+                        src={url}
+                        alt={room.name}
+                        loading={i === detailSlide ? "eager" : "lazy"}
+                        fetchPriority={i === detailSlide ? "high" : "auto"}
+                        sizes="(max-width: 1200px) 100vw, 960px"
+                      />
+                    ) : (
+                      <div className="slide-placeholder" aria-hidden />
+                    )}
                   </div>
                 ))}
               </div>

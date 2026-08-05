@@ -13,6 +13,7 @@ import {
 import { formatChildrenPolicyBadge } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "./CabinSlideImage";
+import { shouldLoadSlide } from "@/lib/driveImageUrl";
 
 type Props = {
   room: PublicRoom;
@@ -96,7 +97,16 @@ export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: P
         >
           {images.map((url, i) => (
             <div className="slide" key={`${room.id}-${i}`}>
-              <CabinSlideImage src={url} alt={room.name} loading="lazy" />
+              {shouldLoadSlide(i, slideIndex, images.length) ? (
+                <CabinSlideImage
+                  src={url}
+                  alt={room.name}
+                  loading={i === slideIndex ? "eager" : "lazy"}
+                  sizes="(max-width: 768px) 100vw, 100vw"
+                />
+              ) : (
+                <div className="slide-placeholder" aria-hidden />
+              )}
             </div>
           ))}
         </div>

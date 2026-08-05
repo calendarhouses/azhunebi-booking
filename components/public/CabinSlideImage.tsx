@@ -31,10 +31,18 @@ const baseStyle: CSSProperties = {
   display: "block",
 };
 
+/**
+ * Public cabin/gallery slide. Defaults to lazy decode.
+ * Pass `sizes` so browsers pick a sensible resource when srcset is present.
+ */
 export function CabinSlideImage({
   className = "",
   style,
   onLoad,
+  loading = "lazy",
+  decoding = "async",
+  sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw",
+  fetchPriority,
   ...props
 }: ImgHTMLAttributes<HTMLImageElement>) {
   const [objectFit, setObjectFit] = useState<ObjectFitMode>("contain");
@@ -49,6 +57,10 @@ export function CabinSlideImage({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       {...props}
+      loading={loading}
+      decoding={decoding}
+      sizes={sizes}
+      fetchPriority={fetchPriority}
       className={`cabin-slide-img${className ? ` ${className}` : ""}`}
       style={{ ...baseStyle, objectFit, ...style }}
       onLoad={(event) => {

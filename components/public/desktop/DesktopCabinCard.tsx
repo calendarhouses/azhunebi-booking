@@ -14,6 +14,7 @@ import {
 import { formatChildrenPolicyBadge } from "@/components/admin/desktop/settings/additionalServicesLogic";
 import { useSliderTrackStyle } from "@/lib/public-booking/useSliderTrackStyle";
 import { CabinSlideImage } from "../CabinSlideImage";
+import { shouldLoadSlide } from "@/lib/driveImageUrl";
 
 type Props = {
   room: PublicRoom;
@@ -70,18 +71,24 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
         <div className="slider-track" style={sliderTrackStyle}>
           {images.map((url, i) => (
             <div className="slide" key={i}>
-              <CabinSlideImage
-                src={url}
-                alt={room.name}
-                loading="lazy"
-                onError={(e) => {
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    parent.innerHTML =
-                      '<div class="slide-placeholder">🏡</div>';
-                  }
-                }}
-              />
+              {shouldLoadSlide(i, slideIndex, images.length) ? (
+                <CabinSlideImage
+                  src={url}
+                  alt={room.name}
+                  loading={i === slideIndex ? "eager" : "lazy"}
+                  fetchPriority={i === slideIndex ? "high" : "auto"}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  onError={(e) => {
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML =
+                        '<div class="slide-placeholder">🏡</div>';
+                    }
+                  }}
+                />
+              ) : (
+                <div className="slide-placeholder" aria-hidden />
+              )}
             </div>
           ))}
         </div>
