@@ -4,7 +4,6 @@ import type { CSSProperties } from "react";
 import type { CustomServiceConfig } from "./types";
 import {
   getServiceQty,
-  MAX_CHILD_AGE,
   serviceInputType,
   type ServiceSelectionMap,
 } from "./settings/additionalServicesLogic";
@@ -188,17 +187,16 @@ export function BookingGuestOccupancyFields({
   childrenPolicyMessage,
   onChangeAdults,
   onChangeChildren,
-  onChangeYoungestChildAge,
 }: {
   adults: number;
   children: number;
+  /** Kept in form for comment tokens / policy; no UI in booking details. */
   youngestChildAge: number;
   maxOccupants: number;
   showChildren: boolean;
   childrenPolicyMessage?: string | null;
   onChangeAdults: (delta: number) => void;
   onChangeChildren: (delta: number) => void;
-  onChangeYoungestChildAge: (delta: number) => void;
 }) {
   const maxAdults = Math.max(1, maxOccupants - children);
   const maxChildren = Math.max(0, maxOccupants - adults);
@@ -229,22 +227,7 @@ export function BookingGuestOccupancyFields({
           <input type="hidden" id="adminChildren" value="0" readOnly />
         )}
       </div>
-      {showChildren && children > 0 ? (
-        <div style={{ gridColumn: "1 / -1" }}>
-          <GuestCounter
-            id="adminYoungestChildAge"
-            label="Наймолодшій дитині (років):"
-            value={youngestChildAge}
-            min={0}
-            max={MAX_CHILD_AGE}
-            suffix="р."
-            onDecrement={() => onChangeYoungestChildAge(-1)}
-            onIncrement={() => onChangeYoungestChildAge(1)}
-          />
-        </div>
-      ) : (
-        <input type="hidden" id="adminYoungestChildAge" value={String(youngestChildAge)} readOnly />
-      )}
+      <input type="hidden" id="adminYoungestChildAge" value={String(youngestChildAge)} readOnly />
       {childrenPolicyMessage ? (
         <div
           className="form-group"

@@ -422,7 +422,6 @@ export function DesktopBookingDrawer({
                   childrenPolicyMessage={drawer.childrenPolicyMessage}
                   onChangeAdults={drawer.changeGuests}
                   onChangeChildren={drawer.changeChildren}
-                  onChangeYoungestChildAge={drawer.changeYoungestChildAge}
                 />
               </div>
             </div>
