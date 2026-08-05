@@ -356,7 +356,7 @@ export function DesktopBookingDrawer({
                       })
                     }
                   />
-                  <BookingPhoneMessengerButtons phone={form.phone} />
+                  <BookingPhoneMessengerButtons phone={form.phone} showCall={isMobile} />
                 </div>
                 <div className="form-group">
                   <label>Джерело:</label>
