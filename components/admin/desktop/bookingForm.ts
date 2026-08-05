@@ -196,8 +196,9 @@ export function collectBookingFromForm(
     totalPrice: (() => {
       const fromDom = getFormVal("adminTotalPrice");
       const fromSnap = Math.round(Number(pricingSnap?.totalPrice) || 0);
-      if (fromDom > 0) return fromDom;
-      return fromSnap > 0 ? fromSnap : fromDom;
+      // Snapshot is the calculator source of truth (derived base − discount).
+      if (fromSnap > 0) return fromSnap;
+      return fromDom;
     })(),
     prepayAmount: preserveExpectedPrepay
       ? Number(w._bookingExpectedPrepay) || 0
@@ -228,15 +229,23 @@ export function collectBookingFromForm(
     basePrice: (() => {
       const fromDom = getFormVal("manualBasePrice");
       const fromSnap = Math.round(Number(pricingSnap?.basePrice) || 0);
-      if (fromDom > 0) return fromDom;
-      return fromSnap > 0 ? fromSnap : fromDom;
+      if (fromSnap > 0) return fromSnap;
+      return fromDom;
     })(),
-    extraGuestFee: getFormVal("manualExtraGuest"),
+    extraGuestFee: (() => {
+      const fromSnap = Math.round(Number(pricingSnap?.extraGuestFee) || 0);
+      if (pricingSnap && fromSnap >= 0 && pricingSnap.extraGuestFee != null) return fromSnap;
+      return getFormVal("manualExtraGuest");
+    })(),
     petFee: getFormVal("manualPet"),
     dayGuestFee: getFormVal("manualDayGuest"),
     earlyFee: getFormVal("manualEarly"),
     lateFee: getFormVal("manualLate"),
-    discountAmount: getFormVal("manualDiscount"),
+    discountAmount: (() => {
+      const fromSnap = Math.round(Number(pricingSnap?.discountAmount) || 0);
+      if (pricingSnap && pricingSnap.discountAmount != null) return fromSnap;
+      return getFormVal("manualDiscount");
+    })(),
     manualDiscountAmount: getFormVal("manualDiscountAmount"),
     custom_color: (() => {
       const raw = getFormString("adminCustomColor").trim();

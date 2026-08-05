@@ -606,6 +606,7 @@ export function DesktopBookingDrawer({
                 onInstantDiscountAmountChange={handleInstantDiscountAmountChange}
                 onInstantDiscountPercentChange={handleInstantDiscountPercentChange}
                 onInstantDiscountHydrate={hydrateInstantDiscount}
+                onPricingSnapshotChange={drawer.applyPricingPreview}
               />
               )}
             </div>

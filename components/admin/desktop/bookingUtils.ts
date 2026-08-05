@@ -145,8 +145,8 @@ export function getBookingBadgeClass(booking: BookingRecord): string {
   return "new";
 }
 
-/** Сума на картці шахматки: жовтий «не оплачено», зелений «оплачено», червоний «борг».
- *  Неоплачена бронь показує ПОВНУ вартість (не суму передплати). */
+/** Сума на картці шахматки: жовтий «не оплачено» = повна вартість,
+ *  зелений «оплачено» = повна вартість, червоний «борг» = залишок (total − paid). */
 export function getTimelineFinBadge(
   booking: BookingRecord
 ): { text: string; bg: string; color: string } {

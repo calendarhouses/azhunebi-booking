@@ -237,21 +237,77 @@ export function useBookingDrawer({
   const drawerSessionSavedRef = useRef(false);
   const formRef = useRef(form);
   formRef.current = form;
+  /** Finance fields as opened — revert on cancel if not saved (like color preview). */
+  const openedFinanceRef = useRef<{
+    totalPrice: number | string | undefined;
+    basePrice: number | string | undefined;
+    discountAmount: number | string | undefined;
+    manualDiscountAmount: number | string | undefined;
+  } | null>(null);
 
   const revertColorPreview = useCallback(() => {
     const editingKey = editingRowRef.current;
     if (drawerSessionSavedRef.current || editingKey == null || !setBookings) return;
     const originalColor = openedCustomColorRef.current;
+    const openedFinance = openedFinanceRef.current;
     setBookings((prev) =>
       prev.map((b) => {
         if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
           return b;
         }
-        if ((b.custom_color ?? "") === originalColor) return b;
-        return { ...b, custom_color: originalColor };
+        let next = b;
+        if ((b.custom_color ?? "") !== originalColor) {
+          next = { ...next, custom_color: originalColor };
+        }
+        if (openedFinance) {
+          next = {
+            ...next,
+            totalPrice: openedFinance.totalPrice,
+            basePrice: openedFinance.basePrice,
+            discountAmount: openedFinance.discountAmount,
+            manualDiscountAmount: openedFinance.manualDiscountAmount,
+          };
+        }
+        return next;
       })
     );
   }, [editingRowRef, setBookings]);
+
+  const applyPricingPreview = useCallback(
+    (snapshot: {
+      totalPrice: number;
+      basePrice: number;
+      discountAmount: number;
+    } | null) => {
+      if (!snapshot || !setBookings) return;
+      const editingKey = editingRowRef.current;
+      if (editingKey == null) return;
+      const total = Math.max(0, Math.round(Number(snapshot.totalPrice) || 0));
+      const base = Math.max(0, Math.round(Number(snapshot.basePrice) || 0));
+      const discount = Math.max(0, Math.round(Number(snapshot.discountAmount) || 0));
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (String(b.id) !== String(editingKey) && String(b.row) !== String(editingKey)) {
+            return b;
+          }
+          if (
+            Math.round(Number(b.totalPrice) || 0) === total &&
+            Math.round(Number(b.basePrice) || 0) === base &&
+            Math.round(Number(b.discountAmount) || 0) === discount
+          ) {
+            return b;
+          }
+          return {
+            ...b,
+            totalPrice: total,
+            basePrice: base,
+            discountAmount: discount,
+          };
+        })
+      );
+    },
+    [editingRowRef, setBookings]
+  );
 
   const closeDrawer = useCallback(() => {
     revertColorPreview();
@@ -402,6 +458,7 @@ export function useBookingDrawer({
     (prefillRoom: string | null = null, prefillDateStart: string | null = null, prefillDateEnd: string | null = null) => {
       drawerSessionSavedRef.current = false;
       openedCustomColorRef.current = "";
+      openedFinanceRef.current = null;
       editingRowRef.current = null;
       setEditingRow(null);
       setEditingBookingId(null);
@@ -609,6 +666,12 @@ export function useBookingDrawer({
 
       const openedColor = normalizeBookingCustomColor(booking.custom_color) || "";
       openedCustomColorRef.current = openedColor;
+      openedFinanceRef.current = {
+        totalPrice: booking.totalPrice,
+        basePrice: booking.basePrice,
+        discountAmount: booking.discountAmount,
+        manualDiscountAmount: booking.manualDiscountAmount,
+      };
       drawerSessionSavedRef.current = false;
 
       setForm({
@@ -983,6 +1046,7 @@ export function useBookingDrawer({
     bumpPrice,
     closeDrawer,
     markDrawerSessionSaved,
+    applyPricingPreview,
     openNewBookingDrawer,
     openDetailsByRow,
     changeGuests,
