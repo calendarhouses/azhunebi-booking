@@ -420,6 +420,7 @@ export function BookingPriceCalculator({
               roomId: String(room.id),
               enabledSpecialTariffIds: activeSpecialTariffIds,
               promoCode: form.promoCode,
+              bookedAt: savedBooking?.createdAt || null,
             },
             amountToDiscount
           ),
@@ -432,6 +433,7 @@ export function BookingPriceCalculator({
       form.checkOut,
       form.promoCode,
       room,
+      savedBooking?.createdAt,
       settings.discountsList,
     ]
   );
@@ -508,19 +510,30 @@ export function BookingPriceCalculator({
   useEffect(() => {
     if (isInitialLoad) return;
     if (!onInstantDiscountHydrate) return;
-    // Keep syncing residual as catalog/post-late lines resolve — one-shot hydrate
-    // with discountSum=0 wrongly dumped the whole savedDisc into СУМА/ВІДСОТОК.
+    // Prefer explicit manualDiscountAmount (new saves). Legacy rows only had
+    // discountAmount = auto+manual total — recover quick-adjust as residual
+    // after catalog discounts (evaluated as of createdAt) are subtracted.
+    const rawExplicit = savedBooking?.manualDiscountAmount;
+    const hasExplicitManual =
+      savedBooking != null &&
+      rawExplicit !== undefined &&
+      rawExplicit !== null &&
+      String(rawExplicit).trim() !== "";
     const savedDisc = savedBooking ? Math.round(Number(savedBooking.discountAmount) || 0) : 0;
-    const residual = savedBooking
-      ? Math.max(
-          0,
-          savedDisc - discountBreakdown.discountSum - effectivePostLateDiscount
-        )
-      : 0;
-    const key = `${editingBookingId ?? ""}:${editingRow ?? ""}:${residual}`;
+    const hydrateAmount = hasExplicitManual
+      ? Math.max(0, Math.round(Number(rawExplicit) || 0))
+      : savedBooking
+        ? Math.max(
+            0,
+            savedDisc - discountBreakdown.discountSum - effectivePostLateDiscount
+          )
+        : 0;
+    const key = `${editingBookingId ?? ""}:${editingRow ?? ""}:${hydrateAmount}:${
+      hasExplicitManual ? "m" : "r"
+    }`;
     if (discountHydratedRef.current === key) return;
     discountHydratedRef.current = key;
-    onInstantDiscountHydrate(residual);
+    onInstantDiscountHydrate(hydrateAmount);
   }, [
     discountBreakdown.discountSum,
     editingBookingId,
@@ -1224,7 +1237,8 @@ export function BookingPriceCalculator({
       <input type="hidden" id="manualDayGuest" value={manualLines.dayGuest} readOnly />
       <input type="hidden" id="manualEarly" value={manualLines.early} readOnly />
       <input type="hidden" id="manualLate" value={manualLines.late} readOnly />
-      <input type="hidden" id="manualDiscount" value={manualLines.discount} readOnly />
+      <input type="hidden" id="manualDiscount" value={instantDiscount} readOnly />
+      <input type="hidden" id="manualDiscountAmount" value={instantDiscount} readOnly />
       <input type="hidden" id="hiddenBasePrice" value={computed.basePriceTotal} readOnly />
       <input type="hidden" id="hiddenExtraGuestFee" value={computed.extraGuestFee} readOnly />
       <input type="hidden" id="hiddenPetFee" value={computed.petFee} readOnly />

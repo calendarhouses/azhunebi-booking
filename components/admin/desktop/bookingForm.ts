@@ -216,6 +216,7 @@ export function collectBookingFromForm(
     earlyFee: getFormVal("manualEarly"),
     lateFee: getFormVal("manualLate"),
     discountAmount: getFormVal("manualDiscount"),
+    manualDiscountAmount: getFormVal("manualDiscountAmount"),
     custom_color: (() => {
       const raw = getFormString("adminCustomColor").trim();
       return raw || "";
@@ -379,6 +380,7 @@ export function buildBookingRecordFromSave(
     lateFee: bookingData.lateFee as number | string | undefined,
     basePrice: bookingData.basePrice as number | string | undefined,
     discountAmount: bookingData.discountAmount as number | string | undefined,
+    manualDiscountAmount: bookingData.manualDiscountAmount as number | string | undefined,
     prepayAmount: bookingData.prepayAmount as number | string | undefined,
     prepayMethod: String(bookingData.prepayMethod || ""),
     surchargeAmount: bookingData.surchargeAmount as number | string | undefined,

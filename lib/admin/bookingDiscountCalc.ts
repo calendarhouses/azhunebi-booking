@@ -43,7 +43,34 @@ export type BookingDiscountContext = {
   enabledSpecialTariffIds: string[];
   promoCode?: string;
   today?: Date;
+  /**
+   * When set (existing booking createdAt), early_booking / last_minute are
+   * evaluated as of that date — not "today" — so reopening a booking does not
+   * drop the auto discount into «Швидке ручне коригування».
+   */
+  bookedAt?: Date | string | null;
 };
+
+function parseBookedAt(raw: Date | string | null | undefined): Date | null {
+  if (!raw) return null;
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? null : raw;
+  }
+  const s = String(raw).trim();
+  if (!s) return null;
+  // Prefer date-only / ISO prefix to avoid TZ shifting the calendar day.
+  const day = s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    return parseIsoDate(day);
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** As-of date for early / last-minute eligibility. */
+export function discountEligibilityAsOf(ctx: BookingDiscountContext): Date {
+  return parseBookedAt(ctx.bookedAt) ?? ctx.today ?? new Date();
+}
 
 export function parseDiscountNumericValue(d: DiscountConfig): number {
   if (typeof d.value === "number" && !Number.isNaN(d.value)) return d.value;
@@ -127,11 +154,11 @@ function discountMatchesBooking(
     }
     case "early_booking": {
       const daysBefore = d.daysBefore ?? 7;
-      return daysUntilCheckIn(ctx.checkIn, ctx.today ?? new Date()) >= daysBefore;
+      return daysUntilCheckIn(ctx.checkIn, discountEligibilityAsOf(ctx)) >= daysBefore;
     }
     case "last_minute": {
       const maxDays = d.daysBefore ?? 3;
-      const daysLeft = daysUntilCheckIn(ctx.checkIn, ctx.today ?? new Date());
+      const daysLeft = daysUntilCheckIn(ctx.checkIn, discountEligibilityAsOf(ctx));
       return daysLeft >= 0 && daysLeft <= maxDays;
     }
     case "promo_code": {

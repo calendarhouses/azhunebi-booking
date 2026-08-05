@@ -583,6 +583,7 @@ export function computeBookingPrice(params: {
         roomId: String(room.id),
         enabledSpecialTariffIds: params.enabledSpecialTariffIds ?? [],
         promoCode: params.promoCode,
+        bookedAt: params.savedBooking?.createdAt || null,
       },
       amountToDiscount
     );

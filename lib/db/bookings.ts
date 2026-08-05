@@ -90,6 +90,7 @@ export async function upsertBooking(api: ApiBooking): Promise<ApiBooking> {
     const meta = row.meta as Record<string, unknown>;
     for (const key of [
       "discountAmount",
+      "manualDiscountAmount",
       "extraGuestFee",
       "petFee",
       "dayGuestFee",

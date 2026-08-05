@@ -192,6 +192,8 @@ export interface BookingRecord {
   lateFee?: number | string;
   basePrice?: number | string;
   discountAmount?: number | string;
+  /** Quick manual adjust only (not catalog auto). Absent on legacy rows. */
+  manualDiscountAmount?: number | string;
   prepayAmount?: number | string;
   surchargeAmount?: number | string;
   prepayMethod?: string;

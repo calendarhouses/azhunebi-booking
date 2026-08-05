@@ -35,6 +35,7 @@ export type ApiRoom = Record<string, unknown>;
 
 const BOOKING_META_KEYS = [
   "discountAmount",
+  "manualDiscountAmount",
   "extraGuestFee",
   "petFee",
   "dayGuestFee",
@@ -134,6 +135,10 @@ export function dbBookingToApi(row: DbBookingRow, listIndex = 0): ApiBooking {
     totalPrice: row.total_price ?? 0,
     paidAmount: row.paid_amount ?? 0,
     discountAmount: feeValue(meta.discountAmount),
+    manualDiscountAmount:
+      meta.manualDiscountAmount !== undefined && meta.manualDiscountAmount !== null
+        ? feeValue(meta.manualDiscountAmount)
+        : undefined,
     source: row.source || "Адмінка",
     createdAt: row.created_at || "",
     comment: row.comment ?? "",
