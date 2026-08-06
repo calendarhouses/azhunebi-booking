@@ -1529,7 +1529,12 @@ export function DesktopTimelineView({
           target.classList.add("booking-block--drag-armed");
           acquireTouchScrollLock();
           if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
-          bosoHover(target, block.booking.row, "main");
+          bosoHover(
+            target,
+            block.booking.id || block.booking.row,
+            "main",
+            block.booking
+          );
           if (!isAndroid) {
             try {
               target.setPointerCapture(e.pointerId);
@@ -2345,13 +2350,27 @@ export function DesktopTimelineView({
                   onOpenBooking(e, block.booking.id || block.booking.row);
                 }}
                 onMouseEnter={
-                  isMobile ? undefined : (e) => bosoHover(e.currentTarget, block.booking.row, "main")
+                  isMobile
+                    ? undefined
+                    : (e) =>
+                        bosoHover(
+                          e.currentTarget,
+                          block.booking.id || block.booking.row,
+                          "main",
+                          block.booking
+                        )
                 }
                 onMouseLeave={isMobile ? undefined : () => bosoLeave()}
                 onTouchStart={
                   isMobile && !onMoveBooking
                     ? (e) =>
-                        handleBookingTouchStart(e, e.currentTarget, block.booking.row, "main")
+                        handleBookingTouchStart(
+                          e,
+                          e.currentTarget,
+                          block.booking.id || block.booking.row,
+                          "main",
+                          block.booking
+                        )
                     : undefined
                 }
                 onTouchMove={
@@ -2389,7 +2408,12 @@ export function DesktopTimelineView({
                         ? undefined
                         : (e) => {
                             e.stopPropagation();
-                            bosoHover(e.currentTarget, block.booking.row, ext.type);
+                            bosoHover(
+                              e.currentTarget,
+                              block.booking.id || block.booking.row,
+                              ext.type,
+                              block.booking
+                            );
                           }
                     }
                     onMouseLeave={
@@ -2399,7 +2423,12 @@ export function DesktopTimelineView({
                             e.stopPropagation();
                             const parent = e.currentTarget.parentElement as HTMLElement | null;
                             if (parent) {
-                              bosoHover(parent, block.booking.row, "main");
+                              bosoHover(
+                                parent,
+                                block.booking.id || block.booking.row,
+                                "main",
+                                block.booking
+                              );
                             } else {
                               bosoLeave();
                             }
@@ -2418,7 +2447,12 @@ export function DesktopTimelineView({
                         ? (e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            bosoHover(e.currentTarget, block.booking.row, ext.type);
+                            bosoHover(
+                              e.currentTarget,
+                              block.booking.id || block.booking.row,
+                              ext.type,
+                              block.booking
+                            );
                           }
                         : undefined
                     }

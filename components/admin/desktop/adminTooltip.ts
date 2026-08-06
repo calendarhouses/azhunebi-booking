@@ -40,8 +40,15 @@ function shouldKeepTooltipVisible(clientX: number, clientY: number): boolean {
   const hit = document.elementFromPoint(clientX, clientY);
   if (hit?.closest(DISMISS_POINTER_ROOT)) return false;
 
-  const block = hit?.closest(".booking-block");
-  if (block && !block.classList.contains("restriction-chip")) return true;
+  // Only the anchor booking (or its early/late chip), not any other card —
+  // otherwise a stale tooltip can "stick" over a different booking.
+  if (
+    hoverAnchor?.isConnected &&
+    (hoverAnchor === hit || hoverAnchor.contains(hit) || hit?.closest(".booking-block") === hoverAnchor.closest(".booking-block"))
+  ) {
+    const block = hit?.closest(".booking-block");
+    if (block && !block.classList.contains("restriction-chip")) return true;
+  }
 
   if (hoverAnchor?.isConnected && isPointInRect(clientX, clientY, hoverAnchor.getBoundingClientRect(), 6)) {
     return true;
@@ -88,14 +95,29 @@ export function bosoLeave(): void {
   });
 }
 
+function resolveTooltipBooking(
+  bookingKey: string | number,
+  bookingHint?: BookingRecord | null
+): BookingRecord | undefined {
+  if (bookingHint) return bookingHint;
+  const key = String(bookingKey ?? "").trim();
+  if (!key) return undefined;
+  const bookings = (window as Window & { allBookings?: BookingRecord[] }).allBookings || [];
+  // Prefer id — `row` (legacy sheetRow / listIndex) is not unique across bookings.
+  return (
+    bookings.find((x) => String(x.id) === key) ??
+    bookings.find((x) => String(x.row) === key)
+  );
+}
+
 export function bosoHover(
   element: HTMLElement,
-  rowId: string | number,
-  type: "main" | "early" | "late" = "main"
+  bookingKey: string | number,
+  type: "main" | "early" | "late" = "main",
+  bookingHint?: BookingRecord | null
 ): void {
   hoverAnchor = element;
-  const bookings = (window as Window & { allBookings?: BookingRecord[] }).allBookings || [];
-  const b = bookings.find((x) => String(x.row) === String(rowId));
+  const b = resolveTooltipBooking(bookingKey, bookingHint);
   if (!b) return;
 
   let tt = document.getElementById("boso-tooltip");

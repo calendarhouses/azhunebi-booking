@@ -1,5 +1,6 @@
 import type { TouchEvent } from "react";
 import { bosoHover, bosoLeave } from "./adminTooltip";
+import type { BookingRecord } from "./types";
 
 let pressTimer: ReturnType<typeof setTimeout> | null = null;
 let isLongPress = false;
@@ -34,10 +35,11 @@ export function resetTimelineTouchState(): void {
 export function handleBookingTouchStart(
   e: TouchEvent<HTMLElement>,
   element: HTMLElement,
-  rowId: string | number,
-  type: "main" | "early" | "late" = "main"
+  bookingKey: string | number,
+  type: "main" | "early" | "late" = "main",
+  bookingHint?: BookingRecord | null
 ): void {
-  if (String(rowId).startsWith("temp_")) return;
+  if (String(bookingKey).startsWith("temp_")) return;
 
   const t = e.touches[0];
   pressStartX = t?.clientX ?? 0;
@@ -50,7 +52,7 @@ export function handleBookingTouchStart(
   pressTimer = setTimeout(() => {
     isLongPress = true;
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(40);
-    bosoHover(element, rowId, type);
+    bosoHover(element, bookingKey, type, bookingHint);
   }, 400);
 }
 
