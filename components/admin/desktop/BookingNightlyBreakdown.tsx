@@ -37,6 +37,10 @@ export function buildNightlyPriceLines(
   outDate.setHours(12, 0, 0, 0);
   if (outDate <= inDate) return [];
 
+  const nights = Math.max(
+    1,
+    Math.round((outDate.getTime() - inDate.getTime()) / 86400000)
+  );
   const lines: NightlyPriceLine[] = [];
   const cursor = new Date(inDate);
   while (cursor < outDate) {
@@ -45,7 +49,7 @@ export function buildNightlyPriceLines(
     // пт+сб+нд — як у сітці цін і getDayPrice
     const isWeekend = day === 0 || day === 5 || day === 6;
     const price = room
-      ? getDayPrice(room, cursor, customPrices)
+      ? getDayPrice(room, cursor, customPrices, { stayNights: nights })
       : isWeekend
         ? 3200
         : 2900;

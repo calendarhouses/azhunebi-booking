@@ -353,6 +353,8 @@ function nightlyBasePricesForBookingFromWindow(b: BookingRecord): number[] | und
       short?: string;
       priceWeekday?: number;
       priceWeekend?: number;
+      priceOneNightWeekday?: number;
+      priceOneNightWeekend?: number;
     }>;
     customPrices?: Record<string, Record<string, number>>;
   };
@@ -384,6 +386,8 @@ function nightlyBasePricesForBookingFromWindow(b: BookingRecord): number[] | und
     nights,
     priceWeekday: Number(room.priceWeekday) || 0,
     priceWeekend: Number(room.priceWeekend) || 0,
+    priceOneNightWeekday: room.priceOneNightWeekday,
+    priceOneNightWeekend: room.priceOneNightWeekend,
     roomId: room.id,
     customPrices: w.customPrices || null,
   });

@@ -53,19 +53,43 @@ export type FormStateSnapshot = {
   late: string | null;
 };
 
+export type GetDayPriceOptions = {
+  /**
+   * Кількість ночей у броні. При `1` застосовується окремий тариф
+   * `priceOneNightWeekday` / `priceOneNightWeekend` (якщо > 0).
+   * Календар/сітка цін передають без цього — завжди базова ціна за 2+.
+   */
+  stayNights?: number;
+};
+
+/** пт+сб+нд = вихідний тариф (як у «Ціни та тарифи»). */
+export function isPriceWeekendDay(dateObj: Date): boolean {
+  const dow = dateObj.getDay();
+  return dow === 0 || dow === 5 || dow === 6;
+}
+
 export function getDayPrice(
   room: RoomConfig,
   dateObj: Date,
-  customPrices: AdminSettingsPayload["customPrices"]
+  customPrices: AdminSettingsPayload["customPrices"],
+  opts?: GetDayPriceOptions
 ): number {
-  // Як у «Ціни та тарифи»: пт+сб+нд = вихідний тариф (не лише сб+нд).
-  const dow = dateObj.getDay();
-  const isWeekend = dow === 0 || dow === 5 || dow === 6;
-  let price = isWeekend ? room.priceWeekend : room.priceWeekday;
   const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
   const roomPrices = customPrices?.[room.id] || customPrices?.[String(room.id)];
-  if (roomPrices?.[dateStr]) price = roomPrices[dateStr];
-  return price;
+  const custom = roomPrices?.[dateStr];
+  if (custom != null && String(custom).trim() !== "") {
+    const n = Number(custom);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+
+  const isWeekend = isPriceWeekendDay(dateObj);
+  if (opts?.stayNights === 1) {
+    const oneNight = Number(isWeekend ? room.priceOneNightWeekend : room.priceOneNightWeekday);
+    if (Number.isFinite(oneNight) && oneNight > 0) return Math.round(oneNight);
+  }
+
+  const price = isWeekend ? room.priceWeekend : room.priceWeekday;
+  return Math.max(0, Math.round(Number(price) || 0));
 }
 
 export function getRestrictionMinNights(
@@ -447,10 +471,17 @@ export function computeBookingPrice(params: {
   for (let i = 0; i < nights; i++) {
     const curr = new Date(d1);
     curr.setDate(curr.getDate() + i);
-    const dayPrice = getDayPrice(room, curr, customPrices);
+    const dayPrice = getDayPrice(room, curr, customPrices, { stayNights: nights });
     let nightAmount = dayPrice;
     if (pricingModel === "per_guest") {
-      const unit = room.pricePerGuest != null ? Number(room.pricePerGuest) : dayPrice;
+      let unit = dayPrice;
+      const perGuest = Number(room.pricePerGuest);
+      const perGuestOne = Number(room.pricePerGuestOneNight);
+      if (nights === 1 && Number.isFinite(perGuestOne) && perGuestOne > 0) {
+        unit = perGuestOne;
+      } else if (Number.isFinite(perGuest) && perGuest > 0) {
+        unit = perGuest;
+      }
       nightAmount = unit * guestMultiplier;
     }
     nightlyBasePrices.push(Math.max(0, Math.round(nightAmount)));
@@ -488,8 +519,9 @@ export function computeBookingPrice(params: {
   // Fold services into dayGuestFee AFTER manual/saved overrides below
   // (otherwise man.dayGuest=0 or saved dayGuestFee=0 wipes transfer).
 
-  const checkInDayPrice = getDayPrice(room, d1, customPrices);
-  const checkOutDayPrice = getDayPrice(room, d2, customPrices);
+  const checkInDayPrice = getDayPrice(room, d1, customPrices, { stayNights: nights });
+  // Late fee quotes the checkout calendar day at the stay’s tariff length.
+  const checkOutDayPrice = getDayPrice(room, d2, customPrices, { stayNights: nights });
   const earlyQuote = quoteFlexibleFee("early", checkInDayPrice, params.settings);
   const lateQuote = quoteFlexibleFee("late", checkOutDayPrice, params.settings);
 

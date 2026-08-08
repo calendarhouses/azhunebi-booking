@@ -62,12 +62,26 @@ export interface RoomConfig {
   pricingModel?: RoomPricingModel;
   /** Ціна за 1 гостя за ніч (для per_guest); якщо не задано — priceWeekday/weekend */
   pricePerGuest?: number;
+  /**
+   * Ціна за 1 гостя при броні на 1 ніч (per_guest).
+   * 0 / не задано — як pricePerGuest (або денний тариф).
+   */
+  pricePerGuestOneNight?: number;
   /** Чи дозволені діти при бронюванні */
   allowChildren?: boolean;
   /** Мінімальний вік дитини (років). Ігнорується, якщо allowChildren === false */
   minChildAge?: number | null;
+  /** Базова ціна за ніч при броні на 2+ ночі (будні) */
   priceWeekday: number;
+  /** Базова ціна за ніч при броні на 2+ ночі (пт–нд) */
   priceWeekend: number;
+  /**
+   * Ціна за бронь на 1 ніч (будні). 0 / не задано — як priceWeekday.
+   * На сітці/календарі показується базова; у калькуляторі при nights===1 підставляється ця.
+   */
+  priceOneNightWeekday?: number;
+  /** Ціна за бронь на 1 ніч (пт–нд). 0 / не задано — як priceWeekend. */
+  priceOneNightWeekend?: number;
   active: boolean;
   /** Статус доступності; якщо відсутній — виводиться з `active` */
   availabilityStatus?: RoomAvailabilityStatus;

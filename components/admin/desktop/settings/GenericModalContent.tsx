@@ -55,6 +55,10 @@ export type RoomFormState = {
   minChildAge: number | null;
   priceWeekday: number;
   priceWeekend: number;
+  /** 0 = не задано, береться звичайна ціна */
+  priceOneNightWeekday: number;
+  priceOneNightWeekend: number;
+  pricePerGuestOneNight: number;
   active: boolean;
   photos: string[];
   detailedDescription: string;
@@ -190,6 +194,9 @@ export function buildRoomForm(room: Partial<RoomConfig>): RoomFormState {
         : null,
     priceWeekday: room.priceWeekday ?? 4000,
     priceWeekend: room.priceWeekend ?? 5000,
+    priceOneNightWeekday: Math.max(0, Math.round(Number(room.priceOneNightWeekday) || 0)),
+    priceOneNightWeekend: Math.max(0, Math.round(Number(room.priceOneNightWeekend) || 0)),
+    pricePerGuestOneNight: Math.max(0, Math.round(Number(room.pricePerGuestOneNight) || 0)),
     active: room.active !== false,
     photos: Array.isArray(room.photos) ? [...room.photos] : [],
     detailedDescription: room.detailedDescription || "",
@@ -806,7 +813,7 @@ function RoomModalTabs({
 
           <div className="form-grid">
             <div className="form-group">
-              <label>Ціна (будні), грн / ніч:</label>
+              <label>Ціна 2+ ночей (будні), грн / ніч:</label>
               <input
                 type="number"
                 value={roomForm.priceWeekday}
@@ -817,7 +824,7 @@ function RoomModalTabs({
               />
             </div>
             <div className="form-group">
-              <label>Ціна (вихідні), грн / ніч:</label>
+              <label>Ціна 2+ ночей (вихідні), грн / ніч:</label>
               <input
                 type="number"
                 value={roomForm.priceWeekend}
@@ -828,6 +835,44 @@ function RoomModalTabs({
               />
             </div>
           </div>
+
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Ціна за 1 ніч (будні), грн:</label>
+              <input
+                type="number"
+                value={roomForm.priceOneNightWeekday || ""}
+                min={0}
+                placeholder={String(roomForm.priceWeekday || 0)}
+                onChange={(e) =>
+                  setRoomForm((f) => ({
+                    ...f,
+                    priceOneNightWeekday: parseInt(e.target.value, 10) || 0,
+                  }))
+                }
+              />
+            </div>
+            <div className="form-group">
+              <label>Ціна за 1 ніч (вихідні), грн:</label>
+              <input
+                type="number"
+                value={roomForm.priceOneNightWeekend || ""}
+                min={0}
+                placeholder={String(roomForm.priceWeekend || 0)}
+                onChange={(e) =>
+                  setRoomForm((f) => ({
+                    ...f,
+                    priceOneNightWeekend: parseInt(e.target.value, 10) || 0,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>
+            Якщо поле «за 1 ніч» порожнє — береться звичайна ціна. На 2+ ночі завжди діє тариф вище.
+            Календар показує ціну за 2+; калькулятор на сайті й в адмінці підставить тариф 1 ночі
+            автоматично.
+          </p>
 
           <div className="form-grid">
             <div className="form-group">
@@ -863,16 +908,33 @@ function RoomModalTabs({
           </div>
 
           {roomForm.pricingModel === "per_guest" ? (
-            <div className="form-group">
-              <label>Ціна за 1 гостя / ніч (грн):</label>
-              <input
-                type="number"
-                min={0}
-                value={roomForm.pricePerGuest}
-                onChange={(e) =>
-                  setRoomForm((f) => ({ ...f, pricePerGuest: parseInt(e.target.value, 10) || 0 }))
-                }
-              />
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Ціна за 1 гостя / ніч (2+), грн:</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={roomForm.pricePerGuest}
+                  onChange={(e) =>
+                    setRoomForm((f) => ({ ...f, pricePerGuest: parseInt(e.target.value, 10) || 0 }))
+                  }
+                />
+              </div>
+              <div className="form-group">
+                <label>Ціна за 1 гостя / 1 ніч, грн:</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={roomForm.pricePerGuestOneNight || ""}
+                  placeholder={String(roomForm.pricePerGuest || 0)}
+                  onChange={(e) =>
+                    setRoomForm((f) => ({
+                      ...f,
+                      pricePerGuestOneNight: parseInt(e.target.value, 10) || 0,
+                    }))
+                  }
+                />
+              </div>
             </div>
           ) : null}
 

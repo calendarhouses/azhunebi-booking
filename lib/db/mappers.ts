@@ -235,6 +235,12 @@ export function dbRoomToApi(row: DbRoomRow): ApiRoom {
 
   const hasOriginalRules = Object.keys(rulesObj).length > 0;
 
+  const numOrUndef = (v: unknown): number | undefined => {
+    if (v === undefined || v === null || v === "") return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
   return {
     id: /^\d+$/.test(row.id) ? Number(row.id) : row.id,
     name: row.name || "",
@@ -243,8 +249,13 @@ export function dbRoomToApi(row: DbRoomRow): ApiRoom {
     capacity: row.capacity ?? 2,
     maxCapacity: extras.maxCapacity,
     extraGuestPrice: extras.extraGuestPrice ?? 2500,
+    pricingModel: extras.pricingModel === "per_guest" ? "per_guest" : "per_house",
+    pricePerGuest: numOrUndef(extras.pricePerGuest),
+    pricePerGuestOneNight: numOrUndef(extras.pricePerGuestOneNight),
     priceWeekday: row.priceweekday ?? 0,
     priceWeekend: row.priceweekend ?? 0,
+    priceOneNightWeekday: numOrUndef(extras.priceOneNightWeekday),
+    priceOneNightWeekend: numOrUndef(extras.priceOneNightWeekend),
     active: row.active !== false,
     availabilityStatus:
       extras.availabilityStatus ?? (row.active === false ? "disabled" : "enabled"),

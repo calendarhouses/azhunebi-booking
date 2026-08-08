@@ -1039,6 +1039,12 @@ async function calculateBookingMath(
     const day = new Date(curr.toLocaleString("en-US", { timeZone: "Europe/Kyiv" })).getDay();
     const isWeekend = day === 0 || day === 5 || day === 6;
     let dayPrice = isWeekend ? roomConfig.priceWeekend : roomConfig.priceWeekday;
+    if (nights === 1) {
+      const one = Number(
+        isWeekend ? roomConfig.priceOneNightWeekend : roomConfig.priceOneNightWeekday
+      );
+      if (Number.isFinite(one) && one > 0) dayPrice = one;
+    }
     const cp = customPrices[String(roomConfig.id)];
     if (cp?.[dateStr]) dayPrice = cp[dateStr];
     dayPrice = Math.max(0, Math.round(Number(dayPrice) || 0));

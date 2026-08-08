@@ -61,12 +61,14 @@ export function sumFirstNightsBase(
   return sum;
 }
 
-/** Ціни ночей у порядку заїзду з weekday/weekend + customPrices. */
+/** Ціни ночей у порядку заїзду з weekday/weekend + 1-night + customPrices. */
 export function buildStayNightlyBasePrices(opts: {
   checkIn: Date;
   nights: number;
   priceWeekday: number;
   priceWeekend: number;
+  priceOneNightWeekday?: number | null;
+  priceOneNightWeekend?: number | null;
   roomId?: string | number | null;
   customPrices?: Record<string, Record<string, number>> | null;
 }): number[] {
@@ -86,7 +88,12 @@ export function buildStayNightlyBasePrices(opts: {
     const dow = d.getDay();
     const isWeekend = dow === 0 || dow === 5 || dow === 6;
     let price = isWeekend ? opts.priceWeekend : opts.priceWeekday;
+    if (nights === 1) {
+      const one = Number(isWeekend ? opts.priceOneNightWeekend : opts.priceOneNightWeekday);
+      if (Number.isFinite(one) && one > 0) price = one;
+    }
     const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    // Кастомна ціна дати має пріоритет над тарифом 1 ночі.
     if (roomPrices?.[ds] != null) price = Number(roomPrices[ds]) || price;
     out.push(Math.max(0, Math.round(Number(price) || 0)));
   }
