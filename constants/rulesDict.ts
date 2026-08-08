@@ -17,7 +17,7 @@ export const RULES_CATEGORIES: RuleDictCategory[] = [
     items: [
       { id: "quiet_hours_22_08", label: "Режим тиші 22:00 – 08:00" },
       { id: "no_parties", label: "Заборонені вечірки та гучна музика" },
-      { id: "no_stag_parties", label: "Без «мальчишників» та «дівичників»" },
+      { id: "no_stag_parties", label: "Без гучних вечірок" },
       { id: "shoes_off", label: "Знімати взуття в будинку" },
       { id: "trash_separate", label: "Сортування сміття" },
       { id: "energy_save", label: "Бережливе використання електрики та води" },
