@@ -9,6 +9,7 @@ import {
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
 import { parseBookingComment } from "./bookingUtils";
+import { parsePostLateArrivalFromComment } from "@/lib/public-booking/postLateGapStay";
 
 /** Скасовує відкладене показування після bosoLeave / нового hover. */
 let showGeneration = 0;
@@ -113,7 +114,7 @@ function resolveTooltipBooking(
 export function bosoHover(
   element: HTMLElement,
   bookingKey: string | number,
-  type: "main" | "early" | "late" = "main",
+  type: "main" | "early" | "late" | "postlate" = "main",
   bookingHint?: BookingRecord | null
 ): void {
   hoverAnchor = element;
@@ -144,13 +145,18 @@ export function bosoHover(
   const { paid, balance, prepayExpected } = finance;
   const rawComment = b.comment ? String(b.comment).trim() : "";
 
-  if (type === "early" || type === "late") {
+  if (type === "early" || type === "late" || type === "postlate") {
     let timeText = "";
     const iconClock =
       '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     if (type === "early") {
       const { earlyTime } = parseEarlyLateTimesFromComment(rawComment);
       timeText = earlyTime ? `Заїзд о ${earlyTime}` : "Ранній заїзд";
+    } else if (type === "postlate") {
+      const arrival = parsePostLateArrivalFromComment(rawComment);
+      timeText = arrival
+        ? `Заїзд після пізнього виїзду з ${arrival}`
+        : "Заїзд після пізнього виїзду";
     } else {
       const { lateTime } = parseEarlyLateTimesFromComment(rawComment);
       timeText = lateTime ? `Виїзд о ${lateTime}` : "Пізній виїзд";

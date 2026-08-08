@@ -38,6 +38,7 @@ import {
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import {
   arrivalAfterLateCheckout,
+  parsePostLateArrivalFromComment,
 } from "@/lib/public-booking/postLateGapStay";
 import {
   shiftDateKey,
@@ -144,12 +145,50 @@ type BookingBlockData = {
   /** Early/late badges on the card (geometry stays half-cell; no stretch). */
   earlyTime: string | null;
   lateTime: string | null;
+  /** Заїзд після пізнього виїзду попереднього гостя (лівий штрих). */
+  postLateArrivalTime: string | null;
   finBadge: { text: string; bg: string; color: string };
   finText: string;
-  extensions: { type: "early" | "late"; left: number; width: number }[];
+  extensions: { type: "early" | "late" | "postlate"; left: number; width: number }[];
   padLeft: number;
   padRight: number;
 };
+
+function isLeftTimeExtension(type: "early" | "late" | "postlate"): boolean {
+  return type === "early" || type === "postlate";
+}
+
+/** Коментар #postlate або попередня бронь з пізнім виїздом у день цього заїзду. */
+function resolvePostLateArrivalForBlock(
+  booking: BookingRecord,
+  roomBookings: BookingRecord[],
+  comment: string
+): string | null {
+  const fromComment = parsePostLateArrivalFromComment(comment);
+  if (fromComment) return fromComment;
+
+  const checkIn = parseSafeDate(booking.checkIn);
+  if (isNaN(checkIn.getTime())) return null;
+  checkIn.setHours(0, 0, 0, 0);
+  const checkInKey = formatDateKey(checkIn);
+  if (!checkInKey) return null;
+
+  for (const other of roomBookings) {
+    if (other === booking) continue;
+    if (bookingMoveKey(other) === bookingMoveKey(booking)) continue;
+    if (isClosedStatus(other.status)) continue;
+    if (String(other.status || "").toLowerCase().includes("скас")) continue;
+    const outDate = parseSafeDate(other.checkOut);
+    if (isNaN(outDate.getTime())) continue;
+    if (formatDateKey(outDate) !== checkInKey) continue;
+    const otherComment = other.comment ? String(other.comment) : "";
+    const { hasLate } = bookingHasEarlyLate(otherComment);
+    if (!hasLate) continue;
+    const { lateTime } = parseEarlyLateTimesFromComment(otherComment);
+    return arrivalAfterLateCheckout(lateTime);
+  }
+  return null;
+}
 
 type TimelineSelectionPointerSession = {
   pointerId: number;
@@ -305,6 +344,7 @@ function buildBookingBlocks(
     const comment = b.comment ? String(b.comment) : "";
     const { hasEarly: exHasEarly, hasLate: exHasLate } = bookingHasEarlyLate(comment);
     const { earlyTime, lateTime } = parseEarlyLateTimesFromComment(comment);
+    const postLateArrival = resolvePostLateArrivalForBlock(b, roomBookings, comment);
 
     const halfCell = cellWidth / 2;
     const minBlockWidth = 20;
@@ -330,8 +370,12 @@ function buildBookingBlocks(
     let padLeft = nights === 1 ? 3 : 10;
     let padRight = nights === 1 ? 3 : 10;
 
+    // Left hatch: early check-in, or check-in after previous guest's late checkout.
     if (exHasEarly) {
       extensions.push({ type: "early", left: blockLeft, width: sideStrip });
+      padLeft = sideStrip + (nights === 1 ? 2 : 6);
+    } else if (postLateArrival) {
+      extensions.push({ type: "postlate", left: blockLeft, width: sideStrip });
       padLeft = sideStrip + (nights === 1 ? 2 : 6);
     }
     if (exHasLate) {
@@ -374,6 +418,7 @@ function buildBookingBlocks(
       hasGuestComment,
       earlyTime: exHasEarly ? earlyTime || "—" : null,
       lateTime: exHasLate ? lateTime || "—" : null,
+      postLateArrivalTime: !exHasEarly ? postLateArrival : null,
       finBadge: isBookingCom
         ? { text: "Booking.com", bg: "rgba(255,255,255,0.22)", color: "#FFFFFF" }
         : finBadge,
@@ -2258,7 +2303,10 @@ export function DesktopTimelineView({
           onTrackPointerLeave={onTrackPointerLeave}
           roomKey={timelineRoomKey(room)}
           blocksSignature={`${room.id}:${draggingBookingKey}:${denseRows ? "d" : "n"}:${rowHeight}:${blocks
-            .map((b) => `${b.booking.row}:${b.guestChip}:${b.finText}:${b.nights}:${b.earlyTime || ""}:${b.lateTime || ""}`)
+            .map(
+              (b) =>
+                `${b.booking.row}:${b.guestChip}:${b.finText}:${b.nights}:${b.earlyTime || ""}:${b.lateTime || ""}:${b.postLateArrivalTime || ""}`
+            )
             .join(",")}:g${gapHints.map((h) => h.arrival).join(",")}`}
         >
           {gapHints.map((hint) => (
@@ -2298,7 +2346,9 @@ export function DesktopTimelineView({
             const isDraggingCard =
               draggingBookingKey != null &&
               bookingMoveKey(block.booking) === draggingBookingKey;
-            const hasEarlyExtension = block.extensions.some((ext) => ext.type === "early");
+            const hasLeftExtension = block.extensions.some((ext) =>
+              isLeftTimeExtension(ext.type)
+            );
             const hasLateExtension = block.extensions.some((ext) => ext.type === "late");
             const mobilePadX = denseRows ? 4 : 5;
             const mobileExtPad = (denseRows ? 16 : 18) + (denseRows ? 3 : 4);
@@ -2317,7 +2367,7 @@ export function DesktopTimelineView({
                   position: "absolute",
                   opacity: isDraggingCard ? 0 : undefined,
                   paddingLeft: isMobile
-                    ? hasEarlyExtension
+                    ? hasLeftExtension
                       ? mobileExtPad
                       : block.nights === 1
                         ? 3
@@ -2395,7 +2445,7 @@ export function DesktopTimelineView({
                     style={{
                       width: isMobile ? (denseRows ? 16 : 18) : ext.width,
                       left: isMobile
-                        ? ext.type === "early"
+                        ? isLeftTimeExtension(ext.type)
                           ? 0
                           : "auto"
                         : ext.left - block.left,
@@ -2483,7 +2533,9 @@ export function DesktopTimelineView({
             width: draggingBlockRef.current.width,
             height: getTimelineBookingBlockLayout(rowHeight, denseRows).height,
             paddingLeft: isMobile
-              ? draggingBlockRef.current.extensions.some((ext) => ext.type === "early")
+              ? draggingBlockRef.current.extensions.some((ext) =>
+                  isLeftTimeExtension(ext.type)
+                )
                 ? (denseRows ? 16 : 18) + (denseRows ? 3 : 4)
                 : draggingBlockRef.current.nights === 1
                   ? 3
@@ -2512,7 +2564,7 @@ export function DesktopTimelineView({
               style={{
                 width: isMobile ? (denseRows ? 16 : 18) : ext.width,
                 left: isMobile
-                  ? ext.type === "early"
+                  ? isLeftTimeExtension(ext.type)
                     ? 0
                     : "auto"
                   : ext.left - draggingBlockRef.current!.left,

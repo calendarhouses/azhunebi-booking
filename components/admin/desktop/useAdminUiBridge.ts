@@ -79,7 +79,7 @@ export function useAdminUiBridge(deps: AdminUiBridgeDeps) {
     w.showToast = toastImpl;
     w.closeDrawer = closeDrawer;
     w.bosoHover = (el: HTMLElement, bookingKey: string | number, type?: string) =>
-      bosoHover(el, bookingKey, (type as "main" | "early" | "late") || "main");
+      bosoHover(el, bookingKey, (type as "main" | "early" | "late" | "postlate") || "main");
     w.bosoLeave = bosoLeave;
 
     w.toggleCustomSelect = toggleCustomSelect;

@@ -36,7 +36,7 @@ export function handleBookingTouchStart(
   e: TouchEvent<HTMLElement>,
   element: HTMLElement,
   bookingKey: string | number,
-  type: "main" | "early" | "late" = "main",
+  type: "main" | "early" | "late" | "postlate" = "main",
   bookingHint?: BookingRecord | null
 ): void {
   if (String(bookingKey).startsWith("temp_")) return;

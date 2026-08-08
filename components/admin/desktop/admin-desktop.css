@@ -5048,7 +5048,8 @@ input[type="number"] {
             transition: 0.2s ease;
         }
         .time-extension:hover { background: rgba(0, 0, 0, 0.2); }
-        .time-extension.early { left: 0; border-right: 1px solid rgba(0,0,0,0.05); border-radius: 6px 0 0 6px; }
+        .time-extension.early,
+        .time-extension.postlate { left: 0; border-right: 1px solid rgba(0,0,0,0.05); border-radius: 6px 0 0 6px; }
         .time-extension.late { right: 0; border-left: 1px solid rgba(0,0,0,0.05); border-radius: 0 6px 6px 0;}
         .time-extension svg { stroke: rgba(255,255,255,0.9); }
 

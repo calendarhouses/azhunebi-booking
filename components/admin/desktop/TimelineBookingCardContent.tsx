@@ -30,7 +30,7 @@ export const TIMELINE_BOOKING_BLOCK_LAYOUT = {
 export type TimelineBookingCardBlock = {
   nights: number;
   width: number;
-  extensions: { type: "early" | "late"; left: number; width: number }[];
+  extensions: { type: "early" | "late" | "postlate"; left: number; width: number }[];
   contentWidth: number;
   guestName: string;
   guestChip: string | null;
@@ -38,6 +38,7 @@ export type TimelineBookingCardBlock = {
   hasGuestComment: boolean;
   earlyTime?: string | null;
   lateTime?: string | null;
+  postLateArrivalTime?: string | null;
   finText: string;
   finBadge: { bg: string; color: string };
   booking: BookingRecord;

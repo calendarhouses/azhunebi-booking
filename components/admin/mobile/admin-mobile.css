@@ -870,7 +870,8 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
     justify-content: center;
     z-index: 1;
 }
-.time-extension.early { left: 0; border-right: 1px solid rgba(0,0,0,0.05); }
+.time-extension.early,
+.time-extension.postlate { left: 0; border-right: 1px solid rgba(0,0,0,0.05); }
 .time-extension.late { right: 0; border-left: 1px solid rgba(0,0,0,0.05); }
 .time-extension svg { stroke: rgba(255,255,255,0.9); }
 
