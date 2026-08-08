@@ -102,6 +102,12 @@ export function RoomSettingsAccordion({
   const selectedRuleSet = useMemo(() => new Set(selectedRules), [selectedRules]);
   const [priceWeekday, setPriceWeekday] = useState(String(resolvedRoom?.priceWeekday ?? ""));
   const [priceWeekend, setPriceWeekend] = useState(String(resolvedRoom?.priceWeekend ?? ""));
+  const [priceOneNightWeekday, setPriceOneNightWeekday] = useState(
+    String(resolvedRoom?.priceOneNightWeekday || "")
+  );
+  const [priceOneNightWeekend, setPriceOneNightWeekend] = useState(
+    String(resolvedRoom?.priceOneNightWeekend || "")
+  );
 
   const effectiveRoomId = resolvedRoom?.id ?? roomKey;
   const isDraft = isRoomDraftId(effectiveRoomId);
@@ -156,6 +162,16 @@ export function RoomSettingsAccordion({
     setSelectedRules(getActiveRuleIds(resolvedRoom));
     setPriceWeekday(String(resolvedRoom.priceWeekday || ""));
     setPriceWeekend(String(resolvedRoom.priceWeekend || ""));
+    setPriceOneNightWeekday(
+      resolvedRoom.priceOneNightWeekday && Number(resolvedRoom.priceOneNightWeekday) > 0
+        ? String(resolvedRoom.priceOneNightWeekday)
+        : ""
+    );
+    setPriceOneNightWeekend(
+      resolvedRoom.priceOneNightWeekend && Number(resolvedRoom.priceOneNightWeekend) > 0
+        ? String(resolvedRoom.priceOneNightWeekend)
+        : ""
+    );
     setLocalPhotos(resolvedRoom.photos ?? []);
   }, [hydrationKey, initialStepId, resolvedRoom, roomKey]);
 
@@ -272,6 +288,8 @@ export function RoomSettingsAccordion({
     }
     const weekday = Math.max(0, Number(priceWeekday) || 0);
     const weekend = Math.max(0, Number(priceWeekend) || 0);
+    const oneNightWeekday = Math.max(0, Number(priceOneNightWeekday) || 0);
+    const oneNightWeekend = Math.max(0, Number(priceOneNightWeekend) || 0);
     if (weekday <= 0 || weekend <= 0) {
       showToast("Вкажи ціни на будні та вихідні");
       setActiveStepId("prices");
@@ -297,6 +315,8 @@ export function RoomSettingsAccordion({
         amenities: buildAmenitiesPayload(),
         priceWeekday: weekday,
         priceWeekend: weekend,
+        priceOneNightWeekday: oneNightWeekday,
+        priceOneNightWeekend: oneNightWeekend,
       });
 
       const pendingFiles = Array.from(pendingPhotosRef.current.values());
@@ -493,7 +513,7 @@ export function RoomSettingsAccordion({
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">
                           <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
-                          Ціна (будні)
+                          Ціна 2+ ночей (будні)
                         </span>
                         <div className="khata-onboarding__price-input-wrap">
                           <span className="khata-onboarding__currency-prefix">₴</span>
@@ -510,7 +530,7 @@ export function RoomSettingsAccordion({
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">
                           <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
-                          Ціна (вихідні)
+                          Ціна 2+ ночей (вихідні)
                         </span>
                         <div className="khata-onboarding__price-input-wrap">
                           <span className="khata-onboarding__currency-prefix">₴</span>
@@ -524,8 +544,43 @@ export function RoomSettingsAccordion({
                           />
                         </div>
                       </label>
+                      <label className="khata-room-field">
+                        <span className="khata-room-field__label khata-room-field__label--with-icon">
+                          <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
+                          Ціна за 1 ніч (будні)
+                        </span>
+                        <div className="khata-onboarding__price-input-wrap">
+                          <span className="khata-onboarding__currency-prefix">₴</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={priceOneNightWeekday}
+                            onChange={(e) => setPriceOneNightWeekday(e.target.value)}
+                            placeholder={priceWeekday || "як 2+"}
+                            className="khata-onboarding__price-input khata-room-field__input"
+                          />
+                        </div>
+                      </label>
+                      <label className="khata-room-field">
+                        <span className="khata-room-field__label khata-room-field__label--with-icon">
+                          <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
+                          Ціна за 1 ніч (вихідні)
+                        </span>
+                        <div className="khata-onboarding__price-input-wrap">
+                          <span className="khata-onboarding__currency-prefix">₴</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={priceOneNightWeekend}
+                            onChange={(e) => setPriceOneNightWeekend(e.target.value)}
+                            placeholder={priceWeekend || "як 2+"}
+                            className="khata-onboarding__price-input khata-room-field__input"
+                          />
+                        </div>
+                      </label>
                       <p className="khata-room-settings__price-hint">
-                        Детальні тарифи на конкретні дати — у розділі «Ціни та тарифи».
+                        Якщо «за 1 ніч» порожнє — береться ціна 2+. На сайті й у броні при 1 ночі
+                        підставиться цей тариф автоматично. Детальні дати — у «Ціни та тарифи».
                       </p>
                     </div>
                   ) : null}
