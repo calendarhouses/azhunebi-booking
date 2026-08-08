@@ -87,15 +87,18 @@ export function buildStayNightlyBasePrices(opts: {
     // Як у «Ціни та тарифи» / admin getDayPrice: пт+сб+нд.
     const dow = d.getDay();
     const isWeekend = dow === 0 || dow === 5 || dow === 6;
-    let price = isWeekend ? opts.priceWeekend : opts.priceWeekday;
+    let dayRate = isWeekend ? opts.priceWeekend : opts.priceWeekday;
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (roomPrices?.[ds] != null) {
+      const custom = Number(roomPrices[ds]);
+      if (Number.isFinite(custom) && custom > 0) dayRate = custom;
+    }
     if (nights === 1) {
       const one = Number(isWeekend ? opts.priceOneNightWeekend : opts.priceOneNightWeekday);
-      if (Number.isFinite(one) && one > 0) price = one;
+      // Same as getDayPrice: 1-night floor vs day/custom rate (special highs still win).
+      if (Number.isFinite(one) && one > 0) dayRate = Math.max(one, dayRate);
     }
-    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    // Кастомна ціна дати має пріоритет над тарифом 1 ночі.
-    if (roomPrices?.[ds] != null) price = Number(roomPrices[ds]) || price;
-    out.push(Math.max(0, Math.round(Number(price) || 0)));
+    out.push(Math.max(0, Math.round(Number(dayRate) || 0)));
   }
   return out;
 }

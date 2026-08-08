@@ -76,20 +76,29 @@ export function getDayPrice(
 ): number {
   const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
   const roomPrices = customPrices?.[room.id] || customPrices?.[String(room.id)];
+  const isWeekend = isPriceWeekendDay(dateObj);
+  const baseMulti = Math.max(
+    0,
+    Math.round(Number(isWeekend ? room.priceWeekend : room.priceWeekday) || 0)
+  );
+
+  let dayRate = baseMulti;
   const custom = roomPrices?.[dateStr];
   if (custom != null && String(custom).trim() !== "") {
     const n = Number(custom);
-    if (Number.isFinite(n) && n > 0) return Math.round(n);
+    if (Number.isFinite(n) && n > 0) dayRate = Math.round(n);
   }
 
-  const isWeekend = isPriceWeekendDay(dateObj);
+  // 1-night tariff: not skipped by calendar customPrices that often mirror the
+  // 2+ base (2900). Special high custom dates still win via Math.max.
   if (opts?.stayNights === 1) {
     const oneNight = Number(isWeekend ? room.priceOneNightWeekend : room.priceOneNightWeekday);
-    if (Number.isFinite(oneNight) && oneNight > 0) return Math.round(oneNight);
+    if (Number.isFinite(oneNight) && oneNight > 0) {
+      return Math.max(Math.round(oneNight), dayRate);
+    }
   }
 
-  const price = isWeekend ? room.priceWeekend : room.priceWeekday;
-  return Math.max(0, Math.round(Number(price) || 0));
+  return dayRate;
 }
 
 export function getRestrictionMinNights(
