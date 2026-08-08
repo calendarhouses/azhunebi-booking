@@ -215,7 +215,7 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     >
       {layout === "desktop" ? (
         <h2 className="stay-filter__heading">
-          Оберіть період — покажемо лише вільні будинки
+          Оберіть дату заїзду — покажемо вільні будинки
         </h2>
       ) : null}
 

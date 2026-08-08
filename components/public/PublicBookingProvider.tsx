@@ -762,7 +762,8 @@ export function PublicBookingProvider({
     );
   }, [runtime]);
 
-  const listFilterActive = Boolean((checkIn && checkOut) || childCount > 0);
+  // Filter as soon as check-in is picked (1 night+ availability); full range when checkout set.
+  const listFilterActive = Boolean(checkIn || childCount > 0);
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];

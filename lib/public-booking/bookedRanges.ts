@@ -316,19 +316,35 @@ export function filterRoomsForStay(
     closedDates,
     restrictions,
   } = opts;
-  const datesActive = Boolean(checkIn && checkOut);
+  const fullStayActive = Boolean(checkIn && checkOut);
+  const checkInOnlyActive = Boolean(checkIn && !checkOut);
+  const datesActive = fullStayActive || checkInOnlyActive;
   const partyActive = datesActive || children > 0;
 
   return rooms.filter((room) => {
     if (partyActive) {
       if (!roomFitsGuestParty(room, adults, children, youngestAge)) return false;
     }
-    if (datesActive) {
+    if (fullStayActive) {
       if (
         !isRoomFreeForRange(
           room,
           checkIn as Date,
           checkOut as Date,
+          bookings,
+          closedDates,
+          restrictions
+        )
+      ) {
+        return false;
+      }
+    } else if (checkInOnlyActive) {
+      // One selected date = “can stay ≥1 night from this check-in”
+      // (same rule as list calendar check-in enablement).
+      if (
+        !roomCanStartCheckInOn(
+          room,
+          checkIn as Date,
           bookings,
           closedDates,
           restrictions
