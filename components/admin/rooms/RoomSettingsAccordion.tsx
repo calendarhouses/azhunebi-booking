@@ -27,7 +27,6 @@ import {
   DEFAULT_PRICE_WEEKEND_DAYS,
   PRICE_WEEKDAY_CHIP_ORDER,
   PRICE_WEEKDAY_LABELS_UK,
-  formatWeekendDaysHint,
   normalizePriceWeekendDays,
 } from "@/lib/pricing/priceWeekendDays";
 import "@/components/admin/onboarding/onboarding.css";
@@ -535,7 +534,7 @@ export function RoomSettingsAccordion({
 
                   {step.id === "prices" ? (
                     <div className="khata-room-step__content khata-room-step__content--prices">
-                      <div className="khata-room-field">
+                      <div className="khata-room-field khata-room-field--full">
                         <span className="khata-room-field__label">
                           Дорожчі дні (вихідний тариф)
                         </span>
@@ -563,10 +562,6 @@ export function RoomSettingsAccordion({
                             );
                           })}
                         </div>
-                        <p className="khata-room-settings__price-hint" style={{ marginTop: 8 }}>
-                          Зараз вихідні: {formatWeekendDaysHint(weekendDays)}. Решта днів — звичайний
-                          тариф. Для пт+сб дорожче залиш лише «Пт» і «Сб».
-                        </p>
                       </div>
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">

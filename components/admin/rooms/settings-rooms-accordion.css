@@ -148,6 +148,10 @@
   gap: 14px 16px;
 }
 
+.khata-room-step__content--prices .khata-room-field--full {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 560px) {
   .khata-room-step__content--prices {
     grid-template-columns: 1fr;
