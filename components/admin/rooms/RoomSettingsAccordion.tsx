@@ -23,6 +23,13 @@ import {
   getActiveRuleIds,
   type RoomSettingsStepId,
 } from "./roomSettingsSteps";
+import {
+  DEFAULT_PRICE_WEEKEND_DAYS,
+  PRICE_WEEKDAY_CHIP_ORDER,
+  PRICE_WEEKDAY_LABELS_UK,
+  formatWeekendDaysHint,
+  normalizePriceWeekendDays,
+} from "@/lib/pricing/priceWeekendDays";
 import "@/components/admin/onboarding/onboarding.css";
 import "./settings-rooms-accordion.css";
 
@@ -108,6 +115,9 @@ export function RoomSettingsAccordion({
   const [priceOneNightWeekend, setPriceOneNightWeekend] = useState(
     String(resolvedRoom?.priceOneNightWeekend || "")
   );
+  const [weekendDays, setWeekendDays] = useState<number[]>(() =>
+    normalizePriceWeekendDays(resolvedRoom?.weekendDays ?? DEFAULT_PRICE_WEEKEND_DAYS)
+  );
 
   const effectiveRoomId = resolvedRoom?.id ?? roomKey;
   const isDraft = isRoomDraftId(effectiveRoomId);
@@ -171,6 +181,9 @@ export function RoomSettingsAccordion({
       resolvedRoom.priceOneNightWeekend && Number(resolvedRoom.priceOneNightWeekend) > 0
         ? String(resolvedRoom.priceOneNightWeekend)
         : ""
+    );
+    setWeekendDays(
+      normalizePriceWeekendDays(resolvedRoom.weekendDays ?? DEFAULT_PRICE_WEEKEND_DAYS)
     );
     setLocalPhotos(resolvedRoom.photos ?? []);
   }, [hydrationKey, initialStepId, resolvedRoom, roomKey]);
@@ -290,8 +303,19 @@ export function RoomSettingsAccordion({
     const weekend = Math.max(0, Number(priceWeekend) || 0);
     const oneNightWeekday = Math.max(0, Number(priceOneNightWeekday) || 0);
     const oneNightWeekend = Math.max(0, Number(priceOneNightWeekend) || 0);
+    const savedWeekendDays = normalizePriceWeekendDays(weekendDays);
     if (weekday <= 0 || weekend <= 0) {
       showToast("Вкажи ціни на будні та вихідні");
+      setActiveStepId("prices");
+      return;
+    }
+    if (savedWeekendDays.length === 0) {
+      showToast("Обери хоча б один день для вихідного тарифу");
+      setActiveStepId("prices");
+      return;
+    }
+    if (savedWeekendDays.length >= 7) {
+      showToast("Залиш хоча б один день для звичайного тарифу");
       setActiveStepId("prices");
       return;
     }
@@ -315,6 +339,7 @@ export function RoomSettingsAccordion({
         amenities: buildAmenitiesPayload(),
         priceWeekday: weekday,
         priceWeekend: weekend,
+        weekendDays: savedWeekendDays,
         priceOneNightWeekday: oneNightWeekday,
         priceOneNightWeekend: oneNightWeekend,
       });
@@ -510,10 +535,43 @@ export function RoomSettingsAccordion({
 
                   {step.id === "prices" ? (
                     <div className="khata-room-step__content khata-room-step__content--prices">
+                      <div className="khata-room-field">
+                        <span className="khata-room-field__label">
+                          Дорожчі дні (вихідний тариф)
+                        </span>
+                        <div className="khata-room-weekend-days" role="group" aria-label="Дні вихідного тарифу">
+                          {PRICE_WEEKDAY_CHIP_ORDER.map((dow) => {
+                            const active = weekendDays.includes(dow);
+                            return (
+                              <button
+                                key={dow}
+                                type="button"
+                                className={`khata-room-weekend-day${active ? " is-active" : ""}`}
+                                aria-pressed={active}
+                                onClick={() =>
+                                  setWeekendDays((prev) => {
+                                    if (prev.includes(dow)) {
+                                      const next = prev.filter((d) => d !== dow);
+                                      return next.length ? next : prev;
+                                    }
+                                    return normalizePriceWeekendDays([...prev, dow]);
+                                  })
+                                }
+                              >
+                                {PRICE_WEEKDAY_LABELS_UK[dow]}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="khata-room-settings__price-hint" style={{ marginTop: 8 }}>
+                          Зараз вихідні: {formatWeekendDaysHint(weekendDays)}. Решта днів — звичайний
+                          тариф. Для пт+сб дорожче залиш лише «Пт» і «Сб».
+                        </p>
+                      </div>
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">
                           <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
-                          Ціна 2+ ночей (будні)
+                          Ціна 2+ ночей (звичайні дні)
                         </span>
                         <div className="khata-onboarding__price-input-wrap">
                           <span className="khata-onboarding__currency-prefix">₴</span>
@@ -530,7 +588,7 @@ export function RoomSettingsAccordion({
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">
                           <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
-                          Ціна 2+ ночей (вихідні)
+                          Ціна 2+ ночей (дорожчі дні)
                         </span>
                         <div className="khata-onboarding__price-input-wrap">
                           <span className="khata-onboarding__currency-prefix">₴</span>
@@ -547,7 +605,7 @@ export function RoomSettingsAccordion({
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">
                           <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
-                          Ціна за 1 ніч (будні)
+                          Ціна за 1 ніч (звичайні дні)
                         </span>
                         <div className="khata-onboarding__price-input-wrap">
                           <span className="khata-onboarding__currency-prefix">₴</span>
@@ -564,7 +622,7 @@ export function RoomSettingsAccordion({
                       <label className="khata-room-field">
                         <span className="khata-room-field__label khata-room-field__label--with-icon">
                           <Banknote className="h-3.5 w-3.5 text-stone-400" strokeWidth={2} />
-                          Ціна за 1 ніч (вихідні)
+                          Ціна за 1 ніч (дорожчі дні)
                         </span>
                         <div className="khata-onboarding__price-input-wrap">
                           <span className="khata-onboarding__currency-prefix">₴</span>

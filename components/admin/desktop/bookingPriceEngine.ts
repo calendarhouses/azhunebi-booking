@@ -30,6 +30,7 @@ import {
   timeToMinutes,
 } from "@/lib/public-booking/postLateGapStay";
 import { getBookedRanges } from "@/lib/public-booking/bookedRanges";
+import { isPriceWeekendDay as isWeekendDayOfStay } from "@/lib/pricing/priceWeekendDays";
 
 export type ManualPriceSnapshot = {
   base: number | null;
@@ -62,10 +63,12 @@ export type GetDayPriceOptions = {
   stayNights?: number;
 };
 
-/** пт+сб+нд = вихідний тариф (як у «Ціни та тарифи»). */
-export function isPriceWeekendDay(dateObj: Date): boolean {
-  const dow = dateObj.getDay();
-  return dow === 0 || dow === 5 || dow === 6;
+/** Вихідний тариф за `room.weekendDays` (дефолт: пт+сб+нд). */
+export function isPriceWeekendDay(
+  dateObj: Date,
+  weekendDays?: number[] | null
+): boolean {
+  return isWeekendDayOfStay(dateObj, weekendDays);
 }
 
 export function getDayPrice(
@@ -76,7 +79,7 @@ export function getDayPrice(
 ): number {
   const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
   const roomPrices = customPrices?.[room.id] || customPrices?.[String(room.id)];
-  const isWeekend = isPriceWeekendDay(dateObj);
+  const isWeekend = isPriceWeekendDay(dateObj, room.weekendDays);
   const baseMulti = Math.max(
     0,
     Math.round(Number(isWeekend ? room.priceWeekend : room.priceWeekday) || 0)

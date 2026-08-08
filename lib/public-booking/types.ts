@@ -25,6 +25,7 @@ export interface PublicRoom {
   minChildAge?: number | null;
   priceWeekday: number;
   priceWeekend: number;
+  weekendDays?: number[];
   priceOneNightWeekday?: number;
   priceOneNightWeekend?: number;
   active: boolean;

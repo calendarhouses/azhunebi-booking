@@ -11,6 +11,7 @@ import {
 } from "../timelineDragAutoScroll";
 import { TimelineSidebarHeader, TimelineRoomRow } from "../TimelineSidebarRooms";
 import { isPriceWeekend } from "./restrictionGridUtils";
+import { isPriceWeekendDay } from "@/lib/pricing/priceWeekendDays";
 import {
   formatMonthYearLabel,
   formatPriceAmount,
@@ -425,7 +426,9 @@ export function DesktopPriceGrid({
     for (const room of activeRooms) {
       const roomPrices = customPrices[String(room.id)];
       dayMeta.forEach((day, i) => {
-        let price = day.isWeekend ? room.priceWeekend : room.priceWeekday;
+        let price = isPriceWeekendDay(day.date, room.weekendDays)
+          ? room.priceWeekend
+          : room.priceWeekday;
         if (roomPrices?.[day.dateStr] != null) price = roomPrices[day.dateStr];
         const priceStr = String(price);
         widths[i] = Math.max(
@@ -850,7 +853,9 @@ export function DesktopPriceGrid({
       const day = dayMeta.find((d) => d.dateStr === dateStr);
       let price = 0;
       if (room && day) {
-        price = day.isWeekend ? room.priceWeekend : room.priceWeekday;
+        price = isPriceWeekendDay(day.date, room.weekendDays)
+          ? room.priceWeekend
+          : room.priceWeekday;
         const rp = customPrices[roomId];
         if (rp?.[dateStr] != null) price = rp[dateStr];
       }
@@ -1144,7 +1149,8 @@ export function DesktopPriceGrid({
           {dayMeta.map((day, i) => {
             const roomPrices = customPrices[String(room.id)];
             const isCustom = roomPrices?.[day.dateStr] != null;
-            let price = day.isWeekend ? room.priceWeekend : room.priceWeekday;
+            const isWeekend = isPriceWeekendDay(day.date, room.weekendDays);
+            let price = isWeekend ? room.priceWeekend : room.priceWeekday;
             if (roomPrices?.[day.dateStr] != null) {
               price = roomPrices[day.dateStr];
             }
@@ -1162,7 +1168,7 @@ export function DesktopPriceGrid({
                 roomId={String(room.id)}
                 dateStr={day.dateStr}
                 price={price}
-                isWeekend={day.isWeekend}
+                isWeekend={isWeekend}
                 isCustom={isCustom}
                 width={columnWidths[i]}
                 editing={editing}

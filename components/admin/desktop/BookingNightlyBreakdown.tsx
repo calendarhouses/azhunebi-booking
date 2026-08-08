@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { getDayPrice } from "./bookingPriceEngine";
+import { isPriceWeekendDay } from "@/lib/pricing/priceWeekendDays";
 import { formatDateKey } from "./bookingUtils";
 import { parseSafeDate } from "./adminDates";
 import { nightWord } from "./adminPlural";
@@ -46,8 +47,7 @@ export function buildNightlyPriceLines(
   while (cursor < outDate) {
     const dateKey = formatDateKey(cursor);
     const day = cursor.getDay();
-    // пт+сб+нд — як у сітці цін і getDayPrice
-    const isWeekend = day === 0 || day === 5 || day === 6;
+    const isWeekend = isPriceWeekendDay(cursor, room?.weekendDays);
     const price = room
       ? getDayPrice(room, cursor, customPrices, { stayNights: nights })
       : isWeekend

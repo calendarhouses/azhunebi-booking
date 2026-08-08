@@ -676,6 +676,7 @@ export function useBookingDrawer({
                 priceWeekend: Number(matchedRoom.priceWeekend) || 0,
                 priceOneNightWeekday: matchedRoom.priceOneNightWeekday,
                 priceOneNightWeekend: matchedRoom.priceOneNightWeekend,
+                weekendDays: matchedRoom.weekendDays,
                 roomId: matchedRoom.id,
                 customPrices: settings.customPrices || null,
               })

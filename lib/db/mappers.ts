@@ -254,6 +254,11 @@ export function dbRoomToApi(row: DbRoomRow): ApiRoom {
     pricePerGuestOneNight: numOrUndef(extras.pricePerGuestOneNight),
     priceWeekday: row.priceweekday ?? 0,
     priceWeekend: row.priceweekend ?? 0,
+    weekendDays: Array.isArray(extras.weekendDays)
+      ? extras.weekendDays
+          .map((v) => Number(v))
+          .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+      : undefined,
     priceOneNightWeekday: numOrUndef(extras.priceOneNightWeekday),
     priceOneNightWeekend: numOrUndef(extras.priceOneNightWeekend),
     active: row.active !== false,

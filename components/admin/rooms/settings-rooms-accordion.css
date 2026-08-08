@@ -968,6 +968,38 @@
   color: #78716c;
 }
 
+.khata-room-weekend-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.khata-room-weekend-day {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1.5px solid #e7e5e4;
+  background: #fff;
+  color: #57534e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.khata-room-weekend-day.is-active {
+  border-color: #556b2f;
+  background: #556b2f;
+  color: #fff;
+}
+
+.khata-room-weekend-day:focus-visible {
+  outline: 2px solid #556b2f;
+  outline-offset: 2px;
+}
+
 /* —— Глобальний футер —— */
 .khata-room-settings__footer {
   display: flex;

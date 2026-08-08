@@ -1,4 +1,5 @@
 import { formatDateKey } from "../bookingUtils";
+import { isPriceWeekendDay } from "@/lib/pricing/priceWeekendDays";
 import type { AdminSettingsPayload } from "../types";
 
 /** Маркер закритої дати в `restrictions` (зберігається навіть без ключа closedDates у GAS). */
@@ -58,9 +59,9 @@ export function getRuleCellKind(
   return { kind: "none", minNights: 0 };
 }
 
+/** Календарний дефолт (пт+сб+нд) для підсвітки сітки без привʼязки до котеджу. */
 export function isPriceWeekend(d: Date): boolean {
-  const dow = d.getDay();
-  return dow === 0 || dow === 5 || dow === 6;
+  return isPriceWeekendDay(d);
 }
 
 export function getRestrictionCellSelectionClasses(

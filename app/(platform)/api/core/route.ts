@@ -1019,7 +1019,7 @@ async function calculateBookingMath(
       roomName.includes(String(r.name)) ||
       roomName.includes(String(r.short)) ||
       String(r.name).includes(roomName)
-  ) as Record<string, number> | undefined;
+  ) as Record<string, unknown> | undefined;
   if (!roomConfig) {
     roomConfig = {
       id: isJunior ? 1 : 2,
@@ -1036,27 +1036,33 @@ async function calculateBookingMath(
     const curr = new Date(d1);
     curr.setDate(curr.getDate() + i);
     const dateStr = formatDateKyiv(curr, "yyyy-MM-dd");
-    const day = new Date(curr.toLocaleString("en-US", { timeZone: "Europe/Kyiv" })).getDay();
-    const isWeekend = day === 0 || day === 5 || day === 6;
-    let dayPrice = isWeekend ? roomConfig.priceWeekend : roomConfig.priceWeekday;
+    const dayDate = new Date(curr.toLocaleString("en-US", { timeZone: "Europe/Kyiv" }));
+    const weekendDays = Array.isArray(roomConfig.weekendDays)
+      ? (roomConfig.weekendDays as number[])
+      : undefined;
+    const day = dayDate.getDay();
+    const isWeekend = weekendDays?.length
+      ? weekendDays.includes(day)
+      : day === 0 || day === 5 || day === 6;
+    let dayPrice = Number(isWeekend ? roomConfig.priceWeekend : roomConfig.priceWeekday) || 0;
     const cp = customPrices[String(roomConfig.id)];
-    if (cp?.[dateStr]) dayPrice = cp[dateStr];
+    if (cp?.[dateStr]) dayPrice = Number(cp[dateStr]) || dayPrice;
     if (nights === 1) {
       const one = Number(
         isWeekend ? roomConfig.priceOneNightWeekend : roomConfig.priceOneNightWeekday
       );
       if (Number.isFinite(one) && one > 0) {
-        dayPrice = Math.max(one, Number(dayPrice) || 0);
+        dayPrice = Math.max(one, dayPrice);
       }
     }
-    dayPrice = Math.max(0, Math.round(Number(dayPrice) || 0));
+    dayPrice = Math.max(0, Math.round(dayPrice));
     nightlyBasePrices.push(dayPrice);
     roomBasePriceTotal += dayPrice;
   }
 
-  const extraGuests = Math.max(0, guests - (roomConfig.capacity || 2));
+  const extraGuests = Math.max(0, guests - (Number(roomConfig.capacity) || 2));
   const dynamicExtraPrice =
-    roomConfig.extraGuestPrice !== undefined ? roomConfig.extraGuestPrice : 2500;
+    roomConfig.extraGuestPrice !== undefined ? Number(roomConfig.extraGuestPrice) || 2500 : 2500;
   const extraGuestFee = extraGuests * dynamicExtraPrice * nights;
 
   let discountPercent = 0;

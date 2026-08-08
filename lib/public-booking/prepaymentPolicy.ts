@@ -1,4 +1,5 @@
 import { dobaWord } from "@/components/admin/desktop/adminPlural";
+import { isPriceWeekendDay } from "@/lib/pricing/priceWeekendDays";
 import type { PublicBranding } from "./types";
 
 export type PrepaymentMode = "percent" | "nights" | "fixed";
@@ -69,6 +70,7 @@ export function buildStayNightlyBasePrices(opts: {
   priceWeekend: number;
   priceOneNightWeekday?: number | null;
   priceOneNightWeekend?: number | null;
+  weekendDays?: number[] | null;
   roomId?: string | number | null;
   customPrices?: Record<string, Record<string, number>> | null;
 }): number[] {
@@ -84,9 +86,7 @@ export function buildStayNightlyBasePrices(opts: {
     const d = new Date(opts.checkIn);
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + i);
-    // Як у «Ціни та тарифи» / admin getDayPrice: пт+сб+нд.
-    const dow = d.getDay();
-    const isWeekend = dow === 0 || dow === 5 || dow === 6;
+    const isWeekend = isPriceWeekendDay(d, opts.weekendDays);
     let dayRate = isWeekend ? opts.priceWeekend : opts.priceWeekday;
     const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (roomPrices?.[ds] != null) {

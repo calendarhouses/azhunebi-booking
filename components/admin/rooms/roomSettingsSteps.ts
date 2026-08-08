@@ -45,7 +45,7 @@ export const ROOM_SETTINGS_STEPS: RoomSettingsStep[] = [
   {
     id: "prices",
     title: "Базові ціни",
-    description: "Тариф на 2+ ночі та окремо за 1 ніч",
+    description: "Тариф 2+ / 1 ніч і дні дорогого тарифу",
     Icon: Banknote,
   },
 ];

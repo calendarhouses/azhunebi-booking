@@ -71,16 +71,21 @@ export interface RoomConfig {
   allowChildren?: boolean;
   /** Мінімальний вік дитини (років). Ігнорується, якщо allowChildren === false */
   minChildAge?: number | null;
-  /** Базова ціна за ніч при броні на 2+ ночі (будні) */
+  /** Базова ціна за ніч при броні на 2+ ночі (дні поза weekendDays) */
   priceWeekday: number;
-  /** Базова ціна за ніч при броні на 2+ ночі (пт–нд) */
+  /** Базова ціна за ніч при броні на 2+ ночі (дні з weekendDays) */
   priceWeekend: number;
   /**
-   * Ціна за бронь на 1 ніч (будні). 0 / не задано — як priceWeekday.
+   * Дні тижня з «вихідним» тарифом (`Date.getDay()`: 0=Нд…6=Сб).
+   * Якщо не задано — пт+сб+нд (як раніше).
+   */
+  weekendDays?: number[];
+  /**
+   * Ціна за бронь на 1 ніч (звичайні дні). 0 / не задано — як priceWeekday.
    * На сітці/календарі показується базова; у калькуляторі при nights===1 підставляється ця.
    */
   priceOneNightWeekday?: number;
-  /** Ціна за бронь на 1 ніч (пт–нд). 0 / не задано — як priceWeekend. */
+  /** Ціна за бронь на 1 ніч (дні з weekendDays). 0 / не задано — як priceWeekend. */
   priceOneNightWeekend?: number;
   active: boolean;
   /** Статус доступності; якщо відсутній — виводиться з `active` */

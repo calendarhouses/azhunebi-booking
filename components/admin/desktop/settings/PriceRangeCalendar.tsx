@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDateKey } from "../bookingUtils";
 import { formatMonthYearLabel } from "./priceGridUtils";
 import { isPriceWeekend } from "./restrictionGridUtils";
+import { isPriceWeekendDay } from "@/lib/pricing/priceWeekendDays";
 import type { AdminSettingsPayload, RoomConfig } from "../types";
 
 const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
@@ -52,7 +53,7 @@ function getDayPrice(
   const dateStr = formatDateKey(date);
   const custom = customPrices?.[String(room.id)]?.[dateStr];
   if (custom != null) return custom;
-  return isPriceWeekend(date) ? room.priceWeekend : room.priceWeekday;
+  return isPriceWeekendDay(date, room.weekendDays) ? room.priceWeekend : room.priceWeekday;
 }
 
 function isInRange(iso: string, start: string, end: string): boolean {
