@@ -406,13 +406,16 @@ export function DesktopBookingDrawer() {
                   />
                 </div>
                 <div className="form-field">
-                  <label>Прізвище</label>
+                  <label>
+                    Прізвище <span className="required">*</span>
+                  </label>
                   <input
                     type="text"
                     id="fLastName"
                     placeholder="Петренко"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                    required
                   />
                 </div>
               </div>
@@ -461,6 +464,10 @@ export function DesktopBookingDrawer() {
               onClick={() => {
                 if (!firstName.trim()) {
                   showPublicToast("Введіть ваше ім'я");
+                  return;
+                }
+                if (!lastName.trim()) {
+                  showPublicToast("Введіть ваше прізвище");
                   return;
                 }
                 if (!phone.trim() || normalizeUaNationalPhoneDigits(phone).length < 9) {

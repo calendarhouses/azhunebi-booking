@@ -1103,6 +1103,10 @@ export function PublicBookingProvider({
         showPublicToast("Введіть ваше ім'я");
         return;
       }
+      if (!lastName.trim()) {
+        showPublicToast("Введіть ваше прізвище");
+        return;
+      }
       if (!phone.trim() || normalizeUaNationalPhoneDigits(phone).length < 9) {
         showPublicToast("Введіть коректний номер телефону");
         return;
