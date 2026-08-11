@@ -721,6 +721,7 @@ export type GasBookingRecord = {
   name?: string;
   phone?: string;
   cottage?: string;
+  roomId?: string | number;
   assignmentState?: "assigned" | "holding";
   checkIn?: string;
   checkOut?: string;

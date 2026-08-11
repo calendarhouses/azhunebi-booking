@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { parseChildrenFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";
-import { fetchBookingByDisplayId } from "@/lib/gas-api";
+import type { RoomLike } from "@/lib/admin/roomBookingMatch";
+import { getBookingById } from "@/lib/db/bookings";
+import { listRooms } from "@/lib/db/rooms";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
+import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
 
 export const runtime = "nodejs";
 
@@ -22,18 +25,41 @@ export async function GET(request: Request) {
     );
   }
 
-  const result = await fetchBookingByDisplayId(orderId);
-  if (!result.ok || !result.booking) {
+  const booking = await getBookingById(orderId);
+  if (!booking) {
     return NextResponse.json(
       { ok: false, error: "BOOKING_NOT_FOUND" },
       { status: 404, headers: { "Cache-Control": "no-store" } }
     );
   }
 
-  const status = String(result.booking.status || "");
-  const paidAmount = Number(result.booking.paidAmount) || 0;
-  const comment = String(result.booking.comment || "");
+  const status = String(booking.status || "");
+  const paidAmount = Number(booking.paidAmount) || 0;
+  const comment = String(booking.comment || "");
   const childCount = parseChildrenFromComment(comment);
+  const roomIdRaw = booking.roomId;
+  const roomId =
+    roomIdRaw == null || roomIdRaw === ""
+      ? null
+      : typeof roomIdRaw === "string" || typeof roomIdRaw === "number"
+        ? roomIdRaw
+        : String(roomIdRaw);
+  const checkIn = String(booking.checkIn || "");
+  const checkOut = String(booking.checkOut || "");
+
+  // Guest receipt must show site listing name («Будиночок 1-12»), not chessboard («Будиночок 8»).
+  let rooms: RoomLike[] = [];
+  try {
+    rooms = (await listRooms()) as RoomLike[];
+  } catch (err) {
+    console.warn("[monopay/status] listRooms failed", err);
+  }
+  const cottage = publicCottageLabel(
+    { cottage: String(booking.cottage || ""), roomId },
+    rooms,
+    String(booking.cottage || "")
+  );
+
   return NextResponse.json(
     {
       ok: true,
@@ -41,14 +67,15 @@ export async function GET(request: Request) {
       awaiting: isAwaitingPaymentStatus(status),
       booking: {
         orderId,
-        cottage: result.booking.cottage,
-        checkIn: result.booking.checkIn,
-        checkOut: result.booking.checkOut,
-        guests: Number(result.booking.guests) || 0,
+        cottage,
+        roomId,
+        checkIn,
+        checkOut,
+        guests: Number(booking.guests) || 0,
         childCount,
         comment,
-        nights: countNights(result.booking.checkIn, result.booking.checkOut),
-        totalPrice: result.booking.totalPrice,
+        nights: countNights(checkIn, checkOut),
+        totalPrice: booking.totalPrice,
         prepayment: paidAmount,
         paidAmount,
         flow: "instant" as const,

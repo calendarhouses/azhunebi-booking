@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -211,6 +212,8 @@ export function PublicBookingProvider({
 }) {
   const searchParams = useSearchParams();
   const [runtime, setRuntime] = useState<PublicSiteRuntime | null>(null);
+  const roomsRef = useRef(runtime?.rooms);
+  roomsRef.current = runtime?.rooms;
   const [initLoading, setInitLoading] = useState(true);
   const [activeScreen, setActiveScreen] = useState<"list" | "success">("list");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -358,7 +361,7 @@ export function PublicBookingProvider({
 
             booking.flow = "instant";
             setSuccessFlow("instant");
-            setSuccessReceiptHtml(buildPublicReceiptHtml(booking));
+            setSuccessReceiptHtml(buildPublicReceiptHtml(booking, roomsRef.current));
             setActiveScreen("success");
             // Clean the address only after the payment check has completed.
             window.setTimeout(() => window.history.replaceState(null, "", "/"), 0);
@@ -396,7 +399,9 @@ export function PublicBookingProvider({
         const flow = b.flow || "pending_review";
         setSuccessFlow(flow);
         setSuccessReceiptHtml(
-          flow === "pending_review" ? buildPublicPendingReceiptHtml(b) : buildPublicReceiptHtml(b)
+          flow === "pending_review"
+            ? buildPublicPendingReceiptHtml(b, roomsRef.current)
+            : buildPublicReceiptHtml(b, roomsRef.current)
         );
       } catch {
         /* ignore */
@@ -1244,6 +1249,7 @@ export function PublicBookingProvider({
           flow,
           // Guest-facing screens keep the public listing name.
           cottage: selectedRoom.name,
+          roomId: selectedRoom.id,
           checkIn: payload.checkIn,
           checkOut: payload.checkOut,
           guests: guestCount,
@@ -1285,7 +1291,9 @@ export function PublicBookingProvider({
 
         if (flow === "pending_review") {
           setSuccessFlow("pending_review");
-          setSuccessReceiptHtml(buildPublicPendingReceiptHtml(sessionData));
+          setSuccessReceiptHtml(
+            buildPublicPendingReceiptHtml(sessionData, runtime?.rooms)
+          );
           closeDrawer();
           setActiveScreen("success");
           window.history.replaceState(
@@ -1317,7 +1325,7 @@ export function PublicBookingProvider({
         }
 
         setSuccessFlow("instant");
-        setSuccessReceiptHtml(buildPublicReceiptHtml(sessionData));
+        setSuccessReceiptHtml(buildPublicReceiptHtml(sessionData, runtime?.rooms));
         closeDrawer();
         setActiveScreen("success");
       } catch (err) {

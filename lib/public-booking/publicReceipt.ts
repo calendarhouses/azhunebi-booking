@@ -1,4 +1,6 @@
 import { nightWord } from "@/components/admin/desktop/adminPlural";
+import type { RoomLike } from "@/lib/admin/roomBookingMatch";
+import { publicCottageLabel } from "./publicCottageLabel";
 import { formatPriceUa } from "./roomHelpers";
 import { formatRoomDisplayName } from "./roomDisplay";
 
@@ -12,6 +14,7 @@ type ServiceLine = {
 
 export type PublicBookingReceiptData = {
   cottage?: string;
+  roomId?: string | number | null;
   checkIn?: string;
   checkOut?: string;
   guests?: number;
@@ -47,6 +50,17 @@ function escapeHtml(value: unknown): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function receiptRoomName(
+  raw: PublicBookingReceiptData,
+  rooms?: RoomLike[] | null
+): string {
+  return escapeHtml(
+    formatRoomDisplayName({
+      name: publicCottageLabel(raw, rooms, String(raw.cottage || "")),
+    })
+  );
 }
 
 function formatDateLabel(value?: string): string {
@@ -96,7 +110,10 @@ function block(title: string, body: string, extraClass = ""): string {
   `;
 }
 
-export function buildPublicReceiptHtml(raw: PublicBookingReceiptData): string {
+export function buildPublicReceiptHtml(
+  raw: PublicBookingReceiptData,
+  rooms?: RoomLike[] | null
+): string {
   const total = Number(raw.totalPrice) || 0;
   const prepay = Number(raw.prepayment) || Number(raw.paidAmount) || 0;
   const remainder = Math.max(0, total - prepay);
@@ -114,7 +131,7 @@ export function buildPublicReceiptHtml(raw: PublicBookingReceiptData): string {
   const checkInLabel = formatDateLabel(raw.checkIn);
   const checkOutLabel = formatDateLabel(raw.checkOut);
   const nightsLabel = nights > 0 ? ` (${nights} ${nightWord(nights)})` : "";
-  const roomName = escapeHtml(formatRoomDisplayName({ name: String(raw.cottage || "") }));
+  const roomName = receiptRoomName(raw, rooms);
 
   const orderLines: string[] = [];
   if (raw.basePrice && raw.basePrice > 0) {
@@ -198,7 +215,10 @@ export function buildPublicReceiptHtml(raw: PublicBookingReceiptData): string {
   `;
 }
 
-export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): string {
+export function buildPublicPendingReceiptHtml(
+  raw: PublicBookingReceiptData,
+  rooms?: RoomLike[] | null
+): string {
   const total = Number(raw.totalPrice) || 0;
   const guests = Number(raw.guests) || 0;
   const children = Number(raw.childCount) || 0;
@@ -214,7 +234,7 @@ export function buildPublicPendingReceiptHtml(raw: PublicBookingReceiptData): st
   const checkInLabel = formatDateLabel(raw.checkIn);
   const checkOutLabel = formatDateLabel(raw.checkOut);
   const nightsLabel = nights > 0 ? ` (${nights} ${nightWord(nights)})` : "";
-  const roomName = escapeHtml(formatRoomDisplayName({ name: String(raw.cottage || "") }));
+  const roomName = receiptRoomName(raw, rooms);
 
   const orderLines: string[] = [];
   if (raw.basePrice && raw.basePrice > 0) {
