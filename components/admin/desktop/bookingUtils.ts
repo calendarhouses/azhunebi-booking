@@ -327,9 +327,10 @@ export function getTimelineCustomColorStyle(
 export function bookingHasEarlyLate(comment: string): { hasEarly: boolean; hasLate: boolean } {
   const exComment = comment || "";
   const hasEarly =
-    /🕒#early/.test(exComment) || exComment.includes("Ранній заїзд");
+    /🕒#early/.test(exComment) || /Ранній заїзд/.test(exComment);
+  // Do not treat «Заїзд після пізнього виїзду» as a late checkout.
   const hasLate =
-    /🕒#late/.test(exComment) || exComment.includes("Пізній виїзд");
+    /🕒#late/.test(exComment) || /Пізній виїзд:\s*до/.test(exComment);
   return { hasEarly, hasLate };
 }
 

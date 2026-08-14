@@ -15,7 +15,11 @@ import {
   serviceIsOnSite,
   type ServiceSelectionMap,
 } from "./settings/additionalServicesLogic";
-import { parseEarlyLateTimesFromComment, quoteFlexibleFee } from "@/lib/admin/flexibleSchedule";
+import {
+  DEFAULT_FLEXIBLE_SCHEDULE,
+  parseEarlyLateTimesFromComment,
+  quoteFlexibleFee,
+} from "@/lib/admin/flexibleSchedule";
 import {
   calculateTotal,
   formatDiscountLineForGuest,
@@ -27,6 +31,7 @@ import {
   arrivalAfterLateCheckout,
   buildPostLateGapNoticeHtml,
   findPrevLateCheckoutRange,
+  parsePostLateArrivalFromComment,
   timeToMinutes,
 } from "@/lib/public-booking/postLateGapStay";
 import { getBookedRanges } from "@/lib/public-booking/bookedRanges";
@@ -239,7 +244,9 @@ export function checkBookingOverlap(params: {
 
     const comment = b.comment ? String(b.comment) : "";
     const { hasEarly: exHasEarly, hasLate: exHasLate } = bookingHasEarlyLate(comment);
-    const { lateTime: exLateTime } = parseEarlyLateTimesFromComment(comment);
+    const { earlyTime: exEarlyTime, lateTime: exLateTime } =
+      parseEarlyLateTimesFromComment(comment);
+    const exPostLateArrival = parsePostLateArrivalFromComment(comment);
 
     if (currentIn < exOut && currentOut > exIn) {
       return { isOverlap: true, overlapReason: "Ці дати вже повністю зайняті іншим гостем." };
@@ -271,12 +278,24 @@ export function checkBookingOverlap(params: {
     }
     if (currentOut.getTime() === exIn.getTime()) {
       if (currentHasLate) {
-        return {
-          isOverlap: true,
-          overlapReason: "Наступний гість вже заїжджає. Ваш <b>Пізній виїзд</b> неможливий.",
-        };
-      }
-      if (exHasEarly) {
+        const currentLate = selectedLateTime || "20:00";
+        const minNextArrival = arrivalAfterLateCheckout(currentLate);
+        const nextArrival =
+          exPostLateArrival ||
+          exEarlyTime ||
+          DEFAULT_FLEXIBLE_SCHEDULE.standardCheckIn;
+        if (timeToMinutes(nextArrival) >= timeToMinutes(minNextArrival)) {
+          // Next guest already arrives after the 1h buffer (e.g. late 20:00 → in 21:00).
+        } else {
+          return {
+            isOverlap: true,
+            overlapReason:
+              `Наступний гість заїжджає о <b>${nextArrival}</b>. ` +
+              `Ваш <b>Пізній виїзд</b> о ${currentLate} неможливий ` +
+              `(потрібен зазор до <b>${minNextArrival}</b>).`,
+          };
+        }
+      } else if (exHasEarly) {
         return {
           isOverlap: true,
           overlapReason: "Наступний гість має <b>Ранній заїзд</b>.",
