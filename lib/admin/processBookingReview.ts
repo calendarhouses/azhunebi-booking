@@ -76,6 +76,7 @@ export async function processBookingReview(params: {
   }
 
   // Статус уже змінено в GAS — SMS/reload не повинні ламати успіх.
+  await clearPendingReviewRemindersQuietly();
   const bookingRaw =
     result.booking || (await fetchBookingByDisplayId(orderId).catch(() => null))?.booking;
 
@@ -132,5 +133,16 @@ export async function processBookingReview(params: {
           : "Скасовано, але SMS не вдалося надіслати.",
       booking: guestBooking,
     };
+  }
+}
+
+async function clearPendingReviewRemindersQuietly(): Promise<void> {
+  try {
+    const { deleteStoredPendingReviewReminders } = await import(
+      "@/lib/telegram/pendingReviewReminder"
+    );
+    await deleteStoredPendingReviewReminders();
+  } catch (err) {
+    console.warn("[review] reminder cleanup failed", err);
   }
 }
