@@ -1082,37 +1082,27 @@ body.ready .bottom-nav,
   background: transparent;
 }
 
-.stay-filter--mobile .stay-filter__bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--border);
+.stay-filter--mobile .stay-filter__card {
+  background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
   box-shadow: var(--mobile-shadow);
 }
 
-.stay-filter--mobile .stay-filter__field {
-  background: var(--white);
-  border: none;
-  text-align: left;
-  padding: 14px 16px;
-  min-width: 0;
+.stay-filter--mobile .stay-filter__range {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 4px;
+}
+
+.stay-filter--mobile .stay-filter__range-copy {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font: inherit;
-  color: inherit;
-}
-
-.stay-filter--mobile .stay-filter__field--dates,
-.stay-filter--mobile .stay-filter__field--age {
-  grid-column: 1 / -1;
-}
-
-.stay-filter--mobile .stay-filter__field--dates {
-  cursor: pointer;
+  gap: 3px;
+  min-width: 0;
 }
 
 .stay-filter--mobile .stay-filter__field-label {
@@ -1128,7 +1118,7 @@ body.ready .bottom-nav,
   font-weight: 500;
 }
 
-.stay-filter--mobile .stay-filter__field:not(.has-value) .stay-filter__field-value {
+.stay-filter--mobile .stay-filter__range-copy:not(.has-value) .stay-filter__field-value {
   color: #9ca3af;
   font-weight: 400;
 }
@@ -1139,63 +1129,26 @@ body.ready .bottom-nav,
   font-weight: 500;
 }
 
-.stay-filter--mobile .stay-filter__stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.stay-filter--mobile .stay-filter__step {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text) !important;
-  -webkit-text-fill-color: var(--text);
-  -webkit-appearance: none;
-  appearance: none;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stay-filter--mobile .stay-filter__step:disabled {
-  opacity: 0.35;
-}
-
-.stay-filter--mobile .stay-filter__step-value {
-  min-width: 1.2em;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.stay-filter--mobile .stay-filter__age-unit {
-  font-size: 11px;
-  font-weight: 600;
-  margin-left: 1px;
-  opacity: 0.75;
+.stay-filter--mobile .stay-filter__field-meta--hint {
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .stay-filter--mobile .stay-filter__aside {
-  grid-column: 1 / -1;
-  background: var(--white);
-  padding: 12px 16px;
+  background: transparent;
+  padding: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  grid-column: auto;
 }
 
 .stay-filter--mobile .stay-filter__count {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--accent);
+  white-space: nowrap;
 }
 
 .stay-filter--mobile .stay-filter__clear {
@@ -1203,49 +1156,36 @@ body.ready .bottom-nav,
   background: none;
   padding: 0;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-.stay-filter--mobile {
-  position: relative;
-}
-
-.stay-filter--mobile .stay-filter__popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 16px;
-  z-index: 30;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+.stay-filter--mobile .stay-cal {
+  padding: 4px 12px 10px;
 }
 
 .stay-filter--mobile .stay-cal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .stay-filter--mobile .stay-cal__title {
   font-family: 'Playfair Display', serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .stay-filter--mobile .stay-cal__nav {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 10px;
   background: var(--bg);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   color: var(--text) !important;
   -webkit-text-fill-color: var(--text);
@@ -1257,27 +1197,28 @@ body.ready .bottom-nav,
 .stay-filter--mobile .stay-cal__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 2px;
 }
 
 .stay-filter--mobile .stay-cal__weekdays {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   text-align: center;
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .stay-filter--mobile .stay-cal-day {
-  aspect-ratio: 1;
+  height: 34px;
+  aspect-ratio: auto;
   border: none;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   -webkit-appearance: none;
   appearance: none;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text) !important;
   -webkit-text-fill-color: var(--text);
@@ -1309,14 +1250,87 @@ body.ready .bottom-nav,
   background: var(--accent);
   color: #fff !important;
   -webkit-text-fill-color: #fff;
-  border-radius: 10px;
+  border-radius: 9px;
 }
 
 .stay-filter--mobile .stay-cal__hint {
-  margin-top: 12px;
-  font-size: 12px;
+  margin-top: 8px;
+  font-size: 11px;
   color: var(--muted);
   text-align: center;
+  line-height: 1.35;
+}
+
+.stay-filter--mobile .stay-filter__bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.stay-filter--mobile .stay-filter__field {
+  background: var(--white);
+  border: none;
+  text-align: left;
+  padding: 12px 16px 14px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: inherit;
+  color: inherit;
+}
+
+.stay-filter--mobile .stay-filter__field--age {
+  grid-column: 1 / -1;
+}
+
+.stay-filter--mobile .stay-filter__stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stay-filter--mobile .stay-filter__step {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stay-filter--mobile .stay-filter__step:disabled {
+  opacity: 0.35;
+}
+
+.stay-filter--mobile .stay-filter__step-value {
+  min-width: 1.2em;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stay-filter--mobile .stay-filter__age-unit {
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 1px;
+  opacity: 0.75;
 }
 
 .stay-empty {

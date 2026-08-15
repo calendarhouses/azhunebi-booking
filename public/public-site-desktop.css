@@ -1746,9 +1746,74 @@ body {
   letter-spacing: -0.01em;
 }
 
+.stay-filter__card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(26, 26, 26, 0.06);
+}
+
+.stay-filter__range {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px 8px;
+}
+
+.stay-filter__range-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stay-filter__field-meta--hint {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.stay-filter--inline .stay-filter__aside {
+  grid-column: auto;
+  background: transparent;
+  padding: 0;
+  justify-content: flex-end;
+}
+
+.stay-filter--inline .stay-cal {
+  padding: 8px 28px 20px;
+}
+
+.stay-cal__months {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+
+.stay-cal--dual .stay-cal__months {
+  grid-template-columns: 1fr 1fr;
+}
+
+.stay-cal__month-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.stay-filter--inline .stay-filter__bar {
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--border);
+}
+
 .stay-filter__bar {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 0.7fr));
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
@@ -1758,7 +1823,7 @@ body {
 }
 
 .stay-filter__bar:has(.stay-filter__field--age) {
-  grid-template-columns: minmax(200px, 1.3fr) repeat(3, minmax(120px, 0.7fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
 }
 
 .stay-filter__field {
@@ -1770,19 +1835,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  cursor: default;
   font: inherit;
   color: inherit;
-}
-
-button.stay-filter__field {
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-button.stay-filter__field:hover,
-button.stay-filter__field[aria-expanded="true"] {
-  background: #fbfaf8;
 }
 
 .stay-filter__field-label {
@@ -1935,24 +1989,7 @@ button.stay-filter__field[aria-expanded="true"] {
 }
 
 .stay-filter__popover {
-  position: absolute;
-  top: calc(100% + 12px);
-  left: 0;
-  width: min(420px, 100%);
-  max-width: calc(100vw - 40px);
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 20px;
-  z-index: 40;
-  box-shadow: 0 24px 60px rgba(26, 26, 26, 0.12);
-  animation: stayFilterIn 0.22s ease;
-  box-sizing: border-box;
-}
-
-@keyframes stayFilterIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  display: none;
 }
 
 .stay-cal__header {
@@ -2123,13 +2160,14 @@ button.stay-filter__field[aria-expanded="true"] {
 }
 
 @media (max-width: 900px) {
+  .stay-cal--dual .stay-cal__months {
+    grid-template-columns: 1fr;
+  }
   .stay-filter__bar,
   .stay-filter__bar:has(.stay-filter__field--age) {
     grid-template-columns: 1fr 1fr;
   }
-  .stay-filter__field--dates,
-  .stay-filter__field--age,
-  .stay-filter__aside {
+  .stay-filter__field--age {
     grid-column: 1 / -1;
   }
 }
