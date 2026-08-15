@@ -99,7 +99,8 @@ body {
 
 /* Перехід до котеджів */
 #cabinsContainer {
-    position: relative; z-index: 2; background: var(--bg); padding-top: 80px; 
+    position: relative; z-index: 2; background: var(--bg); padding-top: 80px;
+    scroll-margin-top: 24px;
 }
 
 #screen-list > .stay-filter-shell + #cabinsContainer {
