@@ -23,7 +23,7 @@ const MONTH_NAMES = [
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
 function formatStayLabel(checkIn: Date | null, checkOut: Date | null): string {
-  if (!checkIn) return "Заїзд — виїзд";
+  if (!checkIn) return "Оберіть дати";
   const inLabel = checkIn.toLocaleDateString("uk-UA", {
     day: "numeric",
     month: "short",
@@ -160,7 +160,6 @@ function StayRangeCalendar({ months = 1 }: { months?: number }) {
         </button>
       </div>
       <div className="stay-cal__months">{monthBlocks}</div>
-      <p className="stay-cal__hint">Спочатку заїзд, потім виїзд · підсвічені вільні дати</p>
     </div>
   );
 }
@@ -289,17 +288,12 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
       <div className="stay-filter__card">
         <div className="stay-filter__range">
           <div className={`stay-filter__range-copy${checkIn ? " has-value" : ""}`}>
-            <span className="stay-filter__field-label">Дати</span>
             <span className="stay-filter__field-value">{formatStayLabel(checkIn, checkOut)}</span>
             {nights > 0 ? (
               <span className="stay-filter__field-meta">
                 {nights} {nights === 1 ? "ніч" : nights < 5 ? "ночі" : "ночей"}
               </span>
-            ) : (
-              <span className="stay-filter__field-meta stay-filter__field-meta--hint">
-                оберіть у календарі
-              </span>
-            )}
+            ) : null}
           </div>
           <div className="stay-filter__aside">
             {availableLabel ? <span className="stay-filter__count">{availableLabel}</span> : null}
