@@ -1969,10 +1969,29 @@ body {
 }
 
 .stay-filter__count {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 112px;
+  padding: 0 18px;
+  border: 1px solid rgba(85, 107, 47, 0.28);
+  border-radius: 999px;
+  background: var(--accent-light);
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--accent);
-  letter-spacing: 0.02em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.stay-filter__count:hover {
+  background: rgba(85, 107, 47, 0.16);
+  border-color: var(--accent);
 }
 
 .stay-filter__clear {

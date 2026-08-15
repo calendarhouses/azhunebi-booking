@@ -296,7 +296,19 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
             ) : null}
           </div>
           <div className="stay-filter__aside">
-            {availableLabel ? <span className="stay-filter__count">{availableLabel}</span> : null}
+            {availableLabel ? (
+              <button
+                type="button"
+                className="stay-filter__count"
+                onClick={() => {
+                  document
+                    .getElementById("cabinsContainer")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                {availableLabel}
+              </button>
+            ) : null}
             {listFilterActive || checkIn ? (
               <button type="button" className="stay-filter__clear" onClick={() => clearStayDates()}>
                 Скинути
