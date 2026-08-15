@@ -1092,10 +1092,10 @@ body.ready .bottom-nav,
 
 .stay-filter--mobile .stay-filter__range {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px 4px;
+  padding: 12px 12px 6px 16px;
 }
 
 .stay-filter--mobile .stay-filter__range-copy {
@@ -1155,14 +1155,22 @@ body.ready .bottom-nav,
 }
 
 .stay-filter--mobile .stay-filter__clear {
-  border: none;
-  background: none;
-  padding: 0;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 108px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
   font: inherit;
-  font-size: 12px;
-  color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-decoration: none;
 }
 
 .stay-filter--mobile .stay-cal {
