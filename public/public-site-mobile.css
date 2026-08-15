@@ -1256,14 +1256,6 @@ body.ready .bottom-nav,
   border-radius: 9px;
 }
 
-.stay-filter--mobile .stay-cal__hint {
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.35;
-}
-
 .stay-filter--mobile .stay-filter__bar {
   display: grid;
   grid-template-columns: 1fr 1fr;
