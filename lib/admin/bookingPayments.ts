@@ -95,8 +95,12 @@ export function getBookingPayments(b: BookingRecord): BookingPayment[] {
   });
   const raw = b.payments;
   if (Array.isArray(raw) && raw.length) {
+    const fallbackDate =
+      normalizeDateToIso(String(b.createdAt || "")) ||
+      String(b.checkIn || "").substring(0, 10);
     const normalized = (raw as unknown as Array<Record<string, unknown>>).map((p): BookingPayment => {
-      const date = String(p.date || p.at || "").substring(0, 10);
+      const rawDate = String(p.date || p.at || "").substring(0, 10);
+      const date = rawDate && !isNaN(new Date(rawDate).getTime()) ? rawDate : fallbackDate;
       const method = String(p.method || (p.provider === "mono" ? "ФОП" : p.provider) || "ФОП");
       const type = String(p.type || (p.provider ? "online" : "prepay"));
       return {
@@ -114,12 +118,14 @@ export function getBookingPayments(b: BookingRecord): BookingPayment[] {
 }
 
 export function paidUntilDate(b: BookingRecord, asOfDate: Date | string): number {
+  const legacyPaid = Math.round(Number(b.paidAmount) || 0);
   const pays = getBookingPayments(b);
-  if (!pays.length) return Math.round(Number(b.paidAmount) || 0);
+  if (!pays.length) return legacyPaid;
   const asOf = dateOnly(asOfDate);
-  return pays
+  const journalSum = pays
     .filter((p) => dateOnly(p.date) <= asOf)
     .reduce((s, p) => s + (Math.round(Number(p.amount)) || 0), 0);
+  return Math.max(journalSum, legacyPaid);
 }
 
 export function paymentsInPeriod(
