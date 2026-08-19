@@ -115,6 +115,7 @@ export type PublicServiceLine = {
 export type PublicPriceBreakdown = {
   basePrice: number;
   extraGuestFee: number;
+  extraGuestFeeDetails?: string;
   petFee: number;
   dayGuestFee: number;
   earlyFee: number;

@@ -184,6 +184,14 @@ export function usePublicBooking() {
   return ctx;
 }
 
+function guestWord(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "гість";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "гості";
+  return "гостей";
+}
+
 function emptyPrice(): PublicPriceBreakdown {
   return {
     basePrice: 0,
@@ -1019,10 +1027,23 @@ export function PublicBookingProvider({
       nights: calc.nights,
       nightlyBasePrices: calc.nightlyBasePrices,
     });
+    const maxCap = selectedRoom.maxCapacity || selectedRoom.capacity || 1;
+    const adults = Math.min(Math.max(guestCount, 1), maxCap);
+    const totalOccupants = adults + childCount;
+    const extraGuests = Math.max(0, totalOccupants - selectedRoom.capacity);
+    const extraGuestPrice = selectedRoom.extraGuestPrice ?? 2500;
+    const extraGuestFeeMode = selectedRoom.extraGuestFeeMode || "per_night";
+    const extraGuestFeeDetails =
+      calc.extraGuestFee > 0 && extraGuests > 0
+        ? extraGuestFeeMode === "per_stay"
+          ? `${extraGuests} ${guestWord(extraGuests)} × ${extraGuestPrice} грн (за період)`
+          : `${extraGuests} ${guestWord(extraGuests)} × ${calc.nights} ${nightWord(calc.nights)} × ${extraGuestPrice} грн`
+        : undefined;
     return {
       price: {
         basePrice: calc.basePriceTotal,
         extraGuestFee: calc.extraGuestFee,
+        extraGuestFeeDetails,
         petFee: calc.petFee,
         dayGuestFee: calc.dayGuestFee,
         earlyFee: calc.earlyFee,

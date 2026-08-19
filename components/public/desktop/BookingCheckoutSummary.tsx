@@ -24,7 +24,9 @@ export function BookingCheckoutSummary({ price, checkIn, checkOut }: Props) {
   if (price.extraGuestFee > 0) {
     rows.push({
       key: "extra-guests",
-      label: "Додаткові гості",
+      label: price.extraGuestFeeDetails
+        ? `Додаткові гості (${price.extraGuestFeeDetails})`
+        : "Додаткові гості",
       value: `${formatPriceUa(price.extraGuestFee)} грн`,
     });
   }
