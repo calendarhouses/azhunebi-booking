@@ -95,7 +95,7 @@ export function getBookingPayments(b: BookingRecord): BookingPayment[] {
   });
   const raw = b.payments;
   if (Array.isArray(raw) && raw.length) {
-    const normalized = (raw as Array<Record<string, unknown>>).map((p): BookingPayment => {
+    const normalized = (raw as unknown as Array<Record<string, unknown>>).map((p): BookingPayment => {
       const date = String(p.date || p.at || "").substring(0, 10);
       const method = String(p.method || (p.provider === "mono" ? "ФОП" : p.provider) || "ФОП");
       const type = String(p.type || (p.provider ? "online" : "prepay"));
