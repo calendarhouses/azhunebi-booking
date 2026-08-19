@@ -318,6 +318,13 @@ export function PublicBookingProvider({
   }, [applyPublicInit, data]);
 
   useEffect(() => {
+    if (!runtime?.rooms?.length || !selectedRoom) return;
+    const freshRoom = runtime.rooms.find((room) => String(room.id) === String(selectedRoom.id));
+    if (!freshRoom || freshRoom === selectedRoom) return;
+    setSelectedRoom(freshRoom);
+  }, [runtime?.rooms, selectedRoom]);
+
+  useEffect(() => {
     const paymentReturn = searchParams.get("payment") === "return";
     const returnedOrderId = searchParams.get("orderId")?.trim() || "";
     const submittedPending = searchParams.get("submitted") === "pending";
