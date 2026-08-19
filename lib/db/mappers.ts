@@ -249,6 +249,7 @@ export function dbRoomToApi(row: DbRoomRow): ApiRoom {
     capacity: row.capacity ?? 2,
     maxCapacity: extras.maxCapacity,
     extraGuestPrice: extras.extraGuestPrice ?? 2500,
+    extraGuestFeeMode: extras.extraGuestFeeMode === "per_stay" ? "per_stay" : "per_night",
     pricingModel: extras.pricingModel === "per_guest" ? "per_guest" : "per_house",
     pricePerGuest: numOrUndef(extras.pricePerGuest),
     pricePerGuestOneNight: numOrUndef(extras.pricePerGuestOneNight),

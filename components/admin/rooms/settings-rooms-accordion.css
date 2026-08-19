@@ -251,6 +251,82 @@
   margin-top: 0;
 }
 
+/* —— Додаткові гості —— */
+.khata-room-settings__extra-guests {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #e7e5e4;
+  background: #fafaf9;
+}
+
+.khata-room-settings__extra-guests-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #292524;
+  margin-bottom: 12px;
+}
+
+.khata-room-settings__extra-guests-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.khata-room-field--inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.khata-room-field__input--narrow {
+  width: 120px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d6d3d1;
+  font-size: 14px;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.khata-room-field__input--narrow:focus {
+  outline: none;
+  border-color: #556b2f;
+}
+
+.khata-room-settings__fee-mode {
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #d6d3d1;
+}
+
+.khata-room-settings__fee-mode-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: #fff;
+  color: #78716c;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.khata-room-settings__fee-mode-btn:first-child {
+  border-right: 1px solid #d6d3d1;
+}
+
+.khata-room-settings__fee-mode-btn--active {
+  background: #556b2f;
+  color: #fff;
+}
+
+.khata-room-settings__extra-guests-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #a8a29e;
+}
+
 .khata-room-settings__children-policy {
   display: flex;
   flex-direction: column;

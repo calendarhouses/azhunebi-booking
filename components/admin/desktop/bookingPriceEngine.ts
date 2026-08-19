@@ -525,7 +525,8 @@ export function computeBookingPrice(params: {
 
   const extraGuests = pricingModel === "per_guest" ? 0 : Math.max(0, guests - room.capacity);
   const dynamicExtraPrice = room.extraGuestPrice !== undefined ? room.extraGuestPrice : 2500;
-  let extraGuestFee = extraGuests * dynamicExtraPrice * nights;
+  const feeMode = room.extraGuestFeeMode || "per_night";
+  let extraGuestFee = extraGuests * dynamicExtraPrice * (feeMode === "per_night" ? nights : 1);
   let petFee = params.pets === "Так" ? 500 + 200 * nights : 0;
   let dayGuestFee = params.dayGuests * 500;
 

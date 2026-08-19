@@ -87,6 +87,12 @@ export function RoomSettingsAccordion({
   const [extraPlaces, setExtraPlaces] = useState(() =>
     String(Math.max(0, initialMax - initialCap))
   );
+  const [extraGuestPrice, setExtraGuestPrice] = useState(
+    String(resolvedRoom?.extraGuestPrice ?? 2500)
+  );
+  const [extraGuestFeeMode, setExtraGuestFeeMode] = useState<"per_night" | "per_stay">(
+    resolvedRoom?.extraGuestFeeMode ?? "per_night"
+  );
   const [allowChildren, setAllowChildren] = useState(resolvedRoom?.allowChildren !== false);
   const [minChildAge, setMinChildAge] = useState(() =>
     String(
@@ -332,6 +338,8 @@ export function RoomSettingsAccordion({
         detailedDescription: siteDescription.trim(),
         capacity,
         maxCapacity: capacity + extra,
+        extraGuestPrice: Math.max(0, Number(extraGuestPrice) || 0),
+        extraGuestFeeMode,
         allowChildren,
         minChildAge: allowChildren ? parsedMinAge : null,
         siteHighlights: siteHighlightsForSave(siteHighlights),
@@ -469,6 +477,47 @@ export function RoomSettingsAccordion({
                           onChange={setExtraPlaces}
                         />
                       </div>
+
+                      {Number(extraPlaces) > 0 && (
+                        <div className="khata-room-settings__extra-guests">
+                          <div className="khata-room-settings__extra-guests-header">
+                            Додаткові гості
+                          </div>
+                          <div className="khata-room-settings__extra-guests-row">
+                            <label className="khata-room-field khata-room-field--inline">
+                              <span className="khata-room-field__label">
+                                Ціна за додаткового гостя (грн)
+                              </span>
+                              <input
+                                className="khata-room-field__input khata-room-field__input--narrow"
+                                type="number"
+                                min={0}
+                                value={extraGuestPrice}
+                                onChange={(e) => setExtraGuestPrice(e.target.value)}
+                              />
+                            </label>
+                            <div className="khata-room-settings__fee-mode">
+                              <button
+                                type="button"
+                                className={`khata-room-settings__fee-mode-btn${extraGuestFeeMode === "per_night" ? " khata-room-settings__fee-mode-btn--active" : ""}`}
+                                onClick={() => setExtraGuestFeeMode("per_night")}
+                              >
+                                За ніч
+                              </button>
+                              <button
+                                type="button"
+                                className={`khata-room-settings__fee-mode-btn${extraGuestFeeMode === "per_stay" ? " khata-room-settings__fee-mode-btn--active" : ""}`}
+                                onClick={() => setExtraGuestFeeMode("per_stay")}
+                              >
+                                За весь період
+                              </button>
+                            </div>
+                          </div>
+                          <p className="khata-room-settings__extra-guests-hint">
+                            Гості понад {mainPlaces || "0"} оплачуються додатково
+                          </p>
+                        </div>
+                      )}
 
                       <div className="khata-room-settings__children-policy">
                         <label className="khata-room-settings__children-toggle">

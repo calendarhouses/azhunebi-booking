@@ -58,6 +58,8 @@ export interface RoomConfig {
   capacity: number;
   maxCapacity?: number;
   extraGuestPrice?: number;
+  /** Режим нарахування за додаткового гостя: за ніч (default) або за весь період */
+  extraGuestFeeMode?: "per_night" | "per_stay";
   /** Модель ціноутворення: за будинок (default) або за гостя */
   pricingModel?: RoomPricingModel;
   /** Ціна за 1 гостя за ніч (для per_guest); якщо не задано — priceWeekday/weekend */
