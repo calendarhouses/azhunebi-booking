@@ -95,7 +95,20 @@ export function getBookingPayments(b: BookingRecord): BookingPayment[] {
   });
   const raw = b.payments;
   if (Array.isArray(raw) && raw.length) {
-    return (raw as BookingPayment[]).map(mapOne);
+    const normalized = (raw as Array<Record<string, unknown>>).map((p): BookingPayment => {
+      const date = String(p.date || p.at || "").substring(0, 10);
+      const method = String(p.method || (p.provider === "mono" ? "ФОП" : p.provider) || "ФОП");
+      const type = String(p.type || (p.provider ? "online" : "prepay"));
+      return {
+        id: String(p.id || `pay-${date}-${Number(p.amount) || 0}`),
+        date,
+        amount: Math.round(Number(p.amount) || 0),
+        method,
+        type,
+        note: String(p.note || ""),
+      };
+    });
+    return normalized.map(mapOne);
   }
   return buildLegacyPayments(b).map(mapOne);
 }
