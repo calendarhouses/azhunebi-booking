@@ -84,6 +84,20 @@ export async function deleteStoredPendingReviewReminders(): Promise<number> {
   return deleted;
 }
 
+/** Clear Telegram reminder pings when the pending-review queue is empty. */
+export async function syncPendingReviewReminders(): Promise<{
+  pendingCount: number;
+  deletedMessages: number;
+}> {
+  const all = await listBookings();
+  const pending = all.filter((b) => isPendingReviewStatus(String(b.status || "")));
+  if (pending.length > 0) {
+    return { pendingCount: pending.length, deletedMessages: 0 };
+  }
+  const deletedMessages = await deleteStoredPendingReviewReminders();
+  return { pendingCount: 0, deletedMessages };
+}
+
 /** Ping the requests thread while any booking still awaits admin review. */
 export async function sendPendingReviewReminders(): Promise<PendingReviewReminderResult> {
   const all = await listBookings();
@@ -91,6 +105,11 @@ export async function sendPendingReviewReminders(): Promise<PendingReviewReminde
   const orderIds = pending.map((b) => String(b.id || "")).filter(Boolean);
 
   if (!orderIds.length) {
+    try {
+      await deleteStoredPendingReviewReminders();
+    } catch (err) {
+      console.warn("[TG] pending review reminder cleanup failed", err);
+    }
     return { ok: true, count: 0, sent: false, orderIds: [] };
   }
 

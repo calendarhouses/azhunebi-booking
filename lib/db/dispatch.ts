@@ -445,6 +445,14 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         }
         if (!id) return fail("id required");
         await deleteBookingById(id);
+        try {
+          const { syncPendingReviewReminders } = await import(
+            "@/lib/telegram/pendingReviewReminder"
+          );
+          await syncPendingReviewReminders();
+        } catch (err) {
+          console.warn("[deleteBooking] pending review reminder sync failed", err);
+        }
         return ok({ success: true });
       }
       case "reviewBooking": {
