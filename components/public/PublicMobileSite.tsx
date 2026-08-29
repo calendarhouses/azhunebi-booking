@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Phone } from "lucide-react";
+import { MapPin, MessageCircle, Phone } from "lucide-react";
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { toImageDisplaySrc } from "@/lib/driveImageUrl";
@@ -41,6 +41,9 @@ export function PublicMobileSite() {
   const hasContact = contactDigits.length >= 10;
   const telHref = hasContact ? `tel:+${contactDigits}` : "";
   const telegramHref = hasContact ? `https://t.me/+${contactDigits}` : "";
+  const mapsHref = String(runtime?.branding?.maps_external_url || "").trim();
+  const hasMaps = /^https?:\/\//i.test(mapsHref);
+  const showBrandActions = hasMaps || hasContact;
   const rooms = filteredRooms;
   const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
   const showLoading = !runtime || runtime.rooms.length === 0;
@@ -57,24 +60,39 @@ export function PublicMobileSite() {
             <div className="public-mobile-brand__text">
               <h1 className="public-mobile-brand__title">{brandName}</h1>
             </div>
-            {hasContact ? (
+            {showBrandActions ? (
               <div className="public-mobile-brand__actions">
-                <a
-                  className="public-mobile-brand__action"
-                  href={telHref}
-                  aria-label="Зателефонувати"
-                >
-                  <Phone size={18} strokeWidth={2.25} aria-hidden />
-                </a>
-                <a
-                  className="public-mobile-brand__action"
-                  href={telegramHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Написати в Telegram"
-                >
-                  <MessageCircle size={18} strokeWidth={2.25} aria-hidden />
-                </a>
+                {hasMaps ? (
+                  <a
+                    className="public-mobile-brand__action"
+                    href={mapsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Відкрити на Google Maps"
+                  >
+                    <MapPin size={18} strokeWidth={2.25} aria-hidden />
+                  </a>
+                ) : null}
+                {hasContact ? (
+                  <>
+                    <a
+                      className="public-mobile-brand__action"
+                      href={telHref}
+                      aria-label="Зателефонувати"
+                    >
+                      <Phone size={18} strokeWidth={2.25} aria-hidden />
+                    </a>
+                    <a
+                      className="public-mobile-brand__action"
+                      href={telegramHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Написати в Telegram"
+                    >
+                      <MessageCircle size={18} strokeWidth={2.25} aria-hidden />
+                    </a>
+                  </>
+                ) : null}
               </div>
             ) : null}
           </div>
