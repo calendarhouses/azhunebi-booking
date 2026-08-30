@@ -42,7 +42,7 @@ const MONTH_SHORT = [
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
 function formatChipDate(date: Date | null): string {
-  if (!date) return "дата";
+  if (!date) return "—";
   return `${date.getDate()} ${MONTH_SHORT[date.getMonth()]}`;
 }
 

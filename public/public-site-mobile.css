@@ -1105,24 +1105,99 @@ body.ready .bottom-nav,
   min-width: 0;
 }
 
+.stay-filter--mobile .stay-filter__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(18, 22, 18, 0.58);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+
+.stay-filter--mobile .stay-filter__focus {
+  position: relative;
+}
+
+.stay-filter--mobile.stay-filter--picking .stay-filter__focus {
+  z-index: 45;
+  background: var(--white);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px rgba(18, 22, 18, 0.22);
+}
+
 .stay-filter--mobile .stay-filter__date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   padding: 12px 12px 6px;
+  box-sizing: border-box;
 }
 
 .stay-filter--mobile .stay-filter__date-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
   min-height: 64px;
   padding: 10px 12px;
   border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stay-filter--mobile .stay-filter__date-chip.has-value {
+  background: #fff;
+}
+
+.stay-filter--mobile .stay-filter__date-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 0 0 3px rgba(85, 107, 47, 0.16);
+}
+
+.stay-filter--mobile .stay-filter__date-chip-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .stay-filter--mobile .stay-filter__date-chip-value {
+  display: block;
   font-size: 16px;
+  font-weight: 650;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.stay-filter--mobile .stay-filter__date-chip:not(.has-value) .stay-filter__date-chip-value {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .stay-filter--mobile .stay-filter__pick-hint {
-  font-size: 12px;
+  margin: 0;
   padding: 0 12px 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--accent);
 }
 
 .stay-filter--mobile.stay-filter--picking .stay-filter__card {
@@ -1132,8 +1207,9 @@ body.ready .bottom-nav,
   overflow: visible;
 }
 
-.stay-filter--mobile .stay-filter__focus {
-  border-radius: 20px;
+.stay-filter--mobile .stay-filter__aside--tools {
+  padding: 10px 12px 0;
+  background: transparent;
 }
 
 .stay-filter--mobile .stay-filter__field-label {
