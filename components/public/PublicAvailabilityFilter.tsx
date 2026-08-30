@@ -205,6 +205,9 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     listFilterActive,
     listGuestMax,
     selectStayDate,
+    roomCategories,
+    selectedCategoryId,
+    setSelectedCategoryId,
   } = usePublicBooking();
 
   const [pickIntent, setPickIntent] = useState<StayDatePickIntent | null>(null);
@@ -354,6 +357,32 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
 
       {layout === "desktop" ? (
         <h2 className="stay-filter__heading">Оберіть дату заїзду — покажемо вільні будинки</h2>
+      ) : null}
+
+      {roomCategories.length > 1 ? (
+        <div className="stay-filter__cats" role="tablist" aria-label="Категорії житла">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!selectedCategoryId}
+            className={`stay-filter__cat${!selectedCategoryId ? " is-active" : ""}`}
+            onClick={() => setSelectedCategoryId(null)}
+          >
+            Усі
+          </button>
+          {roomCategories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={selectedCategoryId === cat.id}
+              className={`stay-filter__cat${selectedCategoryId === cat.id ? " is-active" : ""}`}
+              onClick={() => setSelectedCategoryId(cat.id)}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
       ) : null}
 
       <div className="stay-filter__card">

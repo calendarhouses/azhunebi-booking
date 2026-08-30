@@ -177,46 +177,6 @@ body.public-booking-page.boso-public-mobile.ready {
   gap: 28px;
 }
 
-.public-cabin-cats {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 2px;
-  margin: 0 0 -8px;
-  padding: 4px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  border-radius: 16px;
-  background: #f3efe6;
-  border: 1px solid #ebe4d6;
-  box-sizing: border-box;
-}
-
-.public-cabin-cats::-webkit-scrollbar {
-  display: none;
-}
-
-.public-cabin-cats__btn {
-  flex: 1 1 0;
-  min-width: 0;
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: #57534e;
-  border-radius: 12px;
-  padding: 9px 10px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.public-cabin-cats__btn.is-active {
-  background: #fff;
-  color: #3f4f24;
-  box-shadow: 0 1px 4px rgba(28, 33, 24, 0.1);
-}
-
 .public-cabin-group__head {
   display: flex;
   align-items: center;
@@ -1167,6 +1127,45 @@ body.ready .bottom-nav,
   z-index: 3;
   padding: 8px 16px 12px;
   background: transparent;
+}
+
+.stay-filter--mobile .stay-filter__cats {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-radius: 16px;
+  background: #f3efe6;
+  border: 1px solid #ebe4d6;
+  box-sizing: border-box;
+}
+
+.stay-filter--mobile .stay-filter__cats::-webkit-scrollbar {
+  display: none;
+}
+
+.stay-filter--mobile .stay-filter__cat {
+  flex: 1 1 0;
+  min-width: 0;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #57534e;
+  border-radius: 12px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stay-filter--mobile .stay-filter__cat.is-active {
+  background: #fff;
+  color: #3f4f24;
+  box-shadow: 0 1px 4px rgba(28, 33, 24, 0.1);
 }
 
 .stay-filter--mobile .stay-filter__card {
