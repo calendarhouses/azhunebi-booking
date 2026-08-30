@@ -142,10 +142,19 @@ body {
 
 .public-cabin-group__head {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   margin: 0 0 -52px;
-  padding: 0 4px;
+  padding: 0 4px 14px;
+  border-bottom: 1px solid #ebe6dc;
+}
+
+.public-cabin-group__rule {
+  width: 3px;
+  height: 22px;
+  border-radius: 99px;
+  background: #556b2f;
+  flex-shrink: 0;
 }
 
 .public-cabin-group__title {
@@ -157,9 +166,13 @@ body {
 }
 
 .public-cabin-group__count {
-  font-size: 14px;
-  font-weight: 600;
-  color: #78716c;
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3efe6;
+  font-size: 12px;
+  font-weight: 700;
+  color: #556b2f;
 }
 
 /* ── ПРЕМІУМ КАРТКА (Анімація та Шаховий порядок) ── */
@@ -1764,39 +1777,43 @@ body {
 
 .stay-filter__cats {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  width: 100%;
   margin: 0 0 16px;
+  padding: 4px;
+  gap: 2px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: #f3efe6;
+  border: 1px solid #ebe4d6;
 }
 
 .stay-filter__cat {
   appearance: none;
-  border: 1px solid #e7e5e4;
-  background: #fff;
-  color: #44403c;
-  border-radius: 999px;
-  padding: 8px 16px;
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #57534e;
+  border-radius: 12px;
+  padding: 10px 12px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.01em;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .stay-filter__cat:hover {
-  border-color: #d6d3d1;
-  background: #fafaf9;
+  color: #1c1917;
 }
 
 .stay-filter__cat.is-active {
-  border-color: #556b2f;
-  background: rgba(85, 107, 47, 0.1);
+  background: #fff;
   color: #3f4f24;
-  box-shadow: 0 0 0 3px rgba(85, 107, 47, 0.08);
+  box-shadow: 0 1px 4px rgba(28, 33, 24, 0.1);
 }
 
 .stay-filter__heading {

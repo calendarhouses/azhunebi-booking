@@ -179,24 +179,37 @@ body.public-booking-page.boso-public-mobile.ready {
 
 .public-cabin-group__head {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0 0 -12px;
-  padding: 4px 2px 0;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 -8px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid #ebe6dc;
+}
+
+.public-cabin-group__rule {
+  width: 3px;
+  height: 16px;
+  border-radius: 99px;
+  background: #556b2f;
+  flex-shrink: 0;
 }
 
 .public-cabin-group__title {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #1c1917;
 }
 
 .public-cabin-group__count {
-  font-size: 13px;
-  font-weight: 600;
-  color: #78716c;
+  margin-left: auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f3efe6;
+  font-size: 11px;
+  font-weight: 700;
+  color: #556b2f;
 }
 
 .screen { display: none; } .screen.active { display: block; }
@@ -1119,12 +1132,16 @@ body.ready .bottom-nav,
 .stay-filter--mobile .stay-filter__cats {
   display: flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 2px;
   margin: 0 0 12px;
+  padding: 4px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 2px 2px 4px;
+  border-radius: 16px;
+  background: #f3efe6;
+  border: 1px solid #ebe4d6;
+  box-sizing: border-box;
 }
 
 .stay-filter--mobile .stay-filter__cats::-webkit-scrollbar {
@@ -1132,22 +1149,23 @@ body.ready .bottom-nav,
 }
 
 .stay-filter--mobile .stay-filter__cat {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
   appearance: none;
-  border: 1px solid #e7e5e4;
-  background: #fff;
-  color: #44403c;
-  border-radius: 999px;
-  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: #57534e;
+  border-radius: 12px;
+  padding: 9px 10px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .stay-filter--mobile .stay-filter__cat.is-active {
-  border-color: #556b2f;
-  background: rgba(85, 107, 47, 0.12);
+  background: #fff;
   color: #3f4f24;
+  box-shadow: 0 1px 4px rgba(28, 33, 24, 0.1);
 }
 
 .stay-filter--mobile .stay-filter__card {

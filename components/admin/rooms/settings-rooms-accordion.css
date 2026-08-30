@@ -219,12 +219,38 @@
   box-shadow: 0 0 0 3px rgba(85, 107, 47, 0.1);
 }
 
-.khata-room-field__select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2378716c' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+.khata-cat-select {
+  z-index: 2;
+}
+
+.khata-cat-select.open {
+  z-index: 20;
+}
+
+.khata-cat-select__trigger {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.khata-cat-select .custom-select-options {
+  pointer-events: none;
+}
+
+.khata-cat-select.open .custom-select-options {
+  pointer-events: auto;
+}
+
+.khata-cat-select .custom-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
 }
 
 /* —— Місткість —— */

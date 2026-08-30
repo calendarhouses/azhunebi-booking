@@ -692,15 +692,18 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 }
 
 .boso-admin-mobile .timeline-cat-head--side {
-  font-size: 0 !important;
-  color: transparent !important;
+  justify-content: flex-start !important;
+  overflow: visible !important;
+  z-index: 8 !important;
+  padding-left: 6px !important;
 }
 
 .boso-admin-mobile .timeline-cat-head__label {
-  left: var(--timeline-rooms-col, 44px) !important;
+  left: auto !important;
   font-size: 11px !important;
-  line-height: 1.2 !important;
-  max-width: calc(100vw - var(--timeline-rooms-col, 44px) - 12px) !important;
+  line-height: 1 !important;
+  max-width: none !important;
+  color: #3f4f24 !important;
 }
 .timeline-cell { width: 60px; flex-shrink: 0; border-right: 1px solid #D0D5DD; position: relative; }
 .timeline-cell.weekend { background-color: rgba(248, 250, 252, 0.55); }
@@ -3393,6 +3396,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-mobile-rooms {
+  overflow: visible !important;
   grid-column: 1 !important;
   grid-row: 2 !important;
   width: var(--timeline-rooms-col, 88px) !important;
@@ -5016,6 +5020,18 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 
 .boso-admin-mobile #view-settings .room-cats {
   margin-bottom: 8px;
+}
+
+.boso-admin-mobile #view-settings .room-cats__add {
+  height: 58px;
+  align-items: center;
+}
+
+.boso-admin-mobile #view-settings .room-cats__add-input,
+.boso-admin-mobile #view-settings .room-cats__add-btn {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
 }
 
 .boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row,
@@ -6843,6 +6859,13 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   min-height: 120px;
   padding-top: 12px;
   padding-bottom: 12px;
+}
+
+.boso-admin-mobile .room-settings-drawer .khata-cat-select__trigger {
+  min-height: 48px;
+  border-radius: 13px;
+  border: 1px solid #e2e7db;
+  background: #fff;
 }
 
 .boso-admin-mobile .room-settings-drawer .khata-room-settings__capacity-row {

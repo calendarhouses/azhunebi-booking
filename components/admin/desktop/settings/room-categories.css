@@ -125,23 +125,33 @@
 
 .room-cats__add {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
+  height: 58px;
   padding: 8px;
+  box-sizing: border-box;
   border-radius: 14px;
   background: #f7f6f2;
   border: 1px dashed #e4e0d6;
 }
 
 .room-cats__add-input {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  margin: 0;
   border: 1px solid transparent;
   border-radius: 10px;
   padding: 0 12px;
   font-size: 14px;
+  line-height: 42px;
   background: #fff;
   color: #1c1917;
+  box-sizing: border-box;
 }
 
 .room-cats__add-input:focus {
@@ -153,8 +163,13 @@
 .room-cats__add-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  flex: 0 0 auto;
   height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  margin: 0;
   padding: 0 14px;
   border: none;
   border-radius: 10px;
@@ -162,8 +177,10 @@
   color: #fff;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .room-cats__add-btn:hover:not(:disabled) {
@@ -229,8 +246,10 @@
 }
 
 .timeline-cat-head--side {
-  justify-content: center;
-  padding: 0;
+  justify-content: flex-start;
+  z-index: 6;
+  padding: 0 0 0 8px;
+  overflow: visible;
 }
 
 .timeline-cat-head--grid {
@@ -240,30 +259,19 @@
 }
 
 .timeline-cat-head__label {
-  position: sticky;
-  left: var(--timeline-rooms-col, 44px);
-  z-index: 3;
   display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  max-width: calc(100vw - 24px);
-  padding: 0 12px;
+  align-items: center;
+  height: 100%;
+  padding: 0 20px 0 0;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1;
+  background: linear-gradient(90deg, #f3efe4 0%, #f3efe4 72%, rgba(243, 239, 228, 0) 100%);
 }
 
-.timeline-cat-head__count {
-  font-weight: 650;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #6b6458;
-  font-variant-numeric: tabular-nums;
-}
-
-.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-cat-head__label {
-  left: 0;
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-cat-head--side {
+  padding-left: 10px;
 }

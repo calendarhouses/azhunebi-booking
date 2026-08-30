@@ -43,6 +43,7 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
         <section key={group.id} className="public-cabin-group">
           {showHeads && group.title ? (
             <header className="public-cabin-group__head">
+              <span className="public-cabin-group__rule" aria-hidden />
               <h2 className="public-cabin-group__title">{group.title}</h2>
               <span className="public-cabin-group__count">
                 {group.rooms.length} {houseWord(group.rooms.length)}

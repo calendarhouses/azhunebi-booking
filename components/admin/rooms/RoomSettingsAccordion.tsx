@@ -7,7 +7,7 @@ import { buildDefaultHouseRulesState, HOUSE_RULES_CATEGORY_ID } from "@/constant
 import { showToast } from "@/components/admin/desktop/adminGlobals";
 import { isRoomDraftId } from "@/lib/admin/roomDraft";
 import type { AdminModalsApi, RoomAccordionKey } from "@/components/admin/desktop/useAdminModals";
-import type { AdminSettingsPayload, RoomConfig, RoomSiteHighlight } from "@/components/admin/desktop/types";
+import type { AdminSettingsPayload, RoomCategory, RoomConfig, RoomSiteHighlight } from "@/components/admin/desktop/types";
 import {
   normalizeSiteHighlights,
   siteHighlightsForSave,
@@ -51,6 +51,75 @@ function Spinner() {
       <circle cx="12" cy="12" r="9" />
       <path d="M12 3a9 9 0 0 1 9 9" />
     </svg>
+  );
+}
+
+function RoomCategorySelect({
+  value,
+  onChange,
+  categories,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  categories: RoomCategory[];
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const current = categories.find((c) => c.id === value);
+  const label = current
+    ? `${current.name}${current.hidden ? " (прихована)" : ""}`
+    : "Без категорії";
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (event: MouseEvent) => {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const pick = (id: string) => {
+    onChange(id);
+    setOpen(false);
+  };
+
+  return (
+    <div
+      ref={wrapRef}
+      className={`custom-select-wrapper khata-cat-select${open ? " open" : ""}`}
+    >
+      <button
+        type="button"
+        className="custom-select-trigger khata-cat-select__trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span>{label}</span>
+        <ChevronDown className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+      </button>
+      <div className="custom-select-options" role="listbox">
+        <button
+          type="button"
+          className={`custom-option${!value ? " selected" : ""}`}
+          onClick={() => pick("")}
+        >
+          Без категорії
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            className={`custom-option${value === cat.id ? " selected" : ""}`}
+            onClick={() => pick(cat.id)}
+          >
+            {cat.name}
+            {cat.hidden ? " (прихована)" : ""}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -457,22 +526,14 @@ export function RoomSettingsAccordion({
                       </label>
 
                       {normalizeRoomCategories(settings.roomCategoriesList).length > 0 ? (
-                        <label className="khata-room-field">
+                        <div className="khata-room-field">
                           <span className="khata-room-field__label">Категорія</span>
-                          <select
-                            className="khata-room-field__input khata-room-field__select"
+                          <RoomCategorySelect
                             value={categoryId}
-                            onChange={(e) => setCategoryId(e.target.value)}
-                          >
-                            <option value="">Без категорії</option>
-                            {normalizeRoomCategories(settings.roomCategoriesList).map((cat) => (
-                              <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                                {cat.hidden ? " (прихована)" : ""}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                            onChange={setCategoryId}
+                            categories={normalizeRoomCategories(settings.roomCategoriesList)}
+                          />
+                        </div>
                       ) : null}
 
                       <label className="khata-room-field">

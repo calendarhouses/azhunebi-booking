@@ -22,7 +22,6 @@ import {
 } from "@/lib/public-booking/bookingReview";
 import {
   buildTimelineLanes,
-  houseWord,
   roomIndexFromLaneY,
   roomTopFromLanes,
   sortRoomsByCategory,
@@ -2260,13 +2259,14 @@ export function DesktopTimelineView({
         <div
           key={`cat-side-${lane.id}`}
           className="timeline-cat-head timeline-cat-head--side"
-          aria-hidden
           style={{
             height: TIMELINE_CATEGORY_HEAD_H,
             minHeight: TIMELINE_CATEGORY_HEAD_H,
             maxHeight: TIMELINE_CATEGORY_HEAD_H,
           }}
-        />
+        >
+          <span className="timeline-cat-head__label">{lane.title}</span>
+        </div>
       );
     }
     const room = gridByRoom[lane.roomIndex]?.room;
@@ -2321,6 +2321,7 @@ export function DesktopTimelineView({
             <div
               key={`cat-grid-${lane.id}`}
               className="timeline-cat-head timeline-cat-head--grid"
+              aria-hidden
               style={{
                 height: TIMELINE_CATEGORY_HEAD_H,
                 minHeight: TIMELINE_CATEGORY_HEAD_H,
@@ -2328,14 +2329,7 @@ export function DesktopTimelineView({
                 width: gridTotalWidth,
                 minWidth: gridTotalWidth,
               }}
-            >
-              <span className="timeline-cat-head__label">
-                {lane.title}
-                <span className="timeline-cat-head__count">
-                  {lane.count} {houseWord(lane.count)}
-                </span>
-              </span>
-            </div>
+            />
           );
         }
         const row = gridByRoom[lane.roomIndex];
