@@ -12,18 +12,11 @@
 }
 
 .room-cats__title {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 16px;
   font-weight: 750;
   letter-spacing: -0.02em;
   color: #1c1917;
-}
-
-.room-cats__hint {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #78716c;
 }
 
 .room-cats__list {
@@ -248,7 +241,7 @@
 .timeline-cat-head--side {
   justify-content: flex-start;
   z-index: 6;
-  padding: 0 0 0 8px;
+  padding: 0 0 0 12px;
   overflow: visible;
 }
 
@@ -273,5 +266,5 @@
 }
 
 .timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-cat-head--side {
-  padding-left: 10px;
+  padding-left: 14px;
 }

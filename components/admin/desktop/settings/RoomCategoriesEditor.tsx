@@ -73,9 +73,6 @@ export function RoomCategoriesEditor({ settings, modals }: Props) {
     <section className="room-cats">
       <header className="room-cats__head">
         <h3 className="room-cats__title">Категорії житла</h3>
-        <p className="room-cats__hint">
-          Глемпи, намети — гість фільтрує на сайті. Признач категорію в картці будинку.
-        </p>
       </header>
 
       {categories.length ? (

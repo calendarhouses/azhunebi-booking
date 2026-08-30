@@ -687,7 +687,6 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   max-height: 42px !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
-  padding: 0 !important;
   overflow: visible !important;
 }
 
@@ -695,11 +694,12 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
   justify-content: flex-start !important;
   overflow: visible !important;
   z-index: 8 !important;
-  padding-left: 6px !important;
+  padding: 0 0 0 12px !important;
 }
 
 .boso-admin-mobile .timeline-cat-head__label {
   left: auto !important;
+  padding-left: 2px !important;
   font-size: 11px !important;
   line-height: 1 !important;
   max-width: none !important;
@@ -3877,7 +3877,14 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   height: 42px !important;
   min-height: 42px !important;
   max-height: 42px !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head--grid {
   padding: 0 !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head--side {
+  padding: 0 0 0 12px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room__label {
