@@ -10,6 +10,7 @@ export const PUBLIC_SETTINGS_KEYS = [
   "flexibleScheduleSettings",
   "restrictions",
   "roomsList",
+  "roomCategoriesList",
   "sysServicesList",
   "paymentSettings",
 ] as const;

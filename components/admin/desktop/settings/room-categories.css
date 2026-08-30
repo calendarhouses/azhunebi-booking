@@ -1,0 +1,239 @@
+.room-cats {
+  margin: 0 0 22px;
+  padding: 18px 18px 16px;
+  border: 1px solid #e7e5e4;
+  border-radius: 16px;
+  background: #fafaf9;
+}
+
+.room-cats__head {
+  margin-bottom: 14px;
+}
+
+.room-cats__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #1c1917;
+}
+
+.room-cats__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #78716c;
+}
+
+.room-cats__list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-cats__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+}
+
+.room-cats__row.is-hidden {
+  opacity: 0.62;
+}
+
+.room-cats__name {
+  min-width: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 650;
+  color: #1c1917;
+  padding: 4px 0;
+  outline: none;
+}
+
+.room-cats__name:focus {
+  color: #3f4f24;
+}
+
+.room-cats__count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #78716c;
+  white-space: nowrap;
+}
+
+.room-cats__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.room-cats__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #57534e;
+  cursor: pointer;
+}
+
+.room-cats__icon-btn:hover:not(:disabled) {
+  background: #f5f5f4;
+  color: #1c1917;
+}
+
+.room-cats__icon-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.room-cats__icon-btn--danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.room-cats__empty {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #78716c;
+}
+
+.room-cats__add {
+  display: flex;
+  gap: 8px;
+}
+
+.room-cats__add-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: #fff;
+  color: #1c1917;
+}
+
+.room-cats__add-input:focus {
+  outline: none;
+  border-color: #556b2f;
+  box-shadow: 0 0 0 3px rgba(85, 107, 47, 0.12);
+}
+
+.room-cats__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: #556b2f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.room-cats__add-btn:hover:not(:disabled) {
+  background: #465826;
+}
+
+.room-cats__add-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .room-cats {
+    padding: 14px 12px 12px;
+    border-radius: 14px;
+  }
+
+  .room-cats__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .room-cats__count {
+    display: none;
+  }
+
+  .room-cats__actions {
+    justify-content: flex-end;
+  }
+}
+
+.settings-rooms-cat td {
+  padding: 18px 4px 8px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #556b2f;
+}
+
+.khata-room-field__select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2378716c' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.timeline-cat-head {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  background: linear-gradient(180deg, #f4f1ea 0%, #efe8d8 100%);
+  border-bottom: 1px solid rgba(85, 107, 47, 0.14);
+  color: #3f4f24;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.timeline-cat-head--side {
+  justify-content: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 4px;
+}
+
+.timeline-cat-head--grid {
+  position: relative;
+  width: 100%;
+  font-size: 12px;
+  padding-left: 12px;
+}
+
+.timeline-cat-head__label {
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-cat-head--side {
+  font-size: 9px;
+}

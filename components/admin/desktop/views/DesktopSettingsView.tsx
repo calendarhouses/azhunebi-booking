@@ -14,6 +14,7 @@ import { AdditionalServicesSettingsPage } from "../settings/AdditionalServicesSe
 import { SmsSettingsPanel } from "../settings/SmsSettingsPanel";
 import { PaymentSettingsPanel } from "../settings/PaymentSettingsPanel";
 import { SettingsRoomsTable } from "../settings/DesktopSettingsTables";
+import { RoomCategoriesEditor } from "../settings/RoomCategoriesEditor";
 import { SIDEBAR_SETTINGS_ITEMS } from "../sidebarSettingsItems";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
@@ -214,6 +215,7 @@ export function DesktopSettingsView({
               + Додати житло
             </button>
           ) : null}
+          <RoomCategoriesEditor settings={settings} modals={modals} />
           <table className="settings-rooms-table">
             {!isMobile ? (
               <thead>

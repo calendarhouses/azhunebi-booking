@@ -6,12 +6,13 @@ import type { AdminSettingsPayload, DiscountConfig, DiscountKind } from "../type
 import { RoomSettingsAccordion } from "../../rooms/RoomSettingsAccordion";
 import { DiscountSettingsAccordion } from "./DiscountSettingsAccordion";
 import { dedupeDiscountsList } from "@/lib/admin/discountDraft";
-import { sortRoomsNumerically } from "@/lib/admin/sortRooms";
+import { groupRoomsByCategory, houseWord } from "@/lib/admin/roomCategories";
 import { matchesDiscountSection } from "./discountConfig";
 import { SettingsDiscountTableRow } from "./SettingsDiscountTableRow";
 import { SettingsRoomTableRow } from "./SettingsRoomTableRow";
 import { SettingsRoomExpandRow, SETTINGS_DISCOUNT_ACCORDION_ANIMATION_MS } from "./SettingsRoomExpandRow";
 import "./settings-discounts.css";
+import "./room-categories.css";
 
 function ActiveBadge({ active, onLabel, offLabel }: { active: boolean; onLabel: string; offLabel: string }) {
   if (active) {
@@ -63,7 +64,9 @@ const roomsEmptyStateStyle: CSSProperties = {
 
 export function SettingsRoomsTable({ settings, modals, layout = "desktop" }: DesktopSettingsTablesProps) {
   const isMobile = layout === "mobile";
-  const rooms = sortRoomsNumerically(settings.roomsList || []);
+  const groups = groupRoomsByCategory(settings.roomsList || [], settings.roomCategoriesList);
+  const rooms = groups.flatMap((g) => g.rooms);
+  const showGroupHeads = groups.some((g) => Boolean(g.title));
 
   if (rooms.length === 0) {
     return (
@@ -84,32 +87,47 @@ export function SettingsRoomsTable({ settings, modals, layout = "desktop" }: Des
           <td colSpan={4} />
         </tr>
       ) : null}
-      {rooms.map((r, index) => (
-        <Fragment key={r.id}>
-          <SettingsRoomTableRow
-            room={r}
-            modals={modals}
-            isMobile={isMobile}
-            isExpanded={!isMobile && modals.roomAccordionKey === r.id}
-            onToggleExpand={
-              isMobile ? undefined : () => modals.toggleRoomAccordion(r.id)
-            }
-          />
-          {!isMobile ? (
-            <SettingsRoomExpandRow open={modals.roomAccordionKey === r.id} colSpan={4}>
-              <RoomSettingsAccordion
-                roomKey={r.id}
-                room={r}
-                settings={settings}
-                modals={modals}
-              />
-            </SettingsRoomExpandRow>
-          ) : null}
-          {!isMobile && index < rooms.length - 1 ? (
-            <tr className="settings-rooms-table-spacer" aria-hidden>
-              <td colSpan={4} />
+      {groups.map((group, groupIndex) => (
+        <Fragment key={group.id}>
+          {showGroupHeads && group.title ? (
+            <tr className="settings-rooms-cat">
+              <td colSpan={isMobile ? 1 : 4}>
+                {group.title} · {group.rooms.length} {houseWord(group.rooms.length)}
+              </td>
             </tr>
           ) : null}
+          {group.rooms.map((r, indexInGroup) => {
+            const isLast =
+              groupIndex === groups.length - 1 && indexInGroup === group.rooms.length - 1;
+            return (
+              <Fragment key={r.id}>
+                <SettingsRoomTableRow
+                  room={r}
+                  modals={modals}
+                  isMobile={isMobile}
+                  isExpanded={!isMobile && modals.roomAccordionKey === r.id}
+                  onToggleExpand={
+                    isMobile ? undefined : () => modals.toggleRoomAccordion(r.id)
+                  }
+                />
+                {!isMobile ? (
+                  <SettingsRoomExpandRow open={modals.roomAccordionKey === r.id} colSpan={4}>
+                    <RoomSettingsAccordion
+                      roomKey={r.id}
+                      room={r}
+                      settings={settings}
+                      modals={modals}
+                    />
+                  </SettingsRoomExpandRow>
+                ) : null}
+                {!isMobile && !isLast ? (
+                  <tr className="settings-rooms-table-spacer" aria-hidden>
+                    <td colSpan={4} />
+                  </tr>
+                ) : null}
+              </Fragment>
+            );
+          })}
         </Fragment>
       ))}
     </tbody>

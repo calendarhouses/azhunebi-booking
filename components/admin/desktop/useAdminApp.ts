@@ -70,6 +70,7 @@ function mergeSettings(raw: AdminSettingsPayload | undefined): AdminSettingsPayl
   const s = raw || {};
   return {
     roomsList: sortRoomsNumerically(Array.isArray(s.roomsList) ? s.roomsList : []),
+    roomCategoriesList: Array.isArray(s.roomCategoriesList) ? s.roomCategoriesList : [],
     discountsList: Array.isArray(s.discountsList) ? s.discountsList : [],
     customServicesList: Array.isArray(s.customServicesList) ? s.customServicesList : [],
     flexibleScheduleSettings: s.flexibleScheduleSettings,

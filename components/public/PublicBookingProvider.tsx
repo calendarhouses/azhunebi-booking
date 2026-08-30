@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { nightWord } from "@/components/admin/desktop/adminPlural";
+import { visibleRoomCategories } from "@/lib/admin/roomCategories";
 import {
   computeBookingPrice,
   getBookingMinNightsRequired,
@@ -22,6 +23,7 @@ import type {
   AdminSettingsPayload,
   BookingRecord,
   CustomServiceConfig,
+  RoomCategory,
   RoomConfig,
 } from "@/components/admin/desktop/types";
 import {
@@ -138,6 +140,9 @@ type Ctx = {
   filteredRooms: RoomConfig[];
   listFilterActive: boolean;
   listGuestMax: number;
+  roomCategories: RoomCategory[];
+  selectedCategoryId: string | null;
+  setSelectedCategoryId: (id: string | null) => void;
   availableServices: CustomServiceConfig[];
   selectedServices: ServiceSelectionMap;
   setServiceQty: (serviceId: number, qty: number) => void;
@@ -244,6 +249,7 @@ export function PublicBookingProvider({
   const [calKey, setCalKey] = useState(0);
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [guestCount, setGuestCount] = useState(2);
   const [childCount, setChildCount] = useState(0);
   const [youngestChildAge, setYoungestChildAgeState] = useState(DEFAULT_YOUNGEST_CHILD_AGE);
@@ -279,6 +285,9 @@ export function PublicBookingProvider({
         customServicesList: settings.customServicesList || [],
         flexibleScheduleSettings: settings.flexibleScheduleSettings,
         paymentSettings: settings.paymentSettings as PublicSiteRuntime["paymentSettings"],
+        roomCategoriesList: Array.isArray(settings.roomCategoriesList)
+          ? settings.roomCategoriesList
+          : [],
       });
     },
     [data]
@@ -743,6 +752,11 @@ export function PublicBookingProvider({
       if (d < today) return "blocked";
       if (!runtime?.rooms.length) return "blocked";
 
+      const stayRooms = selectedCategoryId
+        ? runtime.rooms.filter((r) => r.categoryId === selectedCategoryId)
+        : runtime.rooms;
+      if (!stayRooms.length) return "blocked";
+
       const availabilityCheckIn = intent === "checkOut" ? checkIn : intent === "checkIn" ? null : checkIn;
       const availabilityCheckOut = intent ? null : checkOut;
       const opts = {
@@ -756,7 +770,7 @@ export function PublicBookingProvider({
         restrictions: runtime.restrictions,
       };
 
-      if (!isListSearchDateAvailable(d, runtime.rooms, opts)) {
+      if (!isListSearchDateAvailable(d, stayRooms, opts)) {
         showPublicToast("На цю дату немає вільних будинків");
         return "blocked";
       }
@@ -799,23 +813,32 @@ export function PublicBookingProvider({
       setCalKey((k) => k + 1);
       return "set-check-out";
     },
-    [checkIn, checkOut, runtime, guestCount, childCount, youngestChildAge]
+    [checkIn, checkOut, runtime, guestCount, childCount, youngestChildAge, selectedCategoryId]
   );
 
+  const roomCategories = useMemo(
+    () => visibleRoomCategories(runtime?.roomCategoriesList),
+    [runtime?.roomCategoriesList]
+  );
+
+  const catalogRooms = useMemo(() => {
+    const rooms = runtime?.rooms || [];
+    if (!selectedCategoryId) return rooms;
+    return rooms.filter((r) => r.categoryId === selectedCategoryId);
+  }, [runtime?.rooms, selectedCategoryId]);
+
   const listGuestMax = useMemo(() => {
-    if (!runtime?.rooms.length) return 12;
-    return Math.max(
-      1,
-      ...runtime.rooms.map((r) => r.maxCapacity || r.capacity || 1)
-    );
-  }, [runtime]);
+    const rooms = catalogRooms.length ? catalogRooms : runtime?.rooms || [];
+    if (!rooms.length) return 12;
+    return Math.max(1, ...rooms.map((r) => r.maxCapacity || r.capacity || 1));
+  }, [catalogRooms, runtime?.rooms]);
 
   // Filter as soon as check-in is picked (1 night+ availability); full range when checkout set.
-  const listFilterActive = Boolean(checkIn || childCount > 0);
+  const listFilterActive = Boolean(checkIn || childCount > 0 || selectedCategoryId);
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
-    return filterRoomsForStay(runtime.rooms, {
+    return filterRoomsForStay(catalogRooms, {
       checkIn,
       checkOut,
       adults: guestCount,
@@ -825,7 +848,7 @@ export function PublicBookingProvider({
       closedDates: runtime.closedDates,
       restrictions: runtime.restrictions,
     });
-  }, [runtime, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
+  }, [runtime, catalogRooms, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
 
   const changeGuests = useCallback(
     (delta: number) => {
@@ -1454,6 +1477,9 @@ export function PublicBookingProvider({
     filteredRooms,
     listFilterActive,
     listGuestMax,
+    roomCategories,
+    selectedCategoryId,
+    setSelectedCategoryId,
     availableServices,
     selectedServices,
     setServiceQty,

@@ -60,6 +60,8 @@ export interface RoomConfig {
   extraGuestPrice?: number;
   /** Режим нарахування за додаткового гостя: за ніч (default) або за весь період */
   extraGuestFeeMode?: "per_night" | "per_stay";
+  /** Категорія житла (глемпи, намети…) — id з roomCategoriesList */
+  categoryId?: string | null;
   /** Модель ціноутворення: за будинок (default) або за гостя */
   pricingModel?: RoomPricingModel;
   /** Ціна за 1 гостя за ніч (для per_guest); якщо не задано — priceWeekday/weekend */
@@ -103,6 +105,15 @@ export interface RoomConfig {
   /** До 3 фішок для блоку premium-features на сайті */
   siteHighlights?: RoomSiteHighlight[];
 }
+
+export type RoomCategory = {
+  id: string;
+  name: string;
+  /** Порядок на сайті та в шахматці */
+  sort?: number;
+  /** Прихована категорія не показується гостям */
+  hidden?: boolean;
+};
 
 export type DiscountKind =
   | "long_stay"
@@ -228,6 +239,7 @@ export interface BookingRecord {
 
 export interface AdminSettingsPayload {
   roomsList?: RoomConfig[];
+  roomCategoriesList?: RoomCategory[];
   discountsList?: DiscountConfig[];
   customServicesList?: CustomServiceConfig[];
   sysServicesList?: SysServiceConfig[];

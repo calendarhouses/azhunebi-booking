@@ -681,6 +681,18 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 
 .timeline-rows { position: relative; width: max-content; }
 .timeline-row-bg { display: flex; height: 60px; border-bottom: 1px solid #E5E7EB; position: relative; }
+.boso-admin-mobile .timeline-cat-head {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.boso-admin-mobile .timeline-cat-head--side {
+  font-size: 9px !important;
+  padding: 0 2px !important;
+}
 .timeline-cell { width: 60px; flex-shrink: 0; border-right: 1px solid #D0D5DD; position: relative; }
 .timeline-cell.weekend { background-color: rgba(248, 250, 252, 0.55); }
 .timeline-cell.today {

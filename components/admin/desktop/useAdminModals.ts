@@ -42,7 +42,7 @@ import { markDiscountDeleted, unmarkDiscountDeleted } from "@/lib/admin/discount
 import { applyPublishingAvailability, formatPublishingErrorMessage, validatePublishing } from "@/lib/admin/validatePublishing";
 import { createDefaultRoomConfig } from "../rooms/roomSettingsSteps";
 import { getRoomAvailabilityStatus, patchFromAvailabilityStatus } from "./settings/roomAvailability";
-import type { AdminSettingsPayload, BookingRecord, DiscountConfig, DiscountKind, RoomConfig, SettingsTabName } from "./types";
+import type { AdminSettingsPayload, BookingRecord, DiscountConfig, DiscountKind, RoomCategory, RoomConfig, SettingsTabName } from "./types";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 
 function persistKeysForEditType(
@@ -589,6 +589,26 @@ export function useAdminModals({
       return resolvedId;
     },
     [persistSettings, setSettings]
+  );
+
+  const saveRoomCategoriesList = useCallback(
+    async (nextList: RoomCategory[], clearCategoryId?: string) => {
+      const snapshot = settingsRef.current;
+      const roomsList = clearCategoryId
+        ? (snapshot.roomsList || []).map((room) =>
+            room.categoryId === clearCategoryId ? { ...room, categoryId: null } : room
+          )
+        : snapshot.roomsList;
+      const roomCategoriesList = nextList.map((c, i) => ({ ...c, sort: i }));
+      await persistSettings(
+        { ...snapshot, roomCategoriesList, roomsList },
+        {
+          keys: clearCategoryId ? ["roomCategoriesList", "roomsList"] : ["roomCategoriesList"],
+          background: true,
+        }
+      );
+    },
+    [persistSettings]
   );
 
   const patchDiscountQuick = useCallback(
@@ -1268,6 +1288,7 @@ export function useAdminModals({
     closeDiscountAccordion,
     toggleDiscountAccordion,
     saveDiscountSettings,
+    saveRoomCategoriesList,
     patchDiscountQuick,
     toggleDiscountActive,
     setRoomPhotos,

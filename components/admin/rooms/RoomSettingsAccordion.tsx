@@ -12,6 +12,7 @@ import {
   normalizeSiteHighlights,
   siteHighlightsForSave,
 } from "@/lib/admin/roomSiteHighlights";
+import { normalizeRoomCategories } from "@/lib/admin/roomCategories";
 import { AmenityCategoryDisclosureList } from "./AmenityCategoryDisclosureList";
 import { RulesCategoryDisclosureList } from "./RulesCategoryDisclosureList";
 import { CapacityStepperField } from "./CapacityStepperField";
@@ -80,6 +81,7 @@ export function RoomSettingsAccordion({
   const [chessboardName, setChessboardName] = useState(
     () => resolvedRoom?.short?.trim() || resolvedRoom?.name || ""
   );
+  const [categoryId, setCategoryId] = useState(resolvedRoom?.categoryId || "");
   const [siteDescription, setSiteDescription] = useState(
     resolvedRoom?.detailedDescription ?? ""
   );
@@ -161,9 +163,12 @@ export function RoomSettingsAccordion({
     const max = draft ? (resolvedRoom.maxCapacity ?? cap) : (resolvedRoom.maxCapacity ?? cap);
     setName(resolvedRoom.name);
     setChessboardName(resolvedRoom.short?.trim() || resolvedRoom.name || "");
+    setCategoryId(resolvedRoom.categoryId || "");
     setSiteDescription(resolvedRoom.detailedDescription ?? "");
     setMainPlaces(String(cap));
     setExtraPlaces(String(Math.max(0, max - cap)));
+    setExtraGuestPrice(String(resolvedRoom.extraGuestPrice ?? 2500));
+    setExtraGuestFeeMode(resolvedRoom.extraGuestFeeMode ?? "per_night");
     setAllowChildren(resolvedRoom.allowChildren !== false);
     setMinChildAge(
       String(
@@ -340,6 +345,7 @@ export function RoomSettingsAccordion({
         maxCapacity: capacity + extra,
         extraGuestPrice: Math.max(0, Number(extraGuestPrice) || 0),
         extraGuestFeeMode,
+        categoryId: categoryId || null,
         allowChildren,
         minChildAge: allowChildren ? parsedMinAge : null,
         siteHighlights: siteHighlightsForSave(siteHighlights),
@@ -449,6 +455,25 @@ export function RoomSettingsAccordion({
                           placeholder="Напр. Будиночок 1"
                         />
                       </label>
+
+                      {normalizeRoomCategories(settings.roomCategoriesList).length > 0 ? (
+                        <label className="khata-room-field">
+                          <span className="khata-room-field__label">Категорія</span>
+                          <select
+                            className="khata-room-field__input khata-room-field__select"
+                            value={categoryId}
+                            onChange={(e) => setCategoryId(e.target.value)}
+                          >
+                            <option value="">Без категорії</option>
+                            {normalizeRoomCategories(settings.roomCategoriesList).map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                                {cat.hidden ? " (прихована)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
 
                       <label className="khata-room-field">
                         <span className="khata-room-field__label">Опис для сайту</span>

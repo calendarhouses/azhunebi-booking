@@ -20,7 +20,14 @@ import {
   BOOKING_STATUS_CLOSED,
   isClosedStatus,
 } from "@/lib/public-booking/bookingReview";
-import { sortRoomsNumerically } from "@/lib/admin/sortRooms";
+import {
+  buildTimelineLanes,
+  houseWord,
+  roomIndexFromLaneY,
+  roomTopFromLanes,
+  sortRoomsByCategory,
+  TIMELINE_CATEGORY_HEAD_H,
+} from "@/lib/admin/roomCategories";
 import {
   bookingHasEarlyLate,
   displayClientName,
@@ -47,7 +54,6 @@ import {
   BOOKING_MOVE_THRESHOLD,
   bookingMoveKey,
   resolveActiveRoomIndex,
-  resolveTargetRoomIndex,
   getTimelineRowHeight,
   timelineRoomKey,
   type BookingMoveSession,
@@ -78,6 +84,7 @@ import {
   type DragScrollTargets,
 } from "../timelineDragAutoScroll";
 import { buildInfiniteTimelineRange } from "../timelineInfiniteRange";
+import "../settings/room-categories.css";
 import { useTimelineVirtualWindow } from "../useTimelineVirtualWindow";
 import {
   consumeSuppressClick,
@@ -515,10 +522,18 @@ export function DesktopTimelineView({
   const stickyChrome = compactGrid;
   const mobileBoard = isMobile;
   const activeRooms = useMemo(
-    () => sortRoomsNumerically(roomsList.filter((r) => r.active)),
-    [roomsList]
+    () =>
+      sortRoomsByCategory(
+        roomsList.filter((r) => r.active),
+        settings?.roomCategoriesList
+      ),
+    [roomsList, settings?.roomCategoriesList]
   );
   const timelineRooms = useMemo(() => [...activeRooms, HOLDING_ROOM], [activeRooms]);
+  const timelineLanes = useMemo(
+    () => buildTimelineLanes(timelineRooms, settings?.roomCategoriesList, HOLDING_ROOM.id),
+    [timelineRooms, settings?.roomCategoriesList]
+  );
 
   useEffect(() => {
     if (!isMobile) return;
@@ -1307,22 +1322,23 @@ export function DesktopTimelineView({
 
       if (rowsEl) {
         // Visual hit-test: rows move with the unified board scroll (incl. sticky head).
-        session.targetRoomIndex = resolveTargetRoomIndex(
-          y,
-          rowsEl.getBoundingClientRect().top,
+        session.targetRoomIndex = roomIndexFromLaneY(
+          y - rowsEl.getBoundingClientRect().top,
+          timelineLanes,
           dragRooms.length,
           rowHeight
         );
       }
 
       const layout = getTimelineBookingBlockLayout(rowHeight, denseRows);
-      const top = session.targetRoomIndex * rowHeight + layout.top;
+      const top =
+        roomTopFromLanes(session.targetRoomIndex, timelineLanes, rowHeight) + layout.top;
       const left = block.left + pixelDelta;
       el.style.transform = `translate3d(${left}px, ${top}px, 0)`;
       el.style.width = `${block.width}px`;
       el.style.height = `${layout.height}px`;
     },
-    [dragRooms.length, cellWidth, rowHeight, denseRows]
+    [dragRooms.length, cellWidth, rowHeight, denseRows, timelineLanes]
   );
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
@@ -2238,17 +2254,36 @@ export function DesktopTimelineView({
     </div>
   );
 
-  const timelineRoomRows = gridByRoom.map(({ room }) => (
-    <TimelineRoomRow
-      key={room.id}
-      room={room}
-      className={isHoldingRoom(room) ? "timeline-room--holding" : ""}
-      compact={denseRows}
-      numbersOnly
-      showDesc={!isMobile && !compactGrid}
-      style={{ height: rowHeight, minHeight: rowHeight, maxHeight: rowHeight }}
-    />
-  ));
+  const timelineRoomRows = timelineLanes.map((lane) => {
+    if (lane.kind === "header") {
+      return (
+        <div
+          key={`cat-side-${lane.id}`}
+          className="timeline-cat-head timeline-cat-head--side"
+          style={{
+            height: TIMELINE_CATEGORY_HEAD_H,
+            minHeight: TIMELINE_CATEGORY_HEAD_H,
+            maxHeight: TIMELINE_CATEGORY_HEAD_H,
+          }}
+        >
+          {lane.title}
+        </div>
+      );
+    }
+    const room = gridByRoom[lane.roomIndex]?.room;
+    if (!room) return null;
+    return (
+      <TimelineRoomRow
+        key={room.id}
+        room={room}
+        className={isHoldingRoom(room) ? "timeline-room--holding" : ""}
+        compact={denseRows}
+        numbersOnly
+        showDesc={!isMobile && !compactGrid}
+        style={{ height: rowHeight, minHeight: rowHeight, maxHeight: rowHeight }}
+      />
+    );
+  });
 
   const visibleBlockRange = useMemo(() => {
     if (!isVirtualTimeline) return null;
@@ -2281,7 +2316,31 @@ export function DesktopTimelineView({
 
   const timelineRows = (
     <>
-      {gridByRoom.map(({ room, blocks, gapHints }, roomIndex) => (
+      {timelineLanes.map((lane) => {
+        if (lane.kind === "header") {
+          return (
+            <div
+              key={`cat-grid-${lane.id}`}
+              className="timeline-cat-head timeline-cat-head--grid"
+              style={{
+                height: TIMELINE_CATEGORY_HEAD_H,
+                minHeight: TIMELINE_CATEGORY_HEAD_H,
+                maxHeight: TIMELINE_CATEGORY_HEAD_H,
+                width: gridTotalWidth,
+                minWidth: gridTotalWidth,
+              }}
+            >
+              <span className="timeline-cat-head__label">
+                {lane.title} · {lane.count} {houseWord(lane.count)}
+              </span>
+            </div>
+          );
+        }
+        const row = gridByRoom[lane.roomIndex];
+        if (!row) return null;
+        const { room, blocks, gapHints } = row;
+        const roomIndex = lane.roomIndex;
+        return (
         <TimelineGridRow
           key={room.id}
           rowId={room.id}
@@ -2520,7 +2579,8 @@ export function DesktopTimelineView({
             );
           })}
         </TimelineGridRow>
-      ))}
+        );
+      })}
 
       {draggingBookingKey != null && draggingBlockRef.current ? (
         <div

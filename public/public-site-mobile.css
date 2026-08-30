@@ -1087,6 +1087,40 @@ body.ready .bottom-nav,
   background: transparent;
 }
 
+.stay-filter--mobile .stay-filter__cats {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 2px 2px 4px;
+}
+
+.stay-filter--mobile .stay-filter__cats::-webkit-scrollbar {
+  display: none;
+}
+
+.stay-filter--mobile .stay-filter__cat {
+  flex: 0 0 auto;
+  appearance: none;
+  border: 1px solid #e7e5e4;
+  background: #fff;
+  color: #44403c;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stay-filter--mobile .stay-filter__cat.is-active {
+  border-color: #556b2f;
+  background: rgba(85, 107, 47, 0.12);
+  color: #3f4f24;
+}
+
 .stay-filter--mobile .stay-filter__card {
   background: var(--white);
   border: 1px solid var(--border);

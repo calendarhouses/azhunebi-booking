@@ -4,6 +4,7 @@ import type {
   CustomServiceConfig,
   DiscountKind,
   RoomAmenitiesByCategory,
+  RoomCategory,
   RoomRules,
   RoomSiteHighlight,
   SysServiceConfig,
@@ -17,6 +18,8 @@ export interface PublicRoom {
   capacity: number;
   maxCapacity?: number;
   extraGuestPrice?: number;
+  extraGuestFeeMode?: "per_night" | "per_stay";
+  categoryId?: string | null;
   pricingModel?: "per_house" | "per_guest";
   pricePerGuest?: number;
   pricePerGuestOneNight?: number;
@@ -91,6 +94,7 @@ export interface PublicSiteRuntime extends PublicTenantPayload {
   flexibleScheduleSettings?: AdminSettingsPayload["flexibleScheduleSettings"];
   /** Sanitized: onlineEnabled + monoPartsEnabled only */
   paymentSettings?: { onlineEnabled?: boolean; monoPartsEnabled?: boolean };
+  roomCategoriesList?: RoomCategory[];
 }
 
 export type BookedRange = {

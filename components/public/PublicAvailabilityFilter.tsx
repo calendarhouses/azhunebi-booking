@@ -69,12 +69,15 @@ function StayRangeCalendar({
     guestCount,
     childCount,
     youngestChildAge,
+    selectedCategoryId,
   } = usePublicBooking();
   const { onTouchStart, onTouchEnd } = useCalendarMonthSwipe(shiftCal);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const rooms = runtime?.rooms || [];
+  const rooms = (runtime?.rooms || []).filter(
+    (r) => !selectedCategoryId || r.categoryId === selectedCategoryId
+  );
   const availabilityOpts = {
     checkIn: pickIntent === "checkOut" ? checkIn : pickIntent === "checkIn" ? null : checkIn,
     checkOut: pickIntent ? null : checkOut,
@@ -202,6 +205,9 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     listFilterActive,
     listGuestMax,
     selectStayDate,
+    roomCategories,
+    selectedCategoryId,
+    setSelectedCategoryId,
   } = usePublicBooking();
 
   const [pickIntent, setPickIntent] = useState<StayDatePickIntent | null>(null);
@@ -353,6 +359,32 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
         <h2 className="stay-filter__heading">Оберіть дату заїзду — покажемо вільні будинки</h2>
       ) : null}
 
+      {roomCategories.length > 0 ? (
+        <div className="stay-filter__cats" role="tablist" aria-label="Категорії житла">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!selectedCategoryId}
+            className={`stay-filter__cat${!selectedCategoryId ? " is-active" : ""}`}
+            onClick={() => setSelectedCategoryId(null)}
+          >
+            Усі
+          </button>
+          {roomCategories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={selectedCategoryId === cat.id}
+              className={`stay-filter__cat${selectedCategoryId === cat.id ? " is-active" : ""}`}
+              onClick={() => setSelectedCategoryId(cat.id)}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="stay-filter__card">
         <div className="stay-filter__focus" ref={focusRef}>
           <div className="stay-filter__date-row">
@@ -397,9 +429,10 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
               {availableLabel}
             </button>
           ) : null}
-          {listFilterActive || checkIn ? (
+          {listFilterActive || checkIn || selectedCategoryId ? (
             <button type="button" className="stay-filter__clear" onClick={() => {
               setPickIntent(null);
+              setSelectedCategoryId(null);
               clearStayDates();
             }}>
               Скинути
@@ -416,28 +449,37 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
 }
 
 export function PublicCabinsEmptyState() {
-  const { clearStayDates, childCount, changeChildren } = usePublicBooking();
+  const { clearStayDates, childCount, changeChildren, selectedCategoryId, setSelectedCategoryId } =
+    usePublicBooking();
   const hasKids = childCount > 0;
+  const hasCategory = Boolean(selectedCategoryId);
   return (
     <div className="stay-empty">
       <p className="stay-empty__eyebrow">Немає вільних будинків</p>
       <h3 className="stay-empty__title">
-        {hasKids ? "Немає будинків під цей склад гостей" : "На ці дати всі котеджі зайняті"}
+        {hasKids
+          ? "Немає будинків під цей склад гостей"
+          : hasCategory
+            ? "У цій категорії зараз немає вільних будинків"
+            : "На ці дати всі котеджі зайняті"}
       </h3>
       <p className="stay-empty__text">
         {hasKids
           ? "Спробуйте змінити вік наймолодшої дитини, кількість дітей або дати — можливо, знайдеться варіант поруч."
-          : "Спробуйте інші дати або змініть кількість гостей — можливо, знайдеться варіант поруч."}
+          : hasCategory
+            ? "Оберіть інші дати або категорію — можливо, знайдеться варіант поруч."
+            : "Спробуйте інші дати або змініть кількість гостей — можливо, знайдеться варіант поруч."}
       </p>
       <button
         type="button"
         className="stay-empty__btn"
         onClick={() => {
           if (hasKids) changeChildren(-childCount);
+          setSelectedCategoryId(null);
           clearStayDates();
         }}
       >
-        {hasKids ? "Скинути дітей і дати" : "Змінити дати"}
+        {hasKids ? "Скинути дітей і дати" : hasCategory ? "Показати всі категорії" : "Змінити дати"}
       </button>
     </div>
   );
