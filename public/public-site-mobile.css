@@ -91,7 +91,7 @@ body.public-booking-page.boso-public-mobile.ready {
     left: 0;
     right: 0;
     z-index: 50;
-    padding: calc(12px + var(--safe-top)) 16px 12px;
+    padding: calc(10px + var(--safe-top)) 12px 10px;
     background: rgba(247, 248, 246, 0.96);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
@@ -100,11 +100,12 @@ body.public-booking-page.boso-public-mobile.ready {
 .public-mobile-brand__inner {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
+    min-width: 0;
 }
 .public-mobile-brand__logo {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 0;
     object-fit: contain;
     background: transparent;
@@ -114,19 +115,23 @@ body.public-booking-page.boso-public-mobile.ready {
 }
 .public-mobile-brand__text {
     min-width: 0;
-    flex: 1;
+    flex: 1 1 auto;
 }
 .public-mobile-brand__title {
-    font-size: 22px;
+    margin: 0;
+    font-size: clamp(15px, 4.6vw, 20px);
     font-weight: 800;
-    letter-spacing: -0.4px;
-    line-height: 1.15;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
     color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .public-mobile-brand__actions {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
     margin-left: auto;
 }
@@ -134,9 +139,9 @@ body.public-booking-page.boso-public-mobile.ready {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
     text-decoration: none;
     color: #095237;
     background: linear-gradient(180deg, #ffffff 0%, #f3f7f4 100%);
@@ -159,12 +164,12 @@ body.public-booking-page.boso-public-mobile.ready {
 
 /* Offset under fixed header: safe-top + padding + logo row */
 .public-mobile-list-body {
-    padding-top: calc(12px + var(--safe-top) + 12px + 48px + 12px);
+    padding-top: calc(10px + var(--safe-top) + 10px + 44px + 12px);
 }
 
 .page-wrap { padding: 0 16px calc(60px + var(--safe-bottom)); }
 .page-wrap--success { padding-top: 32px; }
-#cabinsContainer { position: relative; z-index: 2; background: var(--bg); padding-top: 16px; display: flex; flex-direction: column; gap: 28px; scroll-margin-top: calc(12px + var(--safe-top) + 12px + 48px + 8px); }
+#cabinsContainer { position: relative; z-index: 2; background: var(--bg); padding-top: 16px; display: flex; flex-direction: column; gap: 28px; scroll-margin-top: calc(10px + var(--safe-top) + 10px + 44px + 8px); }
 .screen { display: none; } .screen.active { display: block; }
 
 .cabin-card {
