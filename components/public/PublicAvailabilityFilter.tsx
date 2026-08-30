@@ -359,7 +359,7 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
         <h2 className="stay-filter__heading">Оберіть дату заїзду — покажемо вільні будинки</h2>
       ) : null}
 
-      {roomCategories.length > 0 ? (
+      {roomCategories.length > 1 ? (
         <div className="stay-filter__cats" role="tablist" aria-label="Категорії житла">
           <button
             type="button"

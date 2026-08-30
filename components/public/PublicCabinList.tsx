@@ -31,11 +31,9 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
 
   if (showEmpty) return <PublicCabinsEmptyState />;
 
-  const groups = groupRoomsByCategory(
-    rooms,
-    visibleRoomCategories(runtime?.roomCategoriesList)
-  );
-  const showHeads = !selectedCategoryId && groups.some((g) => Boolean(g.title));
+  const cats = visibleRoomCategories(runtime?.roomCategoriesList);
+  const groups = groupRoomsByCategory(rooms, cats);
+  const showHeads = !selectedCategoryId && cats.length > 1 && groups.some((g) => Boolean(g.title));
 
   return (
     <>

@@ -750,8 +750,10 @@ export function PublicBookingProvider({
       if (d < today) return "blocked";
       if (!runtime?.rooms.length) return "blocked";
 
-      const stayRooms = selectedCategoryId
-        ? runtime.rooms.filter((r) => r.categoryId === selectedCategoryId)
+      const cats = visibleRoomCategories(runtime.roomCategoriesList);
+      const catId = cats.length > 1 ? selectedCategoryId : null;
+      const stayRooms = catId
+        ? runtime.rooms.filter((r) => r.categoryId === catId)
         : runtime.rooms;
       if (!stayRooms.length) return "blocked";
 
@@ -818,12 +820,13 @@ export function PublicBookingProvider({
     () => visibleRoomCategories(runtime?.roomCategoriesList),
     [runtime?.roomCategoriesList]
   );
+  const activeCategoryId = roomCategories.length > 1 ? selectedCategoryId : null;
 
   const catalogRooms = useMemo(() => {
     const rooms = runtime?.rooms || [];
-    if (!selectedCategoryId) return rooms;
-    return rooms.filter((r) => r.categoryId === selectedCategoryId);
-  }, [runtime?.rooms, selectedCategoryId]);
+    if (!activeCategoryId) return rooms;
+    return rooms.filter((r) => r.categoryId === activeCategoryId);
+  }, [runtime?.rooms, activeCategoryId]);
 
   const listGuestMax = useMemo(() => {
     const rooms = catalogRooms.length ? catalogRooms : runtime?.rooms || [];
@@ -832,7 +835,7 @@ export function PublicBookingProvider({
   }, [catalogRooms, runtime?.rooms]);
 
   // Filter as soon as check-in is picked (1 night+ availability); full range when checkout set.
-  const listFilterActive = Boolean(checkIn || childCount > 0 || selectedCategoryId);
+  const listFilterActive = Boolean(checkIn || childCount > 0 || activeCategoryId);
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
@@ -1479,7 +1482,7 @@ export function PublicBookingProvider({
     listFilterActive,
     listGuestMax,
     roomCategories,
-    selectedCategoryId,
+    selectedCategoryId: activeCategoryId,
     setSelectedCategoryId,
     availableServices,
     selectedServices,
