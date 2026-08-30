@@ -1837,6 +1837,7 @@ body {
 }
 
 .stay-filter__date-chip-label {
+  display: block;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1845,6 +1846,7 @@ body {
 }
 
 .stay-filter__date-chip-value {
+  display: block;
   font-size: 18px;
   font-weight: 650;
   color: var(--text);
