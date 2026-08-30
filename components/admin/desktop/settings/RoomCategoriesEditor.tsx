@@ -199,7 +199,7 @@ function CategoryRow({
               skipCommitRef.current = true;
               e.currentTarget.blur();
             }
-          }}}
+          }}
         />
       ) : (
         <span className="room-cats__name">{cat.name}</span>
