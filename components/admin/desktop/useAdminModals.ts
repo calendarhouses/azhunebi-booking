@@ -309,6 +309,8 @@ export function useAdminModals({
 
   const runConfirmAction = useCallback(async () => {
     const fn = confirmActionRef.current;
+    setConfirmOpen(false);
+    confirmActionRef.current = null;
     if (fn) await fn();
   }, []);
 
