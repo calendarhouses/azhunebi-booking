@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Check,
   Copy,
+  KeyRound,
   Link2,
   Plus,
   RefreshCw,
@@ -112,6 +113,8 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
   const [password, setPassword] = useState("");
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [passwordEditId, setPasswordEditId] = useState<string | null>(null);
+  const [passwordDraft, setPasswordDraft] = useState("");
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -218,6 +221,35 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
     }
   };
 
+  const startPasswordEdit = (member: TeamMemberPublic) => {
+    setPasswordEditId(member.id);
+    setPasswordDraft("");
+  };
+
+  const cancelPasswordEdit = () => {
+    setPasswordEditId(null);
+    setPasswordDraft("");
+  };
+
+  const saveMemberPassword = async (member: TeamMemberPublic) => {
+    const next = passwordDraft.trim();
+    if (next.length < 6) {
+      showToast("Пароль щонайменше 6 символів");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateTeamMember({ id: member.id, password: next });
+      cancelPasswordEdit();
+      await loadMembers();
+      showToast("Пароль оновлено");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Не вдалося змінити пароль");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="team-page">
       <div className="team-page__top">
@@ -303,6 +335,39 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                     ) : null}
                     {!m.active ? <span className="team-tag team-tag--off">Вимкнено</span> : null}
                   </div>
+                  {passwordEditId === m.id ? (
+                    <div className="team-member__pwd">
+                      <input
+                        className="team-field__input"
+                        type="text"
+                        value={passwordDraft}
+                        onChange={(e) => setPasswordDraft(e.target.value)}
+                        placeholder="Новий пароль (мін. 6)"
+                        autoComplete="new-password"
+                        disabled={saving}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void saveMemberPassword(m);
+                          if (e.key === "Escape") cancelPasswordEdit();
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="team-btn team-btn--primary"
+                        disabled={saving}
+                        onClick={() => void saveMemberPassword(m)}
+                      >
+                        Зберегти
+                      </button>
+                      <button
+                        type="button"
+                        className="team-btn team-btn--ghost"
+                        disabled={saving}
+                        onClick={cancelPasswordEdit}
+                      >
+                        Скасувати
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="team-member__actions">
                   <TeamRoleSeg
@@ -311,6 +376,16 @@ export function TeamSettingsPanel({ isActive = true }: { isActive?: boolean }) {
                     aria-label={`Роль ${m.name || m.email}`}
                     onChange={(next) => void setMemberRole(m, next)}
                   />
+                  <button
+                    type="button"
+                    className="team-btn team-btn--ghost"
+                    disabled={saving}
+                    onClick={() => startPasswordEdit(m)}
+                    title="Змінити пароль"
+                  >
+                    <KeyRound size={14} strokeWidth={2} />
+                    Пароль
+                  </button>
                   <button
                     type="button"
                     className={`team-btn ${m.active ? "team-btn--danger" : "team-btn--ghost"}`}
