@@ -770,12 +770,9 @@ export function PublicBookingProvider({
       }
 
       if (intent === "checkOut") {
-        if (!checkIn || d <= checkIn) {
-          setCheckIn(d);
-          setCheckOut(null);
-          setPostLateArrivalTime(null);
-          setCalKey((k) => k + 1);
-          return "set-check-in";
+        if (checkIn && d <= checkIn) {
+          showPublicToast("Виїзд має бути пізніше заїзду");
+          return "blocked";
         }
         setCheckOut(d);
         setCalKey((k) => k + 1);

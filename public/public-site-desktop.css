@@ -1866,12 +1866,19 @@ body {
   color: var(--accent);
 }
 
-.stay-filter__aside--tools {
-  padding: 12px 16px 0;
-  background: transparent;
+.stay-filter__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 8px 16px 14px;
+  position: relative;
+  z-index: 2;
+  background: var(--white);
 }
 
-.stay-filter--picking .stay-filter__aside,
+.stay-filter--picking .stay-filter__tools,
 .stay-filter--picking .stay-filter__bar {
   position: relative;
   z-index: 1;

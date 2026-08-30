@@ -236,10 +236,6 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     }
     if (pickIntent === "checkOut" && result === "set-check-out") {
       setPickIntent(null);
-      return;
-    }
-    if (pickIntent === "checkOut" && result === "set-check-in") {
-      setPickIntent("checkOut");
     }
   };
 
@@ -389,7 +385,7 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
           />
         </div>
 
-        <div className="stay-filter__aside stay-filter__aside--tools">
+        <div className="stay-filter__tools">
           {availableLabel ? (
             <button
               type="button"

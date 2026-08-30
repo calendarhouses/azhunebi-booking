@@ -1207,9 +1207,16 @@ body.ready .bottom-nav,
   overflow: visible;
 }
 
-.stay-filter--mobile .stay-filter__aside--tools {
-  padding: 10px 12px 0;
-  background: transparent;
+.stay-filter--mobile .stay-filter__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  position: relative;
+  z-index: 2;
+  background: var(--white);
 }
 
 .stay-filter--mobile .stay-filter__field-label {
