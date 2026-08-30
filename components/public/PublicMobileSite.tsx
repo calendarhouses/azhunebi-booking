@@ -6,12 +6,9 @@ import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { toImageDisplaySrc } from "@/lib/driveImageUrl";
 import { BRAND_ICONS } from "@/lib/brandIcons";
 import { usePublicBooking } from "./PublicBookingProvider";
-import {
-  PublicAvailabilityFilter,
-  PublicCabinsEmptyState,
-} from "./PublicAvailabilityFilter";
+import { PublicAvailabilityFilter } from "./PublicAvailabilityFilter";
+import { PublicCabinList } from "./PublicCabinList";
 import { PublicPreloader } from "./PublicPreloader";
-import { CabinCardMobile } from "./CabinCardMobile";
 import { MobileBookingDrawer } from "./mobile/MobileBookingDrawer";
 
 export function PublicMobileSite() {
@@ -20,10 +17,6 @@ export function PublicMobileSite() {
     preloaderVisible,
     activeScreen,
     setActiveScreen,
-    openDrawer,
-    getNextFreeForRoom,
-    filteredRooms,
-    listFilterActive,
     successReceiptHtml,
     successFlow,
   } = usePublicBooking();
@@ -44,9 +37,6 @@ export function PublicMobileSite() {
   const mapsHref = String(runtime?.branding?.maps_external_url || "").trim();
   const hasMaps = /^https?:\/\//i.test(mapsHref);
   const showBrandActions = hasMaps || hasContact;
-  const rooms = filteredRooms;
-  const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
-  const showLoading = !runtime || runtime.rooms.length === 0;
 
   return (
     <>
@@ -104,24 +94,7 @@ export function PublicMobileSite() {
           </div>
 
           <div className="page-wrap" id="cabinsContainer">
-            {showLoading ? (
-              <div className="loading-state">
-                <div className="loader" />
-                {!runtime ? "Завантаження…" : "Котеджів не знайдено"}
-              </div>
-            ) : showEmpty ? (
-              <PublicCabinsEmptyState />
-            ) : (
-              rooms.map((room) => (
-                <CabinCardMobile
-                  key={room.id}
-                  room={room}
-                  customPrices={runtime!.customPrices}
-                  nextFreeLabel={getNextFreeForRoom(room)}
-                  onBook={() => openDrawer(room)}
-                />
-              ))
-            )}
+            <PublicCabinList layout="mobile" />
           </div>
         </div>
       </div>

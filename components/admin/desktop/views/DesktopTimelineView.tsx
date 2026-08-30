@@ -2260,14 +2260,13 @@ export function DesktopTimelineView({
         <div
           key={`cat-side-${lane.id}`}
           className="timeline-cat-head timeline-cat-head--side"
+          aria-hidden
           style={{
             height: TIMELINE_CATEGORY_HEAD_H,
             minHeight: TIMELINE_CATEGORY_HEAD_H,
             maxHeight: TIMELINE_CATEGORY_HEAD_H,
           }}
-        >
-          {lane.title}
-        </div>
+        />
       );
     }
     const room = gridByRoom[lane.roomIndex]?.room;
@@ -2331,7 +2330,10 @@ export function DesktopTimelineView({
               }}
             >
               <span className="timeline-cat-head__label">
-                {lane.title} · {lane.count} {houseWord(lane.count)}
+                {lane.title}
+                <span className="timeline-cat-head__count">
+                  {lane.count} {houseWord(lane.count)}
+                </span>
               </span>
             </div>
           );

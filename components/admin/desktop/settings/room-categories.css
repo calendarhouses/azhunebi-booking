@@ -1,9 +1,10 @@
 .room-cats {
-  margin: 0 0 22px;
-  padding: 18px 18px 16px;
+  margin: 0 0 20px;
+  padding: 16px;
   border: 1px solid #e7e5e4;
-  border-radius: 16px;
-  background: #fafaf9;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(28, 33, 24, 0.04);
 }
 
 .room-cats__head {
@@ -12,7 +13,7 @@
 
 .room-cats__title {
   margin: 0 0 4px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 750;
   letter-spacing: -0.02em;
   color: #1c1917;
@@ -31,33 +32,41 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border: 1px solid #efece6;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fafaf8;
 }
 
 .room-cats__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px 8px 12px;
-  border-radius: 12px;
+  gap: 8px;
+  min-height: 52px;
+  padding: 6px 8px 6px 14px;
+  border: none;
+  border-bottom: 1px solid #efece6;
+  border-radius: 0;
   background: #fff;
-  border: 1px solid #e7e5e4;
+}
+
+.room-cats__row:last-child {
+  border-bottom: none;
 }
 
 .room-cats__row.is-hidden {
-  opacity: 0.62;
+  opacity: 0.55;
 }
 
 .room-cats__name {
+  flex: 1;
   min-width: 0;
-  width: 100%;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 650;
   color: #1c1917;
-  padding: 4px 0;
+  padding: 8px 0;
   outline: none;
 }
 
@@ -66,8 +75,9 @@
 }
 
 .room-cats__count {
+  flex-shrink: 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
   color: #78716c;
   white-space: nowrap;
 }
@@ -75,17 +85,18 @@
 .room-cats__actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  flex-shrink: 0;
+  gap: 0;
 }
 
 .room-cats__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: none;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
   color: #57534e;
   cursor: pointer;
@@ -115,13 +126,17 @@
 .room-cats__add {
   display: flex;
   gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #f7f6f2;
+  border: 1px dashed #e4e0d6;
 }
 
 .room-cats__add-input {
   flex: 1;
   min-width: 0;
-  height: 40px;
-  border: 1px solid #e7e5e4;
+  height: 42px;
+  border: 1px solid transparent;
   border-radius: 10px;
   padding: 0 12px;
   font-size: 14px;
@@ -139,7 +154,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 40px;
+  height: 42px;
   padding: 0 14px;
   border: none;
   border-radius: 10px;
@@ -148,6 +163,7 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .room-cats__add-btn:hover:not(:disabled) {
@@ -159,35 +175,35 @@
   cursor: default;
 }
 
-@media (max-width: 720px) {
-  .room-cats {
-    padding: 14px 12px 12px;
-    border-radius: 14px;
-  }
-
-  .room-cats__row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .room-cats__count {
-    display: none;
-  }
-
-  .room-cats__actions {
-    justify-content: flex-end;
-  }
-}
-
-.settings-rooms-cat td {
-  padding: 18px 4px 8px;
+.settings-rooms-cat td,
+.settings-rooms-table tbody tr.settings-rooms-cat td {
+  padding: 0;
   border: none;
   background: transparent;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
+  box-shadow: none;
+}
+
+.settings-rooms-cat__inner {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 18px 4px 10px;
+}
+
+.settings-rooms-cat__name {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #556b2f;
+}
+
+.settings-rooms-cat__meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a8a29e;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .khata-room-field__select {
@@ -201,39 +217,53 @@
 .timeline-cat-head {
   display: flex;
   align-items: center;
-  height: 34px;
-  min-height: 34px;
-  max-height: 34px;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
   box-sizing: border-box;
-  padding: 0 8px;
-  background: linear-gradient(180deg, #f4f1ea 0%, #efe8d8 100%);
-  border-bottom: 1px solid rgba(85, 107, 47, 0.14);
+  background: #f3efe4;
+  border-bottom: 1px solid rgba(85, 107, 47, 0.12);
   color: #3f4f24;
-  font-weight: 750;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .timeline-cat-head--side {
   justify-content: center;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0 4px;
+  padding: 0;
 }
 
 .timeline-cat-head--grid {
   position: relative;
   width: 100%;
-  font-size: 12px;
-  padding-left: 12px;
+  padding: 0;
 }
 
 .timeline-cat-head__label {
+  position: sticky;
+  left: var(--timeline-rooms-col, 44px);
+  z-index: 3;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.timeline-cat-head__count {
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #6b6458;
   font-variant-numeric: tabular-nums;
 }
 
-.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-cat-head--side {
-  font-size: 9px;
+.timeline-wrapper--numbers:not(.timeline-wrapper--mobile-board) .timeline-cat-head__label {
+  left: 0;
 }

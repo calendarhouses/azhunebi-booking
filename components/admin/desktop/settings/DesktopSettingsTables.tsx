@@ -92,7 +92,12 @@ export function SettingsRoomsTable({ settings, modals, layout = "desktop" }: Des
           {showGroupHeads && group.title ? (
             <tr className="settings-rooms-cat">
               <td colSpan={isMobile ? 1 : 4}>
-                {group.title} · {group.rooms.length} {houseWord(group.rooms.length)}
+                <div className="settings-rooms-cat__inner">
+                  <span className="settings-rooms-cat__name">{group.title}</span>
+                  <span className="settings-rooms-cat__meta">
+                    {group.rooms.length} {houseWord(group.rooms.length)}
+                  </span>
+                </div>
               </td>
             </tr>
           ) : null}

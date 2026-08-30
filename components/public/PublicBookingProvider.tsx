@@ -12,7 +12,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { nightWord } from "@/components/admin/desktop/adminPlural";
-import { visibleRoomCategories } from "@/lib/admin/roomCategories";
+import { groupRoomsByCategory, normalizeRoomCategories, visibleRoomCategories } from "@/lib/admin/roomCategories";
 import {
   computeBookingPrice,
   getBookingMinNightsRequired,
@@ -285,9 +285,7 @@ export function PublicBookingProvider({
         customServicesList: settings.customServicesList || [],
         flexibleScheduleSettings: settings.flexibleScheduleSettings,
         paymentSettings: settings.paymentSettings as PublicSiteRuntime["paymentSettings"],
-        roomCategoriesList: Array.isArray(settings.roomCategoriesList)
-          ? settings.roomCategoriesList
-          : [],
+        roomCategoriesList: normalizeRoomCategories(settings.roomCategoriesList),
       });
     },
     [data]
@@ -838,16 +836,19 @@ export function PublicBookingProvider({
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
-    return filterRoomsForStay(catalogRooms, {
-      checkIn,
-      checkOut,
-      adults: guestCount,
-      children: childCount,
-      youngestAge: childCount > 0 ? youngestChildAge : null,
-      bookings: runtime.bookings,
-      closedDates: runtime.closedDates,
-      restrictions: runtime.restrictions,
-    });
+    return groupRoomsByCategory(
+      filterRoomsForStay(catalogRooms, {
+        checkIn,
+        checkOut,
+        adults: guestCount,
+        children: childCount,
+        youngestAge: childCount > 0 ? youngestChildAge : null,
+        bookings: runtime.bookings,
+        closedDates: runtime.closedDates,
+        restrictions: runtime.restrictions,
+      }),
+      visibleRoomCategories(runtime.roomCategoriesList)
+    ).flatMap((g) => g.rooms);
   }, [runtime, catalogRooms, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
 
   const changeGuests = useCallback(

@@ -1,12 +1,9 @@
 import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 import { usePublicBooking } from "./PublicBookingProvider";
-import {
-  PublicAvailabilityFilter,
-  PublicCabinsEmptyState,
-} from "./PublicAvailabilityFilter";
+import { PublicAvailabilityFilter } from "./PublicAvailabilityFilter";
+import { PublicCabinList } from "./PublicCabinList";
 import { PublicPreloader } from "./PublicPreloader";
 import { DesktopBookingDrawer } from "./desktop/DesktopBookingDrawer";
-import { DesktopCabinCard } from "./desktop/DesktopCabinCard";
 
 export function PublicDesktopSite() {
   const {
@@ -14,19 +11,12 @@ export function PublicDesktopSite() {
     preloaderVisible,
     activeScreen,
     setActiveScreen,
-    openDrawer,
-    getNextFreeForRoom,
-    filteredRooms,
-    listFilterActive,
     successReceiptHtml,
     successFlow,
   } = usePublicBooking();
 
   const logoUrl = (runtime?.branding.logo_url as string) || null;
   const siteTitle = (runtime?.branding.site_title as string) || runtime?.tenantName || null;
-  const rooms = filteredRooms;
-  const showEmpty = Boolean(runtime && listFilterActive && rooms.length === 0);
-  const showLoading = !runtime || runtime.rooms.length === 0;
 
   return (
     <>
@@ -38,24 +28,7 @@ export function PublicDesktopSite() {
         </div>
 
         <div className="page-wrap" id="cabinsContainer">
-          {showLoading ? (
-            <div className="loading-state">
-              <div className="loader" />
-              {!runtime ? "Завантаження…" : "Котеджів не знайдено"}
-            </div>
-          ) : showEmpty ? (
-            <PublicCabinsEmptyState />
-          ) : (
-            rooms.map((room) => (
-              <DesktopCabinCard
-                key={room.id}
-                room={room}
-                customPrices={runtime!.customPrices}
-                nextFreeLabel={getNextFreeForRoom(room)}
-                onBook={() => openDrawer(room)}
-              />
-            ))
-          )}
+          <PublicCabinList layout="desktop" />
         </div>
       </div>
 

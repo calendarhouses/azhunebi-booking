@@ -682,16 +682,25 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .timeline-rows { position: relative; width: max-content; }
 .timeline-row-bg { display: flex; height: 60px; border-bottom: 1px solid #E5E7EB; position: relative; }
 .boso-admin-mobile .timeline-cat-head {
-  height: 34px !important;
-  min-height: 34px !important;
-  max-height: 34px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
+  padding: 0 !important;
+  overflow: visible !important;
 }
 
 .boso-admin-mobile .timeline-cat-head--side {
-  font-size: 9px !important;
-  padding: 0 2px !important;
+  font-size: 0 !important;
+  color: transparent !important;
+}
+
+.boso-admin-mobile .timeline-cat-head__label {
+  left: var(--timeline-rooms-col, 44px) !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  max-width: calc(100vw - var(--timeline-rooms-col, 44px) - 12px) !important;
 }
 .timeline-cell { width: 60px; flex-shrink: 0; border-right: 1px solid #D0D5DD; position: relative; }
 .timeline-cell.weekend { background-color: rgba(248, 250, 252, 0.55); }
@@ -3843,7 +3852,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-room,
-.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-rooms-list > *,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-rooms-list > *:not(.timeline-cat-head),
 .boso-admin-mobile #view-grid .timeline-wrapper--mobile-dense .timeline-room {
   height: var(--timeline-room-height, 36px) !important;
   min-height: var(--timeline-room-height, 36px) !important;
@@ -3852,10 +3861,18 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 }
 
 /* Row grid must stay padding-free: padding shifts in-flow cells vs absolute booking cards */
-.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg {
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-row-bg:not(.timeline-cat-head) {
   height: var(--timeline-room-height, 36px) !important;
   min-height: var(--timeline-room-height, 36px) !important;
   max-height: var(--timeline-room-height, 36px) !important;
+  padding: 0 !important;
+}
+
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head,
+.boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head--grid {
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
   padding: 0 !important;
 }
 
@@ -4957,6 +4974,48 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   background: transparent;
   border: 0;
   box-shadow: none;
+}
+
+.boso-admin-mobile #view-settings .settings-rooms-table tr.settings-rooms-cat {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 8px 2px 0 !important;
+  margin: 8px 0 -4px !important;
+  gap: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .settings-rooms-table tr.settings-rooms-cat:first-child {
+  margin-top: 0 !important;
+}
+
+.boso-admin-mobile #view-settings .settings-rooms-table tr.settings-rooms-cat > td,
+.boso-admin-mobile #view-settings .settings-rooms-table tr.settings-rooms-cat > td:first-child,
+.boso-admin-mobile #view-settings .settings-rooms-table tr.settings-rooms-cat > td:last-child {
+  display: block !important;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: inherit !important;
+}
+
+.boso-admin-mobile #view-settings .settings-rooms-cat__inner {
+  padding: 4px 2px 2px;
+}
+
+.boso-admin-mobile #view-settings .settings-rooms-cat__name {
+  font-size: 12px;
+}
+
+.boso-admin-mobile #view-settings .room-cats {
+  margin-bottom: 8px;
 }
 
 .boso-admin-mobile #view-settings #settingsRoomsTableBody .settings-rooms-row,

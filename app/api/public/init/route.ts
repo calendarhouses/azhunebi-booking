@@ -18,7 +18,7 @@ async function loadPublicInit(tenantId: string): Promise<AdminInitResponse> {
 function getCachedPublicInit(tenantId: string): Promise<AdminInitResponse> {
   return unstable_cache(
     () => loadPublicInit(tenantId),
-    ["public-init-v1", tenantId],
+    ["public-init-v2", tenantId],
     { revalidate: REVALIDATE_SECONDS }
   )();
 }

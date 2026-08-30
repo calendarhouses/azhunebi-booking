@@ -13,10 +13,21 @@ export function houseWord(n: number): string {
 }
 
 export function normalizeRoomCategories(raw: unknown): RoomCategory[] {
-  if (!Array.isArray(raw)) return [];
+  let list: unknown = raw;
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch {
+      return [];
+    }
+  }
+  if (list && typeof list === "object" && !Array.isArray(list)) {
+    list = Object.values(list as Record<string, unknown>);
+  }
+  if (!Array.isArray(list)) return [];
   const seen = new Set<string>();
   const out: RoomCategory[] = [];
-  for (const item of raw) {
+  for (const item of list) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
     const id = String(rec.id || "").trim();
@@ -99,7 +110,7 @@ export function newRoomCategoryId(): string {
   return `cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export const TIMELINE_CATEGORY_HEAD_H = 34;
+export const TIMELINE_CATEGORY_HEAD_H = 42;
 
 export type TimelineLane =
   | { kind: "header"; id: string; title: string; count: number }

@@ -134,6 +134,34 @@ body {
     gap: 80px;
 }
 
+.public-cabin-group {
+  display: flex;
+  flex-direction: column;
+  gap: 80px;
+}
+
+.public-cabin-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 -52px;
+  padding: 0 4px;
+}
+
+.public-cabin-group__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: #1c1917;
+}
+
+.public-cabin-group__count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #78716c;
+}
+
 /* ── ПРЕМІУМ КАРТКА (Анімація та Шаховий порядок) ── */
 .cabin-card {
     display: flex;

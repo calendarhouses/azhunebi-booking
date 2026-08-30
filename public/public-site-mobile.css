@@ -170,6 +170,35 @@ body.public-booking-page.boso-public-mobile.ready {
 .page-wrap { padding: 0 16px calc(60px + var(--safe-bottom)); }
 .page-wrap--success { padding-top: 32px; }
 #cabinsContainer { position: relative; z-index: 2; background: var(--bg); padding-top: 16px; display: flex; flex-direction: column; gap: 28px; scroll-margin-top: calc(10px + var(--safe-top) + 10px + 44px + 8px); }
+
+.public-cabin-group {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.public-cabin-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 -12px;
+  padding: 4px 2px 0;
+}
+
+.public-cabin-group__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1c1917;
+}
+
+.public-cabin-group__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #78716c;
+}
+
 .screen { display: none; } .screen.active { display: block; }
 
 .cabin-card {
