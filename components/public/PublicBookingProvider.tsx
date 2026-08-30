@@ -835,7 +835,8 @@ export function PublicBookingProvider({
   }, [catalogRooms, runtime?.rooms]);
 
   // Filter as soon as check-in is picked (1 night+ availability); full range when checkout set.
-  const listFilterActive = Boolean(checkIn || childCount > 0 || activeCategoryId);
+  // Category only narrows the catalog — it is not a stay filter (no «N вільних» / «Скинути»).
+  const listFilterActive = Boolean(checkIn || childCount > 0);
 
   const filteredRooms = useMemo(() => {
     if (!runtime) return [];
