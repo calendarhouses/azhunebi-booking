@@ -24,26 +24,26 @@ const MONTH_NAMES = [
   "Грудень",
 ];
 
-const MONTH_SHORT = [
-  "січ.",
-  "лют.",
-  "бер.",
-  "квіт.",
-  "трав.",
-  "черв.",
-  "лип.",
-  "серп.",
-  "вер.",
-  "жовт.",
-  "лист.",
-  "груд.",
+const MONTH_GENITIVE = [
+  "січня",
+  "лютого",
+  "березня",
+  "квітня",
+  "травня",
+  "червня",
+  "липня",
+  "серпня",
+  "вересня",
+  "жовтня",
+  "листопада",
+  "грудня",
 ];
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
 function formatChipDate(date: Date | null): string {
   if (!date) return "—";
-  return `${date.getDate()} ${MONTH_SHORT[date.getMonth()]}`;
+  return `${date.getDate()} ${MONTH_GENITIVE[date.getMonth()]}`;
 }
 
 function monthTitle(year: number, month: number): string {
@@ -333,9 +333,7 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     pickIntent === "checkIn"
       ? "Оберіть дату заїзду"
       : pickIntent === "checkOut"
-        ? checkIn
-          ? "Оберіть дату виїзду"
-          : "Спочатку оберіть заїзд"
+        ? "Оберіть дату виїзду"
         : null;
 
   return (
