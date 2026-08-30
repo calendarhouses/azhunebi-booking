@@ -682,9 +682,9 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .timeline-rows { position: relative; width: max-content; }
 .timeline-row-bg { display: flex; height: 60px; border-bottom: 1px solid #E5E7EB; position: relative; }
 .boso-admin-mobile .timeline-cat-head {
-  height: 22px !important;
-  min-height: 22px !important;
-  max-height: 22px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -700,9 +700,9 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .boso-admin-mobile .timeline-cat-head__label {
   left: auto !important;
   padding-left: 2px !important;
-  height: 22px !important;
-  max-height: 22px !important;
-  font-size: 10px !important;
+  height: 14px !important;
+  max-height: 14px !important;
+  font-size: 8px !important;
   line-height: 1 !important;
   max-width: none !important;
   color: #3f4f24 !important;
@@ -3878,9 +3878,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head,
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head--grid {
-  height: 22px !important;
-  min-height: 22px !important;
-  max-height: 22px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
 }
 
 .boso-admin-mobile .timeline-wrapper--mobile-dense .timeline-cat-head--grid {

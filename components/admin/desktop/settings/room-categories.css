@@ -245,9 +245,9 @@
 .timeline-cat-head {
   display: flex;
   align-items: center;
-  height: 22px;
-  min-height: 22px;
-  max-height: 22px;
+  height: 14px;
+  min-height: 14px;
+  max-height: 14px;
   box-sizing: border-box;
   background: #f3efe4;
   border-bottom: 1px solid rgba(85, 107, 47, 0.12);
@@ -272,12 +272,12 @@
 .timeline-cat-head__label {
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  max-height: 22px;
-  padding: 0 16px 0 0;
-  font-size: 10px;
+  height: 14px;
+  max-height: 14px;
+  padding: 0 12px 0 0;
+  font-size: 8px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
   line-height: 1;

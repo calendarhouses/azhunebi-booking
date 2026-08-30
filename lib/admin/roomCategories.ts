@@ -138,7 +138,7 @@ export function newRoomCategoryId(): string {
   return `cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export const TIMELINE_CATEGORY_HEAD_H = 22;
+export const TIMELINE_CATEGORY_HEAD_H = 14;
 
 export type TimelineLane =
   | { kind: "header"; id: string; title: string; count: number }
