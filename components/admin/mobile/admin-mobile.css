@@ -693,7 +693,7 @@ td:first-child { font-size: 15px; border-bottom: 1px solid #F3F4F6 !important; p
 .boso-admin-mobile .timeline-cat-head--side {
   justify-content: flex-start !important;
   overflow: visible !important;
-  z-index: 8 !important;
+  z-index: 1 !important;
   padding: 0 0 0 12px !important;
 }
 
@@ -3390,7 +3390,9 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
   max-height: var(--timeline-mobile-head-height, 56px) !important;
   position: sticky !important;
   top: 0 !important;
-  z-index: 15 !important;
+  /* Above rooms (20) so overflowing category titles tuck under dates while scrolling;
+     below corner (30) so № stays on top. */
+  z-index: 25 !important;
   background: #fff !important;
   border-bottom: 1px solid #E5E7EB !important;
   box-sizing: border-box !important;
@@ -3633,7 +3635,7 @@ body.boso-admin-mobile-active .admin-side-drawer__footer {
 .boso-admin-ios .timeline-mobile-dates {
   position: sticky !important;
   top: 0 !important;
-  z-index: 15 !important;
+  z-index: 25 !important;
   background: #fff !important;
   overflow: visible !important;
 }
@@ -7375,7 +7377,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 .boso-admin-android #view-grid .timeline-mobile-dates {
   position: sticky !important;
   top: 0 !important;
-  z-index: 15 !important;
+  z-index: 25 !important;
   background: #fff !important;
   /* visible — sticky month label needs it (same as iOS) */
   overflow: visible !important;
@@ -7535,7 +7537,7 @@ body.boso-admin-mobile-active .analytics-details-drawer__footer .admin-premium-b
 .boso-admin-ios .timeline-mobile-dates {
   position: sticky !important;
   top: 0 !important;
-  z-index: 15 !important;
+  z-index: 25 !important;
   background: #fff !important;
 }
 

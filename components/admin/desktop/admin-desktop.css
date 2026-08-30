@@ -1160,6 +1160,9 @@
             max-height: calc(var(--timeline-months-height) + var(--timeline-dates-height));
             overflow: hidden;
             border-bottom: 1px solid #E5E7EB;
+            position: relative;
+            z-index: 4;
+            background: #fff;
         }
         .timeline-focus-head .timeline-months {
             flex: 0 0 var(--timeline-months-height, 24px);
@@ -1181,6 +1184,8 @@
             min-height: 0;
             overflow: hidden;
             margin-top: 0;
+            position: relative;
+            z-index: 1;
         }
         .timeline-wrapper--focus-layout .timeline-dates {
             flex: 0 0 var(--timeline-dates-height);
