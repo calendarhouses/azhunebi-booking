@@ -12,7 +12,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { nightWord } from "@/components/admin/desktop/adminPlural";
-import { groupRoomsByCategory, normalizeRoomCategories, visibleRoomCategories } from "@/lib/admin/roomCategories";
+import { groupRoomsByCategory, normalizeRoomCategories, populatedVisibleCategories, excludeHiddenCategoryRooms } from "@/lib/admin/roomCategories";
 import {
   computeBookingPrice,
   getBookingMinNightsRequired,
@@ -272,10 +272,14 @@ export function PublicBookingProvider({
       const brandingFromApi =
         (settings.branding as PublicTenantPayload["branding"] | undefined) ||
         data.branding;
+      const roomCategoriesList = normalizeRoomCategories(settings.roomCategoriesList);
       setRuntime({
         ...data,
         branding: brandingFromApi,
-        rooms: roomsFromApi.filter((r) => r.active !== false),
+        rooms: excludeHiddenCategoryRooms(
+          roomsFromApi.filter((r) => r.active !== false),
+          roomCategoriesList
+        ),
         discounts: (settings.discountsList as typeof data.discounts) || data.discounts,
         customPrices: settings.customPrices || data.customPrices,
         bookings: init.bookings || [],
@@ -285,7 +289,7 @@ export function PublicBookingProvider({
         customServicesList: settings.customServicesList || [],
         flexibleScheduleSettings: settings.flexibleScheduleSettings,
         paymentSettings: settings.paymentSettings as PublicSiteRuntime["paymentSettings"],
-        roomCategoriesList: normalizeRoomCategories(settings.roomCategoriesList),
+        roomCategoriesList,
       });
     },
     [data]
@@ -750,8 +754,11 @@ export function PublicBookingProvider({
       if (d < today) return "blocked";
       if (!runtime?.rooms.length) return "blocked";
 
-      const cats = visibleRoomCategories(runtime.roomCategoriesList);
-      const catId = cats.length > 1 ? selectedCategoryId : null;
+      const cats = populatedVisibleCategories(runtime.roomCategoriesList, runtime.rooms);
+      const catId =
+        cats.length > 1 && selectedCategoryId && cats.some((c) => c.id === selectedCategoryId)
+          ? selectedCategoryId
+          : null;
       const stayRooms = catId
         ? runtime.rooms.filter((r) => r.categoryId === catId)
         : runtime.rooms;
@@ -817,10 +824,13 @@ export function PublicBookingProvider({
   );
 
   const roomCategories = useMemo(
-    () => visibleRoomCategories(runtime?.roomCategoriesList),
-    [runtime?.roomCategoriesList]
+    () => populatedVisibleCategories(runtime?.roomCategoriesList, runtime?.rooms || []),
+    [runtime?.roomCategoriesList, runtime?.rooms]
   );
-  const activeCategoryId = roomCategories.length > 1 ? selectedCategoryId : null;
+  const activeCategoryId =
+    roomCategories.length > 1 && selectedCategoryId && roomCategories.some((c) => c.id === selectedCategoryId)
+      ? selectedCategoryId
+      : null;
 
   const catalogRooms = useMemo(() => {
     const rooms = runtime?.rooms || [];
@@ -851,7 +861,7 @@ export function PublicBookingProvider({
         closedDates: runtime.closedDates,
         restrictions: runtime.restrictions,
       }),
-      visibleRoomCategories(runtime.roomCategoriesList)
+      populatedVisibleCategories(runtime.roomCategoriesList, runtime.rooms)
     ).flatMap((g) => g.rooms);
   }, [runtime, catalogRooms, checkIn, checkOut, guestCount, childCount, youngestChildAge]);
 

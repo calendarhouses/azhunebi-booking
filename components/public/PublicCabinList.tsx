@@ -1,6 +1,6 @@
 "use client";
 
-import { groupRoomsByCategory, houseWord, visibleRoomCategories } from "@/lib/admin/roomCategories";
+import { groupRoomsByCategory, houseWord } from "@/lib/admin/roomCategories";
 import { usePublicBooking } from "./PublicBookingProvider";
 import { CabinCardMobile } from "./CabinCardMobile";
 import { DesktopCabinCard } from "./desktop/DesktopCabinCard";
@@ -11,6 +11,7 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
     runtime,
     filteredRooms,
     listFilterActive,
+    roomCategories,
     selectedCategoryId,
     openDrawer,
     getNextFreeForRoom,
@@ -31,9 +32,8 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
 
   if (showEmpty) return <PublicCabinsEmptyState />;
 
-  const cats = visibleRoomCategories(runtime?.roomCategoriesList);
-  const groups = groupRoomsByCategory(rooms, cats);
-  const showHeads = !selectedCategoryId && cats.length > 1 && groups.some((g) => Boolean(g.title));
+  const groups = groupRoomsByCategory(rooms, roomCategories);
+  const showHeads = !selectedCategoryId && roomCategories.length > 1 && groups.some((g) => Boolean(g.title));
 
   return (
     <>

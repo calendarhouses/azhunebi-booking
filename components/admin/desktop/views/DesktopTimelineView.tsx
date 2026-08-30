@@ -22,10 +22,12 @@ import {
 } from "@/lib/public-booking/bookingReview";
 import {
   buildTimelineLanes,
+  excludeHiddenCategoryRooms,
   roomIndexFromLaneY,
   roomTopFromLanes,
   sortRoomsByCategory,
   TIMELINE_CATEGORY_HEAD_H,
+  visibleRoomCategories,
 } from "@/lib/admin/roomCategories";
 import {
   bookingHasEarlyLate,
@@ -520,18 +522,25 @@ export function DesktopTimelineView({
   /** Desktop focus layout: sticky dates via transform sync. Mobile uses unified board scroll. */
   const stickyChrome = compactGrid;
   const mobileBoard = isMobile;
+  const boardCategories = useMemo(
+    () => visibleRoomCategories(settings?.roomCategoriesList),
+    [settings?.roomCategoriesList]
+  );
   const activeRooms = useMemo(
     () =>
       sortRoomsByCategory(
-        roomsList.filter((r) => r.active),
-        settings?.roomCategoriesList
+        excludeHiddenCategoryRooms(
+          roomsList.filter((r) => r.active),
+          settings?.roomCategoriesList
+        ),
+        boardCategories
       ),
-    [roomsList, settings?.roomCategoriesList]
+    [roomsList, settings?.roomCategoriesList, boardCategories]
   );
   const timelineRooms = useMemo(() => [...activeRooms, HOLDING_ROOM], [activeRooms]);
   const timelineLanes = useMemo(
-    () => buildTimelineLanes(timelineRooms, settings?.roomCategoriesList, HOLDING_ROOM.id),
-    [timelineRooms, settings?.roomCategoriesList]
+    () => buildTimelineLanes(timelineRooms, boardCategories, HOLDING_ROOM.id),
+    [timelineRooms, boardCategories]
   );
 
   useEffect(() => {

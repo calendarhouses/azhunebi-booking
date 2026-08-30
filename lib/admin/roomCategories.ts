@@ -48,6 +48,34 @@ export function visibleRoomCategories(list: RoomCategory[] | undefined | null): 
   return normalizeRoomCategories(list).filter((c) => !c.hidden);
 }
 
+export function excludeHiddenCategoryRooms<T extends { categoryId?: string | null }>(
+  rooms: T[],
+  categories: RoomCategory[] | undefined | null
+): T[] {
+  const hidden = new Set(
+    normalizeRoomCategories(categories)
+      .filter((c) => c.hidden)
+      .map((c) => c.id)
+  );
+  if (!hidden.size) return rooms;
+  return rooms.filter((r) => !hidden.has(String(r.categoryId || "").trim()));
+}
+
+/** Visible categories that actually have at least one room (for public switcher). */
+export function populatedVisibleCategories<T extends { categoryId?: string | null }>(
+  categories: RoomCategory[] | undefined | null,
+  rooms: T[]
+): RoomCategory[] {
+  const visible = visibleRoomCategories(categories);
+  if (!visible.length) return [];
+  const used = new Set<string>();
+  for (const room of rooms) {
+    const id = String(room.categoryId || "").trim();
+    if (id) used.add(id);
+  }
+  return visible.filter((c) => used.has(c.id));
+}
+
 export function categoryNameById(
   list: RoomCategory[] | undefined | null,
   categoryId?: string | null
@@ -110,7 +138,7 @@ export function newRoomCategoryId(): string {
   return `cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export const TIMELINE_CATEGORY_HEAD_H = 42;
+export const TIMELINE_CATEGORY_HEAD_H = 22;
 
 export type TimelineLane =
   | { kind: "header"; id: string; title: string; count: number }
