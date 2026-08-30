@@ -97,6 +97,13 @@ import type {
 
 type DrawerStep = "info" | "calendar" | "checkout" | "rules";
 
+export type StayDatePickIntent = "checkIn" | "checkOut";
+export type StayDatePickResult =
+  | "set-check-in"
+  | "set-check-out"
+  | "cleared"
+  | "blocked";
+
 type Ctx = {
   runtime: PublicSiteRuntime | null;
   initLoading: boolean;
@@ -119,7 +126,7 @@ type Ctx = {
   checkOut: Date | null;
   selectDate: (ds: string) => void;
   /** Вибір дат у списковому фільтрі (без прив’язки до кімнати). */
-  selectStayDate: (ds: string) => void;
+  selectStayDate: (ds: string, intent?: StayDatePickIntent) => StayDatePickResult;
   clearStayDates: () => void;
   guestCount: number;
   changeGuests: (delta: number) => void;
@@ -728,17 +735,19 @@ export function PublicBookingProvider({
   );
 
   const selectStayDate = useCallback(
-    (ds: string) => {
+    (ds: string, intent?: StayDatePickIntent): StayDatePickResult => {
       const d = new Date(ds);
       d.setHours(0, 0, 0, 0);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (d < today) return;
-      if (!runtime?.rooms.length) return;
+      if (d < today) return "blocked";
+      if (!runtime?.rooms.length) return "blocked";
 
+      const availabilityCheckIn = intent === "checkOut" ? checkIn : intent === "checkIn" ? null : checkIn;
+      const availabilityCheckOut = intent ? null : checkOut;
       const opts = {
-        checkIn,
-        checkOut,
+        checkIn: availabilityCheckIn,
+        checkOut: availabilityCheckOut,
         adults: guestCount,
         children: childCount,
         youngestAge: childCount > 0 ? youngestChildAge : null,
@@ -749,7 +758,28 @@ export function PublicBookingProvider({
 
       if (!isListSearchDateAvailable(d, runtime.rooms, opts)) {
         showPublicToast("На цю дату немає вільних будинків");
-        return;
+        return "blocked";
+      }
+
+      if (intent === "checkIn") {
+        setCheckIn(d);
+        if (checkOut && checkOut <= d) setCheckOut(null);
+        setPostLateArrivalTime(null);
+        setCalKey((k) => k + 1);
+        return "set-check-in";
+      }
+
+      if (intent === "checkOut") {
+        if (!checkIn || d <= checkIn) {
+          setCheckIn(d);
+          setCheckOut(null);
+          setPostLateArrivalTime(null);
+          setCalKey((k) => k + 1);
+          return "set-check-in";
+        }
+        setCheckOut(d);
+        setCalKey((k) => k + 1);
+        return "set-check-out";
       }
 
       // Tap selected check-in again (before checkout) → clear selection
@@ -758,18 +788,19 @@ export function PublicBookingProvider({
         setCheckOut(null);
         setPostLateArrivalTime(null);
         setCalKey((k) => k + 1);
-        return;
+        return "cleared";
       }
 
       if (!checkIn || (checkIn && checkOut) || d <= checkIn) {
         setCheckIn(d);
         setCheckOut(null);
         setPostLateArrivalTime(null);
-      } else {
-        // Room-specific gap notice is applied when a cottage is opened.
-        setCheckOut(d);
+        setCalKey((k) => k + 1);
+        return "set-check-in";
       }
+      setCheckOut(d);
       setCalKey((k) => k + 1);
+      return "set-check-out";
     },
     [checkIn, checkOut, runtime, guestCount, childCount, youngestChildAge]
   );

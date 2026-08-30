@@ -2,7 +2,11 @@
 
 import { formatDateKey, isListSearchDateAvailable } from "@/lib/public-booking/bookedRanges";
 import type { ReactNode } from "react";
-import { usePublicBooking } from "./PublicBookingProvider";
+import { useEffect, useRef, useState } from "react";
+import {
+  usePublicBooking,
+  type StayDatePickIntent,
+} from "./PublicBookingProvider";
 import { useCalendarMonthSwipe } from "./useCalendarMonthSwipe";
 
 const MONTH_NAMES = [
@@ -20,33 +24,46 @@ const MONTH_NAMES = [
   "Грудень",
 ];
 
+const MONTH_SHORT = [
+  "січ.",
+  "лют.",
+  "бер.",
+  "квіт.",
+  "трав.",
+  "черв.",
+  "лип.",
+  "серп.",
+  "вер.",
+  "жовт.",
+  "лист.",
+  "груд.",
+];
+
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 
-function formatStayLabel(checkIn: Date | null, checkOut: Date | null): string {
-  if (!checkIn) return "Оберіть дати";
-  const inLabel = checkIn.toLocaleDateString("uk-UA", {
-    day: "numeric",
-    month: "short",
-  });
-  if (!checkOut) return `${inLabel} — виїзд`;
-  const outLabel = checkOut.toLocaleDateString("uk-UA", {
-    day: "numeric",
-    month: "short",
-  });
-  return `${inLabel} — ${outLabel}`;
+function formatChipDate(date: Date | null): string {
+  if (!date) return "дата";
+  return `${date.getDate()} ${MONTH_SHORT[date.getMonth()]}`;
 }
 
 function monthTitle(year: number, month: number): string {
   return `${MONTH_NAMES[month]} ${year}`;
 }
 
-function StayRangeCalendar({ months = 1 }: { months?: number }) {
+function StayRangeCalendar({
+  months = 1,
+  pickIntent = null,
+  onPick,
+}: {
+  months?: number;
+  pickIntent?: StayDatePickIntent | null;
+  onPick: (ds: string) => void;
+}) {
   const {
     calBase,
     shiftCal,
     checkIn,
     checkOut,
-    selectStayDate,
     calKey,
     runtime,
     guestCount,
@@ -59,8 +76,8 @@ function StayRangeCalendar({ months = 1 }: { months?: number }) {
   today.setHours(0, 0, 0, 0);
   const rooms = runtime?.rooms || [];
   const availabilityOpts = {
-    checkIn,
-    checkOut,
+    checkIn: pickIntent === "checkOut" ? checkIn : pickIntent === "checkIn" ? null : checkIn,
+    checkOut: pickIntent ? null : checkOut,
     adults: guestCount,
     children: childCount,
     youngestAge: childCount > 0 ? youngestChildAge : null,
@@ -98,6 +115,8 @@ function StayRangeCalendar({ months = 1 }: { months?: number }) {
       if (checkIn && ds === formatDateKey(checkIn)) cls += " is-start";
       if (checkOut && ds === formatDateKey(checkOut)) cls += " is-end";
       if (checkIn && checkOut && d > checkIn && d < checkOut) cls += " is-in-range";
+      if (pickIntent === "checkIn" && checkIn && ds === formatDateKey(checkIn)) cls += " is-picking";
+      if (pickIntent === "checkOut" && checkOut && ds === formatDateKey(checkOut)) cls += " is-picking";
 
       days.push(
         <button
@@ -105,7 +124,7 @@ function StayRangeCalendar({ months = 1 }: { months?: number }) {
           type="button"
           className={cls}
           disabled={isPast || !isAvailable}
-          onClick={() => selectStayDate(ds)}
+          onClick={() => onPick(ds)}
         >
           {day}
         </button>
@@ -182,12 +201,47 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     filteredRooms,
     listFilterActive,
     listGuestMax,
+    selectStayDate,
   } = usePublicBooking();
 
-  const nights =
-    checkIn && checkOut
-      ? Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000)
-      : 0;
+  const [pickIntent, setPickIntent] = useState<StayDatePickIntent | null>(null);
+  const focusRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pickIntent) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPickIntent(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [pickIntent]);
+
+  const startPick = (intent: StayDatePickIntent) => {
+    setPickIntent((current) => (current === intent ? null : intent));
+  };
+
+  const handleCalendarPick = (ds: string) => {
+    const result = selectStayDate(ds, pickIntent || undefined);
+    if (!pickIntent) return;
+    if (result === "blocked") return;
+    if (pickIntent === "checkIn" && result === "set-check-in") {
+      setPickIntent(null);
+      return;
+    }
+    if (pickIntent === "checkOut" && result === "set-check-out") {
+      setPickIntent(null);
+      return;
+    }
+    if (pickIntent === "checkOut" && result === "set-check-in") {
+      setPickIntent("checkOut");
+    }
+  };
 
   const availableLabel = listFilterActive
     ? filteredRooms.length === 1
@@ -279,45 +333,85 @@ export function PublicAvailabilityFilter({ layout = "desktop" }: Props) {
     </>
   );
 
+  const pickHint =
+    pickIntent === "checkIn"
+      ? "Оберіть дату заїзду"
+      : pickIntent === "checkOut"
+        ? checkIn
+          ? "Оберіть дату виїзду"
+          : "Спочатку оберіть заїзд"
+        : null;
+
   return (
-    <div className={`stay-filter stay-filter--${layout} stay-filter--inline`}>
+    <div
+      className={`stay-filter stay-filter--${layout} stay-filter--inline${pickIntent ? " stay-filter--picking" : ""}`}
+    >
+      {pickIntent ? (
+        <button
+          type="button"
+          className="stay-filter__scrim"
+          aria-label="Закрити вибір дат"
+          onClick={() => setPickIntent(null)}
+        />
+      ) : null}
+
       {layout === "desktop" ? (
         <h2 className="stay-filter__heading">Оберіть дату заїзду — покажемо вільні будинки</h2>
       ) : null}
 
       <div className="stay-filter__card">
-        <div className="stay-filter__range">
-          <div className={`stay-filter__range-copy${checkIn ? " has-value" : ""}`}>
-            <span className="stay-filter__field-value">{formatStayLabel(checkIn, checkOut)}</span>
-            {nights > 0 ? (
-              <span className="stay-filter__field-meta">
-                {nights} {nights === 1 ? "ніч" : nights < 5 ? "ночі" : "ночей"}
-              </span>
-            ) : null}
+        <div className="stay-filter__focus" ref={focusRef}>
+          <div className="stay-filter__date-row">
+            <button
+              type="button"
+              className={`stay-filter__date-chip${checkIn ? " has-value" : ""}${pickIntent === "checkIn" ? " is-active" : ""}`}
+              onClick={() => startPick("checkIn")}
+            >
+              <span className="stay-filter__date-chip-label">Заїзд</span>
+              <span className="stay-filter__date-chip-value">{formatChipDate(checkIn)}</span>
+            </button>
+            <button
+              type="button"
+              className={`stay-filter__date-chip${checkOut ? " has-value" : ""}${pickIntent === "checkOut" ? " is-active" : ""}`}
+              onClick={() => startPick("checkOut")}
+            >
+              <span className="stay-filter__date-chip-label">Виїзд</span>
+              <span className="stay-filter__date-chip-value">{formatChipDate(checkOut)}</span>
+            </button>
           </div>
-          <div className="stay-filter__aside">
-            {availableLabel ? (
-              <button
-                type="button"
-                className="stay-filter__count"
-                onClick={() => {
-                  document
-                    .getElementById("cabinsContainer")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                {availableLabel}
-              </button>
-            ) : null}
-            {listFilterActive || checkIn ? (
-              <button type="button" className="stay-filter__clear" onClick={() => clearStayDates()}>
-                Скинути
-              </button>
-            ) : null}
-          </div>
+
+          {pickHint ? <p className="stay-filter__pick-hint">{pickHint}</p> : null}
+
+          <StayRangeCalendar
+            months={layout === "desktop" ? 2 : 1}
+            pickIntent={pickIntent}
+            onPick={handleCalendarPick}
+          />
         </div>
 
-        <StayRangeCalendar months={layout === "desktop" ? 2 : 1} />
+        <div className="stay-filter__aside stay-filter__aside--tools">
+          {availableLabel ? (
+            <button
+              type="button"
+              className="stay-filter__count"
+              onClick={() => {
+                document
+                  .getElementById("cabinsContainer")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              {availableLabel}
+            </button>
+          ) : null}
+          {listFilterActive || checkIn ? (
+            <button type="button" className="stay-filter__clear" onClick={() => {
+              setPickIntent(null);
+              clearStayDates();
+            }}>
+              Скинути
+            </button>
+          ) : null}
+        </div>
 
         <div className="stay-filter__bar" role="search">
           {guests}

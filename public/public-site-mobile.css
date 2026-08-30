@@ -1105,6 +1105,37 @@ body.ready .bottom-nav,
   min-width: 0;
 }
 
+.stay-filter--mobile .stay-filter__date-row {
+  gap: 8px;
+  padding: 12px 12px 6px;
+}
+
+.stay-filter--mobile .stay-filter__date-chip {
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.stay-filter--mobile .stay-filter__date-chip-value {
+  font-size: 16px;
+}
+
+.stay-filter--mobile .stay-filter__pick-hint {
+  font-size: 12px;
+  padding: 0 12px 6px;
+}
+
+.stay-filter--mobile.stay-filter--picking .stay-filter__card {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.stay-filter--mobile .stay-filter__focus {
+  border-radius: 20px;
+}
+
 .stay-filter--mobile .stay-filter__field-label {
   font-size: 10px;
   letter-spacing: 0.12em;
