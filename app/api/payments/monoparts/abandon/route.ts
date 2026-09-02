@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearMonoPaymentAttempt, fetchBookingByDisplayId } from "@/lib/gas-api";
+import { clearMonoPaymentAttempt, fetchBookingByDisplayId } from "@/lib/gas-api-server";
 import { isMonoChastBooking } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 

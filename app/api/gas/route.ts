@@ -341,7 +341,7 @@ async function applyPostBookingSideEffects(
       try {
         const [{ fetchBookingByDisplayId }, { sendBookingLifecycleSms }, { loadSmsSettingsSystem }] =
           await Promise.all([
-            import("@/lib/gas-api"),
+            import("@/lib/gas-api-server"),
             import("@/lib/sms/bookingLifecycleSms"),
             import("@/lib/sms/loadSmsSettings"),
           ]);

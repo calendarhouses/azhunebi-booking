@@ -1,4 +1,4 @@
-import type { GasBookingRecord } from "@/lib/gas-api";
+import type { GasBookingRecord } from "@/lib/gas-api-server";
 
 export type SmsTemplateId =
   | "payment_link"

@@ -3,7 +3,7 @@ import {
   clearMonoPaymentAttempt,
   fetchBookingByDisplayId,
   storeMonoInvoice,
-} from "@/lib/gas-api";
+} from "@/lib/gas-api-server";
 import { createMonoInvoice, getMonoInvoiceStatus, MonoApiError } from "@/lib/monopay/client";
 import {
   getMonoTestAmountUah,

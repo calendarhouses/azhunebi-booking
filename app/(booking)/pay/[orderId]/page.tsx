@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { PayBookingPage } from "@/components/public/PayBookingPage";
-import { fetchBookingByDisplayId, fetchPublicTenantData } from "@/lib/gas-api";
+import { fetchBookingByDisplayId, fetchPublicTenantData } from "@/lib/gas-api-server";
 import { toImageDisplaySrc } from "@/lib/driveImageUrl";
 import {
   getMonoChastTestAmountUah,

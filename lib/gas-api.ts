@@ -50,20 +50,14 @@ function gasFetchSignal(): AbortSignal | undefined {
   return undefined;
 }
 
-/** Браузер і SSR → same-origin проксі `/api/gas` (без server-only backend у клієнтському бандлі). */
-function getAppOrigin(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
-  return "http://localhost:3000";
-}
-
+/** Браузер → same-origin проксі `/api/gas`. На сервері використовуй `@/lib/gas-api-server`. */
 function getRequestBase(): string {
-  if (typeof window !== "undefined") {
-    return "/api/gas";
+  if (typeof window === "undefined") {
+    throw new Error(
+      "gas-api is client-only. On the server use @/lib/gas-api-server instead."
+    );
   }
-  return `${getAppOrigin()}/api/gas`;
+  return "/api/gas";
 }
 
 function buildUrl(params: Record<string, string | number | undefined>): string {

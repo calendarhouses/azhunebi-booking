@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearMonoPaymentAttempt, fetchBookingByDisplayId, storeMonoInvoice } from "@/lib/gas-api";
+import { clearMonoPaymentAttempt, fetchBookingByDisplayId, storeMonoInvoice } from "@/lib/gas-api-server";
 import { resolveMonoChastChargeAmountUah } from "@/lib/monopay/config";
 import {
   createMonoChastOrder,

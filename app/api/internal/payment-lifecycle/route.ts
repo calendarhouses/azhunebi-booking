@@ -3,7 +3,7 @@ import {
   expireBookingPayment,
   listPaymentLifecycle,
   type GasBookingRecord,
-} from "@/lib/gas-api";
+} from "@/lib/gas-api-server";
 import { authorizeBearer, paymentLifecycleSecrets } from "@/lib/cron/authorize";
 import { getMonoInvoiceStatus } from "@/lib/monopay/client";
 import { getMonoTestAmountUah } from "@/lib/monopay/config";

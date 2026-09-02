@@ -1,5 +1,5 @@
 import type { GuestMessengerBooking } from "@/lib/admin/guestMessengerLinks";
-import { fetchBookingByDisplayId, reviewBookingDecision } from "@/lib/gas-api";
+import { fetchBookingByDisplayId, reviewBookingDecision } from "@/lib/gas-api-server";
 import {
   formatSmsStatusLine,
   notifyGuestBookingRejected,

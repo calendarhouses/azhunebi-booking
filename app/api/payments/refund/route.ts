@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/admin/verifyAdminRequest";
-import { fetchBookingByDisplayId, recordBookingRefund } from "@/lib/gas-api";
+import { fetchBookingByDisplayId, recordBookingRefund } from "@/lib/gas-api-server";
 import { cancelMonoInvoice, MonoApiError } from "@/lib/monopay/client";
 import { returnMonoChastOrder, MonoChastApiError } from "@/lib/monoparts/client";
 import {

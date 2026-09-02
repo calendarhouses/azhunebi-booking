@@ -2,7 +2,8 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { GAS_AUTH_TOKEN_KEY, registerAccount } from "@/lib/gas-api";
+import { GAS_AUTH_TOKEN_KEY } from "@/lib/gas-api";
+import { registerAccount as serverRegisterAccount } from "@/lib/gas-api-server";
 import { isMobileUserAgent } from "@/lib/isMobileUserAgent";
 
 export type RegisterActionState = {
@@ -31,7 +32,7 @@ export async function registerAction(
   if (!email || !email.includes("@")) return { error: "Вкажіть коректний email" };
   if (password.length < 8) return { error: "Пароль має містити мінімум 8 символів" };
 
-  const result = await registerAccount({ email, password, tenantName });
+  const result = await serverRegisterAccount({ email, password, tenantName });
 
   if (!result.success) {
     return { error: result.error || "Помилка реєстрації" };

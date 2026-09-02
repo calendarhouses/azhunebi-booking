@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
-import { fetchInitData } from "@/lib/gas-api";
+import { fetchInitData } from "@/lib/gas-api-server";
 import type { AdminInitResponse } from "@/components/admin/desktop/types";
 
 export const runtime = "nodejs";

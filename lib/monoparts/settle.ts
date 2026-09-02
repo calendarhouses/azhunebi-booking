@@ -1,6 +1,6 @@
 import "server-only";
 
-import { fetchBookingByDisplayId, clearMonoPaymentAttempt, type GasBookingRecord } from "@/lib/gas-api";
+import { fetchBookingByDisplayId, clearMonoPaymentAttempt, type GasBookingRecord } from "@/lib/gas-api-server";
 import {
   getMonoChastTestAmountUah,
   resolveMonoChastChargeAmountUah,
@@ -70,7 +70,7 @@ async function markBookingPaidFromParts(
   if (!result.ok) {
     return {
       ok: false,
-      reason: result.reason,
+      reason: result.reason || "db_error",
       message: result.message,
     };
   }

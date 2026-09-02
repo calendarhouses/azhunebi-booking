@@ -31,8 +31,8 @@ function webhookSecret(): string {
 }
 
 async function gasPostJson<T>(body: Record<string, unknown>): Promise<T> {
-  const { gasPost } = await import("@/lib/gas-api");
-  const json = await gasPost<T & { error?: string }>({
+  const { serverGasPost } = await import("@/lib/gas-api-server");
+  const json = await serverGasPost<T & { error?: string }>({
     ...body,
     webhookSecret: webhookSecret(),
   });

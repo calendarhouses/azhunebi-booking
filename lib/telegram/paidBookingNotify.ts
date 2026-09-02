@@ -3,7 +3,7 @@ import "server-only";
 import {
   markPaidBookingTelegramSent,
   type GasBookingRecord,
-} from "@/lib/gas-api";
+} from "@/lib/gas-api-server";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { parseEarlyLateTimesFromComment } from "@/lib/admin/flexibleSchedule";
 import { parseChildrenFromComment, parseYoungestChildAgeFromComment } from "@/components/admin/desktop/settings/additionalServicesLogic";

@@ -9,9 +9,9 @@ import { verifyAdminRequest } from "@/lib/admin/verifyAdminRequest";
 import {
   createBooking,
   fetchInitData,
-  gasFetch,
-  gasPost,
-} from "@/lib/gas-api";
+  serverGasFetch,
+  serverGasPost,
+} from "@/lib/gas-api-server";
 import {
   bookingsShareSameRoom,
   findRoomForBooking,
@@ -212,9 +212,9 @@ export async function GET(request: Request) {
     if (!authToken) return adminUnauthorizedResponse();
     try {
       return jsonResponse(
-        await gasFetch<Record<string, unknown>>(
+        await serverGasFetch<Record<string, unknown>>(
           { action: "settings", tenant_id: tenantId },
-          { authToken }
+          authToken
         )
       );
     } catch (err) {
@@ -236,9 +236,9 @@ export async function GET(request: Request) {
     const authToken = extractBearerToken(request);
     if (!authToken) return adminUnauthorizedResponse();
     try {
-      const data = await gasFetch<{ bookings?: Record<string, unknown>[] }>(
+      const data = await serverGasFetch<{ bookings?: Record<string, unknown>[] }>(
         { action: "getAllBookings", tenant_id: tenantId },
-        { authToken }
+        authToken
       );
       return jsonResponse(data.bookings ?? []);
     } catch (err) {
@@ -318,14 +318,14 @@ export async function POST(request: Request) {
     const authToken = extractBearerToken(request);
     if (!authToken) return adminUnauthorizedResponse();
     try {
-      await gasPost(
+      await serverGasPost(
         {
           action: "saveSettings",
           tenant_id: tenantId,
           settings: (data.settings as Record<string, unknown>) || {},
           saveKeys: Array.isArray(data.saveKeys) ? data.saveKeys : undefined,
         },
-        { authToken }
+        authToken
       );
       return jsonResponse({ success: true });
     } catch (err) {
@@ -346,14 +346,14 @@ export async function POST(request: Request) {
     if (!authToken) return adminUnauthorizedResponse();
 
     try {
-      const result = await gasPost<{ success?: boolean; error?: string }>(
+      const result = await serverGasPost<{ success?: boolean; error?: string }>(
         {
           action: "deleteBooking",
           tenant_id: tenantId,
           row: data.row,
           id: data.id,
         },
-        { authToken }
+        authToken
       );
       if (result.error === "NOT_FOUND") {
         return jsonResponse({ error: "NOT_FOUND" }, { status: 404 });
@@ -724,9 +724,9 @@ async function getAllBookings(
   tenantId: string,
   authToken?: string | null
 ): Promise<Record<string, unknown>[]> {
-  const data = await gasFetch<{ bookings?: Record<string, unknown>[] }>(
+  const data = await serverGasFetch<{ bookings?: Record<string, unknown>[] }>(
     { action: "getAllBookings", tenant_id: tenantId },
-    { authToken }
+    authToken
   );
   return data.bookings ?? [];
 }
@@ -837,9 +837,9 @@ async function loadTenantBookings(
   tenantId: string,
   authToken?: string | null
 ): Promise<SupabaseBookingRow[]> {
-  const data = await gasFetch<{ rows?: SupabaseBookingRow[] }>(
+  const data = await serverGasFetch<{ rows?: SupabaseBookingRow[] }>(
     { action: "loadTenantBookings", tenant_id: tenantId },
-    { authToken }
+    authToken
   );
   return data.rows ?? [];
 }
@@ -943,9 +943,9 @@ async function getSettings(
   tenantId: string,
   authToken?: string | null
 ): Promise<Record<string, unknown>> {
-  return gasFetch<Record<string, unknown>>(
+  return serverGasFetch<Record<string, unknown>>(
     { action: "settings", tenant_id: tenantId },
-    { authToken }
+    authToken
   );
 }
 
@@ -954,13 +954,13 @@ async function saveSettings(
   settingsObj: Record<string, unknown>,
   authToken?: string | null
 ): Promise<void> {
-  await gasPost(
+  await serverGasPost(
     {
       action: "saveSettings",
       tenant_id: tenantId,
       settings: settingsObj,
     },
-    { authToken }
+    authToken
   );
 }
 

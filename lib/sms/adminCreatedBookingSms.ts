@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { GasBookingRecord } from "@/lib/gas-api";
+import type { GasBookingRecord } from "@/lib/gas-api-server";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { isTurboSmsConfigured } from "./config";
 import { sendTurboSms, type TurboSmsSendResult } from "./turbosms";

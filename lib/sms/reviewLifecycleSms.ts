@@ -4,7 +4,7 @@ import {
   clearBookingSmsSent,
   markBookingSmsSent,
   type GasBookingRecord,
-} from "@/lib/gas-api";
+} from "@/lib/gas-api-server";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { getPublicOrigin } from "@/lib/monopay/config";
 import { loadAllSettings } from "@/lib/db/settings";

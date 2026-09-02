@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchBookingByDisplayId } from "@/lib/gas-api";
+import { fetchBookingByDisplayId } from "@/lib/gas-api-server";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";

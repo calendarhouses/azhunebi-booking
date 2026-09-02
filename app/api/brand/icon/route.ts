@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { fetchPublicTenantData } from "@/lib/gas-api";
+import { fetchPublicTenantData } from "@/lib/gas-api-server";
 import { extractDriveFileId, normalizeDriveImageUrl } from "@/lib/driveImageUrl";
 import { BRAND_ICON_GREEN, BRAND_ICONS } from "@/lib/brandIcons";
 

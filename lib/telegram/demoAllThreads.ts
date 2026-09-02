@@ -21,7 +21,7 @@ import {
   isTelegramConfigured,
 } from "./config";
 import { sendTelegramMessage } from "./sendMessage";
-import type { GasBookingRecord } from "@/lib/gas-api";
+import type { GasBookingRecord } from "@/lib/gas-api-server";
 
 /**
  * Sends one sample message of each notification type into the correct forum topic.

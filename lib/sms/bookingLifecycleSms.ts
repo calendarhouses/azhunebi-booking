@@ -4,7 +4,7 @@ import {
   markBookingSmsSent,
   clearBookingSmsSent,
   type GasBookingRecord,
-} from "@/lib/gas-api";
+} from "@/lib/gas-api-server";
 import {
   normalizeGuestPhone,
 } from "@/lib/admin/guestMessengerLinks";
