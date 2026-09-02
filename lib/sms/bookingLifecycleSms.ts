@@ -43,6 +43,8 @@ function isNonRetryableSmsResult(result: TurboSmsSendResult): boolean {
   return NON_RETRYABLE_SMS_STATUSES.has(status);
 }
 
+export { isNonRetryableSmsResult };
+
 function journalWebhookSecret(): string {
   return (
     process.env.TELEGRAM_REVIEW_WEBHOOK_SECRET?.trim() ||

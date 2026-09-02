@@ -64,7 +64,8 @@ function resolveRoom(
  * Overwrites client-supplied totalPrice / prepayAmount.
  */
 export async function repricePublicBooking(
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  opts?: { excludeBookingId?: string }
 ): Promise<PublicRepriceResult> {
   const checkIn = String(payload.checkIn || "").slice(0, 10);
   const checkOut = String(payload.checkOut || "").slice(0, 10);
@@ -116,6 +117,7 @@ export async function repricePublicBooking(
     settings,
     allBookings,
     editingRow: null,
+    editingId: opts?.excludeBookingId || null,
     isInitialLoad: false,
     manual: {
       base: null,
@@ -188,4 +190,44 @@ export function applyPublicReprice(
     lateFee: priced.lateFee,
     paidAmount: 0,
   };
+}
+
+/** Reprice on admin approve — keeps recorded payments. */
+export function applyApprovedReviewReprice(
+  booking: ApiBooking,
+  priced: Extract<PublicRepriceResult, { ok: true }>
+): ApiBooking {
+  const paid = Number(booking.paidAmount) || 0;
+  return {
+    ...booking,
+    totalPrice: priced.totalPrice,
+    prepayAmount: priced.prepayAmount,
+    basePrice: priced.basePrice,
+    extraGuestFee: priced.extraGuestFee,
+    petFee: priced.petFee,
+    dayGuestFee: priced.dayGuestFee,
+    earlyFee: priced.earlyFee,
+    lateFee: priced.lateFee,
+    paidAmount: paid,
+  };
+}
+
+export async function repriceBookingForApprove(
+  booking: ApiBooking
+): Promise<PublicRepriceResult> {
+  const id = String(booking.id || "").trim();
+  return repricePublicBooking(
+    {
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      cottage: booking.cottage,
+      roomId: booking.roomId,
+      guests: booking.guests,
+      pets: booking.pets,
+      comment: booking.comment,
+      name: booking.name,
+      phone: booking.phone,
+    },
+    { excludeBookingId: id || undefined }
+  );
 }

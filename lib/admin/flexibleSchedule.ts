@@ -125,6 +125,55 @@ export function resolveFlexibleScheduleSettings(
   };
 }
 
+export function validateFlexibleScheduleWindows(
+  form: FlexibleScheduleSettings
+): { ok: true } | { ok: false; message: string } {
+  const earlyStart = flexTimeToMinutes(form.earlyWindowStart);
+  const earlyEnd = flexTimeToMinutes(form.earlyWindowEnd);
+  const lateStart = flexTimeToMinutes(form.lateWindowStart);
+  const lateEnd = flexTimeToMinutes(form.lateWindowEnd);
+  const stdIn = flexTimeToMinutes(form.standardCheckIn);
+  const stdOut = flexTimeToMinutes(form.standardCheckOut);
+
+  if (earlyStart > earlyEnd) {
+    return {
+      ok: false,
+      message: "Ранній заїзд: година «від» має бути не пізніше за «до»",
+    };
+  }
+  if (lateStart > lateEnd) {
+    return {
+      ok: false,
+      message: "Пізній виїзд: година «від» має бути не пізніше за «до»",
+    };
+  }
+  if (!buildHourlyTimeRange(form.earlyWindowStart, form.earlyWindowEnd).length) {
+    return {
+      ok: false,
+      message: "Ранній заїзд: задайте коректне вікно годин",
+    };
+  }
+  if (!buildHourlyTimeRange(form.lateWindowStart, form.lateWindowEnd).length) {
+    return {
+      ok: false,
+      message: "Пізній виїзд: задайте коректне вікно годин",
+    };
+  }
+  if (earlyEnd >= stdIn) {
+    return {
+      ok: false,
+      message: `Ранній заїзд: «до» має бути раніше стандартного заїзду (${form.standardCheckIn})`,
+    };
+  }
+  if (lateStart <= stdOut) {
+    return {
+      ok: false,
+      message: `Пізній виїзд: «від» має бути пізніше стандартного виїзду (${form.standardCheckOut})`,
+    };
+  }
+  return { ok: true };
+}
+
 export type FlexibleFeeQuote = {
   quotedFee: number;
   billableFee: number;

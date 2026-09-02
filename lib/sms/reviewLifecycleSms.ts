@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { GasBookingRecord } from "@/lib/gas-api";
+import {
+  clearBookingSmsSent,
+  markBookingSmsSent,
+  type GasBookingRecord,
+} from "@/lib/gas-api";
 import { normalizeGuestPhone } from "@/lib/admin/guestMessengerLinks";
 import { getPublicOrigin } from "@/lib/monopay/config";
 import { loadAllSettings } from "@/lib/db/settings";
@@ -10,6 +14,7 @@ import {
 } from "@/lib/payment/paymentSettings";
 import type { AdminSettingsPayload, CustomServiceConfig } from "@/components/admin/desktop/types";
 import { isTurboSmsConfigured } from "./config";
+import { isNonRetryableSmsResult } from "./bookingLifecycleSms";
 import { sendTurboSms, type TurboSmsSendResult } from "./turbosms";
 import {
   type SmsSettings,
@@ -87,6 +92,16 @@ export async function sendReviewLifecycleSms(
   if (!phone) return { ok: false, error: "missing phone" };
 
   const orderId = String(booking.id || "").trim();
+  let claimedPaymentLink = false;
+
+  // Block payment-lifecycle cron from sending a duplicate payment_link SMS.
+  if (type === "review_approve" && orderId && !booking.paymentLinkSmsSentAt) {
+    const claim = await markBookingSmsSent(orderId, "payment_link");
+    if (claim.ok && !claim.already && claim.claimed !== false) {
+      claimedPaymentLink = true;
+    }
+  }
+
   let paymentWindowHours = 3;
   let servicesById: Map<number, CustomServiceConfig> | undefined;
   try {
@@ -122,13 +137,17 @@ export async function sendReviewLifecycleSms(
     sequenceId: orderId ? `${type}-${orderId}` : undefined,
   });
 
-  if (type === "review_approve" && orderId && result.ok) {
-    try {
-      const { markBookingSmsSent } = await import("@/lib/gas-api");
-      await markBookingSmsSent(orderId, "payment_link");
-    } catch (err) {
-      console.warn("[SMS] review_approve payment_link marker failed", err);
-    }
+  if (
+    !result.ok &&
+    claimedPaymentLink &&
+    orderId &&
+    !isNonRetryableSmsResult(result)
+  ) {
+    await clearBookingSmsSent(orderId, "payment_link");
+    console.error("[SMS] review_approve failed after claim — marker cleared", {
+      orderId,
+      status: result.responseStatus || result.error,
+    });
   }
 
   const secret = journalWebhookSecret();

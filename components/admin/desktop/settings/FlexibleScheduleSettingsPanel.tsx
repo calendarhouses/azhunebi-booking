@@ -8,6 +8,7 @@ import type { AdminSettingsPayload } from "../types";
 import {
   buildHourlyTimeRange,
   resolveFlexibleScheduleSettings,
+  validateFlexibleScheduleWindows,
   percentOfDayFromDisplay,
   percentOfDayToDisplay,
   type FlexibleScheduleSettings,
@@ -61,6 +62,11 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
   };
 
   const save = useCallback(async () => {
+    const validation = validateFlexibleScheduleWindows(form);
+    if (!validation.ok) {
+      showToast(validation.message);
+      return;
+    }
     setSaving(true);
     try {
       const earlyTimes = buildHourlyTimeRange(form.earlyWindowStart, form.earlyWindowEnd);
@@ -150,7 +156,7 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
             <span className="svc-field__caption" style={{ marginTop: 8 }}>
               Години на сайті та в броні:{" "}
               {buildHourlyTimeRange(form.earlyWindowStart, form.earlyWindowEnd).join(", ") ||
-                "—"}
+                "— некоректне вікно"}
             </span>
           </div>
 
@@ -170,7 +176,7 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
             <span className="svc-field__caption" style={{ marginTop: 8 }}>
               Години на сайті та в броні:{" "}
               {buildHourlyTimeRange(form.lateWindowStart, form.lateWindowEnd).join(", ") ||
-                "—"}
+                "— некоректне вікно"}
             </span>
           </div>
 

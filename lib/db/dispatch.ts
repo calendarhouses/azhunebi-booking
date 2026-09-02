@@ -488,14 +488,29 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           const comment = confirmPendingReviewTokensInComment(
             String(booking.comment || "")
           );
-          const next = await upsertBooking({
+          let approved: typeof booking = {
             ...booking,
             comment,
             status: "Очікує оплату",
             paymentExpiresAt:
               booking.paymentExpiresAt ||
               addHoursIso(await paymentWindowHoursFromSettings()),
-          });
+          };
+          try {
+            const {
+              repriceBookingForApprove,
+              applyApprovedReviewReprice,
+            } = await import("@/lib/public-booking/repricePublicBooking");
+            const priced = await repriceBookingForApprove(approved);
+            if (priced.ok) {
+              approved = applyApprovedReviewReprice(approved, priced);
+            } else {
+              console.warn("[reviewBooking] reprice on approve failed", priced);
+            }
+          } catch (err) {
+            console.warn("[reviewBooking] reprice on approve threw", err);
+          }
+          const next = await upsertBooking(approved);
           return ok({ ok: true, booking: next });
         }
         if (decision === "reject") {
