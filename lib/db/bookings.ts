@@ -74,8 +74,9 @@ export async function upsertBooking(api: ApiBooking): Promise<ApiBooking> {
         : {};
     row.guest_details = { ...prevGd, ...nextGd };
 
-    if (!row.created_at) {
-      row.created_at = existingRaw.created_at ? String(existingRaw.created_at) : null;
+    // Creation date is immutable — drag/edit must not rewrite it in DB.
+    if (existingRaw.created_at) {
+      row.created_at = String(existingRaw.created_at);
     }
     if (!(row.change_history as unknown[])?.length && existingRaw.change_history) {
       row.change_history = existingRaw.change_history;

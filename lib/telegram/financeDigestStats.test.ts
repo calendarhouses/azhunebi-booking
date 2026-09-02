@@ -4,6 +4,7 @@ import {
   countBookingsCreatedInRange,
   sumFinancePaymentsInRange,
 } from "@/lib/telegram/financeDigestStats";
+import { bookingCreatedDateKey } from "@/lib/telegram/formatters";
 import type { BookingRecord } from "@/components/admin/desktop/types";
 
 const TODAY = "2026-09-01";
@@ -25,6 +26,15 @@ function booking(partial: Partial<BookingRecord> & { id: string }): BookingRecor
 }
 
 describe("financeDigestStats", () => {
+  it("does not treat chessboard drag as new booking when createdAt was rewritten", () => {
+    const moved = booking({
+      id: "A-1725123456789",
+      createdAt: `${TODAY}T18:00:00.000Z`,
+    });
+    expect(bookingCreatedDateKey(moved)).not.toBe(TODAY);
+    expect(countBookingsCreatedInRange([moved], TODAY, TODAY)).toBe(0);
+  });
+
   it("counts only active bookings created on the day (excludes holding)", () => {
     const bookings = [
       booking({ id: "A-1", prepayAmount: 3200, prepayMethod: "Картka" }),

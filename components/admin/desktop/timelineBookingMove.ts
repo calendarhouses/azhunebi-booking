@@ -89,8 +89,10 @@ export function buildBookingMovePayload(
   checkIn: string,
   checkOut: string
 ): Record<string, unknown> {
+  const { createdAt: _ignoredCreatedAt, accessToken: _ignoredToken, ...rest } =
+    booking as BookingRecord & { accessToken?: unknown };
   return {
-    ...booking,
+    ...rest,
     checkIn,
     checkOut,
     cottage: isHoldingRoom(room) ? "" : adminRoomCottageValue(room),
