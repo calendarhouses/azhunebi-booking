@@ -3,13 +3,17 @@ import {
   getFinanceTargets,
   isTelegramConfigured,
 } from "./config";
+import type { BookingRecord } from "@/components/admin/desktop/types";
+import {
+  countBookingsCreatedInRange,
+  sumFinancePaymentsInRange,
+} from "./financeDigestStats";
 import {
   compareByCottageNumber,
   escapeHtml,
   formatMoneyUa,
   formatTelegramDaySeparator,
   isConfirmedBookingStatus,
-  bookingCreatedDateKey,
   toDateKeyKyiv,
   todayKeyKyiv,
 } from "./formatters";
@@ -34,8 +38,8 @@ export function buildFinancePeriodCaption(
     `<i>${escapeHtml(periodLabel)}</i>\n\n` +
     `📝 Нових бронювань: <b>${stats.bookingsCount}</b>\n` +
     `💰 Дохід: <b>${formatMoneyUa(stats.totalIncome)}</b>\n` +
-    `💵 Готівка: <b>${formatMoneyUa(stats.payments.cash)}</b>\n` +
-    `💳 Картка: <b>${formatMoneyUa(stats.payments.card)}</b>\n` +
+    `💵 Гotівка: <b>${formatMoneyUa(stats.payments.cash)}</b>\n` +
+    `💳 Kартка: <b>${formatMoneyUa(stats.payments.card)}</b>\n` +
     `🏦 ФОП: <b>${formatMoneyUa(stats.payments.fop)}</b>\n` +
     `📉 Витрати: <b>${formatMoneyUa(stats.totalExpense)}</b>\n` +
     `✅ Чистий прибуток: <b>${formatMoneyUa(stats.profit)}</b>`
@@ -105,30 +109,7 @@ export async function sendFinancePeriodSummary(opts: {
   return res.ok;
 }
 
-export type EveningCashBooking = {
-  id?: string;
-  status?: string;
-  createdAt?: string;
-  paidAmount?: number | string;
-  prepayAmount?: number | string;
-  surchargeAmount?: number | string;
-  prepayMethod?: string;
-  surchargeMethod?: string;
-  payments?: Array<{ amount?: number; method?: string; date?: string }>;
-};
-
-function collectMethodAmount(
-  method: string | undefined,
-  amount: number,
-  bucket: { cash: number; card: number; fop: number }
-) {
-  // Allow negative amounts (refunds) to reduce the day's received total.
-  if (amount === 0) return;
-  const m = String(method || "").toLowerCase();
-  if (m.includes("гот")) bucket.cash += amount;
-  else if (m.includes("карт") || m.includes("mono") || m.includes("еквайр")) bucket.card += amount;
-  else bucket.fop += amount;
-}
+export type EveningCashBooking = BookingRecord;
 
 export function buildEveningCashCaption(opts: {
   newBookingsCount: number;
@@ -140,7 +121,7 @@ export function buildEveningCashCaption(opts: {
     `📝 Нових бронювань: <b>${opts.newBookingsCount}</b>\n` +
     `💰 Надійшло оплат: <b>${formatMoneyUa(paymentsSum)}</b>\n` +
     `💵 Готівка: <b>${formatMoneyUa(opts.payments.cash)}</b>\n` +
-    `💳 Картка: <b>${formatMoneyUa(opts.payments.card)}</b>\n` +
+    `💳 Kартка: <b>${formatMoneyUa(opts.payments.card)}</b>\n` +
     `🏦 ФОП: <b>${formatMoneyUa(opts.payments.fop)}</b>\n` +
     `🗝 <i>Фінансовий день закрито</i>`
   );
@@ -151,44 +132,10 @@ export async function sendEveningCashSummary(
 ): Promise<boolean> {
   if (!isTelegramConfigured()) return false;
   const today = todayKeyKyiv();
-  let newBookingsCount = 0;
-  const payments = { cash: 0, card: 0, fop: 0 };
-
-  for (const b of bookings) {
-    if (String(b.status || "").toLowerCase().includes("скас")) continue;
-
-    // New bookings = real creation day (not last edit).
-    const created = bookingCreatedDateKey(b);
-    if (
-      created === today &&
-      !String(b.status || "").toLowerCase().includes("нова")
-    ) {
-      newBookingsCount += 1;
-    }
-
-    // Money for the day = payments dated today (independent of creation day).
-    if (Array.isArray(b.payments) && b.payments.length) {
-      for (const p of b.payments) {
-        const pDate = toDateKeyKyiv(p.date);
-        if (pDate !== today) continue;
-        collectMethodAmount(p.method, Math.round(Number(p.amount) || 0), payments);
-      }
-    } else if (created === today) {
-      // Legacy rows without journal: only attribute money on creation day.
-      collectMethodAmount(
-        b.prepayMethod,
-        Math.round(Number(b.prepayAmount) || 0),
-        payments
-      );
-      collectMethodAmount(
-        b.surchargeMethod,
-        Math.round(Number(b.surchargeAmount) || 0),
-        payments
-      );
-    }
-  }
-
+  const newBookingsCount = countBookingsCreatedInRange(bookings, today, today);
+  const payments = sumFinancePaymentsInRange(bookings, today, today);
   const paymentsSum = payments.cash + payments.card + payments.fop;
+
   if (newBookingsCount === 0 && paymentsSum === 0) return false;
 
   const target = getFinanceTargets();

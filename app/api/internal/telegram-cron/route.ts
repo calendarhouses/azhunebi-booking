@@ -3,13 +3,14 @@ import { authorizeBearer, cronSecrets } from "@/lib/cron/authorize";
 import { notifyTodayArrivalsAndDepartures } from "@/lib/telegram/arrivalDepartureNotify";
 import { notifyCleaningTodayTurnovers } from "@/lib/telegram/cleaningArrivalNotify";
 import { fetchCronTelegramDigest } from "@/lib/telegram/cronDigest";
+import { buildFinancePeriodStats } from "@/lib/telegram/financeDigestStats";
 import {
   sendDebtReminders,
   sendEveningCashSummary,
   sendFinancePeriodSummary,
-  type FinancePeriodStats,
 } from "@/lib/telegram/financeNotify";
-import { bookingCreatedDateKey, toDateKeyKyiv } from "@/lib/telegram/formatters";
+import type { BookingRecord } from "@/components/admin/desktop/types";
+import { toDateKeyKyiv } from "@/lib/telegram/formatters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,130 +99,6 @@ function monthRangeKyiv(): { start: string; end: string; label: string } {
   };
 }
 
-function methodBucket(method: string | undefined): "cash" | "card" | "fop" {
-  const m = String(method || "").toLowerCase();
-  if (m.includes("гот")) return "cash";
-  if (m.includes("карт") || m.includes("mono") || m.includes("еквайр")) return "card";
-  return "fop";
-}
-
-function isCancelledStatus(status: unknown): boolean {
-  return String(status || "").toLowerCase().includes("скас");
-}
-
-function isDraftStatus(status: unknown): boolean {
-  const s = String(status || "").toLowerCase();
-  return s.includes("нова");
-}
-
-function addBucket(
-  bucket: { cash: number; card: number; fop: number },
-  method: string | undefined,
-  amount: number
-) {
-  const rounded = Math.round(Number(amount) || 0);
-  if (rounded === 0) return;
-  bucket[methodBucket(method)] += rounded;
-}
-
-type DigestPayment = {
-  amount?: number | string;
-  method?: string;
-  date?: string;
-  type?: string;
-};
-
-type DigestBooking = Record<string, unknown> & {
-  id?: string;
-  status?: string;
-  createdAt?: string;
-  checkIn?: string;
-  prepayAmount?: number | string;
-  prepayMethod?: string;
-  surchargeAmount?: number | string;
-  surchargeMethod?: string;
-  payments?: DigestPayment[];
-};
-
-function bookingPaymentsForPeriod(
-  booking: DigestBooking,
-  start: string,
-  end: string
-): { cash: number; card: number; fop: number } {
-  const payments = { cash: 0, card: 0, fop: 0 };
-  if (Array.isArray(booking.payments) && booking.payments.length > 0) {
-    for (const p of booking.payments) {
-      const date = toDateKeyKyiv(p?.date);
-      if (!date || date < start || date > end) continue;
-      const amount = Math.round(Number(p?.amount) || 0);
-      // Refunds/negative corrections should reduce the received money for the period.
-      if (amount === 0) continue;
-      addBucket(payments, String(p?.method || ""), amount);
-    }
-    return payments;
-  }
-
-  // Legacy fallback for older rows without payment journal: only count money on
-  // the booking creation date, because exact payment dates are unknowable there.
-  const created = bookingCreatedDateKey(booking);
-  if (!created || created < start || created > end) return payments;
-  addBucket(payments, booking.prepayMethod, Math.round(Number(booking.prepayAmount) || 0));
-  addBucket(
-    payments,
-    booking.surchargeMethod,
-    Math.round(Number(booking.surchargeAmount) || 0)
-  );
-  return payments;
-}
-
-function calcFinanceStats(
-  bookings: Array<Record<string, unknown>>,
-  settings: Record<string, unknown>,
-  start: string,
-  end: string
-): FinancePeriodStats {
-  const payments = { cash: 0, card: 0, fop: 0 };
-  let bookingsCount = 0;
-  let bookingIncome = 0;
-
-  for (const b of bookings) {
-    const booking = b as DigestBooking;
-    if (isCancelledStatus(booking.status)) continue;
-
-    const created = bookingCreatedDateKey(booking);
-    if (created && created >= start && created <= end && !isDraftStatus(booking.status)) {
-      bookingsCount += 1;
-    }
-
-    const bookingPaymentParts = bookingPaymentsForPeriod(booking, start, end);
-    payments.cash += bookingPaymentParts.cash;
-    payments.card += bookingPaymentParts.card;
-    payments.fop += bookingPaymentParts.fop;
-  }
-  bookingIncome = payments.cash + payments.card + payments.fop;
-
-  let totalExpense = 0;
-  let manualIncome = 0;
-  const transactions = (settings.transactions as Array<Record<string, unknown>>) || [];
-  for (const tr of transactions) {
-    const tDate = toDateKeyKyiv(String(tr.date || ""));
-    if (!tDate || tDate < start || tDate > end) continue;
-    const amt = Math.round(Number(tr.amount) || 0);
-    if (amt <= 0) continue;
-    if (tr.type === "income") manualIncome += amt;
-    else if (tr.type === "expense") totalExpense += amt;
-  }
-
-  const totalIncome = bookingIncome + manualIncome;
-  return {
-    bookingsCount,
-    totalIncome,
-    totalExpense,
-    profit: totalIncome - totalExpense,
-    payments,
-  };
-}
-
 async function runJobs(force?: string | null) {
   const digest = await fetchCronTelegramDigest();
   const bookings = digest.bookings;
@@ -254,7 +131,12 @@ async function runJobs(force?: string | null) {
 
   if (force === "weekly" || (!force && now.weekday === "Sun")) {
     const range = weekRangeKyiv();
-    const stats = calcFinanceStats(bookings, settings, range.start, range.end);
+    const stats = buildFinancePeriodStats(
+      bookings as BookingRecord[],
+      (settings.transactions as Array<Record<string, unknown>>) || [],
+      range.start,
+      range.end
+    );
     results.weekly = await sendFinancePeriodSummary({
       titleEmoji: "📊",
       title: "ТИЖНЕВЕ ЗВЕДЕННЯ",
@@ -264,7 +146,12 @@ async function runJobs(force?: string | null) {
   }
   if ((force === "monthly" || !force) && lastDayOfMonthKyiv()) {
     const range = monthRangeKyiv();
-    const stats = calcFinanceStats(bookings, settings, range.start, range.end);
+    const stats = buildFinancePeriodStats(
+      bookings as BookingRecord[],
+      (settings.transactions as Array<Record<string, unknown>>) || [],
+      range.start,
+      range.end
+    );
     results.monthly = await sendFinancePeriodSummary({
       titleEmoji: "📆",
       title: "МІСЯЧНЕ ЗВЕДЕННЯ",

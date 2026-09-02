@@ -322,10 +322,15 @@ async function handleConfirmPayment(payload: Record<string, unknown>): Promise<D
   const paidUah = amountPaid >= target * 50 ? amountPaid / 100 : amountPaid;
 
   const payments = Array.isArray(booking.payments) ? [...(booking.payments as unknown[])] : [];
+  const paidAt = new Date().toISOString();
+  const provider = String(payload.paymentProvider || "mono");
   payments.push({
-    at: new Date().toISOString(),
+    at: paidAt,
+    date: paidAt.slice(0, 10),
     amount: paidUah,
-    provider: payload.paymentProvider || "mono",
+    method: provider.toLowerCase().includes("mono") ? "ФОП" : "Картка",
+    type: "online",
+    provider,
     transactionId: payload.transactionId || "",
     testMode: Boolean(payload.paymentTestMode),
   });
