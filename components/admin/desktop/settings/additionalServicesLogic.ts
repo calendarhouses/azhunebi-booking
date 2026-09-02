@@ -204,6 +204,23 @@ export function listServicesForRoom(
   return (services || []).filter((service) => serviceAppliesToRoom(service, room));
 }
 
+const TRANSFER_ARRIVAL_DESC_OLD = "Вкажіть час прибуття поїзда в коментарі";
+const TRANSFER_ARRIVAL_DESC = "Вкажіть час прибуття автобусу в коментарі";
+
+/** One-off text fix for stored transfer service descriptions. */
+export function migrateCustomServicesList(
+  list: CustomServiceConfig[] | undefined | null
+): CustomServiceConfig[] {
+  if (!Array.isArray(list)) return [];
+  return list.map((service) => {
+    const desc = String(service.description || "").trim();
+    if (desc === TRANSFER_ARRIVAL_DESC_OLD) {
+      return { ...service, description: TRANSFER_ARRIVAL_DESC };
+    }
+    return service;
+  });
+}
+
 export function calculateServiceFee(
   service: CustomServiceConfig,
   quantity: number,
@@ -213,7 +230,6 @@ export function calculateServiceFee(
   const qty = Math.max(0, quantity);
   if (qty <= 0) return 0;
   if (serviceIsOnSite(service)) return 0;
-  if (service.requiresApproval && context.isPublicBooking) return 0;
 
   const unit = Math.max(0, Number(service.price) || 0);
   if (serviceIsHourly(service)) return unit * qty;
@@ -336,6 +352,11 @@ export function parsePendingServiceIdsFromComment(raw: string): Set<string> {
     if (value.includes("очікує підтвердження")) pending.add(match[1]);
   }
   return pending;
+}
+
+export function confirmServiceTokensInComment(raw: string): string {
+  return String(raw || "")
+    .replace(/🛎️#(\d+)⏳:\s*([^|]+)/g, "🛎️#$1: $2");
 }
 
 export function stripServiceTokensFromComment(raw: string): string {

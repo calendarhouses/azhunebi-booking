@@ -271,6 +271,24 @@ async function handleCreateBooking(
     }
   }
 
+  const isAdminManualCreate =
+    isAuthorizedAdmin &&
+    !isUpdate &&
+    !isPublicSite &&
+    !payload.importId &&
+    booking.assignmentState !== "holding";
+
+  if (isAdminManualCreate) {
+    try {
+      const { sendAdminCreatedBookingSms } = await import("@/lib/sms/adminCreatedBookingSms");
+      const { loadSmsSettingsSystem } = await import("@/lib/sms/loadSmsSettings");
+      const smsSettings = await loadSmsSettingsSystem();
+      void sendAdminCreatedBookingSms(saved, smsSettings);
+    } catch (err) {
+      console.warn("[createBooking] admin confirm SMS failed", err);
+    }
+  }
+
   return ok({
     success: true,
     orderId: saved.id,
@@ -464,8 +482,15 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         const booking = await getBookingById(orderId);
         if (!booking) return ok({ ok: false, reason: "not_found" });
         if (decision === "approve") {
+          const { confirmPendingReviewTokensInComment } = await import(
+            "@/lib/sms/reviewRequestSmsVars"
+          );
+          const comment = confirmPendingReviewTokensInComment(
+            String(booking.comment || "")
+          );
           const next = await upsertBooking({
             ...booking,
+            comment,
             status: "Очікує оплату",
             paymentExpiresAt:
               booking.paymentExpiresAt ||

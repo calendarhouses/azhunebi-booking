@@ -1,5 +1,7 @@
 import { toPublicInitPaymentSettings } from "@/lib/payment/paymentSettings";
 import { normalizeRoomCategories } from "@/lib/admin/roomCategories";
+import { migrateCustomServicesList } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import type { CustomServiceConfig } from "@/components/admin/desktop/types";
 
 /** Keys safe to expose via public initData (calendar / booking UI). */
 export const PUBLIC_SETTINGS_KEYS = [
@@ -44,6 +46,10 @@ export function pickPublicSettings(
   for (const key of PUBLIC_SETTINGS_KEYS) {
     if (key === "paymentSettings") continue;
     if (key === "roomCategoriesList") continue;
+    if (key === "customServicesList" && key in settings) {
+      out[key] = migrateCustomServicesList(settings[key] as CustomServiceConfig[]);
+      continue;
+    }
     if (key in settings) out[key] = settings[key];
   }
   out.roomCategoriesList = normalizeRoomCategories(settings.roomCategoriesList);

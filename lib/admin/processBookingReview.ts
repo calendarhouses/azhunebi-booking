@@ -5,7 +5,10 @@ import {
   notifyGuestBookingRejected,
 } from "@/lib/sms/notifyGuestBookingApproved";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
+import { sendReviewLifecycleSms } from "@/lib/sms/reviewLifecycleSms";
 import { loadSmsSettings, loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
+import { hasReviewExceptionInComment } from "@/lib/sms/reviewRequestSmsVars";
+import type { TurboSmsSendResult } from "@/lib/sms/turbosms";
 
 export type BookingReviewDecision = "approve" | "reject";
 
@@ -42,12 +45,38 @@ function toGuestBooking(
   };
 }
 
+async function sendReviewSms(
+  decision: BookingReviewDecision,
+  bookingRaw: Record<string, unknown>,
+  orderId: string,
+  reviewComment: string,
+  smsSettings: Awaited<ReturnType<typeof loadSmsSettingsSystem>>
+): Promise<{ sms: TurboSmsSendResult | null; smsSkipped: boolean }> {
+  const record = { ...bookingRaw, id: orderId };
+  if (decision === "approve") {
+    const sms = await sendReviewLifecycleSms(record, "review_approve", smsSettings, reviewComment);
+    return { sms, smsSkipped: false };
+  }
+  const sms = await sendReviewLifecycleSms(record, "review_reject", smsSettings, reviewComment);
+  return { sms, smsSkipped: false };
+}
+
 export async function processBookingReview(params: {
   orderId: string;
   decision: BookingReviewDecision;
   adminAuth?: { token: string; tenantId: string };
 }): Promise<ProcessBookingReviewResult> {
   const orderId = params.orderId.trim();
+
+  const preFetch = await fetchBookingByDisplayId(orderId).catch(() => null);
+  const preBooking = preFetch?.booking;
+  const preComment = String(preBooking?.comment || "");
+  const wasReviewException = hasReviewExceptionInComment(
+    preComment,
+    preBooking?.checkIn,
+    preBooking?.checkOut
+  );
+
   const result = params.adminAuth
     ? await reviewBookingDecision({
         orderId,
@@ -75,7 +104,6 @@ export async function processBookingReview(params: {
     };
   }
 
-  // Статус уже змінено в GAS — SMS/reload не повинні ламати успіх.
   await clearPendingReviewRemindersQuietly();
   const bookingRaw =
     result.booking || (await fetchBookingByDisplayId(orderId).catch(() => null))?.booking;
@@ -103,17 +131,28 @@ export async function processBookingReview(params: {
         })
       : await loadSmsSettingsSystem();
 
-    const notifyResult =
-      params.decision === "approve"
-        ? {
-            sms: await sendBookingLifecycleSms(
-              { ...bookingRaw, id: orderId },
-              "payment_link",
-              smsSettings,
-            ),
-            smsSkipped: false,
-          }
-        : await notifyGuestBookingRejected(guestBooking, smsSettings);
+    let notifyResult: { sms: TurboSmsSendResult | null; smsSkipped: boolean };
+    if (wasReviewException) {
+      notifyResult = await sendReviewSms(
+        params.decision,
+        bookingRaw as Record<string, unknown>,
+        orderId,
+        preComment,
+        smsSettings
+      );
+    } else if (params.decision === "approve") {
+      notifyResult = {
+        sms: await sendBookingLifecycleSms(
+          { ...bookingRaw, id: orderId },
+          "payment_link",
+          smsSettings
+        ),
+        smsSkipped: false,
+      };
+    } else {
+      notifyResult = await notifyGuestBookingRejected(guestBooking, smsSettings);
+    }
+
     return {
       ok: true,
       orderId,

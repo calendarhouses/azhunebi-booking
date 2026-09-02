@@ -24,8 +24,8 @@ import { showPublicToast } from "@/lib/public-booking/publicToast";
 import { normalizeUaNationalPhoneDigits } from "@/lib/public-booking/uaPhone";
 
 function formatFlexFeeLabel(amount: number, requiresApproval: boolean, selected: boolean): string {
-  if (!selected) return requiresApproval ? "За запитом" : `${amount.toLocaleString("uk-UA")} ₴`;
-  if (requiresApproval) return `Запит · від ${amount.toLocaleString("uk-UA")} ₴`;
+  if (!amount) return requiresApproval ? "За запитом" : "";
+  if (!selected) return `${amount.toLocaleString("uk-UA")} ₴`;
   return `+${amount.toLocaleString("uk-UA")} ₴`;
 }
 
@@ -197,7 +197,7 @@ export function MobileBookingDrawer() {
               style={{ width: "auto", padding: "14px 28px" }}
               onClick={() => setStep("calendar")}
             >
-              Дати
+              Далі
             </button>
           </div>
         </div>

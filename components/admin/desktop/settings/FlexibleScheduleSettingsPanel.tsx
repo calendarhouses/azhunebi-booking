@@ -6,7 +6,8 @@ import { showToast } from "../adminGlobals";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminSettingsPayload } from "../types";
 import {
-  DEFAULT_FLEXIBLE_SCHEDULE,
+  buildHourlyTimeRange,
+  resolveFlexibleScheduleSettings,
   percentOfDayFromDisplay,
   percentOfDayToDisplay,
   type FlexibleScheduleSettings,
@@ -25,11 +26,12 @@ function formatFeeSummary(form: FlexibleScheduleSettings): string {
   return `${percentOfDayToDisplay(form.percentOfDay)}% від ціни дня`;
 }
 
+function formatWindowSummary(form: FlexibleScheduleSettings): string {
+  return `РЗ ${form.earlyWindowStart}–${form.earlyWindowEnd} · ПВ ${form.lateWindowStart}–${form.lateWindowEnd}`;
+}
+
 function mergeFlexibleForm(settings: AdminSettingsPayload): FlexibleScheduleSettings {
-  return {
-    ...DEFAULT_FLEXIBLE_SCHEDULE,
-    ...(settings.flexibleScheduleSettings || {}),
-  };
+  return resolveFlexibleScheduleSettings(settings);
 }
 
 export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
@@ -61,8 +63,15 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
   const save = useCallback(async () => {
     setSaving(true);
     try {
+      const earlyTimes = buildHourlyTimeRange(form.earlyWindowStart, form.earlyWindowEnd);
+      const lateTimes = buildHourlyTimeRange(form.lateWindowStart, form.lateWindowEnd);
+      const payload: FlexibleScheduleSettings = {
+        ...form,
+        earlyTimes: earlyTimes.length ? earlyTimes : form.earlyTimes,
+        lateTimes: lateTimes.length ? lateTimes : form.lateTimes,
+      };
       await modals.persistSettings(
-        { ...settings, flexibleScheduleSettings: form },
+        { ...settings, flexibleScheduleSettings: payload },
         { keys: ["flexibleScheduleSettings"] }
       );
       showToast("Гнучкий графік збережено");
@@ -90,7 +99,8 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
           <div className="svc-accordion__trigger-text">
             <span className="svc-accordion__label">Гнучкий графік</span>
             <span className="svc-accordion__hint">
-              Заїзд {form.standardCheckIn} · Виїзд {form.standardCheckOut} · {feeSummary}
+              Заїзд {form.standardCheckIn} · Виїзд {form.standardCheckOut} · {formatWindowSummary(form)} ·{" "}
+              {feeSummary}
               {form.requiresApproval ? " · Запит адміна" : ""}
             </span>
           </div>
@@ -122,6 +132,46 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
                 onChange={(standardCheckOut) => setForm((f) => ({ ...f, standardCheckOut }))}
               />
             </div>
+          </div>
+
+          <div className="svc-accordion__section">
+            <div className="svc-form-grid svc-form-grid--2">
+              <TimeSelectField
+                label="Ранній заїзд — від"
+                value={form.earlyWindowStart}
+                onChange={(earlyWindowStart) => setForm((f) => ({ ...f, earlyWindowStart }))}
+              />
+              <TimeSelectField
+                label="Ранній заїзд — до"
+                value={form.earlyWindowEnd}
+                onChange={(earlyWindowEnd) => setForm((f) => ({ ...f, earlyWindowEnd }))}
+              />
+            </div>
+            <span className="svc-field__caption" style={{ marginTop: 8 }}>
+              Години на сайті та в броні:{" "}
+              {buildHourlyTimeRange(form.earlyWindowStart, form.earlyWindowEnd).join(", ") ||
+                "—"}
+            </span>
+          </div>
+
+          <div className="svc-accordion__section">
+            <div className="svc-form-grid svc-form-grid--2">
+              <TimeSelectField
+                label="Пізній виїзд — від"
+                value={form.lateWindowStart}
+                onChange={(lateWindowStart) => setForm((f) => ({ ...f, lateWindowStart }))}
+              />
+              <TimeSelectField
+                label="Пізній виїзд — до"
+                value={form.lateWindowEnd}
+                onChange={(lateWindowEnd) => setForm((f) => ({ ...f, lateWindowEnd }))}
+              />
+            </div>
+            <span className="svc-field__caption" style={{ marginTop: 8 }}>
+              Години на сайті та в броні:{" "}
+              {buildHourlyTimeRange(form.lateWindowStart, form.lateWindowEnd).join(", ") ||
+                "—"}
+            </span>
           </div>
 
           <div className="svc-accordion__section">
@@ -218,7 +268,7 @@ export function FlexibleScheduleSettingsPanel({ settings, modals }: Props) {
               </span>
               <span className="svc-option-card__body">
                 <strong>Підтвердження адміністратором</strong>
-                <small>На сайті сума не додається до оплати — лише запит у броні</small>
+                <small>На сайті сума в чеку; при схваленні — в оплату</small>
               </span>
               <span className={`svc-switch${form.requiresApproval ? " is-on" : ""}`} aria-hidden>
                 <span />

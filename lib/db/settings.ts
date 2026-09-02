@@ -1,6 +1,8 @@
 import { getDb } from "@/lib/db/mappers";
 import { listRooms, syncRoomsList } from "@/lib/db/rooms";
 import type { ApiRoom } from "@/lib/db/mappers";
+import { migrateCustomServicesList } from "@/components/admin/desktop/settings/additionalServicesLogic";
+import type { CustomServiceConfig } from "@/components/admin/desktop/types";
 import {
   hasPaymentSettingsRecord,
   mergePaymentSettingsForSave,
@@ -55,6 +57,12 @@ export async function getSettingsPayload(opts?: {
 
   if (!opts?.keepPaymentSecrets) {
     stripPaymentSettingsSecret(out);
+  }
+
+  if (Array.isArray(out.customServicesList)) {
+    out.customServicesList = migrateCustomServicesList(
+      out.customServicesList as CustomServiceConfig[]
+    );
   }
 
   return out;

@@ -77,7 +77,7 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
       perDay: false,
       perGuest: false,
       requiresApproval: true,
-      description: "Вкажіть час прибуття поїзда в коментарі",
+      description: "Вкажіть час прибуття автобусу в коментарі",
       inputType: "toggle",
       active: true,
     },

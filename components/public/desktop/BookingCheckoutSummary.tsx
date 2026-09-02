@@ -31,7 +31,14 @@ export function BookingCheckoutSummary({ price, checkIn, checkOut }: Props) {
     });
   }
   for (const line of price.serviceLines) {
-    if (line.pendingApproval) {
+    if (line.pendingApproval && line.fee > 0) {
+      rows.push({
+        key: `svc-${line.id}`,
+        label:
+          line.quantity && line.quantity > 1 ? `${line.name} × ${line.quantity}` : line.name,
+        value: `${formatPriceUa(line.fee)} грн · очікує підтвердження`,
+      });
+    } else if (line.pendingApproval) {
       rows.push({ key: `svc-${line.id}`, label: line.name, value: "Очікує підтвердження" });
     } else if (line.onSite) {
       rows.push({ key: `svc-${line.id}`, label: line.name, value: "Оплата на місці" });

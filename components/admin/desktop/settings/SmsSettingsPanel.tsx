@@ -45,6 +45,9 @@ import "./settings-sms.css";
 
 const TEMPLATE_ORDER: SmsTemplateId[] = [
   "payment_link",
+  "review_approve",
+  "review_reject",
+  "admin_confirm",
   "success",
   "expiry",
   "reject",
@@ -58,11 +61,23 @@ const SAMPLE_VARS: Record<string, string> = {
   pay_url: "azhunebi.com/pay/ABC123",
   order_id: "ABC123",
   prepay: "1500 грн",
+  hours: "1 год",
+  hours_phrase: "1 година",
   site: "azhunebi.com",
+  features: "раннім заїздом",
+  approved_features: "раннім заїздом",
+  rejected_features: "ранній заїзд",
+  impossible_line: "ранній заїзд не можливий",
+  retry_hint: "Спробуйте забронювати ще раз без раннього заїзду.",
+  early_time: "10:00",
+  late_time: "14:00",
 };
 
 const TYPE_LABELS: Record<SmsJournalEntry["type"], string> = {
   payment_link: "Оплата",
+  review_approve: "Схвалення заявки",
+  review_reject: "Відмова заявки",
+  admin_confirm: "Нова бронь (адмінка)",
   success: "Успіх",
   expiry: "Скасування",
   reject: "Відмова",
@@ -766,7 +781,7 @@ export function SmsSettingsPanel({
           </div>
 
           <div className="sms-journal-filters">
-            {(["all", "payment_link", "success", "expiry", "reject", "test"] as const).map(
+            {(["all", "payment_link", "review_approve", "review_reject", "admin_confirm", "success", "expiry", "reject", "test"] as const).map(
               (key) => (
                 <button
                   key={key}

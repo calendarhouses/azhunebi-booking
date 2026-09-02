@@ -24,6 +24,7 @@ import {
   isPendingReviewStatus,
 } from "@/lib/public-booking/bookingReview";
 import { buildPostLateArrivalTimes } from "@/lib/public-booking/postLateGapStay";
+import { resolveFlexibleScheduleSettings } from "@/lib/admin/flexibleSchedule";
 import { bookingAccentTintStyle } from "@/lib/bookingCustomColor";
 import { findBookingInList, findRoomForBooking, resolveBookingAccentColor, resolveBookingOrderId } from "./bookingUtils";
 import { ADMIN_SELECTABLE_SOURCES } from "./adminUiHelpers";
@@ -108,6 +109,10 @@ export function DesktopBookingDrawer({
         ? String(resolvedRoomForPromo.id)
         : undefined;
   const showPromoCode = hasActivePromoCodeDiscounts(settings.discountsList, roomId);
+  const flexibleSchedule = useMemo(
+    () => resolveFlexibleScheduleSettings(settings),
+    [settings.flexibleScheduleSettings, settings]
+  );
   const promoStatus =
     !form.promoCode.trim() || !showPromoCode
       ? "idle"
@@ -528,7 +533,7 @@ export function DesktopBookingDrawer({
                       <>
                         <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500 }}>Оберіть годину заїзду:</div>
                         <div className="time-chips">
-                          {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00"].map((t) => (
+                          {flexibleSchedule.earlyTimes.map((t) => (
                             <div
                               key={t}
                               className={`t-chip${drawer.earlyTime === t ? " selected" : ""}`}
@@ -557,17 +562,15 @@ export function DesktopBookingDrawer({
                   <div className="srv-body">
                     <div style={{ fontSize: 12, color: "#4B5563", fontWeight: 500 }}>Оберіть годину виїзду:</div>
                     <div className="time-chips">
-                      {["12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map(
-                        (t) => (
-                          <div
-                            key={t}
-                            className={`t-chip${drawer.lateTime === t ? " selected" : ""}`}
-                            onClick={(e) => drawer.selectAdminTime("late", t, e.currentTarget)}
-                          >
-                            {t}
-                          </div>
-                        )
-                      )}
+                      {flexibleSchedule.lateTimes.map((t) => (
+                        <div
+                          key={t}
+                          className={`t-chip${drawer.lateTime === t ? " selected" : ""}`}
+                          onClick={(e) => drawer.selectAdminTime("late", t, e.currentTarget)}
+                        >
+                          {t}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

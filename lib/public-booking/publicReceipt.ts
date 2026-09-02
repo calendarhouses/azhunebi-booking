@@ -243,13 +243,25 @@ export function buildPublicPendingReceiptHtml(
   for (const service of raw.serviceLines || []) {
     const qty = service.quantity && service.quantity > 1 ? ` × ${service.quantity}` : "";
     const label = `${service.name}${qty}`;
-    if (service.pendingApproval) {
+    if (service.pendingApproval && service.fee > 0) {
+      orderLines.push(
+        itemRow(label, `${money(service.fee)} · очікує підтвердження`, "receipt-item--muted")
+      );
+    } else if (service.pendingApproval) {
       orderLines.push(itemRow(label, "За запитом", "receipt-item--muted"));
     } else if (service.onSite) {
       orderLines.push(itemRow(label, "Оплата на місці", "receipt-item--muted"));
     } else if (service.fee > 0) {
       orderLines.push(itemRow(label, money(service.fee)));
     }
+  }
+  if (raw.earlyFee && raw.earlyFee > 0) {
+    const note = raw.earlyTime ? " · очікує підтвердження" : "";
+    orderLines.push(itemRow("Ранній заїзд", `${money(raw.earlyFee)}${note}`, note ? "receipt-item--muted" : ""));
+  }
+  if (raw.lateFee && raw.lateFee > 0) {
+    const note = raw.lateTime ? " · очікує підтвердження" : "";
+    orderLines.push(itemRow("Пізній виїзд", `${money(raw.lateFee)}${note}`, note ? "receipt-item--muted" : ""));
   }
   if (raw.discountLines?.length) {
     for (const line of raw.discountLines) {
@@ -294,7 +306,7 @@ export function buildPublicPendingReceiptHtml(
           "receipt-item--muted"
         ) +
           itemRow(
-            "Орієнтовна сума",
+            "Сума",
             money(total),
             "receipt-item--total"
           ) +

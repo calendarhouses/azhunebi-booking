@@ -1,6 +1,13 @@
 import type { GasBookingRecord } from "@/lib/gas-api";
 
-export type SmsTemplateId = "payment_link" | "success" | "expiry" | "reject";
+export type SmsTemplateId =
+  | "payment_link"
+  | "success"
+  | "expiry"
+  | "reject"
+  | "review_approve"
+  | "review_reject"
+  | "admin_confirm";
 
 export type SmsTemplateConfig = {
   enabled: boolean;
@@ -44,6 +51,13 @@ export const SMS_TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "hours", label: "Вікно оплати (коротко, напр. 3 год)" },
   { key: "hours_phrase", label: "Вікно оплати (3 години)" },
   { key: "site", label: "Сайт" },
+  { key: "features", label: "Схвалені/відхилені умови (з граматикою)" },
+  { key: "approved_features", label: "Схвалені умови (раннім заїздом…)" },
+  { key: "rejected_features", label: "Відхилені умови (ранній заїзд…)" },
+  { key: "impossible_line", label: "Рядок «ранній заїзд не можливий»" },
+  { key: "retry_hint", label: "Підказка «спробуйте без…»" },
+  { key: "early_time", label: "Час раннього заїзду" },
+  { key: "late_time", label: "Час пізнього виїзду" },
 ];
 
 export const SMS_TEMPLATE_META: Record<
@@ -70,6 +84,21 @@ export const SMS_TEMPLATE_META: Record<
     when: "Після рішення адміністратора відхилити бронь",
     variables: SMS_TEMPLATE_VARIABLES,
   },
+  review_approve: {
+    title: "Схвалення заявки (РЗ/ПВ/послуги)",
+    when: "Після схвалення заявки з раннім заїздом, пізнім виїздом або дод. послугою",
+    variables: SMS_TEMPLATE_VARIABLES,
+  },
+  review_reject: {
+    title: "Відмова заявки (РЗ/ПВ/послуги)",
+    when: "Коли адмін відхиляє заявку з особливими умовами",
+    variables: SMS_TEMPLATE_VARIABLES,
+  },
+  admin_confirm: {
+    title: "Нова бронь з адмінки",
+    when: "Коли адміністратор створює нову бронь вручну (не редагує існуючу)",
+    variables: SMS_TEMPLATE_VARIABLES,
+  },
 };
 
 const DEFAULT_TEXTS: Record<SmsTemplateId, string> = {
@@ -78,6 +107,12 @@ const DEFAULT_TEXTS: Record<SmsTemplateId, string> = {
   expiry: "Резерв скасовано: передоплату не отримано. azhunebi.com",
   reject:
     "{name}, на жаль, бронь скасовано. {cottage}, {check_in} — {check_out}. Спробуйте забронювати інші дати на сайті.",
+  review_approve:
+    "Бронювання з {features} підтверджено! Оплата бронювання АЖ У НЕБІ ({hours}): {pay_url}",
+  review_reject:
+    "{name}, на жаль, {impossible_line}. {cottage}, {check_in} — {check_out}. {retry_hint}",
+  admin_confirm:
+    "Ваше бронювання АЖ У НЕБІ підтверджено. {cottage}, {check_in} — {check_out}. До зустрічі!",
 };
 
 export const DEFAULT_SMS_SETTINGS: SmsSettings = {
@@ -88,6 +123,9 @@ export const DEFAULT_SMS_SETTINGS: SmsSettings = {
     success: { enabled: true, text: DEFAULT_TEXTS.success },
     expiry: { enabled: true, text: DEFAULT_TEXTS.expiry },
     reject: { enabled: true, text: DEFAULT_TEXTS.reject },
+    review_approve: { enabled: true, text: DEFAULT_TEXTS.review_approve },
+    review_reject: { enabled: true, text: DEFAULT_TEXTS.review_reject },
+    admin_confirm: { enabled: true, text: DEFAULT_TEXTS.admin_confirm },
   },
   journal: [],
 };
@@ -147,6 +185,9 @@ export function normalizeSmsSettings(raw: unknown): SmsSettings {
       success: normalizeTemplate("success", rawTemplates.success),
       expiry: normalizeTemplate("expiry", rawTemplates.expiry),
       reject: normalizeTemplate("reject", rawTemplates.reject),
+      review_approve: normalizeTemplate("review_approve", rawTemplates.review_approve),
+      review_reject: normalizeTemplate("review_reject", rawTemplates.review_reject),
+      admin_confirm: normalizeTemplate("admin_confirm", rawTemplates.admin_confirm),
     },
     journal: Array.isArray(r.journal) ? (r.journal as SmsJournalEntry[]).slice(0, 100) : [],
   };

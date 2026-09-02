@@ -10,17 +10,58 @@ export type FlexibleScheduleSettings = {
   requiresApproval: boolean;
   standardCheckIn: string;
   standardCheckOut: string;
+  /** Від якої години доступний ранній заїзд (перша кнопка на сайті). */
+  earlyWindowStart: string;
+  /** До якої години доступний ранній заїзд (остання кнопка). */
+  earlyWindowEnd: string;
+  /** Від якої години доступний пізній виїзд (перша кнопка). */
+  lateWindowStart: string;
+  /** До якої години доступний пізній виїзд (остання кнопка). */
+  lateWindowEnd: string;
   earlyTimes: string[];
   lateTimes: string[];
 };
 
-export const DEFAULT_EARLY_TIMES = [
-  "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
-];
+export function flexTimeToMinutes(time: string): number {
+  const m = String(time || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return 0;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
 
-export const DEFAULT_LATE_TIMES = [
-  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00",
-];
+export function flexMinutesToTime(totalMinutes: number): string {
+  const mins = Math.max(0, Math.min(23 * 60 + 59, Math.round(totalMinutes)));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Hourly slots from start through end (inclusive). */
+export function buildHourlyTimeRange(start: string, end: string): string[] {
+  const from = flexTimeToMinutes(start);
+  const to = flexTimeToMinutes(end);
+  if (!from && !to) return [];
+  if (from > to) return [];
+  const times: string[] = [];
+  for (let t = from; t <= to; t += 60) {
+    times.push(flexMinutesToTime(t));
+  }
+  return times;
+}
+
+export const DEFAULT_EARLY_WINDOW_START = "09:00";
+export const DEFAULT_EARLY_WINDOW_END = "14:00";
+export const DEFAULT_LATE_WINDOW_START = "12:00";
+export const DEFAULT_LATE_WINDOW_END = "19:00";
+
+export const DEFAULT_EARLY_TIMES = buildHourlyTimeRange(
+  DEFAULT_EARLY_WINDOW_START,
+  DEFAULT_EARLY_WINDOW_END
+);
+
+export const DEFAULT_LATE_TIMES = buildHourlyTimeRange(
+  DEFAULT_LATE_WINDOW_START,
+  DEFAULT_LATE_WINDOW_END
+);
 
 export const DEFAULT_FLEXIBLE_SCHEDULE: FlexibleScheduleSettings = {
   earlyFee: 1000,
@@ -30,20 +71,57 @@ export const DEFAULT_FLEXIBLE_SCHEDULE: FlexibleScheduleSettings = {
   requiresApproval: true,
   standardCheckIn: "15:00",
   standardCheckOut: "11:00",
+  earlyWindowStart: DEFAULT_EARLY_WINDOW_START,
+  earlyWindowEnd: DEFAULT_EARLY_WINDOW_END,
+  lateWindowStart: DEFAULT_LATE_WINDOW_START,
+  lateWindowEnd: DEFAULT_LATE_WINDOW_END,
   earlyTimes: DEFAULT_EARLY_TIMES,
   lateTimes: DEFAULT_LATE_TIMES,
 };
+
+function inferWindowFromTimes(times: string[] | undefined): {
+  start: string;
+  end: string;
+} | null {
+  if (!times?.length) return null;
+  const sorted = [...times].sort((a, b) => flexTimeToMinutes(a) - flexTimeToMinutes(b));
+  return { start: sorted[0], end: sorted[sorted.length - 1] };
+}
 
 export function resolveFlexibleScheduleSettings(
   settings?: AdminSettingsPayload | null
 ): FlexibleScheduleSettings {
   const raw = settings?.flexibleScheduleSettings;
   if (!raw) return { ...DEFAULT_FLEXIBLE_SCHEDULE };
-  return {
+
+  const merged = {
     ...DEFAULT_FLEXIBLE_SCHEDULE,
     ...raw,
-    earlyTimes: raw.earlyTimes?.length ? raw.earlyTimes : DEFAULT_EARLY_TIMES,
-    lateTimes: raw.lateTimes?.length ? raw.lateTimes : DEFAULT_LATE_TIMES,
+  };
+
+  const inferredEarly = inferWindowFromTimes(raw.earlyTimes);
+  const inferredLate = inferWindowFromTimes(raw.lateTimes);
+
+  const earlyWindowStart =
+    raw.earlyWindowStart?.trim() || inferredEarly?.start || DEFAULT_EARLY_WINDOW_START;
+  const earlyWindowEnd =
+    raw.earlyWindowEnd?.trim() || inferredEarly?.end || DEFAULT_EARLY_WINDOW_END;
+  const lateWindowStart =
+    raw.lateWindowStart?.trim() || inferredLate?.start || DEFAULT_LATE_WINDOW_START;
+  const lateWindowEnd =
+    raw.lateWindowEnd?.trim() || inferredLate?.end || DEFAULT_LATE_WINDOW_END;
+
+  const earlyTimes = buildHourlyTimeRange(earlyWindowStart, earlyWindowEnd);
+  const lateTimes = buildHourlyTimeRange(lateWindowStart, lateWindowEnd);
+
+  return {
+    ...merged,
+    earlyWindowStart,
+    earlyWindowEnd,
+    lateWindowStart,
+    lateWindowEnd,
+    earlyTimes: earlyTimes.length ? earlyTimes : DEFAULT_EARLY_TIMES,
+    lateTimes: lateTimes.length ? lateTimes : DEFAULT_LATE_TIMES,
   };
 }
 
@@ -69,7 +147,7 @@ export function quoteFlexibleFee(
   const pendingApproval = fs.requiresApproval;
   return {
     quotedFee,
-    billableFee: pendingApproval ? 0 : quotedFee,
+    billableFee: quotedFee,
     pendingApproval,
   };
 }
@@ -127,7 +205,11 @@ export function stripFlexibleTokensFromComment(raw: string): string {
 export function confirmFlexibleTokensInComment(raw: string): string {
   return raw
     .replace(/🕒#early⏳:\s*(\d{2}:\d{2})/g, "🕒 Ранній заїзд: з $1")
-    .replace(/🕒#late⏳:\s*(\d{2}:\d{2})/g, "🕒 Пізній виїзд: до $1");
+    .replace(/🕒#late⏳:\s*(\d{2}:\d{2})/g, "🕒 Пізній виїзд: до $1")
+    .replace(
+      /🕒#postlate⏳:\s*(\d{2}:\d{2})/g,
+      "🕒 Заїзд після пізнього виїзду: з $1"
+    );
 }
 
 export function parseEarlyLatePendingFromComment(raw: string): {

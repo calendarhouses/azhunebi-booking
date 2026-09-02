@@ -537,7 +537,7 @@ export function computeBookingPrice(params: {
   const serviceLines = roomServices.map((service: CustomServiceConfig) => {
     const quantity = getServiceQty(params.selectedServices, service.id);
     const quotedFee = calculateServiceFee(service, quantity, serviceOpts, {});
-    const fee = calculateServiceFee(service, quantity, serviceOpts, { isPublicBooking: isPublic });
+    const fee = quotedFee;
     return {
       id: service.id,
       name: service.name,
@@ -563,17 +563,8 @@ export function computeBookingPrice(params: {
   const earlyPendingApproval = earlyQuote.pendingApproval;
   const latePendingApproval = lateQuote.pendingApproval;
   let earlyFee =
-    params.selectedEarlyTime && !isPostLateGap
-      ? isPublic && earlyPendingApproval
-        ? 0
-        : earlyQuotedFee
-      : 0;
-  let lateFee =
-    params.selectedLateTime
-      ? isPublic && latePendingApproval
-        ? 0
-        : lateQuotedFee
-      : 0;
+    params.selectedEarlyTime && !isPostLateGap ? earlyQuotedFee : 0;
+  let lateFee = params.selectedLateTime ? lateQuotedFee : 0;
   const early50 = isPostLateGap ? 0 : earlyQuotedFee;
   const late50 = lateQuotedFee;
 
