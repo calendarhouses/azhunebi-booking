@@ -29,6 +29,7 @@ export type BookingLifecycleSmsType = "payment_link" | "success" | "expiry";
 
 /** TurboSMS statuses that mean "do not retry" — treat as terminal for our marker. */
 const NON_RETRYABLE_SMS_STATUSES = new Set([
+  "REQUIRED_BALANCE",
   "NOT_ALLOWED_MESSAGE_DUPLICATE",
   "NOT_ALLOWED_RECIPIENTS_NUMBER",
   "NOT_ALLOWED_RECIPIENT_COUNTRY",

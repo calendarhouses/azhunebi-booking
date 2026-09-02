@@ -108,9 +108,14 @@ export function resolveSmsDeliveryStatus(entry: {
   messageId?: string | null;
 }): SmsDeliveryStatusView {
   if (!entry.ok) {
+    const err = entry.error?.trim();
+    const label =
+      err === "REQUIRED_BALANCE"
+        ? "Недостатньо коштів на TurboSMS"
+        : err || "Не надіслано";
     return {
       variant: "local_fail",
-      label: entry.error || "Не надіслано",
+      label,
       isPending: false,
       isSuccess: false,
       isFailure: true,
@@ -123,12 +128,15 @@ export function resolveSmsDeliveryStatus(entry: {
   }
 
   if (raw) {
+    const label =
+      raw === "REQUIRED_BALANCE" ? "Недостатньо коштів на TurboSMS" : raw;
+    const isBalance = raw === "REQUIRED_BALANCE";
     return {
-      variant: "unknown",
-      label: raw,
+      variant: isBalance ? "failed" : "unknown",
+      label,
       isPending: false,
       isSuccess: false,
-      isFailure: false,
+      isFailure: isBalance,
     };
   }
 
