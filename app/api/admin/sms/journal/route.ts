@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/admin/verifyAdminRequest";
-import { gasFetch } from "@/lib/gas-api";
+import { serverGasFetch } from "@/lib/gas-api-server";
 import { extractBearerToken } from "@/lib/admin/adminDbClient";
 import {
   normalizeSmsSettings,
@@ -62,9 +62,9 @@ export async function GET(request: Request) {
 
   let smsSettings: SmsSettings;
   try {
-    const data = await gasFetch<{ smsSettings?: unknown }>(
+    const data = await serverGasFetch<{ smsSettings?: unknown }>(
       { action: "settings", tenant_id: tenantId || undefined },
-      { authToken },
+      authToken,
     );
     smsSettings = normalizeSmsSettings(data.smsSettings);
   } catch {

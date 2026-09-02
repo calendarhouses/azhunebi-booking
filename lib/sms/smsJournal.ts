@@ -1,6 +1,6 @@
 import "server-only";
 
-import { gasPost } from "@/lib/gas-api";
+import { serverGasPost } from "@/lib/gas-api-server";
 import { type SmsJournalEntry } from "./smsSettings";
 import { countSmsSegments, estimateSmsCost } from "./smsSegments";
 
@@ -40,7 +40,7 @@ export async function recordSmsJournalEntry(
   webhookSecret: string,
 ): Promise<void> {
   try {
-    await gasPost<{ success?: boolean }>({
+    await serverGasPost<{ success?: boolean }>({
       action: "appendSmsJournal",
       entry,
       webhookSecret,

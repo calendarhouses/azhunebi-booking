@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractBearerToken } from "@/lib/admin/adminDbClient";
-import { verifyAuthToken } from "@/lib/gas-api";
+import { verifyToken } from "@/lib/db/auth";
 
 function adminUnauthorizedResponse(reason?: string) {
   if (reason) {
@@ -21,9 +21,7 @@ export type VerifiedAdmin = {
   email: string | undefined;
 };
 
-/**
- * Перевіряє JWT через Google Apps Script API.
- */
+/** Перевіряє admin session token (Supabase team sessions). */
 export async function verifyAdminRequest(
   request: Request,
   tenantId: string | null
@@ -44,8 +42,8 @@ export async function verifyAdminRequest(
     );
   }
 
-  const verified = await verifyAuthToken(token, tenantId);
-  if (!verified) {
+  const verified = await verifyToken(token);
+  if (!verified.valid || !verified.userId) {
     return adminUnauthorizedResponse("invalid or expired token");
   }
 

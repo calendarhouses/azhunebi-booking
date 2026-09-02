@@ -1,6 +1,6 @@
 import "server-only";
 
-import { gasFetch, gasPost } from "@/lib/gas-api";
+import { serverGasFetch, serverGasPost } from "@/lib/gas-api-server";
 import {
   appendSmsJournalEntry,
   mergeSmsJournal,
@@ -15,9 +15,9 @@ export async function persistSmsJournalEntryAdmin(
   options: { authToken: string | null; tenantId: string | null },
 ): Promise<{ ok: boolean; journal: SmsJournalEntry[]; error?: string }> {
   try {
-    const data = await gasFetch<{ smsSettings?: unknown }>(
+    const data = await serverGasFetch<{ smsSettings?: unknown }>(
       { action: "settings", tenant_id: options.tenantId || undefined },
-      { authToken: options.authToken || undefined },
+      options.authToken || null,
     );
     const settings = normalizeSmsSettings(data.smsSettings);
     const journal = appendSmsJournalEntry(settings.journal, entry);
@@ -41,22 +41,22 @@ export async function persistSmsJournalBulk(
   try {
     let settings = baseSettings;
     if (!settings) {
-      const data = await gasFetch<{ smsSettings?: unknown }>(
+      const data = await serverGasFetch<{ smsSettings?: unknown }>(
         { action: "settings", tenant_id: options.tenantId || undefined },
-        { authToken: options.authToken || undefined },
+        options.authToken || null,
       );
       settings = normalizeSmsSettings(data.smsSettings);
     }
     const smsSettings: SmsSettings = { ...settings, journal: journal.slice(0, 100) };
 
-    await gasPost(
+    await serverGasPost(
       {
         action: "saveSettings",
         tenant_id: options.tenantId || undefined,
         settings: { smsSettings },
         saveKeys: ["smsSettings"],
       },
-      { authToken: options.authToken || undefined },
+      options.authToken || null,
     );
 
     return { ok: true, journal: smsSettings.journal };

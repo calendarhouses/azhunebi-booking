@@ -1,6 +1,6 @@
 import "server-only";
 
-import { gasFetch, gasPost } from "@/lib/gas-api";
+import { serverGasFetch, serverGasPost } from "@/lib/gas-api-server";
 import { normalizeSmsSettings, type SmsSettings } from "./smsSettings";
 
 function systemWebhookSecret(): string {
@@ -18,9 +18,9 @@ export async function loadSmsSettings(options?: {
 }): Promise<SmsSettings> {
   if (options?.authToken) {
     try {
-      const data = await gasFetch<{ smsSettings?: unknown }>(
+      const data = await serverGasFetch<{ smsSettings?: unknown }>(
         { action: "settings", tenant_id: options.tenantId || undefined },
-        { authToken: options.authToken },
+        options.authToken,
       );
       return normalizeSmsSettings(data.smsSettings);
     } catch (err) {
@@ -36,7 +36,7 @@ export async function loadSmsSettingsSystem(): Promise<SmsSettings> {
   if (!secret) return normalizeSmsSettings(undefined);
 
   try {
-    const data = await gasPost<{ smsSettings?: unknown; error?: string }>({
+    const data = await serverGasPost<{ smsSettings?: unknown; error?: string }>({
       action: "getSmsSettings",
       webhookSecret: secret,
     });
