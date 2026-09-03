@@ -8,7 +8,8 @@ import {
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
-import { notifyPaidBookingOnce } from "@/lib/telegram/paidBookingNotify";
+import { notifyAfterOnlinePayment } from "@/lib/telegram/notifyAfterOnlinePayment";
+import { resolvePayablePrepayAmountFromSettings } from "@/lib/public-booking/resolvePayablePrepay";
 import {
   confirmMonoChastOrder,
   getMonoChastOrderState,
@@ -36,11 +37,11 @@ function amountKindForBooking(booking: GasBookingRecord): MonoChastAmountKind {
   return parseMonoChastAmountKind(booking.monoPageUrl) || "full";
 }
 
-function expectedPartsAmountUah(booking: GasBookingRecord): number {
+async function expectedPartsAmountUah(booking: GasBookingRecord): Promise<number> {
   const kind = amountKindForBooking(booking);
   const raw =
     kind === "prepay"
-      ? Math.round(Number(booking.prepayAmount) || 0)
+      ? await resolvePayablePrepayAmountFromSettings(booking)
       : Math.round(Number(booking.totalPrice) || 0);
   return resolveMonoChastChargeAmountUah(raw);
 }
@@ -56,7 +57,7 @@ async function markBookingPaidFromParts(
   booking: GasBookingRecord,
   monoOrderId: string
 ): Promise<SettleMonoPartsResult> {
-  const amountUah = expectedPartsAmountUah(booking);
+  const amountUah = await expectedPartsAmountUah(booking);
   if (amountUah < 2) {
     return { ok: false, reason: "invalid_amount", message: "Некоректна сума броні" };
   }
@@ -86,7 +87,13 @@ async function markBookingPaidFromParts(
           error: sms.error || sms.responseStatus,
         });
       }
-      const tg = await notifyPaidBookingOnce(confirmed.booking);
+      const kind = amountKindForBooking(booking);
+      const tg = await notifyAfterOnlinePayment({
+        booking: confirmed.booking,
+        amount: amountUah,
+        kind,
+        method: providerForBooking(booking),
+      });
       if (tg === "failed") {
         console.error("[Mono Parts] Paid Telegram notify failed", { orderId });
       }

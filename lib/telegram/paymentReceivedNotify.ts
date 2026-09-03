@@ -7,6 +7,8 @@ import {
 } from "./formatters";
 import { sendTelegramMessage } from "./sendMessage";
 
+export type PaymentReceivedKind = "prepay" | "full" | "surcharge";
+
 export type PaymentReceivedNotifyInput = {
   name?: string;
   phone?: string;
@@ -17,8 +19,16 @@ export type PaymentReceivedNotifyInput = {
   paidAmount?: number;
   amount: number;
   method?: string;
+  bookingId?: string;
+  kind?: PaymentReceivedKind;
   screenshotPayment?: string;
 };
+
+function titleFor(kind: PaymentReceivedKind, fullyPaid: boolean): string {
+  if (fullyPaid || kind === "full") return "✅ <b>Оплачено повністю</b>";
+  if (kind === "prepay") return "💳 <b>Оплачена передплата</b>";
+  return "💵 <b>Доплата</b>";
+}
 
 export function buildPaymentReceivedCaption(
   data: PaymentReceivedNotifyInput
@@ -27,22 +37,30 @@ export function buildPaymentReceivedCaption(
   const paid = Math.round(Number(data.paidAmount) || 0);
   const amount = Math.round(Number(data.amount) || 0);
   const balance = total - paid;
-  const balanceLine =
-    balance <= 0
-      ? "✅ <b>Оплачено повністю</b>"
-      : `⚠️ Залишок: <b>${formatMoneyUa(balance)}</b>`;
-
+  const fullyPaid = total > 0 && balance <= 0 && paid > 0;
+  const kind: PaymentReceivedKind =
+    data.kind || (fullyPaid ? "full" : "surcharge");
   const phone = formatPhoneDisplay(data.phone);
-  return [
-    balanceLine,
+  const incomingLabel =
+    kind === "prepay" ? "Передплата" : kind === "full" ? "Повна оплата" : "Доплата";
+
+  const lines = [
+    titleFor(kind, fullyPaid),
     `🏡 <b>${escapeHtml(data.cottage || "Котедж")}</b>`,
     `📅 ${formatDateUk(data.checkIn)} — ${formatDateUk(data.checkOut)}`,
+  ];
+  if (data.bookingId) lines.push(`🔖 ${escapeHtml(data.bookingId)}`);
+  lines.push(
     "",
     `👤 ${escapeHtml(data.name || "Гість")}${phone ? ` (${phone})` : ""}`,
-    `💵 Доплата: <b>${formatMoneyUa(amount)}</b> (<b>${escapeHtml(data.method || "Готівка")}</b>)`,
+    `💵 ${incomingLabel}: <b>${formatMoneyUa(amount)}</b> (<b>${escapeHtml(data.method || "MonoPay")}</b>)`,
     `💰 Загальна сума: <b>${formatMoneyUa(total)}</b>`,
-    `💳 Всього внесено: <b>${formatMoneyUa(paid)}</b>`,
-  ].join("\n");
+    `💳 Всього внесено: <b>${formatMoneyUa(paid)}</b>`
+  );
+  if (!fullyPaid) {
+    lines.push(`⚠️ Залишок: <b>${formatMoneyUa(Math.max(0, balance))}</b>`);
+  }
+  return lines.join("\n");
 }
 
 export async function notifyPaymentReceived(

@@ -9,7 +9,8 @@ import type { MonoWebhookPayload } from "@/lib/monopay/types";
 import { confirmBookingPayment } from "@/lib/payments/confirmBookingPayment";
 import { sendBookingLifecycleSms } from "@/lib/sms/bookingLifecycleSms";
 import { loadSmsSettingsSystem } from "@/lib/sms/loadSmsSettings";
-import { notifyPaidBookingOnce } from "@/lib/telegram/paidBookingNotify";
+import { notifyAfterOnlinePayment } from "@/lib/telegram/notifyAfterOnlinePayment";
+import { resolvePayablePrepayAmountFromSettings } from "@/lib/public-booking/resolvePayablePrepay";
 
 export const runtime = "nodejs";
 
@@ -91,8 +92,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
-  const expectedPrepayUah = Math.round(
-    Number(bookingResult.booking.prepayAmount) || 0
+  const expectedPrepayUah = await resolvePayablePrepayAmountFromSettings(
+    bookingResult.booking
   );
   const expectedTotalUah = Math.round(
     Number(bookingResult.booking.totalPrice) || 0
@@ -178,7 +179,12 @@ export async function POST(request: Request) {
         error: sms.error || sms.responseStatus,
       });
     }
-    const tg = await notifyPaidBookingOnce(confirmedBooking.booking);
+    const tg = await notifyAfterOnlinePayment({
+      booking: confirmedBooking.booking,
+      amount: amountKopiykas / 100,
+      kind: matchesTotal && !matchesPrepay ? "full" : "prepay",
+      method: providerBase,
+    });
     if (tg === "failed") {
       console.error("[MonoPay Webhook] Paid Telegram notify failed", { reference });
     }

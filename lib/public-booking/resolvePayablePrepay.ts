@@ -1,4 +1,5 @@
 import { parseSafeDate } from "@/components/admin/desktop/adminDates";
+import { loadAllSettings } from "@/lib/db/settings";
 import {
   calculatePrepaymentAmount,
   readPrepaymentPolicy,
@@ -42,4 +43,15 @@ export function resolvePayablePrepayAmount(
   });
   if (fromPolicy > 0) return Math.min(total, fromPolicy);
   return Math.min(total, Math.round(total / 2));
+}
+
+export async function resolvePayablePrepayAmountFromSettings(
+  booking: Parameters<typeof resolvePayablePrepayAmount>[0]
+): Promise<number> {
+  const all = await loadAllSettings();
+  const branding =
+    all.branding && typeof all.branding === "object" && !Array.isArray(all.branding)
+      ? (all.branding as PublicBranding)
+      : null;
+  return resolvePayablePrepayAmount(booking, branding);
 }

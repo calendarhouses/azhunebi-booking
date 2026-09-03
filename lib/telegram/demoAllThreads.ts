@@ -204,6 +204,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
           amount: 2000,
           method: "Готівка",
           paidAmount: 7000,
+          kind: "surcharge",
         }),
       keyboard,
       finance.chatId,
