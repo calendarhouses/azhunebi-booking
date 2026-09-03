@@ -38,8 +38,8 @@ export function buildFinancePeriodCaption(
     `<i>${escapeHtml(periodLabel)}</i>\n\n` +
     `📝 Нових бронювань: <b>${stats.bookingsCount}</b>\n` +
     `💰 Дохід: <b>${formatMoneyUa(stats.totalIncome)}</b>\n` +
-    `💵 Гotівка: <b>${formatMoneyUa(stats.payments.cash)}</b>\n` +
-    `💳 Kартка: <b>${formatMoneyUa(stats.payments.card)}</b>\n` +
+    `💵 Готівка: <b>${formatMoneyUa(stats.payments.cash)}</b>\n` +
+    `💳 Картка: <b>${formatMoneyUa(stats.payments.card)}</b>\n` +
     `🏦 ФОП: <b>${formatMoneyUa(stats.payments.fop)}</b>\n` +
     `📉 Витрати: <b>${formatMoneyUa(stats.totalExpense)}</b>\n` +
     `✅ Чистий прибуток: <b>${formatMoneyUa(stats.profit)}</b>`
@@ -121,7 +121,7 @@ export function buildEveningCashCaption(opts: {
     `📝 Нових бронювань: <b>${opts.newBookingsCount}</b>\n` +
     `💰 Надійшло оплат: <b>${formatMoneyUa(paymentsSum)}</b>\n` +
     `💵 Готівка: <b>${formatMoneyUa(opts.payments.cash)}</b>\n` +
-    `💳 Kартка: <b>${formatMoneyUa(opts.payments.card)}</b>\n` +
+    `💳 Картка: <b>${formatMoneyUa(opts.payments.card)}</b>\n` +
     `🏦 ФОП: <b>${formatMoneyUa(opts.payments.fop)}</b>\n` +
     `🗝 <i>Фінансовий день закрито</i>`
   );

@@ -1,30 +1,54 @@
-import { parseSafeDate } from "@/components/admin/desktop/adminDates";
 import {
   addPaymentMethodBucket,
   getBookingPayments,
-  paymentsInPeriod,
 } from "@/lib/admin/bookingPayments";
-import { isBookingCheckInInPeriod } from "@/components/admin/desktop/reports/reportPeriod";
+import {
+  isAwaitingPaymentStatus,
+  isClosedStatus,
+  isPendingReviewStatus,
+} from "@/lib/public-booking/bookingReview";
 import type { BookingRecord } from "@/components/admin/desktop/types";
-import { bookingCreatedDateKey } from "./formatters";
+import { bookingCreatedDateKey, toDateKeyKyiv } from "./formatters";
 
-/** Bookings that should appear in finance digests (evening / week / month). */
+/**
+ * Bookings that count as «нові» in Telegram digests.
+ * Must match what appears in the bookings thread: real confirmed/paid stays,
+ * not unpaid site attempts, room blocks, iCal, or holding.
+ */
 export function isActiveFinanceBooking(b: BookingRecord): boolean {
-  const status = String(b.status || "").toLowerCase();
-  if (status.includes("скас")) return false;
-  if (status.includes("нова")) return false;
+  const status = String(b.status || "");
+  if (status.toLowerCase().includes("скас")) return false;
+  if (status.toLowerCase().includes("нова")) return false;
+  if (isAwaitingPaymentStatus(status)) return false;
+  if (isPendingReviewStatus(status)) return false;
+  if (isClosedStatus(status)) return false;
   if (b.assignmentState === "holding") return false;
   const id = String(b.id || "").trim();
   if (id.startsWith("ICAL-")) return false;
   return true;
 }
 
-function periodBounds(startKey: string, endKey: string): { startDate: Date; endDate: Date } {
-  const startDate = parseSafeDate(startKey);
-  startDate.setHours(0, 0, 0, 0);
-  const endDate = parseSafeDate(endKey);
-  endDate.setHours(23, 59, 59, 999);
-  return { startDate, endDate };
+/** Payment calendar day in Kyiv (prefers `date`, else `at`). */
+export function paymentDateKey(payment: {
+  date?: unknown;
+  at?: unknown;
+}): string {
+  const rawDate = String(payment.date || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) return rawDate.slice(0, 10);
+  if (payment.at) return toDateKeyKyiv(String(payment.at));
+  return "";
+}
+
+/**
+ * MonoPay / online acquiring → Картка for digest buckets
+ * (same three columns as the finance Telegram report).
+ */
+export function digestPaymentMethod(method: unknown): string {
+  const m = String(method || "").trim();
+  const lower = m.toLowerCase();
+  if (lower === "готівка") return "Готівка";
+  if (lower === "картка" || lower.includes("mono")) return "Картка";
+  return m || "ФОП";
 }
 
 /** Real creation day in [startKey, endKey] (Kyiv date keys). */
@@ -44,36 +68,31 @@ export function countBookingsCreatedInRange(
 }
 
 /**
- * Cash received in period — same rules as admin «Звіти» (gatherFinanceReport):
- * journal payments dated in range, else legacy paid fields only when check-in is in range.
+ * Money received in period from bookings that were also created in that period.
+ *
+ * Evening / week / month sit next to «Нових бронювань», so we must not mix in
+ * checkout remainders from older stays (that inflated August to ~1M ₴).
+ * Also skips unpaid expected prepays and the old check-in fallback.
  */
 export function sumFinancePaymentsInRange(
   bookings: BookingRecord[],
   startKey: string,
   endKey: string
 ): { cash: number; card: number; fop: number } {
-  const { startDate, endDate } = periodBounds(startKey, endKey);
   const payments = { cash: 0, card: 0, fop: 0 };
 
   for (const b of bookings) {
-    if (String(b.status || "").toLowerCase().includes("скас")) continue;
+    if (!isActiveFinanceBooking(b)) continue;
+    const created = bookingCreatedDateKey(b);
+    if (!created || created < startKey || created > endKey) continue;
 
-    const periodPays = paymentsInPeriod(b, startDate, endDate);
-    if (periodPays.length > 0) {
-      for (const p of periodPays) {
-        const amt = Math.round(Number(p.amount) || 0);
-        if (amt === 0) continue;
-        if (amt > 0) addPaymentMethodBucket(payments, amt, p.method);
-      }
-      continue;
+    for (const p of getBookingPayments(b)) {
+      const amt = Math.round(Number(p.amount) || 0);
+      if (amt <= 0) continue;
+      const day = paymentDateKey(p);
+      if (!day || day < startKey || day > endKey) continue;
+      addPaymentMethodBucket(payments, amt, digestPaymentMethod(p.method));
     }
-
-    if (!isBookingCheckInInPeriod(String(b.checkIn || ""), startDate, endDate)) continue;
-
-    const prepay = Math.round(Number(b.prepayAmount) || 0);
-    const surcharge = Math.round(Number(b.surchargeAmount) || 0);
-    if (prepay > 0) addPaymentMethodBucket(payments, prepay, b.prepayMethod || "ФОП");
-    if (surcharge > 0) addPaymentMethodBucket(payments, surcharge, b.surchargeMethod || "Готівка");
   }
 
   return payments;

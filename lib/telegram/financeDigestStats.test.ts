@@ -18,7 +18,7 @@ function booking(partial: Partial<BookingRecord> & { id: string }): BookingRecor
     prepayAmount: 0,
     prepayMethod: "ФОП",
     surchargeAmount: 0,
-    surchargeMethod: "Гotівka",
+    surchargeMethod: "Готівка",
     paidAmount: 0,
     totalPrice: 5000,
     ...partial,
@@ -35,26 +35,38 @@ describe("financeDigestStats", () => {
     expect(countBookingsCreatedInRange([moved], TODAY, TODAY)).toBe(0);
   });
 
-  it("counts only active bookings created on the day (excludes holding)", () => {
+  it("counts only confirmed bookings created on the day", () => {
     const bookings = [
-      booking({ id: "A-1", prepayAmount: 3200, prepayMethod: "Картka" }),
+      booking({ id: "A-1", prepayAmount: 3200, prepayMethod: "Картка" }),
       booking({
         id: "A-2",
         assignmentState: "holding",
         createdAt: `${TODAY}T11:00:00.000Z`,
       }),
+      booking({
+        id: "A-3",
+        status: "Очікує оплату",
+        createdAt: `${TODAY}T12:00:00.000Z`,
+        prepayAmount: 2900,
+        prepayMethod: "ФОП",
+      }),
+      booking({
+        id: "A-4",
+        status: "Закрито",
+        createdAt: `${TODAY}T13:00:00.000Z`,
+      }),
     ];
     expect(countBookingsCreatedInRange(bookings, TODAY, TODAY)).toBe(1);
   });
 
-  it("uses payment journal dates (incl. at) and skips unpaid site expected prepay", () => {
+  it("evening-style: only money from today's new bookings, not old check-ins or unpaid expected", () => {
     const bookings = [
       booking({
         id: "B-1",
         source: "Сайт",
         status: "Очікує оплату",
-        prepayAmount: 3200,
-        prepayMethod: "Картka",
+        prepayAmount: 2900,
+        prepayMethod: "ФОП",
         payments: [],
       }),
       booking({
@@ -65,7 +77,7 @@ describe("financeDigestStats", () => {
             id: "p1",
             date: TODAY,
             amount: 3200,
-            method: "Картka",
+            method: "MonoPay",
             type: "prepay",
           },
         ],
@@ -73,12 +85,12 @@ describe("financeDigestStats", () => {
       booking({
         id: "B-3",
         createdAt: "2026-08-20T09:00:00.000Z",
-        checkIn: "2026-09-10",
+        checkIn: TODAY,
         payments: [
           {
             id: "p2",
-            at: `${TODAY}T15:00:00.000Z`,
-            amount: 2900,
+            date: TODAY,
+            amount: 3700,
             method: "ФОП",
             type: "prepay",
           },
@@ -86,26 +98,39 @@ describe("financeDigestStats", () => {
       }),
     ];
 
+    expect(countBookingsCreatedInRange(bookings, TODAY, TODAY)).toBe(1);
     const payments = sumFinancePaymentsInRange(bookings, TODAY, TODAY);
     expect(payments.card).toBe(3200);
-    expect(payments.fop).toBe(2900);
+    expect(payments.fop).toBe(0);
     expect(payments.cash).toBe(0);
   });
 
-  it("matches admin-style period stats", () => {
+  it("month digest does not pull checkout remainders from older bookings", () => {
     const stats = buildFinancePeriodStats(
       [
         booking({
-          id: "C-1",
-          payments: [{ id: "p", date: TODAY, amount: 3200, method: "Картka", type: "prepay" }],
+          id: "C-new",
+          createdAt: "2026-08-10T09:00:00.000Z",
+          payments: [
+            { id: "p", date: "2026-08-10", amount: 3200, method: "Картка", type: "prepay" },
+          ],
+        }),
+        booking({
+          id: "C-old",
+          createdAt: "2026-07-01T09:00:00.000Z",
+          checkIn: "2026-08-15",
+          payments: [
+            { id: "s", date: "2026-08-15", amount: 20000, method: "Готівка", type: "surcharge" },
+          ],
         }),
       ],
       [],
-      TODAY,
-      TODAY
+      "2026-08-01",
+      "2026-08-31"
     );
     expect(stats.bookingsCount).toBe(1);
     expect(stats.totalIncome).toBe(3200);
     expect(stats.payments.card).toBe(3200);
+    expect(stats.payments.cash).toBe(0);
   });
 });
