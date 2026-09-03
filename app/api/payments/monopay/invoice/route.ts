@@ -14,8 +14,7 @@ import { getMonoChastOrderState } from "@/lib/monoparts/client";
 import { isMonoChastBooking } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { isOnlinePaymentEnabledServer } from "@/lib/payment/loadPaymentSettings";
-import { resolvePayablePrepayAmount } from "@/lib/public-booking/resolvePayablePrepay";
-import type { PublicBranding } from "@/lib/public-booking/types";
+import { resolvePayablePrepayAmountFromSettings } from "@/lib/public-booking/resolvePayablePrepay";
 
 export const runtime = "nodejs";
 
@@ -39,19 +38,13 @@ async function chargeBaseUah(
     basePrice?: number;
     checkIn?: string;
     checkOut?: string;
+    roomId?: string | number;
+    cottage?: string;
   },
   kind: AmountKind
 ): Promise<number> {
   if (kind === "full") return Math.round(Number(booking.totalPrice) || 0);
-  const stored = Math.round(Number(booking.prepayAmount) || 0);
-  if (stored > 0) return stored;
-  const { loadAllSettings } = await import("@/lib/db/settings");
-  const all = await loadAllSettings();
-  const branding =
-    all.branding && typeof all.branding === "object" && !Array.isArray(all.branding)
-      ? (all.branding as PublicBranding)
-      : null;
-  return resolvePayablePrepayAmount(booking, branding);
+  return resolvePayablePrepayAmountFromSettings(booking);
 }
 
 export async function POST(request: Request) {

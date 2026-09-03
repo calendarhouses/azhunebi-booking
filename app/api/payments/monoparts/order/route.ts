@@ -23,8 +23,7 @@ import {
 } from "@/lib/payment/paymentSettings";
 import { loadAllSettings } from "@/lib/db/settings";
 import { formatUaPhoneE164 } from "@/lib/public-booking/uaPhone";
-import { resolvePayablePrepayAmount } from "@/lib/public-booking/resolvePayablePrepay";
-import type { PublicBranding } from "@/lib/public-booking/types";
+import { resolvePayablePrepayAmountFromSettings } from "@/lib/public-booking/resolvePayablePrepay";
 
 export const runtime = "nodejs";
 
@@ -41,20 +40,21 @@ function parseAmountKind(raw: unknown): MonoChastAmountKind | null {
   return null;
 }
 
-function chargeForKind(
+async function chargeForKind(
   booking: {
     prepayAmount?: number;
     totalPrice?: number;
     basePrice?: number;
     checkIn?: string;
     checkOut?: string;
+    roomId?: string | number;
+    cottage?: string;
   },
-  kind: MonoChastAmountKind,
-  branding?: PublicBranding | null
-): number {
+  kind: MonoChastAmountKind
+): Promise<number> {
   const raw =
     kind === "prepay"
-      ? resolvePayablePrepayAmount(booking, branding)
+      ? await resolvePayablePrepayAmountFromSettings(booking)
       : Math.round(Number(booking.totalPrice) || 0);
   return resolveMonoChastChargeAmountUah(raw);
 }
@@ -86,12 +86,6 @@ export async function POST(request: Request) {
   if (!isMonoPartsEnabledFromSettings(allSettings)) {
     return errorResponse(503, "PARTS_DISABLED", "Покупка частинами вимкнена в налаштуваннях");
   }
-  const branding =
-    allSettings.branding &&
-    typeof allSettings.branding === "object" &&
-    !Array.isArray(allSettings.branding)
-      ? (allSettings.branding as PublicBranding)
-      : null;
 
   let body: { orderId?: unknown; amountKind?: unknown };
   try {
@@ -165,7 +159,7 @@ export async function POST(request: Request) {
           {
             ok: true,
             orderId: booking.monoInvoiceId,
-            amount: chargeForKind(booking, existingKind, branding),
+            amount: await chargeForKind(booking, existingKind),
             amountKind: existingKind,
             partsCount: [...MONO_CHAST_PARTS_COUNT],
             reused: true,
@@ -185,7 +179,7 @@ export async function POST(request: Request) {
         {
           ok: true,
           orderId: booking.monoInvoiceId,
-          amount: chargeForKind(booking, existingKind, branding),
+          amount: await chargeForKind(booking, existingKind),
           amountKind: existingKind,
           partsCount: [...MONO_CHAST_PARTS_COUNT],
           reused: true,
@@ -195,7 +189,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const chargeAmountUah = chargeForKind(booking, amountKind, branding);
+  const chargeAmountUah = await chargeForKind(booking, amountKind);
   if (!Number.isSafeInteger(chargeAmountUah) || chargeAmountUah < 2) {
     return errorResponse(409, "INVALID_AMOUNT", "Некоректна сума для Покупки частинами");
   }

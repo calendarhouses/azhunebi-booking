@@ -11,8 +11,8 @@ function isSiteBooking(source?: string | null): boolean {
 
 /**
  * After MonoPay / Parts settles:
- * - Site booking: «Нове оплачене бронювання» in БРОНЮВАННЯ (first announce).
- * - Admin/Telegram booking: finance thread only (booking already announced).
+ * - Site booking: unchanged — «Нове оплачене бронювання» in БРОНЮВАННЯ.
+ * - Admin 0/0 pay-link only: finance thread (booking already announced).
  */
 export async function notifyAfterOnlinePayment(opts: {
   booking: GasBookingRecord;
@@ -23,6 +23,11 @@ export async function notifyAfterOnlinePayment(opts: {
   const booking = opts.booking;
   if (isSiteBooking(booking.source)) {
     return notifyPaidBookingOnce(booking);
+  }
+
+  // Only the admin 0/0 pay-link flow (SMS claimed payment_link).
+  if (!String(booking.paymentLinkSmsSentAt || "").trim()) {
+    return "skipped";
   }
 
   if (booking.paidTelegramSentAt) return "already";

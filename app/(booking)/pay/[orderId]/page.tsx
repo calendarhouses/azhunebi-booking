@@ -13,7 +13,7 @@ import { loadAllSettings } from "@/lib/db/settings";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
 import type { PublicBranding } from "@/lib/public-booking/types";
-import { resolvePayablePrepayAmount } from "@/lib/public-booking/resolvePayablePrepay";
+import { resolvePayablePrepayAmountFromSettings } from "@/lib/public-booking/resolvePayablePrepay";
 import { resolveStayRules } from "@/lib/public-booking/stayRules";
 
 export const dynamic = "force-dynamic";
@@ -119,7 +119,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       ? (tenant.branding as Record<string, unknown>)
       : {};
   const branding = { ...tenantBranding, ...settingsBranding } as PublicBranding;
-  const prepayAmount = resolvePayablePrepayAmount(booking, branding);
+  const prepayAmount = await resolvePayablePrepayAmountFromSettings(booking);
   const brandName =
     String(branding.site_title || "").trim() ||
     String(tenant?.tenantName || "").trim() ||
