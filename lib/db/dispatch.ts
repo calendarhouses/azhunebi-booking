@@ -310,6 +310,20 @@ async function handleCreateBooking(
         if (!/очікує оплату/i.test(status)) {
           patch.status = "Очікує оплату";
         }
+        if (Math.round(Number(saved.prepayAmount) || 0) <= 0) {
+          const { resolvePayablePrepayAmount } = await import(
+            "@/lib/public-booking/resolvePayablePrepay"
+          );
+          const settings = await loadAllSettings();
+          const branding =
+            settings.branding &&
+            typeof settings.branding === "object" &&
+            !Array.isArray(settings.branding)
+              ? (settings.branding as import("@/lib/public-booking/types").PublicBranding)
+              : null;
+          const expected = resolvePayablePrepayAmount(saved, branding);
+          if (expected > 0) patch.prepayAmount = expected;
+        }
         if (Object.keys(patch).length) {
           smsBooking = await upsertBooking({ ...saved, ...patch });
         }

@@ -235,11 +235,13 @@ export function PayBookingPage({
       : partsKind === "prepay"
         ? prepayAmount
         : totalPrice);
-  const showFullDebit = totalPrice >= 2 && totalPrice !== prepayAmount;
-  const showPrepayParts = partsEnabled && (partsTestAmountUah != null || prepayAmount >= 2);
-  const showFullParts =
+  const showPrepayDebit = prepayAmount >= 2 && prepayAmount < totalPrice;
+  const showFullDebit = totalPrice >= 2;
+  const showPrepayParts =
     partsEnabled &&
-    (partsTestAmountUah != null || (totalPrice >= 2 && totalPrice !== prepayAmount));
+    (partsTestAmountUah != null || (prepayAmount >= 2 && prepayAmount < totalPrice));
+  const showFullParts =
+    partsEnabled && (partsTestAmountUah != null || totalPrice >= 2);
   const debitPrepayLabel = debitTestAmountUah ?? prepayAmount;
   const debitFullLabel = debitTestAmountUah ?? totalPrice;
   const partsPrepayLabel = partsTestAmountUah ?? prepayAmount;
@@ -374,23 +376,25 @@ export function PayBookingPage({
             <div className="pay-group">
               <p className="pay-group__title">Оплатити зараз</p>
 
-              <button
-                type="button"
-                className="pay-option"
-                disabled={Boolean(submitting)}
-                onClick={() => void handleDebit("prepay")}
-              >
-                <div className="pay-option__logo">
-                  <LogoMono />
-                </div>
-                <div>
-                  <p className="pay-option__name">
-                    {submitting === "debit-prepay" ? "Відкриваємо…" : "Передплата одразу"}
-                  </p>
-                  <p className="pay-option__hint">MonoPay · решта на місці</p>
-                </div>
-                <div className="pay-option__price">{formatUah(debitPrepayLabel)}</div>
-              </button>
+              {showPrepayDebit ? (
+                <button
+                  type="button"
+                  className="pay-option"
+                  disabled={Boolean(submitting)}
+                  onClick={() => void handleDebit("prepay")}
+                >
+                  <div className="pay-option__logo">
+                    <LogoMono />
+                  </div>
+                  <div>
+                    <p className="pay-option__name">
+                      {submitting === "debit-prepay" ? "Відкриваємо…" : "Передплата одразу"}
+                    </p>
+                    <p className="pay-option__hint">MonoPay · решта на місці</p>
+                  </div>
+                  <div className="pay-option__price">{formatUah(debitPrepayLabel)}</div>
+                </button>
+              ) : null}
 
               {showFullDebit ? (
                 <button

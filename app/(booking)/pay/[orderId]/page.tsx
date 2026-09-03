@@ -12,6 +12,8 @@ import { isMonoPartsEnabledFromSettings } from "@/lib/payment/paymentSettings";
 import { loadAllSettings } from "@/lib/db/settings";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
+import type { PublicBranding } from "@/lib/public-booking/types";
+import { resolvePayablePrepayAmount } from "@/lib/public-booking/resolvePayablePrepay";
 import { resolveStayRules } from "@/lib/public-booking/stayRules";
 
 export const dynamic = "force-dynamic";
@@ -96,9 +98,10 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
   }
   if (!isAwaitingPaymentStatus(booking.status)) notFound();
 
-  const prepayAmount = Math.round(Number(booking.prepayAmount) || 0);
   const totalPrice = Math.round(Number(booking.totalPrice) || 0);
-  if (prepayAmount <= 0 && totalPrice <= 0) notFound();
+  if (totalPrice <= 0 && Math.round(Number(booking.prepayAmount) || 0) <= 0) {
+    notFound();
+  }
 
   const debitTestAmountUah = getMonoTestAmountUah();
   const partsTestAmountUah = getMonoChastTestAmountUah();
@@ -115,7 +118,8 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
     tenant?.branding && typeof tenant.branding === "object"
       ? (tenant.branding as Record<string, unknown>)
       : {};
-  const branding = { ...tenantBranding, ...settingsBranding };
+  const branding = { ...tenantBranding, ...settingsBranding } as PublicBranding;
+  const prepayAmount = resolvePayablePrepayAmount(booking, branding);
   const brandName =
     String(branding.site_title || "").trim() ||
     String(tenant?.tenantName || "").trim() ||
@@ -130,13 +134,11 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       cottage={publicCottageLabel(booking, tenant?.rooms)}
       checkInLabel={formatDateUk(booking.checkIn)}
       checkOutLabel={formatDateUk(booking.checkOut)}
-      prepayAmount={prepayAmount > 0 ? prepayAmount : totalPrice}
+      prepayAmount={prepayAmount}
       totalPrice={totalPrice}
       partsEnabled={
         partsAllowed &&
-        (partsTestAmountUah != null ||
-          Math.round(Number(booking.prepayAmount) || 0) >= 2 ||
-          Math.round(Number(booking.totalPrice) || 0) >= 2)
+        (partsTestAmountUah != null || prepayAmount >= 2 || totalPrice >= 2)
       }
       brandName={brandName}
       brandLogoUrl={brandLogoUrl}

@@ -14,6 +14,8 @@ import { getMonoChastOrderState } from "@/lib/monoparts/client";
 import { isMonoChastBooking } from "@/lib/monoparts/config";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { isOnlinePaymentEnabledServer } from "@/lib/payment/loadPaymentSettings";
+import { resolvePayablePrepayAmount } from "@/lib/public-booking/resolvePayablePrepay";
+import type { PublicBranding } from "@/lib/public-booking/types";
 
 export const runtime = "nodejs";
 
@@ -30,13 +32,26 @@ function parseAmountKind(raw: unknown): AmountKind {
   return String(raw || "").trim().toLowerCase() === "full" ? "full" : "prepay";
 }
 
-function chargeBaseUah(
-  booking: { prepayAmount?: number; totalPrice?: number },
+async function chargeBaseUah(
+  booking: {
+    prepayAmount?: number;
+    totalPrice?: number;
+    basePrice?: number;
+    checkIn?: string;
+    checkOut?: string;
+  },
   kind: AmountKind
-): number {
-  return kind === "full"
-    ? Math.round(Number(booking.totalPrice) || 0)
-    : Math.round(Number(booking.prepayAmount) || 0);
+): Promise<number> {
+  if (kind === "full") return Math.round(Number(booking.totalPrice) || 0);
+  const stored = Math.round(Number(booking.prepayAmount) || 0);
+  if (stored > 0) return stored;
+  const { loadAllSettings } = await import("@/lib/db/settings");
+  const all = await loadAllSettings();
+  const branding =
+    all.branding && typeof all.branding === "object" && !Array.isArray(all.branding)
+      ? (all.branding as PublicBranding)
+      : null;
+  return resolvePayablePrepayAmount(booking, branding);
 }
 
 export async function POST(request: Request) {
@@ -116,7 +131,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const amountUah = chargeBaseUah(booking, amountKind);
+  const amountUah = await chargeBaseUah(booking, amountKind);
   if (!Number.isSafeInteger(amountUah) || amountUah <= 0) {
     return errorResponse(
       409,

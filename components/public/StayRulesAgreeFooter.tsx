@@ -17,7 +17,7 @@ export function StayRulesAgreeFooter({
   onAgree,
   onBack,
   agreeLabel = "Погоджуюсь",
-  hint = "Прогорніть правила до кінця",
+  hint = "Прочитайте правила до кінця",
 }: Props) {
   const agreeDisabled = submitting || blocked || !unlocked;
 
