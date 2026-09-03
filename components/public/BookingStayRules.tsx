@@ -1,5 +1,6 @@
 "use client";
 
+import type { Ref } from "react";
 import { resolveStayRules, type StayRulesContent } from "@/lib/public-booking/stayRules";
 import { StayRuleMarkIcon } from "@/components/ui/StayRuleMarkIcon";
 import type { PublicBranding } from "@/lib/public-booking/types";
@@ -7,9 +8,10 @@ import type { PublicBranding } from "@/lib/public-booking/types";
 type Props = {
   branding?: PublicBranding | null;
   content?: StayRulesContent | null;
+  endSentinelRef?: Ref<HTMLDivElement>;
 };
 
-export function BookingStayRules({ branding, content }: Props) {
+export function BookingStayRules({ branding, content, endSentinelRef }: Props) {
   const rules = content || resolveStayRules(branding);
 
   return (
@@ -46,6 +48,11 @@ export function BookingStayRules({ branding, content }: Props) {
             </div>
           ))}
         </div>
+        <div
+          ref={endSentinelRef}
+          className="stay-rules__end-sentinel"
+          aria-hidden
+        />
       </div>
     </section>
   );

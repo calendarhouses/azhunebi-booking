@@ -8,6 +8,10 @@ import {
   pollMonoPartsStatus,
 } from "@/lib/public-booking/publicApiClient";
 import { BRAND_ICONS } from "@/lib/brandIcons";
+import type { StayRulesContent } from "@/lib/public-booking/stayRules";
+import { BookingStayRules } from "./BookingStayRules";
+import { StayRulesAgreeFooter } from "./StayRulesAgreeFooter";
+import { useStayRulesScrollUnlock } from "./useStayRulesScrollUnlock";
 
 type PayBookingPageProps = {
   orderId: string;
@@ -21,6 +25,7 @@ type PayBookingPageProps = {
   brandLogoUrl?: string | null;
   debitTestAmountUah?: number | null;
   partsTestAmountUah?: number | null;
+  stayRules?: StayRulesContent | null;
 };
 
 type Mode = "choose" | "parts_waiting";
@@ -102,7 +107,9 @@ export function PayBookingPage({
   brandLogoUrl = null,
   debitTestAmountUah = null,
   partsTestAmountUah = null,
+  stayRules = null,
 }: PayBookingPageProps) {
+  const [step, setStep] = useState<"rules" | "pay">("rules");
   const [mode, setMode] = useState<Mode>("choose");
   const [partsKind, setPartsKind] = useState<AmountKind>("prepay");
   const [partsAmount, setPartsAmount] = useState(0);
@@ -112,6 +119,9 @@ export function PayBookingPage({
     "Відкрийте застосунок Monobank і підтвердіть push."
   );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rulesActive = step === "rules";
+  const { sentinelRef: rulesEndRef, unlocked: rulesRead } =
+    useStayRulesScrollUnlock(rulesActive);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -235,6 +245,53 @@ export function PayBookingPage({
   const partsPrepayLabel = partsTestAmountUah ?? prepayAmount;
   const partsFullLabel = partsTestAmountUah ?? totalPrice;
   const logoSrc = brandLogoUrl || BRAND_ICONS.icon192;
+
+  if (step === "rules") {
+    return (
+      <main className="pay-page pay-page--rules">
+        <div className="pay-page__inner">
+          <header className="pay-brand">
+            <div className="pay-brand__logo-wrap">
+              <span className="pay-brand__wave" />
+              <span className="pay-brand__wave pay-brand__wave--2" />
+              <span className="pay-brand__wave pay-brand__wave--3" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="pay-brand__logo" src={logoSrc} alt={brandName} />
+            </div>
+            <h1 className="pay-brand__title">{brandName}</h1>
+            <p className="pay-brand__sub">Правила перед оплатою</p>
+          </header>
+
+          <div className="pay-meta">
+            <div className="pay-meta__card">
+              <div className="pay-meta__row">
+                <div>
+                  <p className="pay-meta__label">Бронювання</p>
+                  <p className="pay-meta__dates">
+                    {cottage} · {checkInLabel} — {checkOutLabel}
+                  </p>
+                </div>
+                <div className="pay-meta__id">№ {orderId}</div>
+              </div>
+            </div>
+          </div>
+
+          <BookingStayRules content={stayRules} endSentinelRef={rulesEndRef} />
+        </div>
+
+        <div className="pay-rules-footer">
+          <StayRulesAgreeFooter
+            unlocked={rulesRead}
+            agreeLabel="Погоджуюсь і до оплати"
+            onAgree={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              setStep("pay");
+            }}
+          />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="pay-page">

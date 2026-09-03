@@ -104,6 +104,8 @@ export async function POST(request: Request) {
     note: `Повернення через ${method}`,
     transactionId: `${invoiceId}-${amountUah}`,
     cancelBooking,
+    actorName: auth.name || auth.email,
+    actorRole: auth.role,
   });
 
   if (!recorded.ok) {

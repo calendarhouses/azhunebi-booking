@@ -48,6 +48,7 @@ const TEMPLATE_ORDER: SmsTemplateId[] = [
   "review_approve",
   "review_reject",
   "admin_confirm",
+  "admin_payment",
   "success",
   "expiry",
   "reject",
@@ -78,6 +79,7 @@ const TYPE_LABELS: Record<SmsJournalEntry["type"], string> = {
   review_approve: "Схвалення заявки",
   review_reject: "Відмова заявки",
   admin_confirm: "Нова бронь (адмінка)",
+  admin_payment: "Передплата (адмінка)",
   success: "Успіх",
   expiry: "Скасування",
   reject: "Відмова",
@@ -781,7 +783,7 @@ export function SmsSettingsPanel({
           </div>
 
           <div className="sms-journal-filters">
-            {(["all", "payment_link", "review_approve", "review_reject", "admin_confirm", "success", "expiry", "reject", "test"] as const).map(
+            {(["all", "payment_link", "review_approve", "review_reject", "admin_confirm", "admin_payment", "success", "expiry", "reject", "test"] as const).map(
               (key) => (
                 <button
                   key={key}

@@ -14,7 +14,6 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
     roomCategories,
     selectedCategoryId,
     openDrawer,
-    getNextFreeForRoom,
   } = usePublicBooking();
 
   const rooms = filteredRooms;
@@ -54,7 +53,6 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
                 key={room.id}
                 room={room}
                 customPrices={runtime!.customPrices}
-                nextFreeLabel={getNextFreeForRoom(room)}
                 onBook={() => openDrawer(room)}
               />
             ) : (
@@ -62,7 +60,6 @@ export function PublicCabinList({ layout }: { layout: "mobile" | "desktop" }) {
                 key={room.id}
                 room={room}
                 customPrices={runtime!.customPrices}
-                nextFreeLabel={getNextFreeForRoom(room)}
                 onBook={() => openDrawer(room)}
               />
             )

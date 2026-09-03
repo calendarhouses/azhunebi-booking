@@ -19,11 +19,10 @@ import { shouldLoadSlide } from "@/lib/driveImageUrl";
 type Props = {
   room: PublicRoom;
   customPrices: Record<string, Record<string, number>>;
-  nextFreeLabel: string;
   onBook: () => void;
 };
 
-export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: Props) {
+export function DesktopCabinCard({ room, customPrices, onBook }: Props) {
   const images = getRoomImages(room, { card: true });
   const minPrice = getRoomMinPrice(room, customPrices);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -149,10 +148,6 @@ export function DesktopCabinCard({ room, customPrices, nextFreeLabel, onBook }: 
             {formatChildrenPolicyBadge(room) ? (
               <span className="cabin-children-badge">{formatChildrenPolicyBadge(room)}</span>
             ) : null}
-          </div>
-          <div className="cabin-meta-item">
-            {DesktopIcons.calendar}
-            Вільний: <span className="cabin-next-free">{nextFreeLabel}</span>
           </div>
         </div>
 

@@ -6,14 +6,14 @@ const FAKE = "FAKE_TEST_KEY_DO_NOT_TOUCH";
  *   6 — ФІНАНСИ / ЗВІТИ
  *   7 — ЗАЇЗД / ВИЇЗД
  *   8 — ЗАПИТИ БРОНЮВАННЯ
- *  88 — ЗМІНИ (TELEGRAM_THREAD_CHANGES)
+ * 1385 — ЖУРНАЛ ЗМІН (TELEGRAM_THREAD_CHANGES)
  */
 export const TELEGRAM_TOPIC = {
   bookings: 5,
   finance: 6,
   arrivals: 7,
   requests: 8,
-  changes: 88,
+  changes: 1385,
 } as const;
 
 export type TelegramTopicKey = keyof typeof TELEGRAM_TOPIC;

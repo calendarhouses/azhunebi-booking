@@ -12,6 +12,7 @@ import { isMonoPartsEnabledFromSettings } from "@/lib/payment/paymentSettings";
 import { loadAllSettings } from "@/lib/db/settings";
 import { isAwaitingPaymentStatus } from "@/lib/public-booking/bookingReview";
 import { publicCottageLabel } from "@/lib/public-booking/publicCottageLabel";
+import { resolveStayRules } from "@/lib/public-booking/stayRules";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +122,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
     "АЖ У НЕБІ";
   const brandLogoUrl =
     toImageDisplaySrc(String(branding.logo_url || "").trim(), 512) || null;
+  const stayRules = resolveStayRules(branding);
 
   return (
     <PayBookingPage
@@ -140,6 +142,7 @@ export default async function PayOrderPage({ params, searchParams }: PageProps) 
       brandLogoUrl={brandLogoUrl}
       debitTestAmountUah={debitTestAmountUah}
       partsTestAmountUah={partsTestAmountUah}
+      stayRules={stayRules}
     />
   );
 }

@@ -637,6 +637,7 @@ export type GasBookingRecord = {
   pets?: string;
   prepayAmount?: number;
   paidAmount?: number;
+  surchargeAmount?: number;
   totalPrice?: number;
   prepayMethod?: string;
   status?: string;

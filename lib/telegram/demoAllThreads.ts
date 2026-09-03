@@ -15,12 +15,14 @@ import {
   chessboardKeyboard,
   getArrivalsTargets,
   getBookingsTargets,
+  getChangesTargets,
   getCleaningTargets,
   getFinanceTargets,
   getRequestsTargets,
   isTelegramConfigured,
 } from "./config";
 import { sendTelegramMessage } from "./sendMessage";
+import { buildChangeLogCaption } from "./changeLogNotify";
 import type { GasBookingRecord } from "@/lib/gas-api-server";
 
 /**
@@ -38,6 +40,7 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
   const arrivals = getArrivalsTargets();
   const cleaning = getCleaningTargets();
   const finance = getFinanceTargets();
+  const changes = getChangesTargets();
   const keyboard = chessboardKeyboard();
   const results: Record<string, boolean | string> = {};
 
@@ -270,6 +273,42 @@ export async function sendTelegramDemoAllThreads(): Promise<Record<string, boole
       finance.threadId
     );
     results.financeReportHint = res.ok;
+  }
+
+  if (changes) {
+    const res = await sendTelegramMessage(
+      "🧪 <b>ТЕСТ</b>\n\n" +
+        buildChangeLogCaption({
+          title: "Бронь оновлено",
+          titleEmoji: "✏️",
+          actorName: "Назар",
+          actorRole: "owner",
+          booking: {
+            id: "A-TESTDEMO",
+            name: "Назар Тест",
+            cottage: "Будиночок 2",
+          },
+          cottage: "Будиночок 2",
+          lines: [
+            {
+              label: "Статус",
+              from: "Очікує оплату",
+              to: "Скасовано",
+            },
+            {
+              label: "Дати",
+              from: "2026-09-03 → 2026-09-05",
+              to: "2026-09-04 → 2026-09-06",
+            },
+          ],
+        }),
+      null,
+      changes.chatId,
+      changes.threadId
+    );
+    results.changeLog = res.ok;
+  } else {
+    results.changeLog = "thread_disabled";
   }
 
   return results;

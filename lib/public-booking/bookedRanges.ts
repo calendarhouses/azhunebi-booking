@@ -56,24 +56,6 @@ export function getBookedRanges(
     });
 }
 
-export function getNextFreeDateLabel(
-  bookings: BookingRecord[],
-  room: RoomConfig | undefined
-): string {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const ranges = getBookedRanges(bookings, room);
-  const d = new Date(today);
-  for (let i = 0; i < 365; i++) {
-    const occupied = ranges.some((r) => d >= r.start && d < r.end);
-    if (!occupied) {
-      return d.toLocaleDateString("uk-UA", { day: "numeric", month: "long" });
-    }
-    d.setDate(d.getDate() + 1);
-  }
-  return "Немає";
-}
-
 function stayConflictsWithRange(
   checkIn: Date,
   checkOut: Date,

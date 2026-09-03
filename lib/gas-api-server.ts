@@ -17,6 +17,7 @@ export type GasBookingRecord = {
   pets?: string;
   prepayAmount?: number;
   paidAmount?: number;
+  surchargeAmount?: number;
   totalPrice?: number;
   prepayMethod?: string;
   status?: string;
@@ -236,6 +237,8 @@ export async function recordBookingRefund(params: {
   note?: string;
   transactionId?: string;
   cancelBooking?: boolean;
+  actorName?: string;
+  actorRole?: string;
 }): Promise<{
   ok: boolean;
   updated?: boolean;
@@ -253,6 +256,8 @@ export async function recordBookingRefund(params: {
       note: params.note,
       transactionId: params.transactionId,
       cancelBooking: params.cancelBooking === true,
+      actorName: params.actorName,
+      actorRole: params.actorRole,
       webhookSecret: webhookSecret(),
     });
   } catch (err) {

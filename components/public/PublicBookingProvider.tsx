@@ -35,7 +35,6 @@ import {
   filterRoomsForStay,
   formatDateKey,
   getBookedRanges,
-  getNextFreeDateLabel,
   isListSearchDateAvailable,
   isRoomFreeForRange,
   isStayClearOfBookings,
@@ -183,7 +182,6 @@ type Ctx = {
   }) => Promise<void>;
   submitting: boolean;
   getRoomById: (id: number) => RoomConfig | undefined;
-  getNextFreeForRoom: (room: RoomConfig) => string;
   successReceiptHtml: string;
   successFlow: PublicBookingFlow;
 };
@@ -484,14 +482,6 @@ export function PublicBookingProvider({
 
   const getRoomById = useCallback(
     (id: number) => runtime?.rooms.find((r) => r.id === id),
-    [runtime]
-  );
-
-  const getNextFreeForRoom = useCallback(
-    (room: RoomConfig) => {
-      if (!runtime) return "перевірте дати";
-      return getNextFreeDateLabel(runtime.bookings, room);
-    },
     [runtime]
   );
 
@@ -1529,7 +1519,6 @@ export function PublicBookingProvider({
     submitCheckout,
     submitting,
     getRoomById,
-    getNextFreeForRoom,
     successReceiptHtml,
     successFlow,
   };

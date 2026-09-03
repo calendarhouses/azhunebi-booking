@@ -19,6 +19,8 @@ function isDevelopment(): boolean {
 export type VerifiedAdmin = {
   userId: string;
   email: string | undefined;
+  name?: string;
+  role?: string;
 };
 
 /** Перевіряє admin session token (Supabase team sessions). */
@@ -27,7 +29,7 @@ export async function verifyAdminRequest(
   tenantId: string | null
 ): Promise<VerifiedAdmin | NextResponse> {
   if (isDevelopment() && process.env.ADMIN_SKIP_AUTH === "true") {
-    return { userId: "dev", email: "dev@local" };
+    return { userId: "dev", email: "dev@local", name: "dev", role: "owner" };
   }
 
   const token = extractBearerToken(request);
@@ -47,5 +49,10 @@ export async function verifyAdminRequest(
     return adminUnauthorizedResponse("invalid or expired token");
   }
 
-  return { userId: verified.userId, email: verified.email };
+  return {
+    userId: verified.userId,
+    email: verified.email,
+    name: verified.name,
+    role: verified.role,
+  };
 }

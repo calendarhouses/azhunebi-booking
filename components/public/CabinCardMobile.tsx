@@ -18,11 +18,10 @@ import { shouldLoadSlide } from "@/lib/driveImageUrl";
 type Props = {
   room: PublicRoom;
   customPrices: Record<string, Record<string, number>>;
-  nextFreeLabel: string;
   onBook: () => void;
 };
 
-export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: Props) {
+export function CabinCardMobile({ room, customPrices, onBook }: Props) {
   const images = getRoomImages(room, { card: true });
   const minPrice = getRoomMinPrice(room, customPrices);
   const features = getRoomSiteFeatures(room);
@@ -146,16 +145,6 @@ export function CabinCardMobile({ room, customPrices, nextFreeLabel, onBook }: P
             {formatChildrenPolicyBadge(room) ? (
               <span className="cabin-children-badge">{formatChildrenPolicyBadge(room)}</span>
             ) : null}
-          </div>
-          <div className="cabin-meta-item">
-            <svg viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75"
-              />
-            </svg>
-            Вільний: <span className="cabin-next-free">{nextFreeLabel}</span>
           </div>
         </div>
 

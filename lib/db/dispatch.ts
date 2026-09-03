@@ -105,12 +105,14 @@ async function handleCreateBooking(
   const source = String(payload.source || "Адмінка");
   // Match GAS: public site request = source Сайт AND not an authenticated admin.
   let actorName = "system";
+  let actorRole = "";
   let isAuthorizedAdmin = false;
   if (token) {
     try {
       const user = await requireSession(token);
       isAuthorizedAdmin = true;
       actorName = user.name || user.email;
+      actorRole = user.role;
     } catch {
       isAuthorizedAdmin = false;
     }
@@ -122,6 +124,7 @@ async function handleCreateBooking(
         const user = await requireSession(token);
         isAuthorizedAdmin = true;
         actorName = user.name || user.email;
+        actorRole = user.role;
       } catch {
         return fail("UNAUTHORIZED", 401, "UNAUTHORIZED");
       }
@@ -269,6 +272,18 @@ async function handleCreateBooking(
     if (entries.length) {
       await appendChangeHistory(id, entries);
     }
+    if (isUpdate) {
+      void import("@/lib/telegram/changeLogNotify")
+        .then(({ notifyBookingChangeLog }) =>
+          notifyBookingChangeLog({
+            booking: saved,
+            changes,
+            actorName,
+            actorRole,
+          })
+        )
+        .catch((err) => console.warn("[TG change log] booking update failed", err));
+    }
   }
 
   const isAdminManualCreate =
@@ -280,10 +295,27 @@ async function handleCreateBooking(
 
   if (isAdminManualCreate) {
     try {
-      const { sendAdminCreatedBookingSms } = await import("@/lib/sms/adminCreatedBookingSms");
+      const { adminBookingNeedsPaymentLink, sendAdminCreatedBookingSms } =
+        await import("@/lib/sms/adminCreatedBookingSms");
       const { loadSmsSettingsSystem } = await import("@/lib/sms/loadSmsSettings");
       const smsSettings = await loadSmsSettingsSystem();
-      void sendAdminCreatedBookingSms(saved, smsSettings);
+
+      let smsBooking = saved;
+      if (adminBookingNeedsPaymentLink(saved)) {
+        const patch: Record<string, unknown> = {};
+        if (!saved.paymentExpiresAt) {
+          patch.paymentExpiresAt = addHoursIso(await paymentWindowHoursFromSettings());
+        }
+        const status = String(saved.status || "");
+        if (!/очікує оплату/i.test(status)) {
+          patch.status = "Очікує оплату";
+        }
+        if (Object.keys(patch).length) {
+          smsBooking = await upsertBooking({ ...saved, ...patch });
+        }
+      }
+
+      void sendAdminCreatedBookingSms(smsBooking, smsSettings);
     } catch (err) {
       console.warn("[createBooking] admin confirm SMS failed", err);
     }
@@ -459,7 +491,7 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
       case "createBooking":
         return handleCreateBooking(body, token);
       case "deleteBooking": {
-        await requireSession(token);
+        const deleter = await requireSession(token);
         let id = String(body.id || "");
         if (!id && body.row != null && body.row !== "") {
           const all = await listBookings();
@@ -467,7 +499,19 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           id = match ? String(match.id) : "";
         }
         if (!id) return fail("id required");
+        const existing = await getBookingById(id);
         await deleteBookingById(id);
+        if (existing) {
+          void import("@/lib/telegram/changeLogNotify")
+            .then(({ notifyBookingDeletedLog }) =>
+              notifyBookingDeletedLog({
+                booking: existing,
+                actorName: deleter.name || deleter.email,
+                actorRole: deleter.role,
+              })
+            )
+            .catch((err) => console.warn("[TG change log] delete failed", err));
+        }
         try {
           const { syncPendingReviewReminders } = await import(
             "@/lib/telegram/pendingReviewReminder"
@@ -520,6 +564,21 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         }
         if (decision === "reject") {
           const next = await upsertBooking({ ...booking, status: "Скасовано" });
+          void import("@/lib/telegram/changeLogNotify")
+            .then(({ notifyBookingChangeLog }) =>
+              notifyBookingChangeLog({
+                booking: next,
+                changes: [
+                  {
+                    label: "Статус",
+                    from: String(booking.status || "—"),
+                    to: "Скасовано",
+                  },
+                ],
+                actorName: "система",
+              })
+            )
+            .catch((err) => console.warn("[TG change log] review reject failed", err));
           return ok({ ok: true, booking: next });
         }
         return fail("decision must be approve|reject");
@@ -576,6 +635,21 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           status: "Скасовано",
           expiredAt: new Date().toISOString(),
         });
+        void import("@/lib/telegram/changeLogNotify")
+          .then(({ notifyBookingChangeLog }) =>
+            notifyBookingChangeLog({
+              booking: next,
+              changes: [
+                {
+                  label: "Статус",
+                  from: String(booking.status || "Очікує оплату"),
+                  to: "Скасовано",
+                },
+              ],
+              actorName: "система",
+            })
+          )
+          .catch((err) => console.warn("[TG change log] expire failed", err));
         return ok({ ok: true, expired: true, booking: next });
       }
       case "listPaymentLifecycle": {
@@ -628,8 +702,38 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         const booking = await getBookingById(orderId);
         if (!booking) return ok({ ok: false, reason: "not_found" });
         const amount = Number(body.amount) || 0;
-        const paid = Math.max(0, (Number(booking.paidAmount) || 0) - amount);
-        const next = await upsertBooking({ ...booking, paidAmount: paid });
+        const paidFrom = Number(booking.paidAmount) || 0;
+        const paid = Math.max(0, paidFrom - amount);
+        const cancelBooking = body.cancelBooking === true;
+        const next = await upsertBooking({
+          ...booking,
+          paidAmount: paid,
+          ...(cancelBooking ? { status: "Скасовано" } : {}),
+        });
+        let actorName = String(body.actorName || "").trim() || "система";
+        let actorRole = String(body.actorRole || "").trim();
+        if (actorName === "система") {
+          try {
+            const user = await requireSession(token);
+            actorName = user.name || user.email;
+            actorRole = user.role;
+          } catch {
+            /* webhook / no session */
+          }
+        }
+        void import("@/lib/telegram/changeLogNotify")
+          .then(({ notifyBookingRefundLog }) =>
+            notifyBookingRefundLog({
+              booking: next,
+              amount,
+              paidFrom,
+              paidTo: paid,
+              cancelled: cancelBooking,
+              actorName,
+              actorRole,
+            })
+          )
+          .catch((err) => console.warn("[TG change log] refund failed", err));
         return ok({ ok: true, booking: next });
       }
       case "markBookingSmsSent": {

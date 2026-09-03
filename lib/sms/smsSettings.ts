@@ -7,7 +7,8 @@ export type SmsTemplateId =
   | "reject"
   | "review_approve"
   | "review_reject"
-  | "admin_confirm";
+  | "admin_confirm"
+  | "admin_payment";
 
 export type SmsTemplateConfig = {
   enabled: boolean;
@@ -96,7 +97,12 @@ export const SMS_TEMPLATE_META: Record<
   },
   admin_confirm: {
     title: "Нова бронь з адмінки",
-    when: "Коли адміністратор створює нову бронь вручну (не редагує існуючу)",
+    when: "Коли адміністратор створює бронь і вже вписав передплату / оплату",
+    variables: SMS_TEMPLATE_VARIABLES,
+  },
+  admin_payment: {
+    title: "Передплата з адмінки (правила + оплата)",
+    when: "Коли адмін створює бронь без авансу і доплати (0/0) — гість отримує посилання на правила та оплату",
     variables: SMS_TEMPLATE_VARIABLES,
   },
 };
@@ -113,6 +119,8 @@ const DEFAULT_TEXTS: Record<SmsTemplateId, string> = {
     "{name}, на жаль, {impossible_line}. {cottage}, {check_in} — {check_out}. {retry_hint}",
   admin_confirm:
     "Ваше бронювання АЖ У НЕБІ підтверджено. {cottage}, {check_in} — {check_out}. До зустрічі!",
+  admin_payment:
+    "Бронювання АЖ У НЕБІ: {cottage}, {check_in} — {check_out}. Ознайомтесь з правилами та оплатіть передплату ({hours}): {pay_url}",
 };
 
 export const DEFAULT_SMS_SETTINGS: SmsSettings = {
@@ -126,6 +134,7 @@ export const DEFAULT_SMS_SETTINGS: SmsSettings = {
     review_approve: { enabled: true, text: DEFAULT_TEXTS.review_approve },
     review_reject: { enabled: true, text: DEFAULT_TEXTS.review_reject },
     admin_confirm: { enabled: true, text: DEFAULT_TEXTS.admin_confirm },
+    admin_payment: { enabled: true, text: DEFAULT_TEXTS.admin_payment },
   },
   journal: [],
 };
@@ -188,6 +197,7 @@ export function normalizeSmsSettings(raw: unknown): SmsSettings {
       review_approve: normalizeTemplate("review_approve", rawTemplates.review_approve),
       review_reject: normalizeTemplate("review_reject", rawTemplates.review_reject),
       admin_confirm: normalizeTemplate("admin_confirm", rawTemplates.admin_confirm),
+      admin_payment: normalizeTemplate("admin_payment", rawTemplates.admin_payment),
     },
     journal: Array.isArray(r.journal) ? (r.journal as SmsJournalEntry[]).slice(0, 100) : [],
   };

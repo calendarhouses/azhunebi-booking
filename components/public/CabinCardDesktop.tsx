@@ -140,16 +140,6 @@ export function CabinCardDesktop({ room, customPrices }: Props) {
             </svg>
             До {room.maxCapacity || room.capacity} гостей
           </div>
-          <div className="cabin-meta-item">
-            <svg viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75"
-              />
-            </svg>
-            Вільний: <span className="cabin-next-free">перевірте дати</span>
-          </div>
         </div>
         <div className="cabin-footer-block">
           <div className="price-info">

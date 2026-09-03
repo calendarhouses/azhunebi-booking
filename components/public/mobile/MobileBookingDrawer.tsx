@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState, type MouseEvent, type ReactNode, type TouchEvent } from "react";
+import { StayRulesAgreeFooter } from "../StayRulesAgreeFooter";
+import { useStayRulesScrollUnlock } from "../useStayRulesScrollUnlock";
 import type { PublicRoom } from "@/lib/public-booking/types";
 import { PublicAmenitiesSection } from "../PublicAmenitiesSection";
 import { PublicDiscountsSection } from "../PublicDiscountsSection";
@@ -79,13 +81,15 @@ export function MobileBookingDrawer() {
     checkOut,
     submitCheckout,
     submitting,
-    getNextFreeForRoom,
   } = usePublicBooking();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [comment, setComment] = useState("");
+  const rulesActive = open && step === "rules";
+  const { sentinelRef: rulesEndRef, unlocked: rulesRead } =
+    useStayRulesScrollUnlock(rulesActive);
   const detailSliderRef = useRef<HTMLDivElement>(null);
   const detailSliderTrackStyle = useSliderTrackStyle(detailSliderRef, detailSlide);
   const touchStartX = useRef(0);
@@ -107,7 +111,6 @@ export function MobileBookingDrawer() {
   const images = getRoomImages(roomAsPublic, { card: true });
   const minPrice = getRoomMinPrice(roomAsPublic, runtime?.customPrices || {});
   const branding = runtime?.branding || {};
-  const nextFree = runtime ? getNextFreeForRoom(roomAsPublic) : "—";
   const maxGuests = room.maxCapacity || room.capacity;
 
   const onDetailTouchStart = (e: TouchEvent) => {
@@ -172,7 +175,7 @@ export function MobileBookingDrawer() {
               </div>
             </div>
 
-            <DrawerRoomHeader room={roomAsPublic} nextFreeLabel={nextFree} />
+            <DrawerRoomHeader room={roomAsPublic} />
 
             <PublicAmenitiesSection room={roomAsPublic} resetKey={roomAsPublic.id} />
 
@@ -533,30 +536,18 @@ export function MobileBookingDrawer() {
               </div>
             </div>
 
-            <BookingStayRules branding={branding} />
+            <BookingStayRules branding={branding} endSentinelRef={rulesEndRef} />
           </DrawerContent>
 
-          <div className="sticky-cta sticky-cta--rules">
-            <button
-              type="button"
-              className="btn-proceed"
-              id="agreeRulesBtn"
-              disabled={submitting || !price || childrenPolicyBlocked}
-              onClick={() =>
-                submitCheckout({ firstName, lastName, phone, comment })
-              }
-            >
-              {submitting ? "Відправляємо..." : "Погоджуюсь"}
-            </button>
-            <button
-              type="button"
-              className="btn-rules-back"
-              disabled={submitting}
-              onClick={() => setStep("checkout")}
-            >
-              Повернутися
-            </button>
-          </div>
+          <StayRulesAgreeFooter
+            unlocked={rulesRead}
+            submitting={submitting}
+            blocked={!price || childrenPolicyBlocked}
+            onAgree={() =>
+              submitCheckout({ firstName, lastName, phone, comment })
+            }
+            onBack={() => setStep("checkout")}
+          />
         </div>
       </div>
     </div>

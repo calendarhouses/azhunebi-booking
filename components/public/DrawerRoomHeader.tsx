@@ -7,10 +7,9 @@ import { DesktopIcons } from "@/lib/public-booking/desktopIcons";
 
 type DrawerRoomHeaderProps = {
   room: PublicRoom;
-  nextFreeLabel: string;
 };
 
-export function DrawerRoomHeader({ room, nextFreeLabel }: DrawerRoomHeaderProps) {
+export function DrawerRoomHeader({ room }: DrawerRoomHeaderProps) {
   const description = getRoomDescription(room);
   const guestCount = room.maxCapacity || room.capacity;
 
@@ -34,16 +33,6 @@ export function DrawerRoomHeader({ room, nextFreeLabel }: DrawerRoomHeaderProps)
           <div className="drawer-room-stat__body">
             <span className="drawer-room-stat__label">Місткість</span>
             <span className="drawer-room-stat__value">До {guestCount} гостей</span>
-          </div>
-        </div>
-
-        <div className="drawer-room-stat drawer-room-stat--free">
-          <div className="drawer-room-stat__icon" aria-hidden>
-            {DesktopIcons.calendar}
-          </div>
-          <div className="drawer-room-stat__body">
-            <span className="drawer-room-stat__label">Вільний</span>
-            <span className="drawer-room-stat__value">{nextFreeLabel}</span>
           </div>
         </div>
       </div>
