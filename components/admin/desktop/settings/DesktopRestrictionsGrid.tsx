@@ -30,6 +30,7 @@ import {
   PRICE_ROW_HEIGHT,
 } from "./priceGridUtils";
 import { buildRuleGridSelectionPreset } from "./ruleConstructorLogic";
+import { useMobileBoardPageScroll } from "./useMobileBoardPageScroll";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 import type { AdminSettingsPayload } from "../types";
@@ -129,8 +130,8 @@ function RuleGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    // Board owns X+Y scroll on mobile (same as main chessboard).
-    touchAction: enableTouchPan ? "pan-x pan-y" : "none",
+    // Horizontal only: vertical pans scroll the page (.main-content).
+    touchAction: enableTouchPan ? "pan-x" : "none",
   };
 
   return (
@@ -453,11 +454,17 @@ export function DesktopRestrictionsGrid({
   }, [startDate, daysCount, compactGrid, syncFocusHeadTrack]);
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (isMobile || compactGrid) {
+    if (isMobile) {
+      return {
+        horizontal: scrollRef.current,
+        verticalPage: settingsMainRef.current,
+      };
+    }
+    if (compactGrid) {
       return {
         horizontal: scrollRef.current,
         vertical: scrollRef.current,
-        verticalSync: compactGrid ? sidebarBodyScrollRef.current : null,
+        verticalSync: sidebarBodyScrollRef.current,
       };
     }
     return {
@@ -465,6 +472,13 @@ export function DesktopRestrictionsGrid({
       verticalPage: settingsMainRef.current,
     };
   }, [compactGrid, isMobile]);
+
+  useMobileBoardPageScroll({
+    enabled: isMobile && isTabActive,
+    boardRef: scrollRef,
+    pageRef: settingsMainRef,
+    dragRef,
+  });
 
   const dragScrollOptions = useCallback(
     () => ({ viewportEdges: isMobile }),
@@ -1233,12 +1247,13 @@ export function DesktopRestrictionsGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                flex: "1 1 auto",
+                flex: "0 0 auto",
                 overflowX: "auto",
-                overflowY: "auto",
+                overflowY: "hidden",
                 WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x pan-y",
-                overscrollBehavior: "none",
+                touchAction: "pan-x",
+                overscrollBehaviorX: "none",
+                overscrollBehaviorY: "auto",
               }}
             >
               <div

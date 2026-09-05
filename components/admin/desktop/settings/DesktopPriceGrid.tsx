@@ -25,6 +25,7 @@ import {
   PRICE_ROW_HEIGHT,
 } from "./priceGridUtils";
 import { buildGridSelectionPreset } from "./priceConstructorLogic";
+import { useMobileBoardPageScroll } from "./useMobileBoardPageScroll";
 import type { AdminModalsApi } from "../useAdminModals";
 import type { AdminUndoApi } from "@/components/admin/undo/useAdminUndo";
 import type { AdminSettingsPayload } from "../types";
@@ -156,8 +157,8 @@ function PriceGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    // Board owns X+Y scroll on mobile (same as main chessboard).
-    touchAction: editing ? "auto" : enableTouchPan ? "pan-x pan-y" : "none",
+    // Horizontal only: vertical pans scroll the page (.main-content).
+    touchAction: editing ? "auto" : enableTouchPan ? "pan-x" : "none",
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -503,11 +504,17 @@ export function DesktopPriceGrid({
   }, [isMobile]);
 
   const getDragScrollTargets = useCallback((): DragScrollTargets => {
-    if (isMobile || focusLayout) {
+    if (isMobile) {
+      return {
+        horizontal: scrollRef.current,
+        verticalPage: settingsMainRef.current,
+      };
+    }
+    if (focusLayout) {
       return {
         horizontal: scrollRef.current,
         vertical: scrollRef.current,
-        verticalSync: focusLayout ? sidebarBodyScrollRef.current : null,
+        verticalSync: sidebarBodyScrollRef.current,
       };
     }
     return {
@@ -515,6 +522,13 @@ export function DesktopPriceGrid({
       verticalPage: settingsMainRef.current,
     };
   }, [focusLayout, isMobile]);
+
+  useMobileBoardPageScroll({
+    enabled: isMobile && isTabActive,
+    boardRef: scrollRef,
+    pageRef: settingsMainRef,
+    dragRef,
+  });
 
   const dragScrollOptions = useCallback(
     () => ({ viewportEdges: isMobile }),
@@ -1443,12 +1457,14 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                flex: "1 1 auto",
+                flex: "0 0 auto",
                 overflowX: "auto",
-                overflowY: "auto",
+                overflowY: "hidden",
                 WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x pan-y",
-                overscrollBehavior: "none",
+                // pan-x only: page (.main-content) owns vertical scroll
+                touchAction: "pan-x",
+                overscrollBehaviorX: "none",
+                overscrollBehaviorY: "auto",
               }}
             >
               <div
