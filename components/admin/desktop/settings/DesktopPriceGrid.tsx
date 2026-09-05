@@ -1216,8 +1216,7 @@ export function DesktopPriceGrid({
     ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
     ...(isMobile
       ? {
-          flex: "1 1 0",
-          minHeight: 0,
+          flex: "0 0 auto",
           minWidth: 0,
           width: "100%",
           maxWidth: "100%",
@@ -1266,8 +1265,7 @@ export function DesktopPriceGrid({
               width: "100%",
               maxWidth: "100%",
               minWidth: 0,
-              minHeight: 0,
-              flex: "1 1 0",
+              flex: "0 0 auto",
             }
           : undefined
       }
@@ -1429,11 +1427,7 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                minHeight: 0,
-                flex: "1 1 0",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
+                flex: "0 0 auto",
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
                 ["--timeline-mobile-head-height" as string]: mobileDense ? "54px" : "56px",
@@ -1449,12 +1443,10 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                minHeight: 0,
-                flex: "1 1 0",
+                flex: "1 1 auto",
                 overflowX: "auto",
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
-                // Board owns both axes (page scroll is locked on prices/restrictions).
                 touchAction: "pan-x pan-y",
                 overscrollBehavior: "none",
               }}

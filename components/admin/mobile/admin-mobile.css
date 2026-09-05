@@ -2261,18 +2261,17 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     height: auto !important;
     min-height: 0 !important;
     max-height: none;
-    flex: 1 1 0;
-    align-items: stretch;
-    align-self: stretch;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    align-self: flex-start;
     width: 100%;
 }
 
 body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobile-board.timeline-wrapper {
-  flex: 1 1 0 !important;
+  flex: 0 0 auto !important;
   align-self: stretch !important;
   height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
+  min-height: 220px !important;
   overflow: hidden !important;
 }
 .boso-admin-mobile #set-prices .timeline-sidebar,
@@ -2338,12 +2337,7 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 }
 .boso-admin-mobile #view-settings #set-prices,
 .boso-admin-mobile #view-settings #set-restrictions {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: hidden;
-    padding-bottom: calc(8px + var(--safe-bottom));
+    padding-bottom: 32px;
 }
 /* Футер generic-модалки — як old_boso_mobile.html */
 .boso-admin-mobile #genericModal .modal-footer {
@@ -5247,52 +5241,17 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   border-top: 0 !important;
 }
 
-/* Prices/rules tabs: board owns X+Y scroll (same contract as #view-grid). */
-.boso-admin-mobile .main-content:has(#set-prices),
-.boso-admin-mobile .main-content:has(#set-restrictions) {
-  overflow: hidden !important;
-}
-
-.boso-admin-mobile #view-settings:has(#set-prices),
-.boso-admin-mobile #view-settings:has(#set-restrictions) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-  padding-bottom: 0;
-}
-
-.boso-admin-mobile #view-settings:has(#set-prices) .mobile-settings-shell,
-.boso-admin-mobile #view-settings:has(#set-restrictions) .mobile-settings-shell {
-  flex: 0 0 auto;
-}
-
-.boso-admin-mobile #view-settings:has(#set-prices) .settings-tab-content,
-.boso-admin-mobile #view-settings:has(#set-restrictions) .settings-tab-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  overflow: hidden;
-  padding-bottom: 0;
-}
-
 /* Settings: price and restriction timelines */
 .boso-admin-mobile #view-settings :is(.price-grid-view, .restrictions-grid-view) {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  min-height: 0;
-  flex: 1 1 0;
 }
 
 .boso-admin-mobile #view-settings :is(.price-grid-toolbar, .restrictions-grid-toolbar) {
   display: flex;
   flex-direction: column;
-  flex: 0 0 auto;
   gap: 8px;
   padding: 14px;
   border: 1px solid var(--settings-border);
@@ -5466,10 +5425,6 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 }
 
 .boso-admin-mobile #view-settings :is(.price-grid-premium, .restrictions-grid-premium) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-card);
@@ -5497,7 +5452,7 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   min-height: 44px;
 }
 
-/* Dense prices = more board height (hide heading + month nav), board still owns scroll */
+/* Dense prices = more board height (hide heading + month nav) */
 body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-heading {
   display: none;
 }
@@ -5508,7 +5463,7 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-shell 
 }
 
 body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
-  padding-bottom: calc(8px + var(--safe-bottom));
+  padding-bottom: calc(12px + var(--safe-bottom));
 }
 
 .boso-admin-mobile #view-settings #priceScroll.timeline-grid-container {
@@ -5557,12 +5512,16 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   padding-bottom: 0 !important;
 }
 
-/* Prices + rules boards: fill remaining viewport; scrollport owns X+Y */
+/*
+  Prices + rules boards: keep natural width/height so the board is always visible,
+  but cap height so rooms can scroll inside the chessboard (Android/iOS).
+*/
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board {
-  flex: 1 1 0 !important;
+  --settings-board-max-h: calc(100dvh - 280px);
+  flex: 0 0 auto !important;
   height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
+  min-height: 220px !important;
+  max-height: var(--settings-board-max-h) !important;
   width: 100% !important;
   max-width: 100% !important;
   overflow: hidden !important;
@@ -5571,16 +5530,20 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   flex-direction: column !important;
 }
 
+body.boso-prices-dense .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board {
+  --settings-board-max-h: calc(100dvh - 170px);
+}
+
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll {
-  flex: 1 1 0 !important;
-  height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
+  flex: 1 1 auto !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
+  min-height: 200px !important;
+  height: auto !important;
+  max-height: var(--settings-board-max-h, calc(100dvh - 280px)) !important;
   overflow-x: auto !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
