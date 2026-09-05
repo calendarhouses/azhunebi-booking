@@ -156,9 +156,8 @@ function PriceGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    // Horizontal-only scrollport: pan-x lets Android chain vertical swipes to the page.
-    // pan-x pan-y + overflow-y:hidden traps vertical gestures on Android.
-    touchAction: editing ? "auto" : enableTouchPan ? "pan-x" : "none",
+    // Board owns X+Y scroll on mobile (same as main chessboard).
+    touchAction: editing ? "auto" : enableTouchPan ? "pan-x pan-y" : "none",
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -924,7 +923,7 @@ export function DesktopPriceGrid({
         const dx = e.clientX - drag.startX;
         const dy = e.clientY - drag.startY;
         const dist = Math.hypot(dx, dy);
-        // Vertical page scroll — release pending selection, never preventDefault.
+        // Vertical board scroll — release pending selection, never preventDefault.
         if (dist >= TOUCH_HOLD_CANCEL_PX && Math.abs(dy) >= Math.abs(dx)) {
           abortDragSelection();
           return;
@@ -999,7 +998,7 @@ export function DesktopPriceGrid({
         const dy = t.clientY - drag.startY;
         const dist = Math.hypot(dx, dy);
         lastPointerRef.current = { x: t.clientX, y: t.clientY };
-        // Vertical page scroll — do not preventDefault; abort hold/selection.
+        // Vertical board scroll — do not preventDefault; abort hold/selection.
         if (dist >= TOUCH_HOLD_CANCEL_PX && Math.abs(dy) >= Math.abs(dx)) {
           abortDragSelection();
           return;
@@ -1011,7 +1010,7 @@ export function DesktopPriceGrid({
       }
 
       // Active multi-select only: lock scroll. Vertical-dominant moves still stay locked
-      // while selecting so the highlight does not fight the page.
+      // while selecting so the highlight does not fight the board scroll.
       if (e.cancelable) e.preventDefault();
       lastPointerRef.current = { x: t.clientX, y: t.clientY };
 
@@ -1217,7 +1216,8 @@ export function DesktopPriceGrid({
     ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
     ...(isMobile
       ? {
-          flex: "0 0 auto",
+          flex: "1 1 0",
+          minHeight: 0,
           minWidth: 0,
           width: "100%",
           maxWidth: "100%",
@@ -1266,7 +1266,8 @@ export function DesktopPriceGrid({
               width: "100%",
               maxWidth: "100%",
               minWidth: 0,
-              flex: "0 0 auto",
+              minHeight: 0,
+              flex: "1 1 0",
             }
           : undefined
       }
@@ -1428,7 +1429,11 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                flex: "0 0 auto",
+                minHeight: 0,
+                flex: "1 1 0",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
                 ["--timeline-mobile-head-height" as string]: mobileDense ? "54px" : "56px",
@@ -1444,13 +1449,14 @@ export function DesktopPriceGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                flex: "0 0 auto",
+                minHeight: 0,
+                flex: "1 1 0",
                 overflowX: "auto",
-                overflowY: "hidden",
+                overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
-                // pan-x only: page (.main-content) owns vertical scroll on Android
-                touchAction: "pan-x",
-                overscrollBehaviorX: "none",
+                // Board owns both axes (page scroll is locked on prices/restrictions).
+                touchAction: "pan-x pan-y",
+                overscrollBehavior: "none",
               }}
             >
               <div

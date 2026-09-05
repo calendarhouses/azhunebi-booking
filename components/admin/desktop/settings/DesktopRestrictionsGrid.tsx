@@ -129,8 +129,8 @@ function RuleGridCell({
     minWidth: width,
     height: "100%",
     alignSelf: "stretch",
-    // Horizontal-only scrollport: pan-x lets Android chain vertical swipes to the page.
-    touchAction: enableTouchPan ? "pan-x" : "none",
+    // Board owns X+Y scroll on mobile (same as main chessboard).
+    touchAction: enableTouchPan ? "pan-x pan-y" : "none",
   };
 
   return (
@@ -1006,7 +1006,8 @@ export function DesktopRestrictionsGrid({
     ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
     ...(isMobile
       ? {
-          flex: "0 0 auto",
+          flex: "1 1 0",
+          minHeight: 0,
           minWidth: 0,
           width: "100%",
           maxWidth: "100%",
@@ -1055,7 +1056,8 @@ export function DesktopRestrictionsGrid({
               width: "100%",
               maxWidth: "100%",
               minWidth: 0,
-              flex: "0 0 auto",
+              minHeight: 0,
+              flex: "1 1 0",
             }
           : undefined
       }
@@ -1217,7 +1219,11 @@ export function DesktopRestrictionsGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                flex: "0 0 auto",
+                minHeight: 0,
+                flex: "1 1 0",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
                 ["--timeline-cell-width" as string]: `${PRICE_CELL_MIN}px`,
                 ["--timeline-grid-width" as string]: `${gridTotalWidth}px`,
                 ["--timeline-mobile-head-height" as string]: mobileDense ? "54px" : "56px",
@@ -1233,12 +1239,13 @@ export function DesktopRestrictionsGrid({
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
-                flex: "0 0 auto",
+                minHeight: 0,
+                flex: "1 1 0",
                 overflowX: "auto",
-                overflowY: "hidden",
+                overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x",
-                overscrollBehaviorX: "none",
+                touchAction: "pan-x pan-y",
+                overscrollBehavior: "none",
               }}
             >
               <div

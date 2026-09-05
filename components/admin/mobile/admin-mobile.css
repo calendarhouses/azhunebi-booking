@@ -2261,14 +2261,14 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     height: auto !important;
     min-height: 0 !important;
     max-height: none;
-    flex: 0 0 auto;
-    align-items: flex-start;
-    align-self: flex-start;
+    flex: 1 1 0;
+    align-items: stretch;
+    align-self: stretch;
     width: 100%;
 }
 
 body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobile-board.timeline-wrapper {
-  flex: 0 0 auto !important;
+  flex: 1 1 0 !important;
   align-self: stretch !important;
   height: auto !important;
   max-height: none !important;
@@ -2338,7 +2338,12 @@ body.boso-prices-dense .boso-admin-mobile #set-prices .price-grid-timeline--mobi
 }
 .boso-admin-mobile #view-settings #set-prices,
 .boso-admin-mobile #view-settings #set-restrictions {
-    padding-bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: calc(8px + var(--safe-bottom));
 }
 /* Футер generic-модалки — як old_boso_mobile.html */
 .boso-admin-mobile #genericModal .modal-footer {
@@ -5242,17 +5247,52 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   border-top: 0 !important;
 }
 
+/* Prices/rules tabs: board owns X+Y scroll (same contract as #view-grid). */
+.boso-admin-mobile .main-content:has(#set-prices),
+.boso-admin-mobile .main-content:has(#set-restrictions) {
+  overflow: hidden !important;
+}
+
+.boso-admin-mobile #view-settings:has(#set-prices),
+.boso-admin-mobile #view-settings:has(#set-restrictions) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.boso-admin-mobile #view-settings:has(#set-prices) .mobile-settings-shell,
+.boso-admin-mobile #view-settings:has(#set-restrictions) .mobile-settings-shell {
+  flex: 0 0 auto;
+}
+
+.boso-admin-mobile #view-settings:has(#set-prices) .settings-tab-content,
+.boso-admin-mobile #view-settings:has(#set-restrictions) .settings-tab-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
 /* Settings: price and restriction timelines */
 .boso-admin-mobile #view-settings :is(.price-grid-view, .restrictions-grid-view) {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
 }
 
 .boso-admin-mobile #view-settings :is(.price-grid-toolbar, .restrictions-grid-toolbar) {
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   gap: 8px;
   padding: 14px;
   border: 1px solid var(--settings-border);
@@ -5426,6 +5466,10 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
 }
 
 .boso-admin-mobile #view-settings :is(.price-grid-premium, .restrictions-grid-premium) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--settings-border);
   border-radius: var(--settings-radius-card);
@@ -5453,7 +5497,7 @@ body.boso-admin-mobile-active .booking-quick-edit-overlay {
   min-height: 44px;
 }
 
-/* Dense prices = same scroll as standard (page scrolls), only narrower rows + hide month nav */
+/* Dense prices = more board height (hide heading + month nav), board still owns scroll */
 body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-heading {
   display: none;
 }
@@ -5464,12 +5508,12 @@ body.boso-prices-dense .boso-admin-mobile #view-settings .mobile-settings-shell 
 }
 
 body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
-  padding-bottom: calc(12px + var(--safe-bottom));
+  padding-bottom: calc(8px + var(--safe-bottom));
 }
 
 .boso-admin-mobile #view-settings #priceScroll.timeline-grid-container {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .boso-admin-mobile #view-settings #priceScroll .price-grid-track {
@@ -5513,9 +5557,9 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   padding-bottom: 0 !important;
 }
 
-/* Prices + rules boards: content-sized; page (.main-content) owns vertical scroll */
+/* Prices + rules boards: fill remaining viewport; scrollport owns X+Y */
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board {
-  flex: 0 0 auto !important;
+  flex: 1 1 0 !important;
   height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
@@ -5523,26 +5567,25 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
   max-width: 100% !important;
   overflow: hidden !important;
   align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll {
-  flex: 0 0 auto !important;
+  flex: 1 1 0 !important;
   height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
-  /* overflow-y:hidden (not visible): with overflow-x:auto, "visible" computes to "auto" on iOS */
   overflow-x: auto !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  /* pan-x only — pan-y + overflow-y:hidden traps vertical page scroll on Android */
-  touch-action: pan-x !important;
-  overscroll-behavior-x: none !important;
-  overscroll-behavior-y: auto !important;
+  touch-action: pan-x pan-y !important;
+  overscroll-behavior: none !important;
 }
 
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board .timeline-mobile-board {
@@ -5768,24 +5811,24 @@ body.boso-prices-dense .boso-admin-mobile #view-settings #set-prices {
 
 .boso-admin-mobile #view-settings .price-grid-view .price-cell,
 .boso-admin-mobile #view-settings .price-grid-view .restriction-cell {
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
 }
 
 /* Selecting mode must NOT flip touch-action mid-gesture (iOS cancels the pointer).
    Scroll is blocked via non-passive touchmove preventDefault while selecting. */
 .boso-admin-mobile #view-settings .price-grid-view--touch-selecting .price-cell,
 .boso-admin-mobile #view-settings .price-grid-view--touch-selecting .restriction-cell {
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .price-cell,
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense .restriction-cell {
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
 }
 
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .price-cell,
 .boso-admin-mobile #view-settings .price-grid-view--mobile-dense.price-grid-view--touch-selecting .restriction-cell {
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
 }
 
 /* Settings: flexible schedule and guest services */
@@ -8050,7 +8093,7 @@ body.boso-admin-android .booking-quick-edit-sheet * {
   overflow-y: hidden !important;
 }
 
-/* Android price/rules chessboards: keep pan-x (no mid-gesture touch-action flip). */
+/* Android price/rules chessboards: keep pan-x pan-y (no mid-gesture touch-action flip). */
 .boso-admin-android .price-grid-view--touch-selecting,
 .boso-admin-android .price-grid-view--touch-selecting .price-cell,
 .boso-admin-android .price-grid-view--touch-selecting .restriction-cell,
@@ -8058,17 +8101,17 @@ body.boso-admin-android .booking-quick-edit-sheet * {
 .boso-admin-android .price-grid-view--touch-selecting .timeline-mobile-scroll *,
 .boso-admin-android .price-grid-view--touch-selecting #restrictionScroll,
 .boso-admin-android .price-grid-view--touch-selecting #restrictionScroll * {
-  touch-action: pan-x !important;
+  touch-action: pan-x pan-y !important;
 }
 
-/* Price/rules boards: override global timeline pan-x pan-y so vertical scrolls the page */
+/* Price/rules boards: match main chessboard — board owns vertical + horizontal pan */
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll,
 .boso-admin-mobile #view-settings .price-grid-timeline--mobile-board > .timeline-mobile-scroll *,
 .boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #priceScroll.timeline-mobile-scroll *,
 .boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll,
 .boso-admin-mobile #view-settings #restrictionScroll.timeline-mobile-scroll * {
-  touch-action: pan-x !important;
+  touch-action: pan-x pan-y !important;
 }
 
 /* Guest autocomplete + reputation (mobile) */
