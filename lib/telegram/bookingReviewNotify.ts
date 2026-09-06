@@ -10,7 +10,6 @@ import { formatGuestsLabel } from "@/lib/public-booking/formatGuestsLabel";
 import { getRequestsTargets, isTelegramConfigured } from "./config";
 import {
   answerTelegramCallback,
-  editTelegramMessage,
   sendTelegramMessage,
 } from "./sendMessage";
 
@@ -50,7 +49,7 @@ function formatMoneyUa(amount: number): string {
   return `${Math.round(amount).toLocaleString("uk-UA")} ₴`;
 }
 
-function buildDecisionSummaryHtml(
+export function buildDecisionSummaryHtml(
   decision: "approve" | "reject",
   booking: {
     name?: string;
@@ -165,7 +164,28 @@ export async function notifyPendingBookingReview(
     if (!res.ok) {
       const body2 = await res.text().catch(() => "");
       console.error("[TG] pending review notify fallback failed:", res.status, body2);
+      return;
     }
+  }
+
+  try {
+    const json = (await res.clone().json().catch(() => null)) as {
+      result?: { message_id?: number; chat?: { id?: string | number } };
+    } | null;
+    const messageId = Number(json?.result?.message_id);
+    const chatId = String(json?.result?.chat?.id ?? target.chatId ?? "").trim();
+    if (Number.isFinite(messageId) && messageId > 0 && chatId) {
+      const { rememberPendingReviewMessage } = await import(
+        "@/lib/telegram/pendingReviewMessages"
+      );
+      await rememberPendingReviewMessage({
+        orderId: data.orderId.trim(),
+        chatId,
+        messageId,
+      });
+    }
+  } catch (err) {
+    console.warn("[TG] pending review message id store failed", err);
   }
 }
 
@@ -184,36 +204,24 @@ export async function handleBookingReviewCallback(
   const decision = match[1] as "approve" | "reject";
   const orderId = match[2].trim();
 
-  const result = await processBookingReview({ orderId, decision });
+  const result = await processBookingReview({
+    orderId,
+    decision,
+    telegramMessage: { chatId, messageId },
+  });
   if (!result.ok) {
     const alert =
       result.reason === "not_found"
         ? "Бронь не знайдено"
         : result.reason === "unauthorized"
           ? "Немає доступу (секрет GAS). Звернись до розробника."
-          : `Помилка: ${result.reason || "оновлення"}`;
+          : result.reason === "bad_status"
+            ? "Бронь уже в іншому статусі"
+            : `Помилка: ${result.reason || "оновлення"}`;
     await answerTelegramCallback(callbackQueryId, alert);
-    return;
-  }
-
-  if (decision === "reject") {
-    const smsLine = result.smsLine || "Скасовано";
-    await answerTelegramCallback(callbackQueryId, smsLine);
-    const body = result.booking
-      ? buildDecisionSummaryHtml("reject", result.booking, smsLine)
-      : `❌ <b>Скасовано</b>\n\n📱 ${smsLine}`;
-    await editTelegramMessage(chatId, messageId, body, {
-      inline_keyboard: [],
-    });
     return;
   }
 
   const smsLine = result.smsLine || "Готово";
   await answerTelegramCallback(callbackQueryId, smsLine);
-  const body = result.booking
-    ? buildDecisionSummaryHtml("approve", result.booking, smsLine)
-    : `✅ <b>Прийнято</b>\n\n📱 ${smsLine}`;
-  await editTelegramMessage(chatId, messageId, body, {
-    inline_keyboard: [],
-  });
 }

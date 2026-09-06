@@ -51,6 +51,9 @@ export function formatSmsStatusLine(
   if (result.sms?.responseStatus === "disabled") {
     return "SMS вимкнено в налаштуваннях.";
   }
+  if (result.sms?.responseStatus === "already sent") {
+    return "SMS вже надіслано раніше.";
+  }
   if (result.sms?.ok) {
     return decision === "reject" ? "SMS про скасування надіслано." : "SMS надіслано гостю.";
   }

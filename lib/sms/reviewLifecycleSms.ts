@@ -94,12 +94,19 @@ export async function sendReviewLifecycleSms(
   const orderId = String(booking.id || "").trim();
   let claimedPaymentLink = false;
 
-  // Block payment-lifecycle cron from sending a duplicate payment_link SMS.
-  if (type === "review_approve" && orderId && !booking.paymentLinkSmsSentAt) {
-    const claim = await markBookingSmsSent(orderId, "payment_link");
-    if (claim.ok && !claim.already && claim.claimed !== false) {
-      claimedPaymentLink = true;
+  // Same idempotency contract as payment_link SMS — never send twice.
+  if (type === "review_approve" && orderId) {
+    if (booking.paymentLinkSmsSentAt) {
+      return { ok: true, responseStatus: "already sent" };
     }
+    const claim = await markBookingSmsSent(orderId, "payment_link");
+    if (!claim.ok) {
+      return { ok: false, error: claim.reason || "claim_failed" };
+    }
+    if (claim.already || claim.claimed === false) {
+      return { ok: true, responseStatus: "already sent" };
+    }
+    claimedPaymentLink = true;
   }
 
   let paymentWindowHours = 3;

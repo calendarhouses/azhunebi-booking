@@ -532,7 +532,22 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
         const decision = String(body.decision || "");
         const booking = await getBookingById(orderId);
         if (!booking) return ok({ ok: false, reason: "not_found" });
+        const {
+          isPendingReviewStatus,
+          isAwaitingPaymentStatus,
+        } = await import("@/lib/public-booking/bookingReview");
+        const status = String(booking.status || "");
         if (decision === "approve") {
+          // Already approved/paid — do not reprice or re-send payment SMS.
+          if (
+            isAwaitingPaymentStatus(status) ||
+            /підтверджено|оплачено|заселен/i.test(status)
+          ) {
+            return ok({ ok: true, already: true, booking });
+          }
+          if (!isPendingReviewStatus(status)) {
+            return ok({ ok: false, reason: "bad_status", booking });
+          }
           const { confirmPendingReviewTokensInComment } = await import(
             "@/lib/sms/reviewRequestSmsVars"
           );
@@ -565,6 +580,12 @@ export async function dispatchSupabaseAction(ctx: DispatchContext): Promise<Disp
           return ok({ ok: true, booking: next });
         }
         if (decision === "reject") {
+          if (/скасовано/i.test(status)) {
+            return ok({ ok: true, already: true, booking });
+          }
+          if (!isPendingReviewStatus(status)) {
+            return ok({ ok: false, reason: "bad_status", booking });
+          }
           const next = await upsertBooking({ ...booking, status: "Скасовано" });
           void import("@/lib/telegram/changeLogNotify")
             .then(({ notifyBookingChangeLog }) =>

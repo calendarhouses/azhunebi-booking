@@ -15,6 +15,7 @@ export type BookingReviewDecision = "approve" | "reject";
 export type ProcessBookingReviewResult = {
   ok: boolean;
   reason?: string;
+  already?: boolean;
   orderId: string;
   decision: BookingReviewDecision;
   smsLine?: string;
@@ -61,10 +62,41 @@ async function sendReviewSms(
   return { sms, smsSkipped: false };
 }
 
+async function finalizeTelegramUiQuietly(params: {
+  orderId: string;
+  decision: BookingReviewDecision;
+  booking?: GuestMessengerBooking;
+  smsLine?: string;
+  telegramMessage?: { chatId: string | number; messageId: number };
+}): Promise<void> {
+  try {
+    const { buildDecisionSummaryHtml } = await import("@/lib/telegram/bookingReviewNotify");
+    const { finalizePendingReviewTelegramMessages } = await import(
+      "@/lib/telegram/pendingReviewMessages"
+    );
+    const smsLine = params.smsLine || (params.decision === "approve" ? "Готово" : "Скасовано");
+    const body = params.booking
+      ? buildDecisionSummaryHtml(params.decision, params.booking, smsLine)
+      : params.decision === "approve"
+        ? `✅ <b>Прийнято</b>\n\n📱 ${smsLine}`
+        : `❌ <b>Скасовано</b>\n\n📱 ${smsLine}`;
+    await finalizePendingReviewTelegramMessages({
+      orderId: params.orderId,
+      decision: params.decision,
+      bodyHtml: body,
+      alsoEdit: params.telegramMessage,
+    });
+  } catch (err) {
+    console.warn("[review] telegram finalize failed", err);
+  }
+}
+
 export async function processBookingReview(params: {
   orderId: string;
   decision: BookingReviewDecision;
   adminAuth?: { token: string; tenantId: string };
+  /** When decision came from a Telegram button, pass the source message to edit. */
+  telegramMessage?: { chatId: string | number; messageId: number };
 }): Promise<ProcessBookingReviewResult> {
   const orderId = params.orderId.trim();
 
@@ -104,24 +136,61 @@ export async function processBookingReview(params: {
     };
   }
 
+  const already = Boolean(result.already);
+
   await clearPendingReviewRemindersQuietly();
   const bookingRaw =
     result.booking || (await fetchBookingByDisplayId(orderId).catch(() => null))?.booking;
 
   if (!bookingRaw) {
     console.warn("[review] ok but booking payload missing", orderId, params.decision);
-    return {
-      ok: true,
+    const smsLine =
+      params.decision === "approve"
+        ? already
+          ? "Вже підтверджено раніше."
+          : "Підтверджено, але дані броні не підвантажились для SMS."
+        : already
+          ? "Вже скасовано раніше."
+          : "Скасовано, але дані броні не підвантажились для SMS.";
+    await finalizeTelegramUiQuietly({
       orderId,
       decision: params.decision,
-      smsLine:
-        params.decision === "approve"
-          ? "Підтверджено, але дані броні не підвантажились для SMS."
-          : "Скасовано, але дані броні не підвантажились для SMS.",
+      smsLine,
+      telegramMessage: params.telegramMessage,
+    });
+    return {
+      ok: true,
+      already,
+      orderId,
+      decision: params.decision,
+      smsLine,
     };
   }
 
   const guestBooking = toGuestBooking(orderId, bookingRaw);
+
+  // Duplicate click (admin then Telegram, or double Telegram): never send SMS again.
+  if (already) {
+    const smsLine =
+      params.decision === "approve"
+        ? "Вже підтверджено раніше. SMS не дублюємо."
+        : "Вже скасовано раніше.";
+    await finalizeTelegramUiQuietly({
+      orderId,
+      decision: params.decision,
+      booking: guestBooking,
+      smsLine,
+      telegramMessage: params.telegramMessage,
+    });
+    return {
+      ok: true,
+      already: true,
+      orderId,
+      decision: params.decision,
+      smsLine,
+      booking: guestBooking,
+    };
+  }
 
   try {
     const smsSettings = params.adminAuth
@@ -153,23 +222,40 @@ export async function processBookingReview(params: {
       notifyResult = await notifyGuestBookingRejected(guestBooking, smsSettings);
     }
 
+    const smsLine = formatSmsStatusLine(notifyResult, params.decision);
+    await finalizeTelegramUiQuietly({
+      orderId,
+      decision: params.decision,
+      booking: guestBooking,
+      smsLine,
+      telegramMessage: params.telegramMessage,
+    });
+
     return {
       ok: true,
       orderId,
       decision: params.decision,
-      smsLine: formatSmsStatusLine(notifyResult, params.decision),
+      smsLine,
       booking: guestBooking,
     };
   } catch (err) {
     console.error("[review] SMS notify threw", err);
+    const smsLine =
+      params.decision === "approve"
+        ? "Підтверджено, але SMS не вдалося надіслати."
+        : "Скасовано, але SMS не вдалося надіслати.";
+    await finalizeTelegramUiQuietly({
+      orderId,
+      decision: params.decision,
+      booking: guestBooking,
+      smsLine,
+      telegramMessage: params.telegramMessage,
+    });
     return {
       ok: true,
       orderId,
       decision: params.decision,
-      smsLine:
-        params.decision === "approve"
-          ? "Підтверджено, але SMS не вдалося надіслати."
-          : "Скасовано, але SMS не вдалося надіслати.",
+      smsLine,
       booking: guestBooking,
     };
   }

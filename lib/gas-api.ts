@@ -799,6 +799,7 @@ export async function reviewBookingDecision(params: {
   tenantId?: string | null;
 }): Promise<{
   ok: boolean;
+  already?: boolean;
   booking?: GasBookingRecord;
   reason?: string;
   error?: string;
@@ -815,6 +816,7 @@ export async function reviewBookingDecision(params: {
     }
     const data = await gasPost<{
       ok?: boolean;
+      already?: boolean;
       booking?: GasBookingRecord;
       reason?: string;
       error?: string;
@@ -823,7 +825,7 @@ export async function reviewBookingDecision(params: {
     }>(payload, { authToken: params.authToken ?? undefined });
 
     if (data.ok === true) {
-      return { ok: true, booking: data.booking };
+      return { ok: true, already: Boolean(data.already), booking: data.booking };
     }
 
     const err = String(data.error || data.reason || data.message || "update_failed");
